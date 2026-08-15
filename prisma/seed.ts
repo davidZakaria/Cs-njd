@@ -1,12 +1,11 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import { CANONICAL_PROJECTS } from "../lib/projects";
 
 const prisma = new PrismaClient();
 
-const PROJECTS = ["GREEN AVENUE", "JURA", "GENESIS", "SOUL PLAZA"] as const;
-
 async function main() {
-  for (const name of PROJECTS) {
+  for (const name of CANONICAL_PROJECTS) {
     await prisma.project.upsert({
       where: { name },
       update: {},

@@ -1,6 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { getEffectiveCaseAgent, isCaseOwnedByUser } from "@/lib/cases/ownership";
 import { OPEN_TICKET_STATUSES } from "@/lib/cases/workflow";
+import {
+  CANONICAL_PROJECTS,
+  PROJECT_SLUGS,
+  type CanonicalProject,
+} from "@/lib/projects";
 import { getAssignableAgentEmails } from "@/lib/staff";
 
 export type ExecutiveCaseRow = {
@@ -27,19 +32,55 @@ export type AgentWorkload = {
   engineeringCount: number;
 };
 
+export type ExecutiveStats = {
+  openTotal: number;
+  unassigned: number;
+  legal: number;
+  engineering: number;
+  myOpen: number;
+  teamOpen: number;
+  pending: number;
+};
+
+export type CategoryBreakdown = {
+  legal: number;
+  engineering: number;
+  customerService: number;
+  feedbackHistory: number;
+  general: number;
+};
+
+export type ProjectOpenCount = {
+  project: string;
+  slug: string;
+  count: number;
+};
+
+export type ProjectDashboardSlice = {
+  project: string;
+  slug: string;
+  stats: ExecutiveStats;
+  categoryBreakdown: CategoryBreakdown;
+  agentWorkload: AgentWorkload[];
+  teamQueue: ExecutiveCaseRow[];
+  myQueue: ExecutiveCaseRow[];
+};
+
 export type ExecutiveDashboardData = {
-  stats: {
-    openTotal: number;
-    unassigned: number;
-    legal: number;
-    engineering: number;
-    myOpen: number;
-    teamOpen: number;
-  };
+  /** @deprecated Use `global.stats` — kept for current page until Step 4 */
+  stats: ExecutiveStats;
+  /** @deprecated Use `global.agentWorkload` */
   agentWorkload: AgentWorkload[];
   teamQueue: ExecutiveCaseRow[];
   myQueue: ExecutiveCaseRow[];
   agents: Array<{ id: string; name: string }>;
+  global: {
+    stats: ExecutiveStats;
+    categoryBreakdown: CategoryBreakdown;
+    agentWorkload: AgentWorkload[];
+    projectsOpenCounts: ProjectOpenCount[];
+  };
+  byProject: ProjectDashboardSlice[];
 };
 
 function queuePriority(row: ExecutiveCaseRow) {
@@ -49,6 +90,10 @@ function queuePriority(row: ExecutiveCaseRow) {
   if (row.status === "ENGINEERING") return 2;
   if (row.status === "PENDING") return 3;
   return 4;
+}
+
+function sortQueue(items: ExecutiveCaseRow[]) {
+  return [...items].sort((a, b) => queuePriority(a) - queuePriority(b));
 }
 
 function toExecutiveRow(
@@ -97,45 +142,41 @@ function toExecutiveRow(
   };
 }
 
-export async function getExecutiveDashboardData(
-  managerId: string
-): Promise<ExecutiveDashboardData> {
-  const [openTickets, agents] = await Promise.all([
-    prisma.ticket.findMany({
-      where: { status: { in: OPEN_TICKET_STATUSES } },
-      include: {
-        agent: { select: { name: true } },
-        unit: {
-          include: {
-            project: { select: { name: true } },
-            client: { select: { name: true } },
-            agent: { select: { name: true } },
-          },
-        },
-      },
-      orderBy: { updatedAt: "desc" },
-    }),
-    prisma.user.findMany({
-      where: { email: { in: getAssignableAgentEmails() } },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
-  ]);
-
-  const rows = openTickets.map((ticket) => toExecutiveRow(ticket, managerId));
+function computeStats(rows: ExecutiveCaseRow[]): ExecutiveStats {
   const teamRows = rows.filter((row) => !row.isMine);
   const myRows = rows.filter((row) => row.isMine);
 
-  const unassigned = teamRows.filter(
-    (row) => !row.agentId && !row.unitAgentId
-  ).length;
+  return {
+    openTotal: rows.length,
+    unassigned: teamRows.filter((row) => !row.agentId && !row.unitAgentId).length,
+    legal: rows.filter(
+      (row) => row.status === "LEGAL" || row.category === "LEGAL"
+    ).length,
+    engineering: rows.filter((row) => row.status === "ENGINEERING").length,
+    myOpen: myRows.length,
+    teamOpen: teamRows.length,
+    pending: rows.filter((row) => row.status === "PENDING").length,
+  };
+}
 
-  const legal = rows.filter(
-    (row) => row.status === "LEGAL" || row.category === "LEGAL"
-  ).length;
+function computeCategoryBreakdown(rows: ExecutiveCaseRow[]): CategoryBreakdown {
+  return {
+    legal: rows.filter(
+      (row) => row.status === "LEGAL" || row.category === "LEGAL"
+    ).length,
+    engineering: rows.filter((row) => row.status === "ENGINEERING").length,
+    customerService: rows.filter((row) => row.category === "CUSTOMER_SERVICE")
+      .length,
+    feedbackHistory: rows.filter((row) => row.category === "FEEDBACK_HISTORY")
+      .length,
+    general: rows.filter((row) => row.category === "GENERAL").length,
+  };
+}
 
-  const engineering = rows.filter((row) => row.status === "ENGINEERING").length;
-
+function computeAgentWorkload(
+  rows: ExecutiveCaseRow[],
+  agents: Array<{ id: string; name: string }>
+): AgentWorkload[] {
   const workloadMap = new Map<string, AgentWorkload>();
 
   for (const agent of agents) {
@@ -160,9 +201,7 @@ export async function getExecutiveDashboardData(
 
   for (const row of rows) {
     const key = row.agentId ?? row.unitAgentId ?? "unassigned";
-    const bucket =
-      workloadMap.get(key) ??
-      workloadMap.get("unassigned")!;
+    const bucket = workloadMap.get(key) ?? workloadMap.get("unassigned")!;
     bucket.openCount += 1;
     if (row.status === "PENDING") bucket.pendingCount += 1;
     if (row.status === "LEGAL" || row.category === "LEGAL") {
@@ -171,25 +210,115 @@ export async function getExecutiveDashboardData(
     if (row.status === "ENGINEERING") bucket.engineeringCount += 1;
   }
 
-  const agentWorkload = [...workloadMap.values()]
+  return [...workloadMap.values()]
     .filter((item) => item.openCount > 0)
     .sort((a, b) => b.openCount - a.openCount);
+}
 
-  const sortQueue = (items: ExecutiveCaseRow[]) =>
-    [...items].sort((a, b) => queuePriority(a) - queuePriority(b));
+function projectSlug(name: string): string {
+  if ((CANONICAL_PROJECTS as readonly string[]).includes(name)) {
+    return PROJECT_SLUGS[name as CanonicalProject];
+  }
+  return name.toLowerCase().replace(/\s+/g, "-");
+}
+
+function buildProjectSlice(
+  projectName: string,
+  rows: ExecutiveCaseRow[],
+  agents: Array<{ id: string; name: string }>
+): ProjectDashboardSlice {
+  const projectRows = rows.filter((row) => row.project === projectName);
+  const teamRows = projectRows.filter((row) => !row.isMine);
+  const myRows = projectRows.filter((row) => row.isMine);
 
   return {
-    stats: {
-      openTotal: rows.length,
-      unassigned,
-      legal,
-      engineering,
-      myOpen: myRows.length,
-      teamOpen: teamRows.length,
-    },
-    agentWorkload,
+    project: projectName,
+    slug: projectSlug(projectName),
+    stats: computeStats(projectRows),
+    categoryBreakdown: computeCategoryBreakdown(projectRows),
+    agentWorkload: computeAgentWorkload(projectRows, agents),
+    teamQueue: sortQueue(teamRows).slice(0, 30),
+    myQueue: sortQueue(myRows).slice(0, 10),
+  };
+}
+
+export async function getExecutiveDashboardData(
+  managerId: string
+): Promise<ExecutiveDashboardData> {
+  const [openTickets, agents, dbProjects] = await Promise.all([
+    prisma.ticket.findMany({
+      where: { status: { in: OPEN_TICKET_STATUSES } },
+      include: {
+        agent: { select: { name: true } },
+        unit: {
+          include: {
+            project: { select: { name: true } },
+            client: { select: { name: true } },
+            agent: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.user.findMany({
+      where: { email: { in: getAssignableAgentEmails() } },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.project.findMany({
+      orderBy: { name: "asc" },
+      select: { name: true },
+    }),
+  ]);
+
+  const rows = openTickets.map((ticket) => toExecutiveRow(ticket, managerId));
+  const teamRows = rows.filter((row) => !row.isMine);
+  const myRows = rows.filter((row) => row.isMine);
+
+  const globalStats = computeStats(rows);
+  const globalCategoryBreakdown = computeCategoryBreakdown(rows);
+  const globalAgentWorkload = computeAgentWorkload(rows, agents);
+
+  const projectNamesInData = new Set(rows.map((row) => row.project));
+  const orderedProjectNames = [
+    ...CANONICAL_PROJECTS.filter(
+      (name) =>
+        projectNamesInData.has(name) ||
+        dbProjects.some((project) => project.name === name)
+    ),
+    ...dbProjects
+      .map((project) => project.name)
+      .filter(
+        (name) =>
+          !(CANONICAL_PROJECTS as readonly string[]).includes(name) &&
+          projectNamesInData.has(name)
+      ),
+  ];
+
+  const projectsOpenCounts: ProjectOpenCount[] = orderedProjectNames.map(
+    (project) => ({
+      project,
+      slug: projectSlug(project),
+      count: rows.filter((row) => row.project === project).length,
+    })
+  );
+
+  const byProject = orderedProjectNames.map((projectName) =>
+    buildProjectSlice(projectName, rows, agents)
+  );
+
+  return {
+    stats: globalStats,
+    agentWorkload: globalAgentWorkload,
     teamQueue: sortQueue(teamRows).slice(0, 30),
     myQueue: sortQueue(myRows).slice(0, 10),
     agents,
+    global: {
+      stats: globalStats,
+      categoryBreakdown: globalCategoryBreakdown,
+      agentWorkload: globalAgentWorkload,
+      projectsOpenCounts,
+    },
+    byProject,
   };
 }

@@ -1,8 +1,7 @@
 import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { basePrisma as prisma } from "../lib/prisma";
-
-const PROJECTS = ["GREEN AVENUE", "JURA", "GENESIS", "SOUL PLAZA"] as const;
+import { CANONICAL_PROJECTS } from "../lib/projects";
 
 async function main() {
   const email = process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase();
@@ -43,7 +42,7 @@ async function main() {
     },
   });
 
-  for (const projectName of PROJECTS) {
+  for (const projectName of CANONICAL_PROJECTS) {
     await prisma.project.upsert({
       where: { name: projectName },
       update: {},
@@ -53,7 +52,7 @@ async function main() {
 
   console.log("Bootstrap complete.");
   console.log(`Super admin: ${email}`);
-  console.log("Projects seeded:", PROJECTS.join(", "));
+  console.log("Projects seeded:", CANONICAL_PROJECTS.join(", "));
   console.log(
     "Add staff later: npm run db:sync-staff (or create users in /users)"
   );

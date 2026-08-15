@@ -109,17 +109,25 @@
     }
   },
   "executive": {
-    "title": "Executive Dashboard",
-    "subtitle": "Open case overview and quick actions for {name}",
+    "title": "Executive Command Center",
+    "subtitle": "Project portfolio overview and quick actions — {name}",
     "viewAllCases": "Full cases view",
     "saveStatus": "Save",
+    "projectPortfolio": "Project Portfolio",
+    "overview": "Overview",
+    "allProjects": "All Projects",
+    "projectTab": "{project}",
+    "openCasesByProject": "Open cases by project",
+    "casesByCategory": "Cases by category",
     "agentWorkload": "Agent workload",
+    "projectWorkload": "Project workload",
     "teamQueueTitle": "Team cases — assign & act",
     "teamQueueSubtitle": "Open cases not assigned to you. Assign to CS or update status inline.",
     "teamQueueEmpty": "No open team cases.",
     "myQueueTitle": "My open cases",
     "myQueueSubtitle": "Cases assigned to you that still need action.",
     "myQueueEmpty": "No open cases assigned to you.",
+    "noProjectCases": "No open cases for this project.",
     "stats": {
       "openTotal": "Open cases",
       "unassigned": "Unassigned",
@@ -127,7 +135,16 @@
       "engineering": "Engineering",
       "myOpen": "My open",
       "teamOpen": "Team open",
-      "pending": "Pending"
+      "pending": "Pending",
+      "customerService": "Customer service"
+    },
+    "charts": {
+      "openCases": "Open cases",
+      "categoryShare": "Category share",
+      "count": "Count",
+      "noData": "No open cases to chart",
+      "feedbackHistory": "Feedback history",
+      "general": "General"
     }
   },
   "units": {
@@ -323,7 +340,8 @@
     "GREEN AVENUE": "Green Avenue",
     "GENESIS": "Genesis",
     "JURA": "Jura",
-    "SOUL PLAZA": "Soul Plaza"
+    "SOUL PLAZA": "Soul Plaza",
+    "JAMILA NORTH COAST": "Jamila North Coast"
   },
   "staff": {
     "Islam Tharwat": "Islam Tharwat",

@@ -109,17 +109,25 @@
     }
   },
   "executive": {
-    "title": "لوحة الإدارة التنفيذية",
-    "subtitle": "نظرة عامة على البلاغات المفتوحة وإجراءات سريعة — {name}",
+    "title": "مركز قيادة الإدارة",
+    "subtitle": "نظرة على محفظة المشاريع وإجراءات سريعة — {name}",
     "viewAllCases": "عرض كل البلاغات",
     "saveStatus": "حفظ",
+    "projectPortfolio": "محفظة المشاريع",
+    "overview": "نظرة عامة",
+    "allProjects": "كل المشاريع",
+    "projectTab": "{project}",
+    "openCasesByProject": "البلاغات المفتوحة حسب المشروع",
+    "casesByCategory": "البلاغات حسب التصنيف",
     "agentWorkload": "عبء العمل حسب الموظف",
+    "projectWorkload": "عبء العمل حسب المشروع",
     "teamQueueTitle": "بلاغات الفريق — تعيين وإجراء",
     "teamQueueSubtitle": "بلاغات مفتوحة غير معيّنة لك. عيّن لموظف أو حدّث الحالة مباشرة.",
     "teamQueueEmpty": "لا توجد بلاغات مفتوحة للفريق.",
     "myQueueTitle": "بلاغاتي المفتوحة",
     "myQueueSubtitle": "البلاغات المعيّنة لك التي تحتاج متابعة.",
     "myQueueEmpty": "لا توجد بلاغات مفتوحة معيّنة لك.",
+    "noProjectCases": "لا توجد بلاغات مفتوحة لهذا المشروع.",
     "stats": {
       "openTotal": "بلاغات مفتوحة",
       "unassigned": "غير معيّنة",
@@ -127,7 +135,16 @@
       "engineering": "هندسي",
       "myOpen": "بلاغاتي",
       "teamOpen": "بلاغات الفريق",
-      "pending": "معلّقة"
+      "pending": "معلّقة",
+      "customerService": "خدمة العملاء"
+    },
+    "charts": {
+      "openCases": "بلاغات مفتوحة",
+      "categoryShare": "حصة التصنيف",
+      "count": "العدد",
+      "noData": "لا توجد بلاغات مفتوحة للعرض",
+      "feedbackHistory": "سجل الملاحظات",
+      "general": "عام"
     }
   },
   "units": {
@@ -323,7 +340,8 @@
     "GREEN AVENUE": "جرين أفنيو",
     "GENESIS": "جينيسيس",
     "JURA": "جورا",
-    "SOUL PLAZA": "سول بلازا"
+    "SOUL PLAZA": "سول بلازا",
+    "JAMILA NORTH COAST": "جميلة الساحل الشمالي"
   },
   "staff": {
     "Islam Tharwat": "اسلام ثروت",
