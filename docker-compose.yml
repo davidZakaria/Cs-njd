@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: njd-crm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: njd
+      POSTGRES_PASSWORD: njd_secret
+      POSTGRES_DB: njd_crm
+    ports:
+      - "5433:5432"
+    volumes:
+      - njd_pg_data:/var/lib/postgresql/data
+
+volumes:
+  njd_pg_data:

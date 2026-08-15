@@ -1,0 +1,347 @@
+{
+  "app": {
+    "title": "NJD Post-Sales CRM",
+    "description": "Real Estate Post-Sales & Customer Service"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "executive": "Executive",
+    "cases": "Cases",
+    "units": "Units",
+    "users": "Users",
+    "imports": "Data Import",
+    "auditLogs": "Audit Logs",
+    "backups": "Backups",
+    "system": "System"
+  },
+  "common": {
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "english": "English",
+    "arabic": "Arabic",
+    "search": "Search",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "actions": "Actions",
+    "loading": "Loading...",
+    "noResults": "No results found",
+    "signOut": "Sign out",
+    "previous": "Previous",
+    "next": "Next",
+    "all": "All",
+    "unassigned": "Unassigned",
+    "menu": "Menu",
+    "update": "Update",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "email": "Email",
+    "password": "Password"
+  },
+  "auth": {
+    "login": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "setup2fa": "Set up two-factor authentication",
+    "verify2fa": "Verify authentication code",
+    "scanQr": "Scan this QR code with your authenticator app",
+    "enterCode": "Enter the 6-digit code",
+    "continue": "Continue",
+    "forcePasswordChange": {
+      "title": "Change your password",
+      "subtitle": "You must set a new password before continuing.",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "submit": "Update password",
+      "errors": {
+        "unauthorized": "Session expired. Please sign in again.",
+        "tooShort": "Password must be at least 8 characters.",
+        "mismatch": "Passwords do not match.",
+        "defaultPassword": "You cannot use the default system password.",
+        "sameAsCurrent": "New password must be different from your current password."
+      }
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome to NJD Post-Sales CRM",
+    "totalUnits": "Total Units",
+    "pendingTickets": "Pending Tickets",
+    "deliveredUnits": "Delivered Units",
+    "legalDisputes": "Legal Disputes"
+  },
+  "executive": {
+    "title": "Executive Dashboard",
+    "subtitle": "Open case overview and quick actions for {name}",
+    "viewAllCases": "Full cases view",
+    "saveStatus": "Save",
+    "agentWorkload": "Agent workload",
+    "teamQueueTitle": "Team cases — assign & act",
+    "teamQueueSubtitle": "Open cases not assigned to you. Assign to CS or update status inline.",
+    "teamQueueEmpty": "No open team cases.",
+    "myQueueTitle": "My open cases",
+    "myQueueSubtitle": "Cases assigned to you that still need action.",
+    "myQueueEmpty": "No open cases assigned to you.",
+    "stats": {
+      "openTotal": "Open cases",
+      "unassigned": "Unassigned",
+      "legal": "Legal",
+      "engineering": "Engineering",
+      "myOpen": "My open",
+      "teamOpen": "Team open",
+      "pending": "Pending"
+    }
+  },
+  "units": {
+    "title": "Units",
+    "unitCode": "Unit Code",
+    "project": "Project",
+    "client": "Client",
+    "type": "Type",
+    "area": "Area",
+    "agent": "CS Agent",
+    "handoverStatus": "Handover Status",
+    "profile": "Unit 360 Profile",
+    "clientInfo": "Client Info",
+    "financials": "Finishing Financials",
+    "legalStatus": "Legal / Handover",
+    "timeline": "CS Feedback Timeline",
+    "phone1": "Phone 1",
+    "phone2": "Phone 2",
+    "package": "Package",
+    "company": "Company",
+    "pricePerMeter": "Price / m²",
+    "totalPrice": "Total",
+    "doorFees": "Door fees",
+    "aluminumFees": "Aluminum fees",
+    "actionLabel": "Action",
+    "contractDate": "Contract date",
+    "deliveryDate": "Delivery date",
+    "addFeedback": "Add Feedback",
+    "notesPlaceholder": "Notes",
+    "noTickets": "No tickets yet"
+  },
+  "users": {
+    "title": "Users",
+    "name": "Name",
+    "role": "Role",
+    "createUser": "Create User"
+  },
+  "cases": {
+    "title": "Cases",
+    "subtitle": "Current status and historical feedback imported from Excel, assigned for follow-up",
+    "unit": "Unit",
+    "client": "Client",
+    "category": "Category",
+    "caseNotes": "Case Notes",
+    "agent": "CS Agent",
+    "status": "Status",
+    "assign": "Assign",
+    "assignToCs": "Assign to CS agent",
+    "unassigned": "Unassigned",
+    "allStatuses": "All statuses",
+    "allCategories": "All categories",
+    "allAgents": "All agents",
+    "customerService": "Current Status",
+    "feedbackHistory": "Old Feedback",
+    "legal": "Legal",
+    "general": "General",
+    "awaitingResponse": "Awaiting response",
+    "openCases": "Open only",
+    "showSection": "Show",
+    "hideSection": "Hide",
+    "showingResults": "Showing {from}–{to} of {total} cases",
+    "rowsPerPage": "Rows per page",
+    "pageOf": "Page {page} of {pages}",
+    "categories": {
+      "CUSTOMER_SERVICE": "Current Status",
+      "FEEDBACK_HISTORY": "Old Feedback",
+      "LEGAL": "Legal",
+      "GENERAL": "General"
+    },
+    "pendingWork": {
+      "title": "Pending client cases",
+      "subtitle": "Your assigned clients with open tickets — what is required and how to close each case",
+      "empty": "No pending cases. All assigned clients are up to date.",
+      "requirements": "Client requirement",
+      "howToClose": "How to meet it & close",
+      "openUnit": "Open unit & add notes",
+      "updateStatus": "Save status",
+      "markResolved": "Mark resolved",
+      "openCount": "{count} open cases",
+      "workflow": {
+        "customerServiceAwaiting": {
+          "requirements": [
+            "Call or message the client to collect their current feedback",
+            "Confirm unit details and any handover or finishing concerns"
+          ],
+          "closeSteps": [
+            "Open the unit timeline and add the client response as a new note",
+            "Update the current status ticket once the issue is handled",
+            "Mark the case as Resolved when the client confirms closure"
+          ]
+        },
+        "customerServiceActive": {
+          "requirements": [
+            "Review the current status notes and identify the requested action",
+            "Coordinate internally if engineering, finishing, or legal support is needed"
+          ],
+          "closeSteps": [
+            "Complete the follow-up described in the case notes",
+            "Change status to Engineering or Legal if another team must act",
+            "Mark as Resolved when the client request is fully completed"
+          ]
+        },
+        "legalOpen": {
+          "requirements": [
+            "Review the legal note and any warning or dispute details",
+            "Escalate to management or legal counsel as required"
+          ],
+          "closeSteps": [
+            "Document actions taken on the unit timeline",
+            "Keep status as Legal while the dispute is active",
+            "Mark as Resolved only after legal/management confirms closure"
+          ]
+        },
+        "engineeringOpen": {
+          "requirements": [
+            "Review the technical or snagging issue in the case notes",
+            "Coordinate with the engineering / site team for inspection or repair"
+          ],
+          "closeSteps": [
+            "Record inspection results on the unit timeline",
+            "Update status when work is scheduled or completed",
+            "Mark as Resolved after the client accepts the fix"
+          ]
+        },
+        "generalOpen": {
+          "requirements": [
+            "Review the case notes and confirm what the client needs",
+            "Assign or follow up with the responsible team member"
+          ],
+          "closeSteps": [
+            "Add progress notes on the unit timeline",
+            "Update the ticket status to match the current stage",
+            "Mark as Resolved when no further action is required"
+          ]
+        }
+      }
+    },
+    "manager": {
+      "pageSubtitle": "Assign open team cases to CS agents, then review your own assigned cases",
+      "myCases": {
+        "title": "My assigned cases ({count})",
+        "subtitle": "Cases assigned to you",
+        "pendingTitle": "My open cases",
+        "pendingSubtitle": "Your assigned clients with open tickets",
+        "pendingEmpty": "No open cases assigned to you."
+      },
+      "teamCases": {
+        "title": "Team cases ({count})",
+        "subtitle": "Open cases to assign — choose a CS agent and click Assign",
+        "pendingTitle": "Team open cases",
+        "pendingSubtitle": "Assign to a CS agent",
+        "pendingEmpty": "No open team cases."
+      }
+    },
+    "assignedToMe": {
+      "title": "My assigned cases ({count})",
+      "subtitle": "Cases assigned to you for follow-up"
+    }
+  },
+  "imports": {
+    "title": "Bulk Data Import",
+    "dropzone": "Drag & drop Excel or CSV file here",
+    "preview": "Preview",
+    "import": "Import Data",
+    "results": "Import Results",
+    "safeImportNote": "Safe re-import: updates units, skips duplicate cases, never creates login users, and keeps existing agent assignments when the sheet is blank."
+  },
+  "audit": {
+    "title": "Audit Logs",
+    "action": "Action",
+    "table": "Table",
+    "user": "User",
+    "timestamp": "Timestamp",
+    "ip": "IP Address"
+  },
+  "backups": {
+    "title": "Database Backups",
+    "filename": "Filename",
+    "size": "Size",
+    "status": "Status",
+    "createdAt": "Created At",
+    "download": "Download",
+    "triggerManual": "Trigger Manual Backup"
+  },
+  "system": {
+    "title": "System",
+    "checkUpdates": "Check for Updates",
+    "currentVersion": "Current Version"
+  },
+  "projects": {
+    "GREEN AVENUE": "Green Avenue",
+    "GENESIS": "Genesis",
+    "JURA": "Jura",
+    "SOUL PLAZA": "Soul Plaza"
+  },
+  "staff": {
+    "Islam Tharwat": "Islam Tharwat",
+    "Maria Emad": "Maria Emad",
+    "Mariam Nabih": "Mariam Nabih",
+    "Dina Girgis": "Dina Girgis",
+    "Madonna Hanna": "Madonna Hanna"
+  },
+  "enums": {
+    "areaSqm": "m²",
+    "unitType": {
+      "APARTMENT": "Apartment",
+      "DUPLEX": "Duplex",
+      "PENTHOUSE": "Penthouse",
+      "CLINIC": "Clinic",
+      "ADMIN": "Admin",
+      "COMMERCIAL": "Commercial",
+      "HOTEL_APARTMENT": "Hotel Apartment"
+    },
+    "handoverStatus": {
+      "PENDING": "Pending",
+      "DELIVERED": "Delivered",
+      "CANCELLED": "Cancelled",
+      "EXTENSION": "Extension",
+      "LEGAL_DISPUTE": "Legal Dispute"
+    },
+    "ticketStatus": {
+      "PENDING": "Pending",
+      "ENGINEERING": "Engineering",
+      "LEGAL": "Legal",
+      "RESOLVED": "Resolved"
+    },
+    "ticketCategory": {
+      "CUSTOMER_SERVICE": "Current Status",
+      "FEEDBACK_HISTORY": "Old Feedback",
+      "LEGAL": "Legal",
+      "GENERAL": "General"
+    },
+    "role": {
+      "CS_AGENT": "CS Agent",
+      "MANAGEMENT": "Management",
+      "SUPER_ADMIN": "Super Admin"
+    },
+    "finishingType": {
+      "CORE_AND_SHELL": "Core & Shell",
+      "SEMI_FINISHED": "Semi Finished",
+      "FULLY_FINISHED": "Fully Finished",
+      "FULLY_FINISHED_AC": "Fully Finished + AC",
+      "COMPANY_PACKAGE": "Company Package",
+      "BELOW_COMPANY_PACKAGE": "Below Company Package",
+      "THREE_QUARTER": "Three Quarter",
+      "PLASTER_ONLY": "Plaster Only",
+      "FURNISHED": "Furnished",
+      "CUSTOM": "Custom"
+    }
+  }
+}

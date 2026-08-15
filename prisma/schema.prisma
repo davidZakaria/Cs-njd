@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  MANAGEMENT
+  CS_AGENT
+}
+
+enum UnitType {
+  APARTMENT
+  DUPLEX
+  PENTHOUSE
+  CLINIC
+  ADMIN
+  COMMERCIAL
+  HOTEL_APARTMENT
+}
+
+enum HandoverStatus {
+  PENDING
+  DELIVERED
+  CANCELLED
+  EXTENSION
+  LEGAL_DISPUTE
+}
+
+enum FinishingType {
+  CORE_AND_SHELL
+  SEMI_FINISHED
+  FULLY_FINISHED
+  FULLY_FINISHED_AC
+  COMPANY_PACKAGE
+  BELOW_COMPANY_PACKAGE
+  THREE_QUARTER
+  PLASTER_ONLY
+  FURNISHED
+  CUSTOM
+}
+
+enum TicketStatus {
+  PENDING
+  ENGINEERING
+  LEGAL
+  RESOLVED
+}
+
+enum TicketCategory {
+  CUSTOMER_SERVICE
+  FEEDBACK_HISTORY
+  LEGAL
+  GENERAL
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum BackupStatus {
+  SUCCESS
+  FAILED
+  IN_PROGRESS
+}
+
+model User {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  password        String
+  role            Role     @default(CS_AGENT)
+  is2FAEnabled    Boolean  @default(false)
+  twoFactorSecret String?
+  requiresPasswordChange Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  assignedUnits Unit[]     @relation("AssignedAgent")
+  tickets       Ticket[]
+  auditLogs     AuditLog[]
+
+  @@index([role])
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  units Unit[]
+}
+
+model Client {
+  id         String   @id @default(cuid())
+  name       String
+  phone1     String?
+  phone2     String?
+  email      String?
+  nationalId String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  units Unit[]
+
+  @@index([name])
+  @@index([phone1])
+}
+
+model Unit {
+  id        String   @id @default(cuid())
+  unitCode  String
+  projectId String
+  type      UnitType @default(APARTMENT)
+  area      Float?
+  clientId  String?
+  agentId   String?
+  category  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  client           Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  agent            User?             @relation("AssignedAgent", fields: [agentId], references: [id], onDelete: SetNull)
+  contractWorkflow ContractWorkflow?
+  finishing        Finishing?
+  tickets          Ticket[]
+
+  @@unique([projectId, unitCode])
+  @@index([agentId])
+  @@index([type])
+}
+
+model ContractWorkflow {
+  id             String         @id @default(cuid())
+  unitId         String         @unique
+  contractDate   DateTime?
+  deliveryDate   DateTime?
+  handoverStatus HandoverStatus @default(PENDING)
+  actionLabel    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@index([handoverStatus])
+}
+
+model Finishing {
+  id                  String        @id @default(cuid())
+  unitId              String        @unique
+  finishingType       FinishingType @default(CUSTOM)
+  packageLabel        String?
+  companyName         String?
+  pricePerMeter       Float?
+  totalFinishingPrice Float?
+  doorFees            Float?
+  aluminumFees        Float?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+}
+
+model Ticket {
+  id        String         @id @default(cuid())
+  unitId    String
+  agentId   String?
+  notes     String
+  category  TicketCategory @default(GENERAL)
+  status    TicketStatus   @default(PENDING)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  unit  Unit  @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  agent User? @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@index([unitId])
+  @@index([status])
+  @@index([agentId])
+  @@index([category])
+}
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  userId    String?
+  action    AuditAction
+  tableName String
+  recordId  String
+  oldData   Json?
+  newData   Json?
+  ipAddress String?
+  timestamp DateTime    @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([tableName])
+  @@index([timestamp])
+}
+
+model BackupLog {
+  id        String       @id @default(cuid())
+  filename  String
+  size      Int          @default(0)
+  status    BackupStatus @default(IN_PROGRESS)
+  createdAt DateTime     @default(now())
+
+  @@index([createdAt])
+}
