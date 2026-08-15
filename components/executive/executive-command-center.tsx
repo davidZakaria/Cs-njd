@@ -3,14 +3,9 @@
 import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
+import { ExecutiveOverviewPanel } from "@/components/executive/executive-overview-panel";
 import { ExecutiveProjectPanel } from "@/components/executive/executive-project-panel";
-import {
-  buildExecutiveKpiItems,
-  ExecutiveKpiGrid,
-} from "@/components/executive/executive-kpi-grid";
-import { ExecutiveAgentWorkloadGrid } from "@/components/executive/executive-agent-workload-grid";
-import { ProjectDistributionChart } from "@/components/executive/project-distribution-chart";
-import { StatusDonutChart } from "@/components/executive/status-donut-chart";
+import type { ExecutiveKpiKey } from "@/components/executive/executive-kpi-grid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { cn } from "@/lib/utils";
@@ -40,7 +35,7 @@ export function ExecutiveCommandCenter({
   const { project: projectLabel } = useDomainLabels();
 
   const kpiLabels = useMemo(
-    () => ({
+    (): Record<ExecutiveKpiKey, string> => ({
       openTotal: t("stats.openTotal"),
       unassigned: t("stats.unassigned"),
       legal: t("stats.legal"),
@@ -59,11 +54,6 @@ export function ExecutiveCommandCenter({
       engineering: t("stats.engineering"),
     }),
     [t]
-  );
-
-  const overviewKpis = useMemo(
-    () => buildExecutiveKpiItems(data.global.stats, kpiLabels),
-    [data.global.stats, kpiLabels]
   );
 
   return (
@@ -121,24 +111,11 @@ export function ExecutiveCommandCenter({
         </div>
       </div>
 
-      <TabsContent value="overview" className="space-y-8 animate-in fade-in-50">
-        <ExecutiveKpiGrid items={overviewKpis} />
-
-        <div className="grid gap-6 xl:grid-cols-2">
-          <ProjectDistributionChart
-            data={data.global.projectsOpenCounts}
-            className="shadow-sm"
-          />
-          <StatusDonutChart
-            breakdown={data.global.categoryBreakdown}
-            className="shadow-sm"
-          />
-        </div>
-
-        <ExecutiveAgentWorkloadGrid
-          agents={data.global.agentWorkload}
-          title={t("agentWorkload")}
-          labels={workloadLabels}
+      <TabsContent value="overview" className="animate-in fade-in-50">
+        <ExecutiveOverviewPanel
+          data={data}
+          kpiLabels={kpiLabels}
+          workloadLabels={workloadLabels}
         />
       </TabsContent>
 

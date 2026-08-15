@@ -129,6 +129,9 @@
     "myQueueEmpty": "No open cases assigned to you.",
     "noProjectCases": "No open cases for this project.",
     "searchPlaceholder": "Search client, unit, notes, agent, status…",
+    "searchTitle": "Quick case search",
+    "searchSubtitleOverview": "Search open cases across all projects — filter team and your queues instantly.",
+    "searchSubtitleProject": "Search open cases in this project — filter team and your queues instantly.",
     "searchNoResults": "No cases match your search.",
     "searchResults": "{count} of {total} cases match",
     "stats": {

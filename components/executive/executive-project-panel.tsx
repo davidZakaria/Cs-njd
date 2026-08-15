@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { ExecutiveCaseSearchBar } from "@/components/executive/executive-case-search-bar";
 import { ExecutiveQuickActionsTable } from "@/components/executive/executive-quick-actions-table";
 import {
   buildExecutiveKpiItems,
@@ -12,8 +12,6 @@ import {
 import { ExecutiveAgentWorkloadGrid } from "@/components/executive/executive-agent-workload-grid";
 import { ExecutiveQueueSection } from "@/components/executive/executive-queue-section";
 import { StatusDonutChart } from "@/components/executive/status-donut-chart";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { filterExecutiveCaseRows } from "@/lib/executive/filter-case-rows";
 import type {
@@ -42,7 +40,6 @@ export function ExecutiveProjectPanel({
 }) {
   const t = useTranslations("executive");
   const tCases = useTranslations("cases");
-  const tCommon = useTranslations("common");
   const labels = useDomainLabels();
   const [query, setQuery] = useState("");
 
@@ -102,41 +99,19 @@ export function ExecutiveProjectPanel({
         />
       </div>
 
-      <div className="space-y-2">
-        <div className="relative max-w-xl">
-          <Search className="pointer-events-none absolute top-1/2 size-4 -translate-y-1/2 text-muted-foreground start-3" />
-          <Input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t("searchPlaceholder")}
-            className="ps-9 pe-9"
-            aria-label={t("searchPlaceholder")}
-          />
-          {query ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="absolute top-1/2 size-7 -translate-y-1/2 end-1"
-              onClick={() => setQuery("")}
-              aria-label={tCommon("cancel")}
-            >
-              <X className="size-4" />
-            </Button>
-          ) : null}
-        </div>
-        {isSearching ? (
-          <p className="text-sm text-muted-foreground">
-            {totalMatches === 0
-              ? t("searchNoResults")
-              : t("searchResults", {
-                  count: totalMatches,
-                  total: totalCases,
-                })}
-          </p>
-        ) : null}
-      </div>
+      <ExecutiveCaseSearchBar
+        query={query}
+        onQueryChange={setQuery}
+        title={t("searchTitle")}
+        subtitle={t("searchSubtitleProject")}
+        placeholder={t("searchPlaceholder")}
+        totalMatches={totalMatches}
+        totalCases={totalCases}
+        teamMatches={filteredTeamQueue.length}
+        myMatches={filteredMyQueue.length}
+        teamLabel={t("stats.teamOpen")}
+        myLabel={t("stats.myOpen")}
+      />
 
       <ExecutiveQueueSection
         title={t("teamQueueTitle")}
@@ -146,9 +121,7 @@ export function ExecutiveProjectPanel({
           rows={filteredTeamQueue}
           agents={agents}
           canAssign={true}
-          emptyLabel={
-            isSearching ? t("searchNoResults") : t("teamQueueEmpty")
-          }
+          emptyLabel={isSearching ? t("searchNoResults") : t("teamQueueEmpty")}
         />
       </ExecutiveQueueSection>
 
