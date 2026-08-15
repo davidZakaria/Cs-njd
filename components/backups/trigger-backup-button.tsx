@@ -7,17 +7,15 @@ import { Button } from "@/components/ui/button";
 
 export function TriggerBackupButton() {
   const t = useTranslations("backups");
-  const { pending, notify } = useCrudToast();
-
-  async function handleTrigger() {
-    notify(await triggerBackupAction(), "created");
-  }
+  const { pending, runAction } = useCrudToast();
 
   return (
-    <form action={handleTrigger}>
-      <Button type="submit" disabled={pending}>
-        {t("triggerManual")}
-      </Button>
-    </form>
+    <Button
+      type="button"
+      disabled={pending}
+      onClick={() => runAction(() => triggerBackupAction(), "created")}
+    >
+      {t("triggerManual")}
+    </Button>
   );
 }

@@ -121,6 +121,7 @@ DATABASE_URL="postgresql://njd:YOUR_DB_PASSWORD@127.0.0.1:5434/njd_crm?schema=pu
 AUTH_SECRET="PASTE_OUTPUT_OF_openssl_rand_base64_32"
 AUTH_URL="https://cs-njd.duckdns.org"
 BACKUP_DIR="/var/www/cs-njd/backups"
+BACKUP_DOCKER_CONTAINER="njd-crm-postgres-prod"
 NODE_ENV="production"
 
 # Single super admin (only account created on first deploy)

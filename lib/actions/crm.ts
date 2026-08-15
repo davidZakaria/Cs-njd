@@ -93,7 +93,9 @@ export async function deleteUser(id: string): Promise<ActionResult> {
     return actionFail("Cannot delete this user");
   }
 
-  await prisma.user.delete({ where: { id } });
+  await withAudit(() =>
+    prisma.user.delete({ where: { id } })
+  );
   revalidatePath("/users");
   return actionOk();
 }
@@ -119,15 +121,17 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
     return actionFail("Not assigned to this unit");
   }
 
-  await prisma.ticket.create({
-    data: {
-      unitId,
-      notes,
-      status,
-      category: "GENERAL",
-      agentId: session.user.id,
-    },
-  });
+  await withAudit(() =>
+    prisma.ticket.create({
+      data: {
+        unitId,
+        notes,
+        status,
+        category: "GENERAL",
+        agentId: session.user.id,
+      },
+    })
+  );
 
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/cases");
@@ -157,7 +161,7 @@ export async function updateTicketStatus(formData: FormData): Promise<ActionResu
     return actionFail("Not assigned to this unit");
   }
 
-  await prisma.ticket.update({ where: { id }, data: { status } });
+  await withAudit(() => prisma.ticket.update({ where: { id }, data: { status } }));
   revalidatePath(`/units/${ticket.unitId}`);
   revalidatePath("/cases");
   revalidatePath("/dashboard");
@@ -179,17 +183,19 @@ export async function assignTicketAgent(formData: FormData): Promise<ActionResul
   });
   if (!ticket) return actionFail("Ticket not found");
 
-  await prisma.ticket.update({
-    where: { id },
-    data: { agentId: agentId === "unassigned" ? null : agentId },
-  });
-
-  if (agentId !== "unassigned") {
-    await prisma.unit.update({
-      where: { id: ticket.unitId },
-      data: { agentId },
+  await withAudit(async () => {
+    await prisma.ticket.update({
+      where: { id },
+      data: { agentId: agentId === "unassigned" ? null : agentId },
     });
-  }
+
+    if (agentId !== "unassigned") {
+      await prisma.unit.update({
+        where: { id: ticket.unitId },
+        data: { agentId },
+      });
+    }
+  });
 
   revalidatePath("/cases");
   revalidatePath(`/units/${ticket.unitId}`);

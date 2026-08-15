@@ -25,6 +25,23 @@ pm2 save
 curl -s -o /dev/null -w "HTTP %{http_code}\n" http://127.0.0.1:3001/en/login
 ```
 
+## Backups not working (Docker Postgres)
+
+Add to `/var/www/cs-njd/.env`:
+
+```env
+BACKUP_DOCKER_CONTAINER="njd-crm-postgres-prod"
+```
+
+Then restart the app:
+
+```bash
+pm2 restart cs-njd-crm --update-env
+pm2 save
+```
+
+Test from **Backups** page → **Run backup now**. Status should become `SUCCESS`.
+
 Expect **200**. Site: **https://cs-njd.duckdns.org**
 
 ## Manual deploy (same as `update.sh`)

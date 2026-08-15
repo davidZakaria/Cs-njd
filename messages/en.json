@@ -322,20 +322,25 @@
   },
   "audit": {
     "title": "Audit Logs",
+    "subtitle": "Changes to units, cases, users, and clients recorded when you take action.",
     "action": "Action",
     "table": "Table",
     "user": "User",
     "timestamp": "Timestamp",
-    "ip": "IP Address"
+    "ip": "IP Address",
+    "empty": "No audit entries yet. Actions on cases, units, and users will appear here.",
+    "systemUser": "System"
   },
   "backups": {
     "title": "Database Backups",
+    "subtitle": "Manual and scheduled SQL dumps. Requires BACKUP_DOCKER_CONTAINER on the VPS.",
     "filename": "Filename",
     "size": "Size",
     "status": "Status",
     "createdAt": "Created At",
     "download": "Download",
-    "triggerManual": "Trigger Manual Backup"
+    "triggerManual": "Run backup now",
+    "empty": "No backups yet. Click “Run backup now” to create one."
   },
   "system": {
     "title": "System",

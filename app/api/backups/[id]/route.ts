@@ -1,8 +1,8 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getBackupFilePath } from "@/lib/backup/run-database-backup";
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
-import path from "path";
 
 export async function GET(
   _request: Request,
@@ -19,7 +19,7 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const filepath = path.join(process.cwd(), "backups", backup.filename);
+  const filepath = getBackupFilePath(backup.filename);
 
   try {
     const content = await fs.readFile(filepath);
@@ -30,6 +30,6 @@ export async function GET(
       },
     });
   } catch {
-    return NextResponse.json({ error: "File missing" }, { status: 404 });
+    return NextResponse.json({ error: "File missing on server" }, { status: 404 });
   }
 }

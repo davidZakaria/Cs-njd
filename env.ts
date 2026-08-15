@@ -7,6 +7,7 @@ export const env = createEnv({
     AUTH_SECRET: z.string().min(32),
     AUTH_URL: z.string().url().optional(),
     BACKUP_DIR: z.string().min(1).default("./backups"),
+    BACKUP_DOCKER_CONTAINER: z.string().min(1).optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -17,6 +18,7 @@ export const env = createEnv({
     AUTH_SECRET: process.env.AUTH_SECRET,
     AUTH_URL: process.env.AUTH_URL,
     BACKUP_DIR: process.env.BACKUP_DIR,
+    BACKUP_DOCKER_CONTAINER: process.env.BACKUP_DOCKER_CONTAINER,
     NODE_ENV: process.env.NODE_ENV,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

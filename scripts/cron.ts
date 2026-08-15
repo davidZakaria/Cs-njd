@@ -1,16 +1,17 @@
 import "dotenv/config";
 import cron from "node-cron";
-import { execFile } from "child_process";
-import { promisify } from "util";
 import fs from "fs/promises";
 import path from "path";
 import { PrismaClient } from "@prisma/client";
+import {
+  getBackupDirectory,
+  runDatabaseBackup,
+} from "../lib/backup/run-database-backup";
 
-const execFileAsync = promisify(execFile);
 const prisma = new PrismaClient();
 
 async function runBackup() {
-  const backupDir = process.env.BACKUP_DIR ?? path.join(process.cwd(), "backups");
+  const backupDir = getBackupDirectory();
   await fs.mkdir(backupDir, { recursive: true });
 
   const filename = `njd-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.sql`;
@@ -20,9 +21,7 @@ async function runBackup() {
   });
 
   try {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) throw new Error("DATABASE_URL missing");
-    await execFileAsync("pg_dump", [databaseUrl, "-f", filepath], { env: process.env });
+    await runDatabaseBackup(filepath);
     const stat = await fs.stat(filepath);
     await prisma.backupLog.update({
       where: { id: log.id },
