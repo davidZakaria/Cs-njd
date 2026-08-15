@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useSession } from "next-auth/react";
-import { confirmSetup2FA, getSetup2FAData } from "@/lib/actions/two-factor";
+import {
+  confirmSetup2FA,
+  getSetup2FAData,
+  resetMy2FASetup,
+} from "@/lib/actions/two-factor";
 import { getPostAuthRedirect } from "@/lib/auth-redirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,9 +26,12 @@ export default function Setup2FAPage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  const loadSetup = useCallback(async () => {
+  const loadSetup = useCallback(async (forceReset = false) => {
     setLoading(true);
     setError("");
+    if (forceReset) {
+      await resetMy2FASetup();
+    }
     const result = await getSetup2FAData();
     if (!result.success) {
       setError(result.error);
@@ -35,6 +42,7 @@ export default function Setup2FAPage() {
     }
     setSecret(result.secret ?? "");
     setQrDataUrl(result.qrDataUrl ?? "");
+    setToken("");
     setLoading(false);
   }, []);
 
@@ -53,6 +61,10 @@ export default function Setup2FAPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!secret) {
+      setError(t("setupNotReady"));
+      return;
+    }
     const result = await confirmSetup2FA(secret, token);
     if (!result.success) {
       setError(result.error ?? t("invalidCode"));
@@ -94,8 +106,13 @@ export default function Setup2FAPage() {
           ) : (
             <div className="space-y-2 text-center">
               <p className="text-sm text-destructive">{error || t("qrLoadFailed")}</p>
-              <Button type="button" variant="outline" size="sm" onClick={() => void loadSetup()}>
-                {t("retryQr")}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void loadSetup(true)}
+              >
+                {t("startOver")}
               </Button>
             </div>
           )}
@@ -128,6 +145,17 @@ export default function Setup2FAPage() {
             </div>
           ) : null}
 
+          {!loading && !secret ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={() => void loadSetup(true)}
+            >
+              {t("startOver")}
+            </Button>
+          ) : null}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="token">{t("enterCode")}</Label>
@@ -139,13 +167,11 @@ export default function Setup2FAPage() {
                 autoComplete="one-time-code"
                 maxLength={6}
                 required
-                disabled={!secret}
+                disabled={loading}
               />
             </div>
-            {error && qrDataUrl ? (
-              <p className="text-sm text-destructive">{error}</p>
-            ) : null}
-            <Button type="submit" className="w-full" disabled={!secret || loading}>
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            <Button type="submit" className="w-full" disabled={loading || !secret}>
               {t("continue")}
             </Button>
           </form>

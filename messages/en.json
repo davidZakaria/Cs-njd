@@ -63,6 +63,8 @@
     "qrAlt": "Two-factor authentication QR code",
     "qrLoadFailed": "Could not load the QR code.",
     "retryQr": "Retry QR code",
+    "startOver": "Start over",
+    "setupNotReady": "QR not loaded yet. Tap Start over, then enter the code.",
     "manualSecret": "Can't scan the QR? Add the key manually:",
     "copyKey": "Copy key",
     "copied": "Copied",
