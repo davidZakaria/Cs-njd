@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { importWorkbookAction } from "@/lib/actions/import";
+import { useCrudToast } from "@/hooks/use-crud-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ImportResult } from "@/lib/import/ingest";
 
 export default function ImportsPage() {
   const t = useTranslations("imports");
+  const tCommon = useTranslations("common");
+  const { notify } = useCrudToast();
   const [result, setResult] = useState<ImportResult | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -19,6 +22,14 @@ export default function ImportsPage() {
     try {
       const res = await importWorkbookAction(formData);
       setResult(res);
+      notify(
+        res.errors.length > 0
+          ? { success: false, error: t("importWithErrors", { count: res.errors.length }) }
+          : { success: true, message: t("importSuccess") },
+        "saved"
+      );
+    } catch {
+      notify({ success: false, error: tCommon("actionFailed") }, "saved");
     } finally {
       setLoading(false);
     }

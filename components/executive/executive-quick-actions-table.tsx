@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { updateTicketStatus } from "@/lib/actions/crm";
+import { useCrudToast } from "@/hooks/use-crud-toast";
 import { isAwaitingResponseNote } from "@/lib/import/master-cases";
 import type { ExecutiveCaseRow } from "@/lib/cases/executive-dashboard";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
@@ -40,9 +41,14 @@ function StatusQuickForm({
   saveLabel: string;
 }) {
   const [value, setValue] = useState(status);
+  const { pending, notify } = useCrudToast();
+
+  async function handleUpdate(formData: FormData) {
+    notify(await updateTicketStatus(formData), "saved");
+  }
 
   return (
-    <form action={updateTicketStatus} className="flex items-center gap-1">
+    <form action={handleUpdate} className="flex items-center gap-1">
       <input type="hidden" name="id" value={ticketId} />
       <input type="hidden" name="status" value={value} />
       <Select
@@ -51,6 +57,7 @@ function StatusQuickForm({
           if (next != null) setValue(next);
         }}
         items={statusItems}
+        disabled={pending}
       >
         <SelectTrigger className="h-8 w-[7.5rem]">
           <SelectValue />
@@ -63,7 +70,7 @@ function StatusQuickForm({
           ))}
         </SelectContent>
       </Select>
-      <Button type="submit" size="sm" variant="outline" className="h-8">
+      <Button type="submit" size="sm" variant="outline" className="h-8" disabled={pending}>
         {saveLabel}
       </Button>
     </form>

@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import bcrypt from "bcryptjs";
 import type { Role } from "@prisma/client";
+import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 
 async function withAudit<T>(fn: () => Promise<T>) {
   const session = await auth();
@@ -18,10 +19,10 @@ async function withAudit<T>(fn: () => Promise<T>) {
   );
 }
 
-export async function createUser(formData: FormData) {
+export async function createUser(formData: FormData): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user || !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)) {
-    throw new Error("Unauthorized");
+    return actionFail("Unauthorized");
   }
 
   const name = String(formData.get("name") ?? "");
@@ -29,9 +30,16 @@ export async function createUser(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const role = String(formData.get("role") ?? "CS_AGENT") as Role;
 
-  if (session.user.role === "MANAGEMENT" && role !== "CS_AGENT") {
-    throw new Error("Management can only create CS agents");
+  if (!name || !email || !password) {
+    return actionFail("Name, email, and password are required");
   }
+
+  if (session.user.role === "MANAGEMENT" && role !== "CS_AGENT") {
+    return actionFail("Management can only create CS agents");
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) return actionFail("A user with this email already exists");
 
   const hashed = await bcrypt.hash(password, 12);
 
@@ -42,22 +50,25 @@ export async function createUser(formData: FormData) {
   );
 
   revalidatePath("/users");
+  return actionOk();
 }
 
-export async function updateUser(formData: FormData) {
+export async function updateUser(formData: FormData): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user || !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)) {
-    throw new Error("Unauthorized");
+    return actionFail("Unauthorized");
   }
 
   const id = String(formData.get("id"));
   const name = String(formData.get("name") ?? "");
   const role = String(formData.get("role") ?? "CS_AGENT") as Role;
 
+  if (!name) return actionFail("Name is required");
+
   const existing = await prisma.user.findUnique({ where: { id } });
-  if (!existing) throw new Error("User not found");
+  if (!existing) return actionFail("User not found");
   if (existing.role === "SUPER_ADMIN" && session.user.role !== "SUPER_ADMIN") {
-    throw new Error("Cannot modify super admin");
+    return actionFail("Cannot modify super admin");
   }
 
   await withAudit(() =>
@@ -68,26 +79,28 @@ export async function updateUser(formData: FormData) {
   );
 
   revalidatePath("/users");
+  return actionOk();
 }
 
-export async function deleteUser(id: string) {
+export async function deleteUser(id: string): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
-    throw new Error("Unauthorized");
+    return actionFail("Unauthorized");
   }
 
   const existing = await prisma.user.findUnique({ where: { id } });
   if (!existing || existing.role === "SUPER_ADMIN") {
-    throw new Error("Cannot delete this user");
+    return actionFail("Cannot delete this user");
   }
 
   await prisma.user.delete({ where: { id } });
   revalidatePath("/users");
+  return actionOk();
 }
 
-export async function createTicket(formData: FormData) {
+export async function createTicket(formData: FormData): Promise<ActionResult> {
   const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  if (!session?.user) return actionFail("Unauthorized");
 
   const unitId = String(formData.get("unitId"));
   const notes = String(formData.get("notes") ?? "");
@@ -97,11 +110,13 @@ export async function createTicket(formData: FormData) {
     | "LEGAL"
     | "RESOLVED";
 
+  if (!notes.trim()) return actionFail("Notes are required");
+
   const unit = await prisma.unit.findUnique({ where: { id: unitId } });
-  if (!unit) throw new Error("Unit not found");
+  if (!unit) return actionFail("Unit not found");
 
   if (session.user.role === "CS_AGENT" && unit.agentId !== session.user.id) {
-    throw new Error("Not assigned to this unit");
+    return actionFail("Not assigned to this unit");
   }
 
   await prisma.ticket.create({
@@ -117,11 +132,13 @@ export async function createTicket(formData: FormData) {
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/cases");
   revalidatePath("/dashboard");
+  revalidatePath("/executive");
+  return actionOk();
 }
 
-export async function updateTicketStatus(formData: FormData) {
+export async function updateTicketStatus(formData: FormData): Promise<ActionResult> {
   const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+  if (!session?.user) return actionFail("Unauthorized");
 
   const id = String(formData.get("id"));
   const status = String(formData.get("status")) as
@@ -134,22 +151,24 @@ export async function updateTicketStatus(formData: FormData) {
     where: { id },
     include: { unit: true },
   });
-  if (!ticket) throw new Error("Ticket not found");
+  if (!ticket) return actionFail("Ticket not found");
 
   if (session.user.role === "CS_AGENT" && ticket.unit.agentId !== session.user.id) {
-    throw new Error("Not assigned to this unit");
+    return actionFail("Not assigned to this unit");
   }
 
   await prisma.ticket.update({ where: { id }, data: { status } });
   revalidatePath(`/units/${ticket.unitId}`);
   revalidatePath("/cases");
   revalidatePath("/dashboard");
+  revalidatePath("/executive");
+  return actionOk();
 }
 
-export async function assignTicketAgent(formData: FormData) {
+export async function assignTicketAgent(formData: FormData): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user || !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)) {
-    throw new Error("Unauthorized");
+    return actionFail("Unauthorized");
   }
 
   const id = String(formData.get("id"));
@@ -158,7 +177,7 @@ export async function assignTicketAgent(formData: FormData) {
     where: { id },
     include: { unit: true },
   });
-  if (!ticket) throw new Error("Ticket not found");
+  if (!ticket) return actionFail("Ticket not found");
 
   await prisma.ticket.update({
     where: { id },
@@ -175,4 +194,6 @@ export async function assignTicketAgent(formData: FormData) {
   revalidatePath("/cases");
   revalidatePath(`/units/${ticket.unitId}`);
   revalidatePath("/dashboard");
+  revalidatePath("/executive");
+  return actionOk();
 }

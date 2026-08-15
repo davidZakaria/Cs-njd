@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { assignTicketAgent } from "@/lib/actions/crm";
+import { useCrudToast } from "@/hooks/use-crud-toast";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -81,8 +82,14 @@ export function TicketAgentAssignForm({
   unassignedLabel: string;
   formatStaffName: (name: string) => string;
 }) {
+  const { pending, notify } = useCrudToast();
+
+  async function handleAssign(formData: FormData) {
+    notify(await assignTicketAgent(formData), "assigned");
+  }
+
   return (
-    <form action={assignTicketAgent} className="flex flex-wrap items-center gap-2">
+    <form action={handleAssign} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="id" value={ticketId} />
       <TicketAgentSelect
         key={`${ticketId}-${agentId ?? "unassigned"}`}
@@ -92,7 +99,7 @@ export function TicketAgentAssignForm({
         unassignedLabel={unassignedLabel}
         formatStaffName={formatStaffName}
       />
-      <Button type="submit" size="sm">
+      <Button type="submit" size="sm" disabled={pending}>
         {assignLabel}
       </Button>
     </form>

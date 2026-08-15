@@ -7,13 +7,14 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import fs from "fs/promises";
 import path from "path";
+import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 
 const execFileAsync = promisify(execFile);
 
-export async function triggerBackupAction(): Promise<void> {
+export async function triggerBackupAction(): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
-    throw new Error("Unauthorized");
+    return actionFail("Unauthorized");
   }
 
   const backupDir = process.env.BACKUP_DIR ?? path.join(process.cwd(), "backups");
@@ -28,7 +29,7 @@ export async function triggerBackupAction(): Promise<void> {
 
   try {
     const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) throw new Error("DATABASE_URL not configured");
+    if (!databaseUrl) return actionFail("DATABASE_URL not configured");
 
     await execFileAsync("pg_dump", [databaseUrl, "-f", filepath], {
       env: process.env,
@@ -39,15 +40,16 @@ export async function triggerBackupAction(): Promise<void> {
       where: { id: log.id },
       data: { status: "SUCCESS", size: stat.size },
     });
-  } catch (error) {
+  } catch {
     await prisma.backupLog.update({
       where: { id: log.id },
       data: { status: "FAILED" },
     });
-    throw error;
+    return actionFail("Backup failed");
   }
 
   revalidatePath("/backups");
+  return actionOk();
 }
 
 export async function checkUpdatesAction() {

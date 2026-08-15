@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { updateTicketStatus } from "@/lib/actions/crm";
+import { useCrudToast } from "@/hooks/use-crud-toast";
 import { isAwaitingResponseNote } from "@/lib/import/master-cases";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { TicketAgentAssignForm } from "@/components/cases/ticket-agent-assign-form";
@@ -68,6 +69,12 @@ export function PendingCaseCard({
     return items;
   }, [labels]);
 
+  const { pending, notify } = useCrudToast();
+
+  async function handleUpdate(formData: FormData) {
+    notify(await updateTicketStatus(formData), "saved");
+  }
+
   const displayNotes = isAwaitingResponseNote(notes)
     ? tCases("awaitingResponse")
     : notes;
@@ -111,7 +118,7 @@ export function PendingCaseCard({
           />
         )}
         <div className="flex flex-wrap items-center gap-2">
-          <form action={updateTicketStatus} className="flex items-center gap-2">
+          <form action={handleUpdate} className="flex items-center gap-2">
             <input type="hidden" name="id" value={ticketId} />
             <input type="hidden" name="status" value={ticketStatus} />
             <Select
@@ -120,6 +127,7 @@ export function PendingCaseCard({
                 if (next != null) setTicketStatus(next);
               }}
               items={statusItems}
+              disabled={pending}
             >
               <SelectTrigger className="w-[9rem]">
                 <SelectValue />
@@ -132,7 +140,7 @@ export function PendingCaseCard({
                 ))}
               </SelectContent>
             </Select>
-            <Button type="submit" size="sm" variant="outline">
+            <Button type="submit" size="sm" variant="outline" disabled={pending}>
               {t("updateStatus")}
             </Button>
           </form>

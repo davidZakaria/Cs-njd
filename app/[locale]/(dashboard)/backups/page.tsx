@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
-import { triggerBackupAction } from "@/lib/actions/system";
-import { Button } from "@/components/ui/button";
+import { TriggerBackupButton } from "@/components/backups/trigger-backup-button";
 import {
   Table,
   TableBody,
@@ -29,9 +28,7 @@ export default async function BackupsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
-        <form action={triggerBackupAction}>
-          <Button type="submit">{t("triggerManual")}</Button>
-        </form>
+        <TriggerBackupButton />
       </div>
 
       <div className="rounded-md border">
@@ -54,7 +51,10 @@ export default async function BackupsPage() {
                 <TableCell>{backup.createdAt.toLocaleString()}</TableCell>
                 <TableCell>
                   {backup.status === "SUCCESS" ? (
-                    <Link href={`/api/backups/${backup.id}`} className="text-primary hover:underline">
+                    <Link
+                      href={`/api/backups/${backup.id}`}
+                      className="text-primary hover:underline"
+                    >
                       {t("download")}
                     </Link>
                   ) : (

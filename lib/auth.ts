@@ -63,7 +63,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           role: user.role,
           is2FAEnabled: user.is2FAEnabled,
-          needs2FASetup: !user.is2FAEnabled,
+          needs2FASetup: !user.is2FAEnabled || !user.twoFactorSecret,
           twoFactorVerified: false,
           requiresPasswordChange: user.requiresPasswordChange,
         };

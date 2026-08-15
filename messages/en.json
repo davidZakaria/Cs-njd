@@ -41,7 +41,14 @@
     "enabled": "Enabled",
     "disabled": "Disabled",
     "email": "Email",
-    "password": "Password"
+    "password": "Password",
+    "savedSuccess": "Changes saved successfully",
+    "createdSuccess": "Created successfully",
+    "deletedSuccess": "Deleted successfully",
+    "assignedSuccess": "Assignment updated successfully",
+    "actionFailed": "Action failed. Please try again.",
+    "confirmDeleteTitle": "Confirm delete",
+    "confirmDelete": "Are you sure you want to delete {name}? This cannot be undone."
   },
   "auth": {
     "login": "Sign in",
@@ -51,6 +58,13 @@
     "verify2fa": "Verify authentication code",
     "scanQr": "Scan this QR code with your authenticator app",
     "enterCode": "Enter the 6-digit code",
+    "verify2faHint": "Open your authenticator app (Google Authenticator, Authy, etc.) and enter the current 6-digit code. The QR code is only shown during first-time setup.",
+    "loadingQr": "Loading QR code…",
+    "qrAlt": "Two-factor authentication QR code",
+    "qrLoadFailed": "Could not load the QR code.",
+    "retryQr": "Retry QR code",
+    "manualSecret": "Or enter this key manually in your app:",
+    "invalidCode": "Invalid code",
     "continue": "Continue",
     "forcePasswordChange": {
       "title": "Change your password",
@@ -270,6 +284,8 @@
     "preview": "Preview",
     "import": "Import Data",
     "results": "Import Results",
+    "importSuccess": "Import completed successfully",
+    "importWithErrors": "Import finished with {count} errors — see details below",
     "safeImportNote": "Safe re-import: updates units, skips duplicate cases, never creates login users, and keeps existing agent assignments when the sheet is blank."
   },
   "audit": {

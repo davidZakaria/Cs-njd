@@ -5,20 +5,9 @@ import { getTranslations } from "next-intl/server";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { createTicket, updateTicketStatus } from "@/lib/actions/crm";
+import { UnitTimelineCrud } from "@/components/units/unit-timeline-crud";
 import { isAwaitingResponseNote } from "@/lib/import/master-cases";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
-
-const TICKET_STATUSES = ["PENDING", "ENGINEERING", "LEGAL", "RESOLVED"] as const;
 
 export default async function UnitProfilePage({
   params,
@@ -145,91 +134,35 @@ export default async function UnitProfilePage({
         </TabsContent>
 
         <TabsContent value="timeline">
-          <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("timeline")}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {unit.tickets.length === 0 && (
-                  <p className="text-sm text-muted-foreground">{t("noTickets")}</p>
-                )}
-                {(
-                  await Promise.all(
-                    unit.tickets.map(async (ticket) => ({
-                      ticket,
-                      categoryLabel: await labels.ticketCategory(ticket.category),
-                      statusLabel: await labels.ticketStatus(ticket.status),
-                      agentLabel: ticket.agent
-                        ? await labels.staffName(ticket.agent.name)
-                        : labels.unassigned,
-                    }))
-                  )
-                ).map(({ ticket, categoryLabel, statusLabel, agentLabel: ticketAgentLabel }) => (
-                  <div key={ticket.id} className="rounded-lg border p-4">
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{categoryLabel}</Badge>
-                      <Badge variant="outline">{statusLabel}</Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {ticket.createdAt.toLocaleString(locale)}
-                      </span>
-                    </div>
-                    <p className="text-sm whitespace-pre-wrap">
-                      {isAwaitingResponseNote(ticket.notes)
-                        ? tCases("awaitingResponse")
-                        : ticket.notes}
-                    </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {ticketAgentLabel}
-                    </p>
-                    {session?.user.role !== "CS_AGENT" || unit.agentId === session.user.id ? (
-                      <form action={updateTicketStatus} className="mt-3 flex gap-2">
-                        <input type="hidden" name="id" value={ticket.id} />
-                        <Select name="status" defaultValue={ticket.status} items={statusItems}>
-                          <SelectTrigger className="w-40">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {TICKET_STATUSES.map((status) => (
-                              <SelectItem key={status} value={status}>
-                                {statusItems[status]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button type="submit" size="sm">{tCommon("update")}</Button>
-                      </form>
-                    ) : null}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("addFeedback")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form action={createTicket} className="space-y-3">
-                  <input type="hidden" name="unitId" value={unit.id} />
-                  <Textarea name="notes" placeholder={t("notesPlaceholder")} required />
-                  <Select name="status" defaultValue="PENDING" items={statusItems}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TICKET_STATUSES.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {statusItems[status]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button type="submit" className="w-full">{tCommon("save")}</Button>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
+          <UnitTimelineCrud
+            unitId={unit.id}
+            tickets={(
+              await Promise.all(
+                unit.tickets.map(async (ticket) => ({
+                  id: ticket.id,
+                  notes: ticket.notes,
+                  status: ticket.status,
+                  categoryLabel: await labels.ticketCategory(ticket.category),
+                  statusLabel: await labels.ticketStatus(ticket.status),
+                  agentLabel: ticket.agent
+                    ? await labels.staffName(ticket.agent.name)
+                    : labels.unassigned,
+                  createdAtLabel: ticket.createdAt.toLocaleString(locale),
+                  displayNotes: isAwaitingResponseNote(ticket.notes)
+                    ? tCases("awaitingResponse")
+                    : ticket.notes,
+                  canEdit:
+                    session?.user.role !== "CS_AGENT" ||
+                    unit.agentId === session.user.id,
+                }))
+              )
+            )}
+            statusItems={statusItems}
+            timelineLabel={t("timeline")}
+            noTicketsLabel={t("noTickets")}
+            addFeedbackLabel={t("addFeedback")}
+            notesPlaceholder={t("notesPlaceholder")}
+          />
         </TabsContent>
       </Tabs>
     </div>

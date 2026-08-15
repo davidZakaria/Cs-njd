@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { updateTicketStatus } from "@/lib/actions/crm";
+import { useCrudToast } from "@/hooks/use-crud-toast";
 import { isAwaitingResponseNote } from "@/lib/import/master-cases";
 import { OPEN_TICKET_STATUSES } from "@/lib/cases/workflow";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
@@ -95,6 +96,38 @@ function TicketStatusSelect({
         </SelectContent>
       </Select>
     </>
+  );
+}
+
+function TicketStatusForm({
+  ticketId,
+  status,
+  statusItems,
+  saveLabel,
+}: {
+  ticketId: string;
+  status: string;
+  statusItems: Record<string, string>;
+  saveLabel: string;
+}) {
+  const { pending, notify } = useCrudToast();
+
+  async function handleUpdate(formData: FormData) {
+    notify(await updateTicketStatus(formData), "saved");
+  }
+
+  return (
+    <form action={handleUpdate} className="flex flex-wrap gap-2">
+      <input type="hidden" name="id" value={ticketId} />
+      <TicketStatusSelect
+        key={`${ticketId}-${status}`}
+        status={status}
+        statusItems={statusItems}
+      />
+      <Button type="submit" size="sm" disabled={pending}>
+        {saveLabel}
+      </Button>
+    </form>
   );
 }
 
@@ -299,17 +332,12 @@ export function CasesTable({
         header: tCommon("actions"),
         cell: ({ row }) => (
           <div className="flex min-w-[12rem] flex-col gap-2 whitespace-normal">
-            <form action={updateTicketStatus} className="flex flex-wrap gap-2">
-              <input type="hidden" name="id" value={row.original.id} />
-              <TicketStatusSelect
-                key={`${row.original.id}-${row.original.status}`}
-                status={row.original.status}
-                statusItems={rowStatusItems}
-              />
-              <Button type="submit" size="sm">
-                {tCommon("save")}
-              </Button>
-            </form>
+            <TicketStatusForm
+              ticketId={row.original.id}
+              status={row.original.status}
+              statusItems={rowStatusItems}
+              saveLabel={tCommon("save")}
+            />
           </div>
         ),
       },

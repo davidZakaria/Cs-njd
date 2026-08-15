@@ -39,14 +39,17 @@ export default function Verify2FAPage() {
         <CardHeader>
           <CardTitle>{t("verify2fa")}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">{t("verify2faHint")}</p>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="token">{t("enterCode")}</Label>
               <Input
                 id="token"
                 value={token}
-                onChange={(e) => setToken(e.target.value)}
+                onChange={(e) => setToken(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                inputMode="numeric"
+                autoComplete="one-time-code"
                 maxLength={6}
                 required
               />

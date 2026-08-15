@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useSession } from "next-auth/react";
 import { confirmSetup2FA, getSetup2FAData } from "@/lib/actions/two-factor";
@@ -9,29 +9,44 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Image from "next/image";
 
 export default function Setup2FAPage() {
   const t = useTranslations("auth");
   const locale = useLocale();
-  const { data: session, update } = useSession();
+  const { data: session, status, update } = useSession();
   const [secret, setSecret] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const loadSetup = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    const result = await getSetup2FAData();
+    if (!result.success) {
+      setError(result.error);
+      setSecret("");
+      setQrDataUrl("");
+      setLoading(false);
+      return;
+    }
+    setSecret(result.secret ?? "");
+    setQrDataUrl(result.qrDataUrl ?? "");
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    getSetup2FAData().then((data) => {
-      setSecret(data.secret);
-      setQrDataUrl(data.qrDataUrl);
-    }).catch(() => setError("Unable to load 2FA setup. Please sign in again."));
-  }, []);
+    if (status === "authenticated") {
+      void loadSetup();
+    }
+  }, [status, loadSetup]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const result = await confirmSetup2FA(secret, token);
     if (!result.success) {
-      setError(result.error ?? "Invalid code");
+      setError(result.error ?? t("invalidCode"));
       return;
     }
     await update({
@@ -55,22 +70,52 @@ export default function Setup2FAPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">{t("scanQr")}</p>
-          {qrDataUrl && (
-            <Image src={qrDataUrl} alt="QR Code" width={200} height={200} className="mx-auto" unoptimized />
+
+          {loading ? (
+            <p className="text-center text-sm text-muted-foreground">{t("loadingQr")}</p>
+          ) : qrDataUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={qrDataUrl}
+              alt={t("qrAlt")}
+              width={220}
+              height={220}
+              className="mx-auto rounded-md border bg-white p-2"
+            />
+          ) : (
+            <div className="space-y-2 text-center">
+              <p className="text-sm text-destructive">{error || t("qrLoadFailed")}</p>
+              <Button type="button" variant="outline" size="sm" onClick={() => void loadSetup()}>
+                {t("retryQr")}
+              </Button>
+            </div>
           )}
+
+          {secret ? (
+            <div className="rounded-md border bg-muted/40 p-3 text-sm">
+              <p className="mb-1 font-medium">{t("manualSecret")}</p>
+              <p className="break-all font-mono text-xs">{secret}</p>
+            </div>
+          ) : null}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="token">{t("enterCode")}</Label>
               <Input
                 id="token"
                 value={token}
-                onChange={(e) => setToken(e.target.value)}
+                onChange={(e) => setToken(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                inputMode="numeric"
+                autoComplete="one-time-code"
                 maxLength={6}
                 required
+                disabled={!secret}
               />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full">
+            {error && qrDataUrl ? (
+              <p className="text-sm text-destructive">{error}</p>
+            ) : null}
+            <Button type="submit" className="w-full" disabled={!secret || loading}>
               {t("continue")}
             </Button>
           </form>
