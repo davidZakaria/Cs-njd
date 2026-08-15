@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Copy, Check } from "lucide-react";
 
 export default function Setup2FAPage() {
   const t = useTranslations("auth");
@@ -19,6 +20,7 @@ export default function Setup2FAPage() {
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   const loadSetup = useCallback(async () => {
     setLoading(true);
@@ -41,6 +43,13 @@ export default function Setup2FAPage() {
       void loadSetup();
     }
   }, [status, loadSetup]);
+
+  async function copySecret() {
+    if (!secret) return;
+    await navigator.clipboard.writeText(secret);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -92,9 +101,30 @@ export default function Setup2FAPage() {
           )}
 
           {secret ? (
-            <div className="rounded-md border bg-muted/40 p-3 text-sm">
-              <p className="mb-1 font-medium">{t("manualSecret")}</p>
-              <p className="break-all font-mono text-xs">{secret}</p>
+            <div className="space-y-3 rounded-md border bg-muted/40 p-3 text-sm">
+              <div>
+                <p className="mb-1 font-medium">{t("manualSecret")}</p>
+                <div className="flex items-start gap-2">
+                  <p className="flex-1 break-all font-mono text-xs">{secret}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => void copySecret()}
+                  >
+                    {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                    {copied ? t("copied") : t("copyKey")}
+                  </Button>
+                </div>
+              </div>
+              <ol className="list-decimal space-y-1 ps-4 text-muted-foreground">
+                <li>{t("manualStep1")}</li>
+                <li>{t("manualStep2")}</li>
+                <li>{t("manualStep3", { name: "NJD CRM" })}</li>
+                <li>{t("manualStep4")}</li>
+              </ol>
+              <p className="text-xs text-muted-foreground">{t("manualTip")}</p>
             </div>
           ) : null}
 

@@ -38,8 +38,7 @@ npx prisma db push
 
 This repo includes:
 
-- `prisma/migrations/20260815200000_baseline/` — full schema baseline
-- `prisma/migrations/20260815200100_production_indexes/` — performance indexes
+- `prisma/migrations/20260815200000_baseline/` — full schema baseline (includes production indexes)
 
 **Fresh database:**
 
@@ -67,6 +66,14 @@ npx prisma migrate dev --name describe_your_change
 Review the SQL in `prisma/migrations/<timestamp>_describe_your_change/migration.sql`.
 
 ### 4. Production / staging deploys
+
+On VPS (recommended):
+
+```bash
+cd /var/www/cs-njd && ./deploy/update.sh
+```
+
+Locally:
 
 ```powershell
 npx prisma migrate deploy

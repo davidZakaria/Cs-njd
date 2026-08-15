@@ -21,7 +21,12 @@ echo "==> Build"
 npm run build:strict
 
 echo "==> Restart PM2 app ($PM2_NAME only)"
-pm2 restart "$PM2_NAME"
+pm2 restart "$PM2_NAME" --update-env
+pm2 save
+
+echo "==> Smoke test"
+sleep 2
+curl -s -o /dev/null -w "HTTP %{http_code}\n" http://127.0.0.1:3001/en/login || true
 
 echo "==> Done"
 pm2 status "$PM2_NAME"
