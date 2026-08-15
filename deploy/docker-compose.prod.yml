@@ -1,0 +1,26 @@
+# Production Postgres — isolated from other projects.
+# Binds only to localhost:5434 (change if 5434 is taken on your VPS).
+# Container/volume names are unique to avoid clashes.
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: njd-crm-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: njd
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_STRONG_PASSWORD}
+      POSTGRES_DB: njd_crm
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - njd_crm_pg_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U njd -d njd_crm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  njd_crm_pg_prod:
+    name: njd_crm_pg_prod

@@ -74,6 +74,17 @@
     "deliveredUnits": "Delivered Units",
     "legalDisputes": "Legal Disputes"
   },
+  "errors": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred. You can try again or return to the dashboard.",
+    "tryAgain": "Try again",
+    "returnDashboard": "Return to Dashboard",
+    "notFound": {
+      "title": "Page not found",
+      "description": "The page you are looking for does not exist or was moved.",
+      "returnDashboard": "Return to Dashboard"
+    }
+  },
   "executive": {
     "title": "Executive Dashboard",
     "subtitle": "Open case overview and quick actions for {name}",

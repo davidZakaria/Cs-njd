@@ -134,8 +134,11 @@ model Unit {
   tickets          Ticket[]
 
   @@unique([projectId, unitCode])
+  @@index([projectId])
+  @@index([unitCode])
   @@index([agentId])
   @@index([type])
+  @@index([clientId])
 }
 
 model ContractWorkflow {
@@ -186,6 +189,8 @@ model Ticket {
   @@index([status])
   @@index([agentId])
   @@index([category])
+  @@index([status, agentId])
+  @@index([status, updatedAt])
 }
 
 model AuditLog {
