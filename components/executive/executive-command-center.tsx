@@ -3,13 +3,12 @@
 import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
-import { ExecutiveQuickActionsTable } from "@/components/executive/executive-quick-actions-table";
+import { ExecutiveProjectPanel } from "@/components/executive/executive-project-panel";
 import {
   buildExecutiveKpiItems,
   ExecutiveKpiGrid,
 } from "@/components/executive/executive-kpi-grid";
 import { ExecutiveAgentWorkloadGrid } from "@/components/executive/executive-agent-workload-grid";
-import { ExecutiveQueueSection } from "@/components/executive/executive-queue-section";
 import { ProjectDistributionChart } from "@/components/executive/project-distribution-chart";
 import { StatusDonutChart } from "@/components/executive/status-donut-chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -143,65 +142,20 @@ export function ExecutiveCommandCenter({
         />
       </TabsContent>
 
-      {data.byProject.map((slice) => {
-        const projectKpis = buildExecutiveKpiItems(slice.stats, kpiLabels);
-        const hasCases = slice.stats.openTotal > 0;
-
-        return (
+      {data.byProject.map((slice) => (
           <TabsContent
             key={slice.slug}
             value={slice.slug}
-            className="space-y-8 animate-in fade-in-50"
+            className="animate-in fade-in-50"
           >
-            <ExecutiveKpiGrid items={projectKpis} />
-
-            {hasCases ? (
-              <>
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_1fr] lg:items-start">
-                  <StatusDonutChart
-                    breakdown={slice.categoryBreakdown}
-                    title={t("casesByCategory")}
-                    className="shadow-sm"
-                  />
-                  <ExecutiveAgentWorkloadGrid
-                    agents={slice.agentWorkload}
-                    title={t("projectWorkload")}
-                    labels={workloadLabels}
-                  />
-                </div>
-
-                <ExecutiveQueueSection
-                  title={t("teamQueueTitle")}
-                  subtitle={t("teamQueueSubtitle")}
-                >
-                  <ExecutiveQuickActionsTable
-                    rows={slice.teamQueue}
-                    agents={data.agents}
-                    canAssign={true}
-                    emptyLabel={t("teamQueueEmpty")}
-                  />
-                </ExecutiveQueueSection>
-
-                <ExecutiveQueueSection
-                  title={t("myQueueTitle")}
-                  subtitle={t("myQueueSubtitle")}
-                >
-                  <ExecutiveQuickActionsTable
-                    rows={slice.myQueue}
-                    agents={data.agents}
-                    canAssign={false}
-                    emptyLabel={t("myQueueEmpty")}
-                  />
-                </ExecutiveQueueSection>
-              </>
-            ) : (
-              <p className="rounded-xl border border-dashed bg-muted/20 py-12 text-center text-sm text-muted-foreground">
-                {t("noProjectCases")}
-              </p>
-            )}
+            <ExecutiveProjectPanel
+              slice={slice}
+              agents={data.agents}
+              kpiLabels={kpiLabels}
+              workloadLabels={workloadLabels}
+            />
           </TabsContent>
-        );
-      })}
+        ))}
     </Tabs>
   );
 }

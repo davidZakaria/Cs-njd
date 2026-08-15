@@ -128,6 +128,9 @@
     "myQueueSubtitle": "البلاغات المعيّنة لك التي تحتاج متابعة.",
     "myQueueEmpty": "لا توجد بلاغات مفتوحة معيّنة لك.",
     "noProjectCases": "لا توجد بلاغات مفتوحة لهذا المشروع.",
+    "searchPlaceholder": "بحث بالعميل، الوحدة، الملاحظات، الموظف، الحالة…",
+    "searchNoResults": "لا توجد بلاغات مطابقة للبحث.",
+    "searchResults": "{count} من {total} بلاغ مطابق",
     "stats": {
       "openTotal": "بلاغات مفتوحة",
       "unassigned": "غير معيّنة",

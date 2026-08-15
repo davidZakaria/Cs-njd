@@ -128,6 +128,9 @@
     "myQueueSubtitle": "Cases assigned to you that still need action.",
     "myQueueEmpty": "No open cases assigned to you.",
     "noProjectCases": "No open cases for this project.",
+    "searchPlaceholder": "Search client, unit, notes, agent, status…",
+    "searchNoResults": "No cases match your search.",
+    "searchResults": "{count} of {total} cases match",
     "stats": {
       "openTotal": "Open cases",
       "unassigned": "Unassigned",
