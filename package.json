@@ -29,6 +29,7 @@
     "@t3-oss/env-nextjs": "^0.13.11",
     "@tanstack/react-table": "^8.21.3",
     "@wrksz/themes": "^1.2.0",
+    "archiver": "^8.0.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -55,6 +56,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/archiver": "^8.0.0",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^20",
     "@types/node-cron": "^3.0.11",

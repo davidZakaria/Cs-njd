@@ -1,42 +1,29 @@
 import "dotenv/config";
 import cron from "node-cron";
-import fs from "fs/promises";
-import path from "path";
 import { PrismaClient } from "@prisma/client";
 import {
-  getBackupDirectory,
-  runDatabaseBackup,
-} from "../lib/backup/run-database-backup";
+  getBackupCronSchedule,
+  runFullBackup,
+} from "../lib/backup/run-full-backup";
 
 const prisma = new PrismaClient();
+const schedule = getBackupCronSchedule();
 
-async function runBackup() {
-  const backupDir = getBackupDirectory();
-  await fs.mkdir(backupDir, { recursive: true });
-
-  const filename = `njd-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.sql`;
-  const filepath = path.join(backupDir, filename);
-  const log = await prisma.backupLog.create({
-    data: { filename, status: "IN_PROGRESS" },
-  });
-
+async function runScheduledBackup() {
   try {
-    await runDatabaseBackup(filepath);
-    const stat = await fs.stat(filepath);
-    await prisma.backupLog.update({
-      where: { id: log.id },
-      data: { status: "SUCCESS", size: stat.size },
-    });
-    console.log(`Backup completed: ${filename}`);
+    const { manifest } = await runFullBackup(prisma, "SCHEDULED");
+    console.log(
+      `[backup-cron] SUCCESS ${manifest.archive.filename} (${manifest.archive.sizeBytes} bytes)`
+    );
   } catch (error) {
-    await prisma.backupLog.update({
-      where: { id: log.id },
-      data: { status: "FAILED" },
-    });
-    console.error("Backup failed:", error);
+    console.error("[backup-cron] FAILED:", error);
   }
 }
 
-console.log("Starting backup cron (daily at 02:00)...");
-cron.schedule("0 2 * * *", runBackup);
-runBackup().catch(console.error);
+if (!cron.validate(schedule)) {
+  console.error(`[backup-cron] Invalid BACKUP_CRON schedule: ${schedule}`);
+  process.exit(1);
+}
+
+console.log(`[backup-cron] Daily backup scheduled: ${schedule}`);
+cron.schedule(schedule, runScheduledBackup);

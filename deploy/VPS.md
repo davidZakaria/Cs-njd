@@ -31,16 +31,26 @@ Add to `/var/www/cs-njd/.env`:
 
 ```env
 BACKUP_DOCKER_CONTAINER="njd-crm-postgres-prod"
+BACKUP_CRON="0 2 * * *"
+BACKUP_RETENTION_DAYS="14"
 ```
 
-Then restart the app:
+Start the daily backup worker (once after deploy):
 
 ```bash
-pm2 restart cs-njd-crm --update-env
+cd /var/www/cs-njd
+pm2 start deploy/ecosystem.config.cjs --only cs-njd-backup-cron
 pm2 save
 ```
 
-Test from **Backups** page → **Run backup now**. Status should become `SUCCESS`.
+Or reload all PM2 apps:
+
+```bash
+pm2 start deploy/ecosystem.config.cjs
+pm2 save
+```
+
+Test from **Backups** page → **Run backup now**. Status should become `SUCCESS` with a `.tar.gz` file and contents preview.
 
 Expect **200**. Site: **https://cs-njd.duckdns.org**
 

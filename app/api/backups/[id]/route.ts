@@ -4,6 +4,12 @@ import { getBackupFilePath } from "@/lib/backup/run-database-backup";
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 
+function contentTypeForFilename(filename: string): string {
+  if (filename.endsWith(".tar.gz")) return "application/gzip";
+  if (filename.endsWith(".sql")) return "application/sql";
+  return "application/octet-stream";
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -25,7 +31,7 @@ export async function GET(
     const content = await fs.readFile(filepath);
     return new NextResponse(content, {
       headers: {
-        "Content-Type": "application/sql",
+        "Content-Type": contentTypeForFilename(backup.filename),
         "Content-Disposition": `attachment; filename="${backup.filename}"`,
       },
     });

@@ -122,6 +122,8 @@ AUTH_SECRET="PASTE_OUTPUT_OF_openssl_rand_base64_32"
 AUTH_URL="https://cs-njd.duckdns.org"
 BACKUP_DIR="/var/www/cs-njd/backups"
 BACKUP_DOCKER_CONTAINER="njd-crm-postgres-prod"
+BACKUP_CRON="0 2 * * *"
+BACKUP_RETENTION_DAYS="14"
 NODE_ENV="production"
 
 # Single super admin (only account created on first deploy)

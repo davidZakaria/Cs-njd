@@ -70,6 +70,11 @@ enum BackupStatus {
   IN_PROGRESS
 }
 
+enum BackupSource {
+  MANUAL
+  SCHEDULED
+}
+
 model User {
   id              String   @id @default(cuid())
   name            String
@@ -212,11 +217,13 @@ model AuditLog {
 }
 
 model BackupLog {
-  id        String       @id @default(cuid())
+  id        String        @id @default(cuid())
   filename  String
-  size      Int          @default(0)
-  status    BackupStatus @default(IN_PROGRESS)
-  createdAt DateTime     @default(now())
+  size      Int           @default(0)
+  status    BackupStatus  @default(IN_PROGRESS)
+  source    BackupSource  @default(MANUAL)
+  manifest  Json?
+  createdAt DateTime      @default(now())
 
   @@index([createdAt])
 }
