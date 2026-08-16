@@ -1,7 +1,7 @@
-import { createWriteStream } from "fs";
+import { execFile } from "child_process";
 import { access, cp, mkdir, readdir, rm, stat, writeFile } from "fs/promises";
 import path from "path";
-import { createRequire } from "module";
+import { promisify } from "util";
 import type { BackupSource } from "@prisma/client";
 import {
   getBackupDirectory,
@@ -14,11 +14,7 @@ import {
 } from "@/lib/backup/backup-manifest";
 import { basePrisma } from "@/lib/prisma";
 
-const require = createRequire(import.meta.url);
-const archiver = require("archiver") as (
-  format: string,
-  options?: { gzip?: boolean; gzipOptions?: { level?: number } }
-) => import("archiver").Archiver;
+const execFileAsync = promisify(execFile);
 
 type BackupDb = typeof basePrisma;
 
@@ -63,21 +59,10 @@ async function createArchive(
   archivePath: string
 ): Promise<number> {
   await mkdir(path.dirname(archivePath), { recursive: true });
-
-  return new Promise((resolve, reject) => {
-    const output = createWriteStream(archivePath);
-    const archive = archiver("tar", {
-      gzip: true,
-      gzipOptions: { level: 9 },
-    });
-
-    output.on("close", () => resolve(archive.pointer()));
-    archive.on("error", reject);
-
-    archive.pipe(output);
-    archive.directory(stagingDir, false);
-    void archive.finalize();
+  await execFileAsync("tar", ["-czf", archivePath, "-C", stagingDir, "."], {
+    env: process.env,
   });
+  return (await stat(archivePath)).size;
 }
 
 async function pruneOldBackups(prisma: BackupDb, backupDir: string): Promise<void> {
