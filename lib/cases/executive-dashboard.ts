@@ -81,6 +81,19 @@ export type ExecutiveDashboardData = {
     projectsOpenCounts: ProjectOpenCount[];
   };
   byProject: ProjectDashboardSlice[];
+  resolved: {
+    stats: ResolvedStats;
+    categoryBreakdown: CategoryBreakdown;
+    projectsResolvedCounts: ProjectOpenCount[];
+    teamQueue: ExecutiveCaseRow[];
+    myQueue: ExecutiveCaseRow[];
+  };
+};
+
+export type ResolvedStats = {
+  resolvedTotal: number;
+  myResolved: number;
+  teamResolved: number;
 };
 
 function queuePriority(row: ExecutiveCaseRow) {
@@ -215,6 +228,25 @@ function computeAgentWorkload(
     .sort((a, b) => b.openCount - a.openCount);
 }
 
+function computeResolvedStats(rows: ExecutiveCaseRow[]): ResolvedStats {
+  return {
+    resolvedTotal: rows.length,
+    myResolved: rows.filter((row) => row.isMine).length,
+    teamResolved: rows.filter((row) => !row.isMine).length,
+  };
+}
+
+function buildResolvedProjectCounts(
+  rows: ExecutiveCaseRow[],
+  orderedProjectNames: string[]
+): ProjectOpenCount[] {
+  return orderedProjectNames.map((project) => ({
+    project,
+    slug: projectSlug(project),
+    count: rows.filter((row) => row.project === project).length,
+  }));
+}
+
 function projectSlug(name: string): string {
   if ((CANONICAL_PROJECTS as readonly string[]).includes(name)) {
     return PROJECT_SLUGS[name as CanonicalProject];
@@ -245,9 +277,23 @@ function buildProjectSlice(
 export async function getExecutiveDashboardData(
   managerId: string
 ): Promise<ExecutiveDashboardData> {
-  const [openTickets, agents, dbProjects] = await Promise.all([
+  const [openTickets, resolvedTickets, agents, dbProjects] = await Promise.all([
     prisma.ticket.findMany({
       where: { status: { in: OPEN_TICKET_STATUSES } },
+      include: {
+        agent: { select: { name: true } },
+        unit: {
+          include: {
+            project: { select: { name: true } },
+            client: { select: { name: true } },
+            agent: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.ticket.findMany({
+      where: { status: "RESOLVED" },
       include: {
         agent: { select: { name: true } },
         unit: {
@@ -307,6 +353,16 @@ export async function getExecutiveDashboardData(
     buildProjectSlice(projectName, rows, agents)
   );
 
+  const resolvedRows = resolvedTickets.map((ticket) =>
+    toExecutiveRow(ticket, managerId)
+  );
+  const resolvedTeamRows = resolvedRows.filter((row) => !row.isMine);
+  const resolvedMyRows = resolvedRows.filter((row) => row.isMine);
+  const resolvedProjectNames = new Set([
+    ...orderedProjectNames,
+    ...resolvedRows.map((row) => row.project),
+  ]);
+
   return {
     stats: globalStats,
     agentWorkload: globalAgentWorkload,
@@ -320,5 +376,15 @@ export async function getExecutiveDashboardData(
       projectsOpenCounts,
     },
     byProject,
+    resolved: {
+      stats: computeResolvedStats(resolvedRows),
+      categoryBreakdown: computeCategoryBreakdown(resolvedRows),
+      projectsResolvedCounts: buildResolvedProjectCounts(
+        resolvedRows,
+        [...resolvedProjectNames]
+      ),
+      teamQueue: sortQueue(resolvedTeamRows).slice(0, 30),
+      myQueue: sortQueue(resolvedMyRows).slice(0, 10),
+    },
   };
 }

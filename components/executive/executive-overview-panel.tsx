@@ -14,6 +14,7 @@ import { ExecutiveQueueSection } from "@/components/executive/executive-queue-se
 import { ProjectDistributionChart } from "@/components/executive/project-distribution-chart";
 import { StatusDonutChart } from "@/components/executive/status-donut-chart";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
+import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { filterExecutiveCaseRows } from "@/lib/executive/filter-case-rows";
 import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
 import type { ExecutiveKpiKey } from "@/components/executive/executive-kpi-grid";
@@ -40,7 +41,15 @@ export function ExecutiveOverviewPanel({
   const [query, setQuery] = useState("");
 
   const overviewKpis = useMemo(
-    () => buildExecutiveKpiItems(data.global.stats, kpiLabels),
+    () =>
+      buildExecutiveKpiItems(data.global.stats, kpiLabels, {
+        openTotal: buildCasesFilterUrl({ status: "open" }),
+        unassigned: buildCasesFilterUrl({ status: "open", agent: "unassigned" }),
+        legal: buildCasesFilterUrl({ status: "LEGAL" }),
+        engineering: buildCasesFilterUrl({ status: "ENGINEERING" }),
+        myOpen: buildCasesFilterUrl({ status: "open" }),
+        teamOpen: buildCasesFilterUrl({ status: "open" }),
+      }),
     [data.global.stats, kpiLabels]
   );
 
@@ -78,10 +87,12 @@ export function ExecutiveOverviewPanel({
         <ProjectDistributionChart
           data={data.global.projectsOpenCounts}
           className="shadow-sm"
+          statusScope="open"
         />
         <StatusDonutChart
           breakdown={data.global.categoryBreakdown}
           className="shadow-sm"
+          statusScope="open"
         />
       </div>
 

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
 
 import {
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/chart";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import type { ProjectOpenCount } from "@/lib/cases/executive-dashboard";
+import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { projectBarFill } from "@/lib/executive/chart-theme";
 
 type ProjectDistributionChartProps = {
@@ -26,6 +28,7 @@ type ProjectDistributionChartProps = {
   title?: string;
   description?: string;
   className?: string;
+  statusScope?: "open" | "RESOLVED";
 };
 
 export function ProjectDistributionChart({
@@ -33,9 +36,11 @@ export function ProjectDistributionChart({
   title,
   description,
   className,
+  statusScope = "open",
 }: ProjectDistributionChartProps) {
   const locale = useLocale();
   const isRtl = locale === "ar";
+  const router = useRouter();
   const tExecutive = useTranslations("executive");
   const tCharts = useTranslations("executive.charts");
   const { project: projectLabel } = useDomainLabels();
@@ -121,7 +126,23 @@ export function ProjectDistributionChart({
                   />
                 }
               />
-              <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={56}>
+              <Bar
+                dataKey="count"
+                radius={[6, 6, 0, 0]}
+                maxBarSize={56}
+                className="cursor-pointer"
+                onClick={(bar) => {
+                  const slug = (bar as { payload?: { slug?: string } })?.payload
+                    ?.slug;
+                  if (!slug) return;
+                  router.push(
+                    buildCasesFilterUrl({
+                      status: statusScope === "RESOLVED" ? "RESOLVED" : "open",
+                      project: slug,
+                    })
+                  );
+                }}
+              >
                 {chartData.map((entry) => (
                   <Cell key={entry.slug} fill={entry.fill} />
                 ))}

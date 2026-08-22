@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { Cell, Label, Pie, PieChart } from "recharts";
 
 import {
@@ -20,8 +21,10 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import type { CategoryBreakdown } from "@/lib/cases/executive-dashboard";
+import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import {
   categoryBreakdownToSlices,
+  categoryChartKeyToFilter,
   type CategoryChartKey,
 } from "@/lib/executive/chart-theme";
 
@@ -30,6 +33,8 @@ type StatusDonutChartProps = {
   title?: string;
   description?: string;
   className?: string;
+  statusScope?: "open" | "RESOLVED";
+  projectSlug?: string;
 };
 
 export function StatusDonutChart({
@@ -37,9 +42,12 @@ export function StatusDonutChart({
   title,
   description,
   className,
+  statusScope = "open",
+  projectSlug,
 }: StatusDonutChartProps) {
   const locale = useLocale();
   const isRtl = locale === "ar";
+  const router = useRouter();
   const tCharts = useTranslations("executive.charts");
   const tStats = useTranslations("executive.stats");
 
@@ -72,6 +80,17 @@ export function StatusDonutChart({
   );
 
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
+
+  function handleSliceClick(key: CategoryChartKey) {
+    router.push(
+      buildCasesFilterUrl(
+        categoryChartKeyToFilter(key, {
+          statusScope,
+          project: projectSlug,
+        })
+      )
+    );
+  }
 
   return (
     <Card className={className}>
@@ -120,7 +139,12 @@ export function StatusDonutChart({
                 stroke="var(--color-background)"
               >
                 {slices.map((slice) => (
-                  <Cell key={slice.key} fill={slice.fill} />
+                  <Cell
+                    key={slice.key}
+                    fill={slice.fill}
+                    className="cursor-pointer"
+                    onClick={() => handleSliceClick(slice.key)}
+                  />
                 ))}
                 <Label
                   content={({ viewBox }) => {

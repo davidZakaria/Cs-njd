@@ -1,4 +1,5 @@
 import type { CategoryBreakdown } from "@/lib/cases/executive-dashboard";
+import type { CasesFilterParams } from "@/lib/cases/cases-filter-url";
 
 /** Corporate palette — maps to `--color-chart-*` tokens in globals.css */
 export const EXECUTIVE_CHART_COLORS = {
@@ -45,6 +46,44 @@ export function categoryBreakdownToSlices(
     value: breakdown[key],
     fill: CATEGORY_FILL[key],
   })).filter((slice) => slice.value > 0);
+}
+
+export function categoryChartKeyToFilter(
+  key: CategoryChartKey,
+  options?: { statusScope?: "open" | "RESOLVED"; project?: string }
+): CasesFilterParams {
+  const statusScope = options?.statusScope ?? "open";
+  const project = options?.project;
+  const base = project ? { project } : {};
+
+  switch (key) {
+    case "legal":
+      return {
+        ...base,
+        status: statusScope === "RESOLVED" ? "RESOLVED" : "LEGAL",
+        category: "LEGAL",
+      };
+    case "engineering":
+      return { ...base, status: "ENGINEERING" };
+    case "customerService":
+      return {
+        ...base,
+        status: statusScope === "RESOLVED" ? "RESOLVED" : "open",
+        category: "CUSTOMER_SERVICE",
+      };
+    case "feedbackHistory":
+      return {
+        ...base,
+        status: statusScope === "RESOLVED" ? "RESOLVED" : "open",
+        category: "FEEDBACK_HISTORY",
+      };
+    case "general":
+      return {
+        ...base,
+        status: statusScope === "RESOLVED" ? "RESOLVED" : "open",
+        category: "GENERAL",
+      };
+  }
 }
 
 export function projectBarFill(index: number): string {

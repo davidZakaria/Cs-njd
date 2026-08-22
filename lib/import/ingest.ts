@@ -2,6 +2,8 @@ import * as XLSX from "xlsx";
 import { basePrisma as prisma } from "@/lib/prisma";
 import { createAgentResolver } from "@/lib/import/agents";
 import {
+  mapExecutingCompany,
+  mapFinishingPackage,
   mapFinishingType,
   mapHandoverStatus,
   mapUnitType,
@@ -171,6 +173,77 @@ function unitKey(project: string, unitCode: string): UnitKey {
   return `${normalizeProjectName(project)}::${normalizeUnitCode(unitCode)}`;
 }
 
+type FinishingImportPatch = {
+  finishingType?: ReturnType<typeof mapFinishingType>;
+  packageType?: ReturnType<typeof mapFinishingPackage>;
+  executingCompany?: ReturnType<typeof mapExecutingCompany>;
+  packageLabel?: string | null;
+  companyName?: string | null;
+  contractDate?: Date | null;
+  datedAt?: Date | null;
+  emailDate?: Date | null;
+  pricePerMeter?: number | null;
+  totalFinishingPrice?: number | null;
+  doorFees?: number | null;
+  aluminumFees?: number | null;
+};
+
+function hasPresentValue(value: unknown) {
+  return value != null && String(value).trim() !== "";
+}
+
+function buildFinishingFields(input: {
+  finishingType?: string;
+  packageLabel?: string;
+  companyName?: string;
+  finishingContractDate?: unknown;
+  datedAt?: unknown;
+  emailDate?: unknown;
+  pricePerMeter?: unknown;
+  totalPrice?: unknown;
+  doorFees?: unknown;
+  aluminumFees?: unknown;
+}): FinishingImportPatch | null {
+  const patch: FinishingImportPatch = {};
+  const packageSource = input.packageLabel ?? input.finishingType;
+
+  if (hasPresentValue(packageSource)) {
+    patch.finishingType = mapFinishingType(String(packageSource));
+    patch.packageType = mapFinishingPackage(String(packageSource)) ?? undefined;
+  }
+  if (input.packageLabel !== undefined) {
+    patch.packageLabel = input.packageLabel.trim() || null;
+  }
+  if (input.companyName !== undefined) {
+    const companyName = input.companyName.trim() || null;
+    patch.companyName = companyName;
+    patch.executingCompany = mapExecutingCompany(companyName ?? undefined) ?? undefined;
+  }
+  if (hasPresentValue(input.finishingContractDate)) {
+    patch.contractDate = parseLegacyDate(input.finishingContractDate);
+  }
+  if (hasPresentValue(input.datedAt)) {
+    patch.datedAt = parseLegacyDate(input.datedAt);
+  }
+  if (hasPresentValue(input.emailDate)) {
+    patch.emailDate = parseLegacyDate(input.emailDate);
+  }
+  if (hasPresentValue(input.pricePerMeter)) {
+    patch.pricePerMeter = parseLegacyNumber(input.pricePerMeter);
+  }
+  if (hasPresentValue(input.totalPrice)) {
+    patch.totalFinishingPrice = parseLegacyNumber(input.totalPrice);
+  }
+  if (hasPresentValue(input.doorFees)) {
+    patch.doorFees = parseLegacyNumber(input.doorFees);
+  }
+  if (hasPresentValue(input.aluminumFees)) {
+    patch.aluminumFees = parseLegacyNumber(input.aluminumFees);
+  }
+
+  return Object.keys(patch).length > 0 ? patch : null;
+}
+
 export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
   const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
   const result: ImportResult = {
@@ -215,6 +288,9 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
     finishingType?: string;
     packageLabel?: string;
     companyName?: string;
+    finishingContractDate?: unknown;
+    datedAt?: unknown;
+    emailDate?: unknown;
     pricePerMeter?: unknown;
     totalPrice?: unknown;
     doorFees?: unknown;
@@ -285,36 +361,27 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
       },
     });
 
-    const hasFinishing =
-      input.finishingType ||
-      input.packageLabel ||
-      input.companyName ||
-      input.pricePerMeter ||
-      input.totalPrice ||
-      input.doorFees ||
-      input.aluminumFees;
+    const finishingFields = buildFinishingFields({
+      finishingType: input.finishingType,
+      packageLabel: input.packageLabel,
+      companyName: input.companyName,
+      finishingContractDate: input.finishingContractDate,
+      datedAt: input.datedAt,
+      emailDate: input.emailDate,
+      pricePerMeter: input.pricePerMeter,
+      totalPrice: input.totalPrice,
+      doorFees: input.doorFees,
+      aluminumFees: input.aluminumFees,
+    });
 
-    if (hasFinishing) {
+    if (finishingFields) {
       await prisma.finishing.upsert({
         where: { unitId: unit.id },
-        update: {
-          finishingType: mapFinishingType(String(input.finishingType ?? input.packageLabel ?? "")),
-          packageLabel: input.packageLabel,
-          companyName: input.companyName,
-          pricePerMeter: parseLegacyNumber(input.pricePerMeter) ?? undefined,
-          totalFinishingPrice: parseLegacyNumber(input.totalPrice) ?? undefined,
-          doorFees: parseLegacyNumber(input.doorFees) ?? undefined,
-          aluminumFees: parseLegacyNumber(input.aluminumFees) ?? undefined,
-        },
+        update: finishingFields,
         create: {
           unitId: unit.id,
-          finishingType: mapFinishingType(String(input.finishingType ?? input.packageLabel ?? "")),
-          packageLabel: input.packageLabel,
-          companyName: input.companyName,
-          pricePerMeter: parseLegacyNumber(input.pricePerMeter) ?? undefined,
-          totalFinishingPrice: parseLegacyNumber(input.totalPrice) ?? undefined,
-          doorFees: parseLegacyNumber(input.doorFees) ?? undefined,
-          aluminumFees: parseLegacyNumber(input.aluminumFees) ?? undefined,
+          finishingType: finishingFields.finishingType ?? "CUSTOM",
+          ...finishingFields,
         },
       });
     }
@@ -401,15 +468,32 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         clientName,
         type: String(getCell(row, "النوع", "G") ?? ""),
         area: getCell(row, "مساحة الوحده", "F"),
-        contractDate: getCell(row, "المؤرخ في", "H"),
         actionLabel: String(getCell(row, "النوع", "G") ?? "") || undefined,
         handoverStatus: mapHandoverStatus(String(getCell(row, "النوع", "G") ?? "")),
         agentName: String(getCell(row, "المسئول", "B") ?? "") || undefined,
-        companyName: String(getCell(row, "الشركة المسئوله عن التشطيبات", "I") ?? "") || undefined,
+        packageLabel:
+          String(
+            getCell(row, "نوع الباقه", "نوع الباقة", "Finishing") ?? ""
+          ) || undefined,
+        companyName:
+          String(getCell(row, "الشركة المسئوله عن التشطيبات", "I") ?? "") ||
+          undefined,
+        finishingContractDate: getCell(
+          row,
+          "تاريخ عقد التشطيب",
+          "تاريخ عقد التشطيب "
+        ),
+        datedAt: getCell(row, "المؤرخ في", "H"),
+        emailDate: getCell(
+          row,
+          "تاريخ ارسال الايميل",
+          "تاريخ إرسال الإيميل",
+          "تاريخ ارسال الإيميل"
+        ),
         pricePerMeter: getCell(row, "سعر باقة التشطيب للمتر", "M"),
-        totalPrice: getCell(row, "اجمالي السعر", "N"),
+        totalPrice: getCell(row, "اجمالي السعر", "اجمالي سعر التشطيب", "N"),
         doorFees: getCell(row, "مصاريف باب", "J"),
-        aluminumFees: getCell(row, "مصاريف الوميتال", "K"),
+        aluminumFees: getCell(row, "مصاريف الوميتال", "مصاريف ألوميتال", "K"),
         notes: String(getCell(row, "ملاحظات", "O") ?? "") || undefined,
       });
     } catch (error) {
@@ -435,13 +519,33 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         unitCode: String(unitCode),
         clientName,
         area: getCell(row, "مساحة الوحده", "G"),
-        packageLabel: String(getCell(row, "نوع الباقه", "H") ?? "") || undefined,
-        contractDate: getCell(row, "المؤرخ في", "I"),
-        companyName: String(getCell(row, "الشركة المسئوله عن التشطيبات", "J") ?? "") || undefined,
+        packageLabel:
+          String(getCell(row, "نوع الباقه", "نوع الباقة", "H") ?? "") ||
+          undefined,
+        datedAt: getCell(row, "المؤرخ في", "I"),
+        finishingContractDate: getCell(
+          row,
+          "تاريخ عقد التشطيب",
+          "تاريخ عقد التشطيب "
+        ),
+        emailDate: getCell(
+          row,
+          "تاريخ ارسال الايميل",
+          "تاريخ إرسال الإيميل",
+          "تاريخ ارسال الإيميل"
+        ),
+        companyName:
+          String(getCell(row, "الشركة المسئوله عن التشطيبات", "J") ?? "") ||
+          undefined,
         pricePerMeter: getCell(row, "سعر باقة التشطيب للمتر", "L"),
-        totalPrice: getCell(row, "اجمالي السعر", "M"),
+        totalPrice: getCell(
+          row,
+          "اجمالي السعر",
+          "اجمالي سعر التشطيب",
+          "M"
+        ),
         doorFees: getCell(row, "مصاريف باب", "N"),
-        aluminumFees: getCell(row, "مصاريف الوميتال", "O"),
+        aluminumFees: getCell(row, "مصاريف الوميتال", "مصاريف ألوميتال", "O"),
         agentName: String(getCell(row, "المسئول", "C") ?? "") || undefined,
         notes: String(getCell(row, "ملاحظات", "P") ?? "") || undefined,
       });
@@ -521,7 +625,23 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
           unitCode: String(unitCode),
           clientName,
           area: getCell(row, "مساحة الوحده", "F", "G"),
-          packageLabel: String(getCell(row, "Finishing", "نوع الباقه", "H") ?? "") || undefined,
+          packageLabel:
+            String(getCell(row, "Finishing", "نوع الباقه", "نوع الباقة", "H") ?? "") ||
+            undefined,
+          companyName:
+            String(getCell(row, "الشركة المسئوله عن التشطيبات") ?? "") ||
+            undefined,
+          finishingContractDate: getCell(row, "تاريخ عقد التشطيب"),
+          datedAt: getCell(row, "المؤرخ في"),
+          emailDate: getCell(
+            row,
+            "تاريخ ارسال الايميل",
+            "تاريخ إرسال الإيميل"
+          ),
+          pricePerMeter: getCell(row, "سعر باقة التشطيب للمتر"),
+          totalPrice: getCell(row, "اجمالي السعر", "اجمالي سعر التشطيب"),
+          doorFees: getCell(row, "مصاريف باب"),
+          aluminumFees: getCell(row, "مصاريف الوميتال", "مصاريف ألوميتال"),
           agentName: String(getCell(row, "CS", "المسئول", "C", "I") ?? "") || undefined,
           notes: String(getCell(row, "ملاحظات", "J", "L") ?? "") || undefined,
         });

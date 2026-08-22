@@ -21,6 +21,7 @@ import {
   isUnassignedAgentName,
   UNASSIGNED_AGENT_FILTER,
 } from "@/lib/filters";
+import { projectNameToSlug } from "@/lib/cases/cases-filter-url";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,6 +139,9 @@ export function CasesTable({
   sectionTitle,
   sectionDescription,
   defaultStatusFilter = "all",
+  defaultProjectFilter = "all",
+  defaultCategoryFilter = "all",
+  defaultAgentFilter = "all",
   defaultCollapsed = false,
 }: {
   data: CaseRow[];
@@ -145,7 +149,10 @@ export function CasesTable({
   canAssign: boolean;
   sectionTitle?: string;
   sectionDescription?: string;
-  defaultStatusFilter?: "all" | "open";
+  defaultStatusFilter?: "all" | "open" | (typeof TICKET_STATUSES)[number];
+  defaultProjectFilter?: string;
+  defaultCategoryFilter?: string;
+  defaultAgentFilter?: string;
   defaultCollapsed?: boolean;
 }) {
   const t = useTranslations("cases");
@@ -154,8 +161,13 @@ export function CasesTable({
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(defaultStatusFilter);
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [agentFilter, setAgentFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState(defaultProjectFilter);
+  const [categoryFilter, setCategoryFilter] = useState(defaultCategoryFilter);
+  const [agentFilter, setAgentFilter] = useState(
+    defaultAgentFilter === "unassigned"
+      ? UNASSIGNED_AGENT_FILTER
+      : defaultAgentFilter
+  );
 
   const statusItems = useMemo(() => {
     const items: Record<string, string> = {
@@ -214,6 +226,15 @@ export function CasesTable({
     return items;
   }, [labels]);
 
+  const projectItems = useMemo(() => {
+    const uniqueProjects = [...new Set(data.map((row) => row.project))].sort();
+    const items: Record<string, string> = { all: t("allProjects") };
+    for (const project of uniqueProjects) {
+      items[projectNameToSlug(project)] = labels.project(project);
+    }
+    return items;
+  }, [data, labels, t]);
+
   const filtered = useMemo(() => {
     return data.filter((row) => {
       if (
@@ -232,6 +253,12 @@ export function CasesTable({
         return false;
       }
       if (categoryFilter !== "all" && row.category !== categoryFilter) return false;
+      if (
+        projectFilter !== "all" &&
+        projectNameToSlug(row.project) !== projectFilter
+      ) {
+        return false;
+      }
       if (agentFilter === UNASSIGNED_AGENT_FILTER) {
         if (!isUnassignedAgentName(row.effectiveAgent)) return false;
       } else if (agentFilter !== "all" && row.effectiveAgent !== agentFilter) {
@@ -246,7 +273,7 @@ export function CasesTable({
         row.project.toLowerCase().includes(q)
       );
     });
-  }, [data, statusFilter, categoryFilter, agentFilter, query]);
+  }, [data, statusFilter, projectFilter, categoryFilter, agentFilter, query]);
 
   const columns = useMemo<ColumnDef<CaseRow>[]>(() => {
     const cols: ColumnDef<CaseRow>[] = [
@@ -388,7 +415,7 @@ export function CasesTable({
       )}
       {!collapsed ? (
         <>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <Input
           placeholder={tCommon("search")}
           value={query}
@@ -398,6 +425,28 @@ export function CasesTable({
           }}
           className="xl:col-span-2"
         />
+        <Select
+          value={projectFilter}
+          onValueChange={(value) => {
+            setProjectFilter(value ?? "all");
+            table.setPageIndex(0);
+          }}
+          items={projectItems}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={t("project")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("allProjects")}</SelectItem>
+            {Object.entries(projectItems)
+              .filter(([key]) => key !== "all")
+              .map(([slug, label]) => (
+                <SelectItem key={slug} value={slug}>
+                  {label}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
         <Select
           value={statusFilter}
           onValueChange={(value) => {

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UnitTimelineCrud } from "@/components/units/unit-timeline-crud";
+import { UnitFinishingForm } from "@/components/units/unit-finishing-form";
 import { isAwaitingResponseNote } from "@/lib/import/master-cases";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
 
@@ -61,10 +62,19 @@ export default async function UnitProfilePage({
   const handoverLabel = await labels.handoverStatus(
     unit.contractWorkflow?.handoverStatus ?? "PENDING"
   );
-  const finishingLabel = unit.finishing?.packageLabel
-    ?? (unit.finishing?.finishingType
-      ? await labels.finishingType(unit.finishing.finishingType)
-      : "-");
+  const finishingLabel = unit.finishing?.packageType
+    ? await labels.finishingPackage(unit.finishing.packageType)
+    : unit.finishing?.packageLabel
+      ? unit.finishing.packageLabel
+      : unit.finishing?.finishingType
+        ? await labels.finishingType(unit.finishing.finishingType)
+        : "-";
+  const companyLabel = unit.finishing?.executingCompany
+    ? await labels.executingCompany(unit.finishing.executingCompany)
+    : unit.finishing?.companyName ?? "-";
+  const canEditFinishing =
+    session?.user.role === "SUPER_ADMIN" ||
+    session?.user.role === "MANAGEMENT";
 
   return (
     <div className="space-y-6">
@@ -101,19 +111,26 @@ export default async function UnitProfilePage({
         </TabsContent>
 
         <TabsContent value="financials">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("financials")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p><strong>{t("package")}:</strong> {finishingLabel}</p>
-              <p><strong>{t("company")}:</strong> {unit.finishing?.companyName ?? "-"}</p>
-              <p><strong>{t("pricePerMeter")}:</strong> {unit.finishing?.pricePerMeter ?? "-"}</p>
-              <p><strong>{t("totalPrice")}:</strong> {unit.finishing?.totalFinishingPrice ?? "-"}</p>
-              <p><strong>{t("doorFees")}:</strong> {unit.finishing?.doorFees ?? "-"}</p>
-              <p><strong>{t("aluminumFees")}:</strong> {unit.finishing?.aluminumFees ?? "-"}</p>
-            </CardContent>
-          </Card>
+          <UnitFinishingForm
+            defaults={{
+              unitId: unit.id,
+              packageType: unit.finishing?.packageType ?? null,
+              executingCompany: unit.finishing?.executingCompany ?? null,
+              contractDate: unit.finishing?.contractDate?.toISOString() ?? null,
+              datedAt: unit.finishing?.datedAt?.toISOString() ?? null,
+              emailDate: unit.finishing?.emailDate?.toISOString() ?? null,
+              pricePerMeter: unit.finishing?.pricePerMeter ?? null,
+              totalFinishingPrice: unit.finishing?.totalFinishingPrice ?? null,
+              doorFees: unit.finishing?.doorFees ?? null,
+              aluminumFees: unit.finishing?.aluminumFees ?? null,
+              packageLabel: unit.finishing?.packageLabel ?? null,
+              companyName: unit.finishing?.companyName ?? null,
+              finishingType: unit.finishing?.finishingType ?? null,
+            }}
+            canEdit={canEditFinishing}
+            packageDisplayLabel={finishingLabel}
+            companyDisplayLabel={companyLabel}
+          />
         </TabsContent>
 
         <TabsContent value="legal">

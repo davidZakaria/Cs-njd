@@ -1,4 +1,10 @@
-import type { FinishingType, HandoverStatus, UnitType } from "@prisma/client";
+import type {
+  ExecutingCompany,
+  FinishingPackage,
+  FinishingType,
+  HandoverStatus,
+  UnitType,
+} from "@prisma/client";
 
 export function mapUnitType(raw?: string): UnitType {
   const value = (raw ?? "").trim().toLowerCase();
@@ -32,6 +38,72 @@ export function mapFinishingType(raw?: string): FinishingType {
   if (value.includes("محارة")) return "PLASTER_ONLY";
   if (value.includes("اقل") || value.includes("أقل")) return "BELOW_COMPANY_PACKAGE";
   return "CUSTOM";
+}
+
+export function mapFinishingPackage(raw?: string): FinishingPackage | null {
+  const value = (raw ?? "").trim().toLowerCase();
+  if (!value) return null;
+
+  if (
+    value.includes("أقل") ||
+    value.includes("اقل") ||
+    value.includes("less than")
+  ) {
+    return "LESS_THAN_COMPANY";
+  }
+  if (
+    /package\s*1|باقة\s*1|باقه\s*1|الاولى|الأولى|الاول|الأول/.test(value)
+  ) {
+    return "PACKAGE_1";
+  }
+  if (/package\s*2|باقة\s*2|باقه\s*2|الثانية|الثانيه/.test(value)) {
+    return "PACKAGE_2";
+  }
+  if (/package\s*3|باقة\s*3|باقه\s*3|الثالثة|الثالثه/.test(value)) {
+    return "PACKAGE_3";
+  }
+  if (/package\s*4|باقة\s*4|باقه\s*4|الرابعة|الرابعه/.test(value)) {
+    return "PACKAGE_4";
+  }
+  if (
+    value.includes("3/4") ||
+    value.includes("three quarter") ||
+    value.includes("ثلاث") ||
+    value.includes("3-4")
+  ) {
+    return "THREE_QUARTERS";
+  }
+  if (
+    value.includes("core") ||
+    value.includes("shell") ||
+    value.includes("عظم")
+  ) {
+    return "CORE_AND_SHELL";
+  }
+  if (
+    value.includes("باقة الشركة") ||
+    value.includes("باقه الشركة") ||
+    value.includes("company package")
+  ) {
+    return "COMPANY_PACKAGE";
+  }
+
+  return "CUSTOM";
+}
+
+export function mapExecutingCompany(raw?: string): ExecutingCompany | null {
+  const value = (raw ?? "").trim().toLowerCase();
+  if (!value) return null;
+  if (value.includes("njd")) return "NJD";
+  if (
+    value.includes("جرجس") ||
+    value.includes("gerges") ||
+    value.includes("youssef") ||
+    value.includes("يوسف")
+  ) {
+    return "GERGES_YOUSSEF";
+  }
+  return "OTHER";
 }
 
 export function slugifyAgentEmail(name: string): string {

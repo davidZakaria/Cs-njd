@@ -4,11 +4,17 @@ import { getTranslations } from "next-intl/server";
 import { getAssignableAgentEmails } from "@/lib/staff";
 import { splitCasesForManager, getEffectiveCaseAgent } from "@/lib/cases/ownership";
 import { CasesTable, type CaseRow } from "@/components/cases/cases-table";
+import { parseCasesPageFilters } from "@/lib/cases/cases-filter-url";
 
-export default async function CasesPage() {
+export default async function CasesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
   const t = await getTranslations("cases");
   const isManager = session?.user.role === "MANAGEMENT";
+  const filters = parseCasesPageFilters(await searchParams);
 
   const ticketWhere =
     session?.user.role === "CS_AGENT"
@@ -84,7 +90,10 @@ export default async function CasesPage() {
           data={team}
           agents={agents}
           canAssign={true}
-          defaultStatusFilter="open"
+          defaultStatusFilter={filters.status}
+          defaultProjectFilter={filters.project}
+          defaultCategoryFilter={filters.category}
+          defaultAgentFilter={filters.agent}
           sectionTitle={t("manager.teamCases.title", { count: team.length })}
           sectionDescription={t("manager.teamCases.subtitle")}
         />
@@ -93,6 +102,10 @@ export default async function CasesPage() {
           agents={agents}
           canAssign={false}
           defaultCollapsed={true}
+          defaultStatusFilter={filters.status}
+          defaultProjectFilter={filters.project}
+          defaultCategoryFilter={filters.category}
+          defaultAgentFilter={filters.agent}
           sectionTitle={t("manager.myCases.title", { count: mine.length })}
           sectionDescription={t("manager.myCases.subtitle")}
         />
@@ -112,6 +125,10 @@ export default async function CasesPage() {
         data={rows}
         agents={agents}
         canAssign={canAssign}
+        defaultStatusFilter={filters.status}
+        defaultProjectFilter={filters.project}
+        defaultCategoryFilter={filters.category}
+        defaultAgentFilter={filters.agent}
         sectionTitle={
           isCsAgent
             ? t("assignedToMe.title", { count: rows.length })

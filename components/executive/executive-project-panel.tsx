@@ -13,6 +13,7 @@ import { ExecutiveAgentWorkloadGrid } from "@/components/executive/executive-age
 import { ExecutiveQueueSection } from "@/components/executive/executive-queue-section";
 import { StatusDonutChart } from "@/components/executive/status-donut-chart";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
+import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { filterExecutiveCaseRows } from "@/lib/executive/filter-case-rows";
 import type {
   ExecutiveDashboardData,
@@ -44,8 +45,26 @@ export function ExecutiveProjectPanel({
   const [query, setQuery] = useState("");
 
   const projectKpis = useMemo(
-    () => buildExecutiveKpiItems(slice.stats, kpiLabels),
-    [slice.stats, kpiLabels]
+    () =>
+      buildExecutiveKpiItems(slice.stats, kpiLabels, {
+        openTotal: buildCasesFilterUrl({
+          status: "open",
+          project: slice.slug,
+        }),
+        unassigned: buildCasesFilterUrl({
+          status: "open",
+          project: slice.slug,
+          agent: "unassigned",
+        }),
+        legal: buildCasesFilterUrl({ status: "LEGAL", project: slice.slug }),
+        engineering: buildCasesFilterUrl({
+          status: "ENGINEERING",
+          project: slice.slug,
+        }),
+        myOpen: buildCasesFilterUrl({ status: "open", project: slice.slug }),
+        teamOpen: buildCasesFilterUrl({ status: "open", project: slice.slug }),
+      }),
+    [slice.stats, slice.slug, kpiLabels]
   );
 
   const searchContext = useMemo(
@@ -91,6 +110,8 @@ export function ExecutiveProjectPanel({
           breakdown={slice.categoryBreakdown}
           title={t("casesByCategory")}
           className="shadow-sm"
+          statusScope="open"
+          projectSlug={slice.slug}
         />
         <ExecutiveAgentWorkloadGrid
           agents={slice.agentWorkload}

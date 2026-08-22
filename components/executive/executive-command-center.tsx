@@ -5,9 +5,12 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { ExecutiveOverviewPanel } from "@/components/executive/executive-overview-panel";
 import { ExecutiveProjectPanel } from "@/components/executive/executive-project-panel";
+import { ExecutiveResolvedPanel } from "@/components/executive/executive-resolved-panel";
 import type { ExecutiveKpiKey } from "@/components/executive/executive-kpi-grid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
+import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
+import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
 
@@ -86,7 +89,29 @@ export function ExecutiveCommandCenter({
             >
               <span className="flex items-center gap-2">
                 {t("overview")}
-                <TabCountBadge count={data.global.stats.openTotal} />
+                <Link
+                  href={buildCasesFilterUrl({ status: "open" })}
+                  onClick={(event) => event.stopPropagation()}
+                  className="inline-flex"
+                  title={t("viewAllCases")}
+                >
+                  <TabCountBadge count={data.global.stats.openTotal} />
+                </Link>
+              </span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="resolved"
+              className={cn(
+                "group/tabs-trigger snap-start rounded-md px-4 py-2.5 text-sm font-medium",
+                "text-muted-foreground transition-colors",
+                "hover:bg-muted/60 hover:text-foreground",
+                "data-active:bg-background data-active:text-foreground data-active:shadow-sm",
+                "data-active:ring-1 data-active:ring-foreground/10"
+              )}
+            >
+              <span className="flex items-center gap-2">
+                {t("resolved")}
+                <TabCountBadge count={data.resolved.stats.resolvedTotal} />
               </span>
             </TabsTrigger>
             {data.byProject.map((slice) => (
@@ -103,7 +128,17 @@ export function ExecutiveCommandCenter({
               >
                 <span className="flex max-w-[11rem] items-center gap-2 sm:max-w-none">
                   <span className="truncate">{projectLabel(slice.project)}</span>
-                  <TabCountBadge count={slice.stats.openTotal} />
+                  <Link
+                    href={buildCasesFilterUrl({
+                      status: "open",
+                      project: slice.slug,
+                    })}
+                    onClick={(event) => event.stopPropagation()}
+                    className="inline-flex"
+                    title={t("viewProjectCases")}
+                  >
+                    <TabCountBadge count={slice.stats.openTotal} />
+                  </Link>
                 </span>
               </TabsTrigger>
             ))}
@@ -117,6 +152,10 @@ export function ExecutiveCommandCenter({
           kpiLabels={kpiLabels}
           workloadLabels={workloadLabels}
         />
+      </TabsContent>
+
+      <TabsContent value="resolved" className="animate-in fade-in-50">
+        <ExecutiveResolvedPanel data={data} />
       </TabsContent>
 
       {data.byProject.map((slice) => (

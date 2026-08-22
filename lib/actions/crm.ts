@@ -8,6 +8,10 @@ import { headers } from "next/headers";
 import bcrypt from "bcryptjs";
 import type { Role } from "@prisma/client";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
+import {
+  finishingFormSchema,
+  type FinishingFormInput,
+} from "@/lib/validations/finishing";
 
 async function withAudit<T>(fn: () => Promise<T>) {
   const session = await auth();
@@ -201,5 +205,60 @@ export async function assignTicketAgent(formData: FormData): Promise<ActionResul
   revalidatePath(`/units/${ticket.unitId}`);
   revalidatePath("/dashboard");
   revalidatePath("/executive");
+  return actionOk();
+}
+
+export async function updateFinishing(
+  input: FinishingFormInput
+): Promise<ActionResult> {
+  const session = await auth();
+  if (
+    !session?.user ||
+    !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)
+  ) {
+    return actionFail("Unauthorized");
+  }
+
+  const parsed = finishingFormSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
+  }
+
+  const { unitId, ...data } = parsed.data;
+
+  const unit = await prisma.unit.findUnique({ where: { id: unitId } });
+  if (!unit) return actionFail("Unit not found");
+
+  await withAudit(() =>
+    prisma.finishing.upsert({
+      where: { unitId },
+      update: {
+        packageType: data.packageType,
+        executingCompany: data.executingCompany,
+        contractDate: data.contractDate,
+        datedAt: data.datedAt,
+        emailDate: data.emailDate,
+        pricePerMeter: data.pricePerMeter,
+        totalFinishingPrice: data.totalFinishingPrice,
+        doorFees: data.doorFees,
+        aluminumFees: data.aluminumFees,
+      },
+      create: {
+        unitId,
+        packageType: data.packageType,
+        executingCompany: data.executingCompany,
+        contractDate: data.contractDate,
+        datedAt: data.datedAt,
+        emailDate: data.emailDate,
+        pricePerMeter: data.pricePerMeter,
+        totalFinishingPrice: data.totalFinishingPrice,
+        doorFees: data.doorFees,
+        aluminumFees: data.aluminumFees,
+      },
+    })
+  );
+
+  revalidatePath(`/units/${unitId}`);
+  revalidatePath("/units");
   return actionOk();
 }

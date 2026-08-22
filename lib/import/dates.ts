@@ -21,7 +21,15 @@ export function parseLegacyDate(value: unknown): Date | null {
     if (isValid(date)) return date;
   }
 
-  const formats = ["yyyy-MM-dd", "d/M/yyyy", "dd/MM/yyyy", "M/d/yyyy", "d-M-yyyy"];
+  const formats = [
+    "yyyy-MM-dd",
+    "d/M/yyyy",
+    "dd/MM/yyyy",
+    "M/d/yyyy",
+    "d-M-yyyy",
+    "dd-MM-yyyy",
+    "yyyy/MM/dd",
+  ];
   for (const fmt of formats) {
     const parsed = parse(str, fmt, new Date());
     if (isValid(parsed)) return parsed;

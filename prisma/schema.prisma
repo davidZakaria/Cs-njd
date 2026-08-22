@@ -44,6 +44,24 @@ enum FinishingType {
   CUSTOM
 }
 
+enum FinishingPackage {
+  LESS_THAN_COMPANY
+  COMPANY_PACKAGE
+  PACKAGE_1
+  PACKAGE_2
+  PACKAGE_3
+  PACKAGE_4
+  THREE_QUARTERS
+  CORE_AND_SHELL
+  CUSTOM
+}
+
+enum ExecutingCompany {
+  NJD
+  GERGES_YOUSSEF
+  OTHER
+}
+
 enum TicketStatus {
   PENDING
   ENGINEERING
@@ -76,16 +94,16 @@ enum BackupSource {
 }
 
 model User {
-  id              String   @id @default(cuid())
-  name            String
-  email           String   @unique
-  password        String
-  role            Role     @default(CS_AGENT)
-  is2FAEnabled    Boolean  @default(false)
-  twoFactorSecret String?
-  requiresPasswordChange Boolean @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  name                   String
+  email                  String   @unique
+  password               String
+  role                   Role     @default(CS_AGENT)
+  is2FAEnabled           Boolean  @default(false)
+  twoFactorSecret        String?
+  requiresPasswordChange Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   assignedUnits Unit[]     @relation("AssignedAgent")
   tickets       Ticket[]
@@ -162,17 +180,22 @@ model ContractWorkflow {
 }
 
 model Finishing {
-  id                  String        @id @default(cuid())
-  unitId              String        @unique
-  finishingType       FinishingType @default(CUSTOM)
+  id                  String            @id @default(cuid())
+  unitId              String            @unique
+  finishingType       FinishingType     @default(CUSTOM)
+  packageType         FinishingPackage?
+  executingCompany    ExecutingCompany?
   packageLabel        String?
   companyName         String?
+  contractDate        DateTime?
+  datedAt             DateTime?
+  emailDate           DateTime?
   pricePerMeter       Float?
   totalFinishingPrice Float?
   doorFees            Float?
   aluminumFees        Float?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
   unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 }
@@ -217,13 +240,13 @@ model AuditLog {
 }
 
 model BackupLog {
-  id        String        @id @default(cuid())
+  id        String       @id @default(cuid())
   filename  String
-  size      Int           @default(0)
-  status    BackupStatus  @default(IN_PROGRESS)
-  source    BackupSource  @default(MANUAL)
+  size      Int          @default(0)
+  status    BackupStatus @default(IN_PROGRESS)
+  source    BackupSource @default(MANUAL)
   manifest  Json?
-  createdAt DateTime      @default(now())
+  createdAt DateTime     @default(now())
 
   @@index([createdAt])
 }
