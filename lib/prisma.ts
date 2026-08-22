@@ -1,6 +1,13 @@
 import { PrismaClient } from "@prisma/client";
 import { AsyncLocalStorage } from "async_hooks";
 import type { AuditAction } from "@prisma/client";
+import {
+  archivedUserEmail,
+  isSoftDeleteModel,
+  mergeNotDeleted,
+} from "@/lib/prisma/soft-delete";
+
+export { notDeleted, activeTicketWhere, activeUnitWhere, activeContractWorkflowWhere } from "@/lib/prisma/soft-delete";
 
 export const auditContext = new AsyncLocalStorage<{
   userId?: string;
@@ -25,8 +32,61 @@ function normalizeWhere(where: Record<string, unknown>): Record<string, unknown>
   return where;
 }
 
-function createAuditExtension() {
-  return basePrisma.$extends({
+function createSoftDeleteExtension(client: PrismaClient) {
+  return client.$extends({
+    query: {
+      $allModels: {
+        async findMany({ model, args, query }) {
+          if (isSoftDeleteModel(model)) {
+            args.where = mergeNotDeleted(args.where);
+          }
+          return query(args);
+        },
+        async findFirst({ model, args, query }) {
+          if (isSoftDeleteModel(model)) {
+            args.where = mergeNotDeleted(args.where);
+          }
+          return query(args);
+        },
+        async findUnique({ model, args, query }) {
+          if (isSoftDeleteModel(model)) {
+            args.where = mergeNotDeleted(args.where);
+          }
+          return query(args);
+        },
+        async count({ model, args, query }) {
+          if (isSoftDeleteModel(model)) {
+            args.where = mergeNotDeleted(args.where);
+          }
+          return query(args);
+        },
+        async delete({ model, args, query }) {
+          if (!isSoftDeleteModel(model)) {
+            return query(args);
+          }
+
+          const delegate = modelDelegate(model);
+          const data: Record<string, unknown> = { deletedAt: new Date() };
+
+          if (model === "User") {
+            const where = (args as { where?: { id?: string } }).where;
+            if (where?.id) {
+              data.email = archivedUserEmail(where.id);
+            }
+          }
+
+          return delegate.update({
+            where: (args as { where: Record<string, unknown> }).where,
+            data,
+          });
+        },
+      },
+    },
+  });
+}
+
+function createAuditExtension(client: ReturnType<typeof createSoftDeleteExtension>) {
+  return client.$extends({
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
@@ -69,11 +129,16 @@ function createAuditExtension() {
             (args as { where?: { id?: string } }).where?.id ??
             "unknown";
 
+          const auditAction =
+            operation === "delete" && isSoftDeleteModel(model)
+              ? "UPDATE"
+              : actionMap[operation] ?? "UPDATE";
+
           if (ctx?.userId) {
             await basePrisma.auditLog.create({
               data: {
                 userId: ctx.userId,
-                action: actionMap[operation] ?? "UPDATE",
+                action: auditAction,
                 tableName: model,
                 recordId: String(recordId),
                 oldData: oldData ? (oldData as object) : undefined,
@@ -90,11 +155,13 @@ function createAuditExtension() {
   });
 }
 
+const prismaWithSoftDelete = createSoftDeleteExtension(basePrisma);
+
 const globalForPrisma = globalThis as unknown as {
   prisma: ReturnType<typeof createAuditExtension> | undefined;
 };
 
-export const prisma = globalForPrisma.prisma ?? createAuditExtension();
+export const prisma = globalForPrisma.prisma ?? createAuditExtension(prismaWithSoftDelete);
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

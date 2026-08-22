@@ -13,6 +13,11 @@ import {
   type UpdateUserInput,
 } from "@/lib/validations/user";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
+import { archivedUserEmail } from "@/lib/prisma/soft-delete";
+import {
+  notifyCaseAssigned,
+  notifyCaseStatusUpdated,
+} from "@/lib/notifications/triggers";
 import {
   finishingFormSchema,
   type FinishingFormInput,
@@ -147,7 +152,13 @@ export async function deleteUser(id: string): Promise<ActionResult> {
   }
 
   await withAudit(() =>
-    prisma.user.delete({ where: { id } })
+    prisma.user.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        email: archivedUserEmail(id),
+      },
+    })
   );
   revalidatePath("/users");
   return actionOk();
@@ -214,7 +225,22 @@ export async function updateTicketStatus(formData: FormData): Promise<ActionResu
     return actionFail("Not assigned to this unit");
   }
 
+  const previousStatus = ticket.status;
+
   await withAudit(() => prisma.ticket.update({ where: { id }, data: { status } }));
+
+  if (
+    previousStatus !== status &&
+    (status === "LEGAL" || status === "RESOLVED")
+  ) {
+    await notifyCaseStatusUpdated({
+      unitCode: ticket.unit.unitCode,
+      unitId: ticket.unitId,
+      status,
+      agentName: session.user.name ?? session.user.email ?? "Agent",
+    });
+  }
+
   revalidatePath(`/units/${ticket.unitId}`);
   revalidatePath("/cases");
   revalidatePath("/dashboard");
@@ -236,6 +262,8 @@ export async function assignTicketAgent(formData: FormData): Promise<ActionResul
   });
   if (!ticket) return actionFail("Ticket not found");
 
+  const previousAgentId = ticket.agentId;
+
   await withAudit(async () => {
     await prisma.ticket.update({
       where: { id },
@@ -249,6 +277,18 @@ export async function assignTicketAgent(formData: FormData): Promise<ActionResul
       });
     }
   });
+
+  if (
+    agentId !== "unassigned" &&
+    agentId !== previousAgentId &&
+    ["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)
+  ) {
+    await notifyCaseAssigned({
+      agentUserId: agentId,
+      unitCode: ticket.unit.unitCode,
+      unitId: ticket.unitId,
+    });
+  }
 
   revalidatePath("/cases");
   revalidatePath(`/units/${ticket.unitId}`);

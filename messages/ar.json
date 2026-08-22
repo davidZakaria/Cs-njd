@@ -3,6 +3,54 @@
     "title": "نظام NJD لخدمة ما بعد البيع",
     "description": "إدارة خدمة العملاء وتسليم الوحدات العقارية"
   },
+  "print": {
+    "handover": {
+      "printButton": "طباعة محضر الاستلام",
+      "printHint": "جاري فتح نافذة الطباعة… اختر «حفظ كـ PDF» للاحتفاظ بنسخة رقمية.",
+      "companyName": "شعار الشركة",
+      "documentTitle": "محضر استلام وحدة",
+      "documentSubtitle": "شركة نيوجيرسي للتطوير العقاري — سجل تسليم ما بعد البيع",
+      "issuedDate": "تاريخ الإصدار",
+      "sectionClient": "بيانات العميل",
+      "sectionUnit": "بيانات الوحدة",
+      "sectionFinishing": "التشطيب والماليات",
+      "sectionLegal": "الحالة التعاقدية والتسليم",
+      "clientName": "اسم العميل",
+      "nationalId": "الرقم القومي",
+      "phone": "الهاتف",
+      "email": "البريد الإلكتروني",
+      "unitCode": "رقم الوحدة",
+      "project": "المشروع",
+      "unitType": "نوع الوحدة",
+      "area": "المساحة",
+      "handoverStatus": "حالة التسليم",
+      "contractDate": "تاريخ التعاقد",
+      "deliveryDate": "تاريخ التسليم",
+      "finishingPackage": "باقة التشطيب",
+      "executingCompany": "الشركة المنفذة",
+      "totalFinishing": "إجمالي سعر التشطيب",
+      "bodyIntro": "يُعد هذا المحضر وثيقة رسمية لتسليم الوحدة رقم {unitCode} بمشروع {projectName} للعميل/العميلة {clientName}، وذلك وفقاً لسياسات شركة نيوجيرسي للتطوير العقاري والعقد البيعي المبرم بين الطرفين.",
+      "bodyClause1": "يقر العميل/العميلة بمعاينة حالة الوحدة والمواصفات المرفقة وأي تحفظات موثقة وقت التوقيع على هذا المحضر.",
+      "bodyClause2": "يتفق الطرفان على أن أي مستحقات تشطيب أو إجراءات قانونية أو مالية مسجلة على النظام تظل خاضعة للعقد الأساسي والقوانين المصرية المنظمة للتعامل العقاري.",
+      "bodyClause3": "صدر هذا المحضر إلكترونياً من نظام نيوجيرسي لخدمة ما بعد البيع ويُعد سجلاً رسمياً للتسليم إلى حين التوقيع النهائي من الطرفين.",
+      "signatureClient": "توقيع العميل / العميلة",
+      "signatureCompany": "توقيع ممثل الشركة",
+      "signatureDate": "التاريخ",
+      "footerNote": "شركة نيوجيرسي للتطوير العقاري — خدمة العملاء"
+    }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "bellLabel": "فتح الإشعارات",
+    "markAllRead": "تعليم الكل كمقروء",
+    "empty": "لا توجد إشعارات بعد.",
+    "messages": {
+      "caseAssignedTitle": "بلاغ جديد معيّن",
+      "caseAssignedMessage": "بلاغ جديد معيّن: الوحدة {unitCode}",
+      "caseStatusUpdatedTitle": "تحديث حالة البلاغ",
+      "caseStatusUpdatedMessage": "تم تحديث حالة البلاغ {unitCode} إلى {status} بواسطة {agentName}"
+    }
+  },
   "nav": {
     "dashboard": "لوحة التحكم",
     "executive": "لوحة الإدارة",
@@ -179,10 +227,21 @@
       "noData": "لا توجد بلاغات مفتوحة للعرض",
       "feedbackHistory": "سجل الملاحظات",
       "general": "عام"
+    },
+    "financials": {
+      "title": "الماليات",
+      "subtitle": "إجماليات التشطيب من الوحدات النشطة، مجمّعة حسب المشروع.",
+      "empty": "لا توجد بيانات مالية للتشطيب بعد.",
+      "unitCount": "{count} وحدة ببيانات تشطيب",
+      "totalFinishing": "إجمالي سعر التشطيب",
+      "doorFees": "مصاريف الباب",
+      "aluminumFees": "مصاريف الألوميتال",
+      "grandTotal": "إجمالي المحفظة"
     }
   },
   "units": {
     "title": "الوحدات",
+    "exportCsv": "تصدير Excel/CSV",
     "unitCode": "رقم الوحدة",
     "project": "المشروع",
     "client": "العميل",
@@ -198,6 +257,11 @@
     "timeline": "سجل ملاحظات خدمة العملاء",
     "phone1": "الهاتف ١",
     "phone2": "الهاتف ٢",
+    "whatsapp": {
+      "buttonLabelShort": "واتساب",
+      "buttonLabel": "مراسلة {phone} على واتساب",
+      "messageTemplate": "عزيزي عميل شركة نيوجيرسي {clientName}، نود إعلامكم بخصوص وحدتكم رقم {unitCode} في مشروع {projectName}. يرجى التواصل معنا في حال لديكم أي استفسار."
+    },
     "package": "الباقة",
     "packageType": "نوع الباقة",
     "executingCompany": "الشركة المنفذة",
@@ -314,6 +378,8 @@
     "showSection": "عرض",
     "hideSection": "إخفاء",
     "showingResults": "عرض {from}–{to} من {total} حالة",
+    "exportCsv": "تصدير Excel/CSV",
+    "createdAt": "تاريخ الإنشاء",
     "rowsPerPage": "صفوف في الصفحة",
     "pageOf": "صفحة {page} من {pages}",
     "categories": {

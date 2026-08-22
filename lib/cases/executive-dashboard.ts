@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { activeTicketWhere } from "@/lib/prisma";
 import { getEffectiveCaseAgent, isCaseOwnedByUser } from "@/lib/cases/ownership";
 import { OPEN_TICKET_STATUSES } from "@/lib/cases/workflow";
 import {
@@ -293,7 +294,7 @@ export async function getExecutiveDashboardData(
 ): Promise<ExecutiveDashboardData> {
   const [openTickets, resolvedTickets, agents, dbProjects] = await Promise.all([
     prisma.ticket.findMany({
-      where: { status: { in: OPEN_TICKET_STATUSES } },
+      where: activeTicketWhere({ status: { in: OPEN_TICKET_STATUSES } }),
       include: {
         agent: { select: { name: true } },
         unit: {
@@ -307,7 +308,7 @@ export async function getExecutiveDashboardData(
       orderBy: { updatedAt: "desc" },
     }),
     prisma.ticket.findMany({
-      where: { status: "RESOLVED" },
+      where: activeTicketWhere({ status: "RESOLVED" }),
       include: {
         agent: { select: { name: true } },
         unit: {

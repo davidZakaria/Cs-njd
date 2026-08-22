@@ -40,6 +40,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ExportCsvButton } from "@/components/export/export-csv-button";
 
 export type CaseRow = {
   id: string;
@@ -275,6 +276,37 @@ export function CasesTable({
     });
   }, [data, statusFilter, projectFilter, categoryFilter, agentFilter, query]);
 
+  const exportHeaders = useMemo(
+    () => [
+      t("unit"),
+      t("client"),
+      t("category"),
+      t("caseNotes"),
+      t("agent"),
+      t("status"),
+      t("createdAt"),
+    ],
+    [t]
+  );
+
+  const exportRows = useMemo(
+    () =>
+      filtered.map((row) => [
+        `${labels.project(row.project)} · ${row.unitCode}`,
+        row.client,
+        categoryLabels[row.category] ?? row.category,
+        isAwaitingResponseNote(row.notes)
+          ? t("awaitingResponse")
+          : row.notes,
+        isUnassignedAgentName(row.effectiveAgent)
+          ? t("unassigned")
+          : labels.staffName(row.effectiveAgent),
+        labels.ticketStatus(row.status),
+        new Date(row.createdAt).toLocaleString(),
+      ]),
+    [filtered, labels, categoryLabels, t]
+  );
+
   const columns = useMemo<ColumnDef<CaseRow>[]>(() => {
     const cols: ColumnDef<CaseRow>[] = [
       {
@@ -508,6 +540,15 @@ export function CasesTable({
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="flex justify-end">
+        <ExportCsvButton
+          label={t("exportCsv")}
+          filenamePrefix="cases"
+          headers={exportHeaders}
+          rows={exportRows}
+        />
       </div>
 
       <p className="text-sm text-muted-foreground">

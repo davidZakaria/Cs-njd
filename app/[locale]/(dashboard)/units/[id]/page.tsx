@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma, notDeleted } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UnitTimelineCrud } from "@/components/units/unit-timeline-crud";
 import { UnitFinishingForm } from "@/components/units/unit-finishing-form";
+import { ClientPhoneRow } from "@/components/units/client-phone-row";
+import { PrintProtocolButton } from "@/components/units/print-protocol-button";
 import { isAwaitingResponseNote } from "@/lib/import/master-cases";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
 
@@ -41,6 +43,7 @@ export default async function UnitProfilePage({
       contractWorkflow: true,
       finishing: true,
       tickets: {
+        where: notDeleted,
         include: { agent: true },
         orderBy: { createdAt: "desc" },
       },
@@ -78,11 +81,14 @@ export default async function UnitProfilePage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t("profile")}</h1>
-        <p className="text-muted-foreground">
-          {projectLabel} · {unit.unitCode}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t("profile")}</h1>
+          <p className="text-muted-foreground">
+            {projectLabel} · {unit.unitCode}
+          </p>
+        </div>
+        <PrintProtocolButton unitId={unit.id} locale={locale} />
       </div>
 
       <Tabs defaultValue={tab === "timeline" ? "timeline" : "client"}>
@@ -98,10 +104,22 @@ export default async function UnitProfilePage({
             <CardHeader>
               <CardTitle>{t("clientInfo")}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="space-y-3 text-sm">
               <p><strong>{t("client")}:</strong> {unit.client?.name ?? "-"}</p>
-              <p><strong>{t("phone1")}:</strong> {unit.client?.phone1 ?? "-"}</p>
-              <p><strong>{t("phone2")}:</strong> {unit.client?.phone2 ?? "-"}</p>
+              <ClientPhoneRow
+                label={t("phone1")}
+                phone={unit.client?.phone1}
+                clientName={unit.client?.name ?? t("client")}
+                unitCode={unit.unitCode}
+                projectName={projectLabel}
+              />
+              <ClientPhoneRow
+                label={t("phone2")}
+                phone={unit.client?.phone2}
+                clientName={unit.client?.name ?? t("client")}
+                unitCode={unit.unitCode}
+                projectName={projectLabel}
+              />
               <p><strong>{tCommon("email")}:</strong> {unit.client?.email ?? "-"}</p>
               <p><strong>{t("type")}:</strong> {unitTypeLabel}</p>
               <p><strong>{t("area")}:</strong> {areaLabel}</p>

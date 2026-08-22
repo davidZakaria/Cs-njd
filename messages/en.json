@@ -3,6 +3,54 @@
     "title": "NJD Post-Sales CRM",
     "description": "Real Estate Post-Sales & Customer Service"
   },
+  "print": {
+    "handover": {
+      "printButton": "Print Protocol",
+      "printHint": "Print dialog opening… Use Save as PDF to keep a digital copy.",
+      "companyName": "Company Logo",
+      "documentTitle": "Unit Handover Protocol",
+      "documentSubtitle": "NJD Development — Post-Sales Delivery Record",
+      "issuedDate": "Issue date",
+      "sectionClient": "Client information",
+      "sectionUnit": "Unit details",
+      "sectionFinishing": "Finishing & financials",
+      "sectionLegal": "Contract & handover status",
+      "clientName": "Client name",
+      "nationalId": "National ID",
+      "phone": "Phone",
+      "email": "Email",
+      "unitCode": "Unit code",
+      "project": "Project",
+      "unitType": "Unit type",
+      "area": "Area",
+      "handoverStatus": "Handover status",
+      "contractDate": "Contract date",
+      "deliveryDate": "Delivery date",
+      "finishingPackage": "Finishing package",
+      "executingCompany": "Executing company",
+      "totalFinishing": "Total finishing price",
+      "bodyIntro": "This handover protocol documents the delivery procedures for client {clientName} regarding unit {unitCode} at project {projectName}, in accordance with NJD Development policies and the signed sale contract.",
+      "bodyClause1": "The client acknowledges reviewing the unit condition, attached specifications, and any documented reservations at the time of signing this protocol.",
+      "bodyClause2": "Both parties agree that any outstanding finishing, legal, or financial matters recorded in the CRM system remain governed by the master contract and applicable Egyptian real estate regulations.",
+      "bodyClause3": "This document is generated electronically from the NJD Post-Sales CRM and serves as an official internal handover record pending final countersignature.",
+      "signatureClient": "Client signature",
+      "signatureCompany": "Company representative",
+      "signatureDate": "Date",
+      "footerNote": "NJD Development — Customer Service"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "bellLabel": "Open notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications yet.",
+    "messages": {
+      "caseAssignedTitle": "New case assigned",
+      "caseAssignedMessage": "New Case Assigned: Unit {unitCode}",
+      "caseStatusUpdatedTitle": "Case status updated",
+      "caseStatusUpdatedMessage": "Case {unitCode} status updated to {status} by {agentName}"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "executive": "Executive",
@@ -179,10 +227,21 @@
       "noData": "No open cases to chart",
       "feedbackHistory": "Feedback history",
       "general": "General"
+    },
+    "financials": {
+      "title": "Financials",
+      "subtitle": "Finishing revenue aggregated from active units, grouped by project.",
+      "empty": "No finishing financial data available yet.",
+      "unitCount": "{count} units with finishing data",
+      "totalFinishing": "Total finishing price",
+      "doorFees": "Door fees",
+      "aluminumFees": "Aluminum fees",
+      "grandTotal": "Portfolio total"
     }
   },
   "units": {
     "title": "Units",
+    "exportCsv": "Export to Excel/CSV",
     "unitCode": "Unit Code",
     "project": "Project",
     "client": "Client",
@@ -198,6 +257,11 @@
     "timeline": "CS Feedback Timeline",
     "phone1": "Phone 1",
     "phone2": "Phone 2",
+    "whatsapp": {
+      "buttonLabelShort": "WhatsApp",
+      "buttonLabel": "Message {phone} on WhatsApp",
+      "messageTemplate": "Dear NJD client {clientName}, we would like to inform you regarding your unit {unitCode} at {projectName}. Please contact us if you have any questions."
+    },
     "package": "Package",
     "packageType": "Package Type",
     "executingCompany": "Executing Company",
@@ -314,6 +378,8 @@
     "showSection": "Show",
     "hideSection": "Hide",
     "showingResults": "Showing {from}–{to} of {total} cases",
+    "exportCsv": "Export to Excel/CSV",
+    "createdAt": "Created",
     "rowsPerPage": "Rows per page",
     "pageOf": "Page {page} of {pages}",
     "categories": {

@@ -13,6 +13,7 @@ import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
+import type { ExecutiveFinancials } from "@/lib/executive/financial-analytics";
 
 function TabCountBadge({
   count,
@@ -37,8 +38,10 @@ function TabCountBadge({
 
 export function ExecutiveCommandCenter({
   data,
+  financials,
 }: {
   data: ExecutiveDashboardData;
+  financials: ExecutiveFinancials;
 }) {
   const locale = useLocale();
   const isRtl = locale === "ar";
@@ -173,6 +176,7 @@ export function ExecutiveCommandCenter({
       <TabsContent value="overview" className="animate-fade-up animate-delay-100 opacity-0 animate-fill-backwards">
         <ExecutiveOverviewPanel
           data={data}
+          financials={financials}
           kpiLabels={kpiLabels}
           workloadLabels={workloadLabels}
         />

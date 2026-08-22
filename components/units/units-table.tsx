@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ExportCsvButton } from "@/components/export/export-csv-button";
 
 export type UnitRow = {
   id: string;
@@ -121,6 +122,35 @@ export function UnitsTable({
     });
   }, [data, projectFilter, agentFilter, statusFilter, globalFilter, labels]);
 
+  const exportHeaders = useMemo(
+    () => [
+      t("unitCode"),
+      t("project"),
+      t("client"),
+      t("type"),
+      t("area"),
+      t("agent"),
+      t("handoverStatus"),
+    ],
+    [t]
+  );
+
+  const exportRows = useMemo(
+    () =>
+      filteredData.map((row) => [
+        row.unitCode,
+        labels.project(row.project),
+        row.client,
+        labels.unitType(row.type),
+        labels.areaWithUnit(row.area),
+        isUnassignedAgentName(row.agent)
+          ? labels.unassigned
+          : labels.staffName(row.agent),
+        labels.handoverStatus(row.handoverStatus),
+      ]),
+    [filteredData, labels]
+  );
+
   const columns = useMemo<ColumnDef<UnitRow>[]>(
     () => [
       {
@@ -184,7 +214,7 @@ export function UnitsTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap">
+      <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
         <Input
           placeholder={tCommon("search")}
           value={globalFilter}
@@ -251,6 +281,13 @@ export function UnitsTable({
             ))}
           </SelectContent>
         </Select>
+        <ExportCsvButton
+          label={t("exportCsv")}
+          filenamePrefix="units"
+          headers={exportHeaders}
+          rows={exportRows}
+          className="w-full lg:ms-auto lg:w-auto"
+        />
       </div>
 
       <div className="min-w-0 overflow-x-auto rounded-md border">

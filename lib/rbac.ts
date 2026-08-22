@@ -28,9 +28,10 @@ const roleRoutes: Record<Role, string[]> = {
     "/audit-logs",
     "/backups",
     "/system",
+    "/print",
   ],
-  MANAGEMENT: ["/executive", "/dashboard", "/cases", "/units", "/users"],
-  CS_AGENT: ["/dashboard", "/cases", "/units"],
+  MANAGEMENT: ["/executive", "/dashboard", "/cases", "/units", "/users", "/print"],
+  CS_AGENT: ["/dashboard", "/cases", "/units", "/print"],
 };
 
 export function getHomeRoute(role: Role): string {

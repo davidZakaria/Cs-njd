@@ -16,7 +16,9 @@ import { StatusDonutChart } from "@/components/executive/status-donut-chart";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { filterExecutiveCaseRows } from "@/lib/executive/filter-case-rows";
+import { ExecutiveFinancialsPanel } from "@/components/executive/executive-financials-panel";
 import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
+import type { ExecutiveFinancials } from "@/lib/executive/financial-analytics";
 import type { ExecutiveKpiKey } from "@/components/executive/executive-kpi-grid";
 
 type WorkloadLabels = {
@@ -28,10 +30,12 @@ type WorkloadLabels = {
 
 export function ExecutiveOverviewPanel({
   data,
+  financials,
   kpiLabels,
   workloadLabels,
 }: {
   data: ExecutiveDashboardData;
+  financials: ExecutiveFinancials;
   kpiLabels: Record<ExecutiveKpiKey, string>;
   workloadLabels: WorkloadLabels;
 }) {
@@ -82,6 +86,8 @@ export function ExecutiveOverviewPanel({
   return (
     <div className="space-y-8">
       <ExecutiveKpiGrid items={overviewKpis} />
+
+      <ExecutiveFinancialsPanel financials={financials} />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <ProjectDistributionChart

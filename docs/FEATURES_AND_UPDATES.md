@@ -64,6 +64,7 @@ Project-first command center for leadership:
 - Bar chart: open cases by project
 - Donut chart: cases by category
 - Agent workload cards
+- **Financial analytics panel** — finishing revenue by project, package mix, and portfolio totals
 - **Quick search** across all open cases (client, unit, notes, agent, status)
 - Team queue & my queue with inline assign + status actions
 - KPI cards and chart segments **link to the Cases page** with matching filters
@@ -88,6 +89,7 @@ Project-first command center for leadership:
 ### 4. Cases (tickets)
 - Full cases list with filters (status, category, agent, project)
 - **Deep linking from Executive dashboard** — KPI cards, tab badges, and charts open Cases with pre-applied URL filters
+- **CSV export** of the currently filtered case list (UTF-8 with BOM for Excel)
 - Assign cases to CS agents
 - Update status inline (Pending, Engineering, Legal, Resolved)
 - Categories: Customer Service, Feedback History, Legal, General
@@ -95,10 +97,13 @@ Project-first command center for leadership:
 
 ### 5. Units (Unit 360)
 - Unit profile: client, project, handover, finishing financials
+- **CSV export** of the filtered units list from the Units page
 - **Expanded finishing details** — package type, executing company, contract/dated/email dates (General · Financials · Dates sections)
 - Editable finishing form with validation (Management / Super Admin)
 - CS feedback timeline per unit
 - Link from cases directly to unit timeline
+- **WhatsApp quick contact** — one-click message to client phone with localized template
+- **Print handover protocol** — A4 bilingual document (محضر استلام) opens in a dedicated print view with auto print dialog
 
 ### 6. Users
 - Create and manage staff accounts
@@ -138,6 +143,17 @@ Full backup bundles (`.tar.gz`), not database-only dumps:
 ### 10. System *(Super Admin)*
 - System version and update check placeholder
 
+### 11. In-app notifications
+- **Notification bell** in the top navbar for all authenticated roles
+- Real-time-style inbox (mark read, mark all read)
+- Automatic triggers when cases are assigned or move to Legal / Resolved (notifies Management & Super Admin)
+- Bilingual notification messages (EN / AR)
+
+### 12. Data lifecycle (soft delete)
+- Records are **soft-deleted** instead of permanently removed (users, clients, units, cases, finishing, contract workflow)
+- Deleted records are hidden from all dashboard queries automatically
+- User deletion archives the email address to prevent re-use conflicts
+
 ---
 
 ## Bilingual experience
@@ -166,6 +182,18 @@ Full backup bundles (`.tar.gz`), not database-only dumps:
 ---
 
 ## Release history (recent updates)
+
+### August 2026 — Automation & intelligence upgrade
+- **Soft deletes** across core models with Prisma middleware; deleted data excluded from KPIs and lists
+- **In-app notifications** — bell icon, assignment and status-change triggers, bilingual copy
+- **WhatsApp engine** — localized message templates and one-click client contact from Unit 360
+- **CSV exports** on Cases and Units tables (filtered data, Excel-friendly UTF-8 BOM)
+- **Executive financial analytics** — finishing revenue breakdown on Overview tab
+- **Print handover protocol** — A4 bilingual محضر استلام document with auto print dialog
+- Database migration: `20260823100000_automation_upgrade` (run `npx prisma migrate deploy` on production)
+
+### August 2026 — User management rebuild
+- Advanced TanStack data grid for `/users` with create/edit sheets, RBAC row actions, 2FA badges, and full i18n
 
 ### August 2026 — Per-project resolved cases (Executive)
 - Each **project tab** shows open and resolved count badges (clickable → filtered Cases list)
@@ -237,6 +265,7 @@ Full backup bundles (`.tar.gz`), not database-only dumps:
 | **Super Admin bootstrap** | `npm run db:bootstrap-admin` (see `.env` for credentials) |
 | **Executive account** | `npm run db:bootstrap-management` |
 | **Deploy on VPS** | `cd /var/www/cs-njd && bash deploy/update.sh` |
+| **Apply migrations (VPS)** | `npx prisma migrate deploy` (after pulling automation upgrade) |
 | **Backup env (VPS)** | `BACKUP_DOCKER_CONTAINER=njd-crm-postgres-prod` |
 | **Reset user 2FA** | SQL: `UPDATE "User" SET "is2FAEnabled"=false, "twoFactorSecret"=NULL WHERE email='...'` |
 
@@ -248,10 +277,10 @@ Full ops documentation: `deploy/HOSTINGER_VPS.md` and `deploy/VPS.md`
 
 These are natural next steps, not current features:
 
-- Email / SMS notifications on case assignment
+- Email / SMS notifications on case assignment (in-app notifications are live)
 - Customer-facing portal
 - Mobile-optimized executive views
-- Export cases to Excel/PDF from the UI
+- PDF export from Cases list (CSV export is available; handover protocol prints to PDF via browser)
 - Per-project email digests for management
 
 ---

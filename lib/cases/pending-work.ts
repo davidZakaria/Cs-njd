@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { activeTicketWhere } from "@/lib/prisma";
 import {
   getCaseWorkflowKey,
   OPEN_TICKET_STATUSES,
@@ -35,11 +36,11 @@ export async function getPendingWorkForSession(user: {
 }): Promise<PendingWorkUnit[]> {
   const ticketWhere =
     user.role === "CS_AGENT"
-      ? {
+      ? activeTicketWhere({
           status: { in: OPEN_TICKET_STATUSES },
           OR: [{ agentId: user.id }, { unit: { agentId: user.id } }],
-        }
-      : { status: { in: OPEN_TICKET_STATUSES } };
+        })
+      : activeTicketWhere({ status: { in: OPEN_TICKET_STATUSES } });
 
   const tickets = await prisma.ticket.findMany({
     where: ticketWhere,

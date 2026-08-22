@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { activeTicketWhere } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
 import { getAssignableAgentEmails } from "@/lib/staff";
 import { splitCasesForManager, getEffectiveCaseAgent } from "@/lib/cases/ownership";
@@ -20,13 +21,13 @@ export default async function CasesPage({
 
   const ticketWhere =
     session?.user.role === "CS_AGENT"
-      ? {
+      ? activeTicketWhere({
           OR: [
             { agentId: session.user.id },
             { unit: { agentId: session.user.id } },
           ],
-        }
-      : {};
+        })
+      : activeTicketWhere({});
 
   const [tickets, agents] = await Promise.all([
     prisma.ticket.findMany({

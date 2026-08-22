@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { LanguageToggle } from "@/components/layout/language-toggle";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,8 @@ const iconMap = {
 } as const;
 
 function DashboardTopBar() {
+  const locale = useLocale();
+
   return (
     <header className="sticky top-0 z-50 -mx-4 mb-5 border-b border-border/50 bg-background/80 px-4 py-3 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 md:-mx-6 md:px-6">
       <div className="flex items-center justify-between gap-3">
@@ -59,6 +62,7 @@ function DashboardTopBar() {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          <NotificationBell locale={locale} />
           <ThemeToggle />
           <LanguageToggle />
         </div>

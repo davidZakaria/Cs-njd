@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { activeTicketWhere, activeUnitWhere } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
 import { getAssignableAgentEmails } from "@/lib/staff";
 import { UnitsTable } from "@/components/units/units-table";
@@ -8,12 +9,12 @@ export default async function UnitsPage() {
   const session = await auth();
   const t = await getTranslations("units");
 
-  const where =
+  const scope =
     session?.user.role === "CS_AGENT" ? { agentId: session.user.id } : {};
 
   const [units, staffUsers] = await Promise.all([
     prisma.unit.findMany({
-      where,
+      where: activeUnitWhere(scope),
       include: {
         project: true,
         client: true,

@@ -2,6 +2,11 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
+import {
+  activeContractWorkflowWhere,
+  activeTicketWhere,
+  activeUnitWhere,
+} from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
 import { getPendingWorkForSession } from "@/lib/cases/pending-work";
 import { PendingWorkQueue } from "@/components/cases/pending-work-queue";
@@ -23,28 +28,28 @@ export default async function DashboardPage() {
 
   const t = await getTranslations("dashboard");
 
-  const where =
+  const unitScope =
     session?.user.role === "CS_AGENT"
       ? { agentId: session.user.id }
       : {};
 
   const [totalUnits, pendingTickets, deliveredUnits, legalDisputes, pendingWork] =
     await Promise.all([
-      prisma.unit.count({ where }),
+      prisma.unit.count({ where: activeUnitWhere(unitScope) }),
       prisma.ticket.count({
-        where: {
+        where: activeTicketWhere({
           status: "PENDING",
-          unit: where.agentId ? { agentId: where.agentId } : undefined,
-        },
+          unit: unitScope.agentId ? { agentId: unitScope.agentId } : {},
+        }),
       }),
       prisma.contractWorkflow.count({
-        where: {
+        where: activeContractWorkflowWhere({
           handoverStatus: { in: ["DELIVERY_PROTOCOL", "DELIVERED"] },
-          unit: where.agentId ? { agentId: where.agentId } : undefined,
-        },
+          unit: unitScope.agentId ? { agentId: unitScope.agentId } : {},
+        }),
       }),
       prisma.contractWorkflow.count({
-        where: {
+        where: activeContractWorkflowWhere({
           handoverStatus: {
             in: [
               "REFUSED_DELIVERY",
@@ -54,8 +59,8 @@ export default async function DashboardPage() {
               "LEGAL_DISPUTE",
             ],
           },
-          unit: where.agentId ? { agentId: where.agentId } : undefined,
-        },
+          unit: unitScope.agentId ? { agentId: unitScope.agentId } : {},
+        }),
       }),
       session?.user
         ? getPendingWorkForSession({

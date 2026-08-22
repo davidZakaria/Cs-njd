@@ -119,14 +119,17 @@ model User {
   is2FAEnabled           Boolean  @default(false)
   twoFactorSecret        String?
   requiresPasswordChange Boolean  @default(true)
+  deletedAt              DateTime?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
-  assignedUnits Unit[]     @relation("AssignedAgent")
+  assignedUnits Unit[]         @relation("AssignedAgent")
   tickets       Ticket[]
   auditLogs     AuditLog[]
+  notifications Notification[]
 
   @@index([role])
+  @@index([deletedAt])
 }
 
 model Project {
@@ -139,32 +142,35 @@ model Project {
 }
 
 model Client {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   name       String
   phone1     String?
   phone2     String?
   email      String?
-  nationalId String?  @unique
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  nationalId String?   @unique
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   units Unit[]
 
   @@index([name])
   @@index([phone1])
+  @@index([deletedAt])
 }
 
 model Unit {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   unitCode  String
   projectId String
-  type      UnitType @default(APARTMENT)
+  type      UnitType  @default(APARTMENT)
   area      Float?
   clientId  String?
   agentId   String?
   category  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   client           Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
@@ -179,6 +185,7 @@ model Unit {
   @@index([agentId])
   @@index([type])
   @@index([clientId])
+  @@index([deletedAt])
 }
 
 model ContractWorkflow {
@@ -188,12 +195,14 @@ model ContractWorkflow {
   deliveryDate   DateTime?
   handoverStatus HandoverStatus @default(PENDING)
   actionLabel    String?
+  deletedAt      DateTime?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
   unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
   @@index([handoverStatus])
+  @@index([deletedAt])
 }
 
 model Finishing {
@@ -211,10 +220,13 @@ model Finishing {
   totalFinishingPrice Float?
   doorFees            Float?
   aluminumFees        Float?
+  deletedAt           DateTime?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
   unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
 }
 
 model Ticket {
@@ -224,6 +236,7 @@ model Ticket {
   notes     String
   category  TicketCategory @default(GENERAL)
   status    TicketStatus   @default(PENDING)
+  deletedAt DateTime?
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
 
@@ -236,6 +249,23 @@ model Ticket {
   @@index([category])
   @@index([status, agentId])
   @@index([status, updatedAt])
+  @@index([deletedAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([createdAt])
 }
 
 model AuditLog {

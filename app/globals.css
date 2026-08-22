@@ -255,3 +255,21 @@
     animation-fill-mode: backwards;
   }
 }
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .handover-print-sheet {
+    box-shadow: none !important;
+  }
+}
