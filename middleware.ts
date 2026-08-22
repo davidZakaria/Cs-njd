@@ -6,6 +6,7 @@ import {
   canAccessRoute,
   getHomeRoute,
   isAuthRoute,
+  isLoginRoute,
   isMaintenanceRoute,
   isPasswordChangeRoute,
   isPublicRoute,
@@ -40,10 +41,10 @@ export default auth(async (req) => {
   }
 
   if (!req.auth?.user) {
-    if (!isAuthRoute(normalizedPath)) {
-      return NextResponse.redirect(new URL(`/${locale}/login`, req.url));
+    if (isLoginRoute(normalizedPath)) {
+      return intlMiddleware(req);
     }
-    return intlMiddleware(req);
+    return NextResponse.redirect(new URL(`/${locale}/login`, req.url));
   }
 
   const user = req.auth.user;

@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useSession } from "next-auth/react";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 
-import { resetMy2FASetup, verify2FA } from "@/lib/actions/two-factor";
 import { getPostAuthRedirect } from "@/lib/auth-redirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { ActionResult } from "@/lib/actions/result";
 
 const VERIFY_ERROR_CODES = [
   "SESSION_EXPIRED",
@@ -18,6 +18,7 @@ const VERIFY_ERROR_CODES = [
   "CODE_LENGTH",
   "NOT_CONFIGURED",
   "INVALID_CODE",
+  "Unauthorized",
 ] as const;
 
 type VerifyErrorCode = (typeof VERIFY_ERROR_CODES)[number];
@@ -26,17 +27,37 @@ function isVerifyErrorCode(value: string): value is VerifyErrorCode {
   return VERIFY_ERROR_CODES.includes(value as VerifyErrorCode);
 }
 
+async function postAuthJson<T>(url: string, body?: unknown): Promise<T> {
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  return (await response.json()) as T;
+}
+
 export default function Verify2FAPage() {
   const t = useTranslations("auth");
   const locale = useLocale();
-  const { data: session, update } = useSession();
+  const { data: session, status, update } = useSession();
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resetting, setResetting] = useState(false);
 
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      window.location.href = `/${locale}/login`;
+    }
+  }, [locale, status]);
+
   function resolveVerifyError(code: string | undefined): string {
     if (!code) return t("verifyFailed");
+    if (code === "Unauthorized") {
+      return t("verifyErrors.SESSION_EXPIRED");
+    }
     if (isVerifyErrorCode(code)) {
       return t(`verifyErrors.${code}`);
     }
@@ -49,7 +70,10 @@ export default function Verify2FAPage() {
     setError("");
 
     try {
-      const result = await verify2FA(token);
+      const result = await postAuthJson<ActionResult>("/api/auth/verify-2fa", {
+        token,
+      });
+
       if (!result.success) {
         setError(resolveVerifyError(result.error));
         return;
@@ -84,9 +108,12 @@ export default function Verify2FAPage() {
     setError("");
 
     try {
-      const result = await resetMy2FASetup();
+      const result = await postAuthJson<ActionResult>(
+        "/api/auth/reset-2fa-setup"
+      );
+
       if (!result.success) {
-        setError(result.error ?? t("resetAuthenticatorFailed"));
+        setError(resolveVerifyError(result.error));
         return;
       }
 
@@ -105,6 +132,14 @@ export default function Verify2FAPage() {
   }
 
   const busy = submitting || resetting;
+
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">

@@ -1,6 +1,8 @@
 import { authenticator } from "otplib";
 import QRCode from "qrcode";
 
+authenticator.options = { window: 1 };
+
 export function generateTwoFactorSecret(email: string) {
   const secret = authenticator.generateSecret();
   const otpauth = authenticator.keyuri(email, "NJD CRM", secret);

@@ -8,6 +8,10 @@ import {
   generateTwoFactorSecret,
   verifyTotp,
 } from "@/lib/two-factor";
+import {
+  resetTwoFactorSetupForSession,
+  verifyTwoFactorCode,
+} from "@/lib/auth/two-factor-session";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -79,15 +83,7 @@ export async function setUserTwoFactorByAdmin(
 }
 
 export async function resetMy2FASetup(): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user?.id) return actionFail("Unauthorized");
-
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { is2FAEnabled: false, twoFactorSecret: null },
-  });
-
-  return actionOk();
+  return resetTwoFactorSetupForSession();
 }
 
 export async function getSetup2FAData(): Promise<
@@ -162,33 +158,7 @@ export async function confirmSetup2FA(secret: string, token: string) {
 }
 
 export async function verify2FA(token: string): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return actionFail("SESSION_EXPIRED");
-  }
-
-  const normalized = token.replace(/\D/g, "").trim();
-  if (!normalized) {
-    return actionFail("CODE_REQUIRED");
-  }
-  if (normalized.length !== 6) {
-    return actionFail("CODE_LENGTH");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { twoFactorSecret: true, is2FAEnabled: true },
-  });
-
-  if (!user?.twoFactorSecret || !user.is2FAEnabled) {
-    return actionFail("NOT_CONFIGURED");
-  }
-
-  if (!verifyTotp(normalized, user.twoFactorSecret)) {
-    return actionFail("INVALID_CODE");
-  }
-
-  return actionOk();
+  return verifyTwoFactorCode(token);
 }
 
 export async function loginAction(formData: FormData) {

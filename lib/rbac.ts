@@ -8,9 +8,13 @@ export function isPasswordChangeRoute(path: string): boolean {
   return path.startsWith("/force-password-change");
 }
 
+export function isLoginRoute(path: string): boolean {
+  return path.startsWith("/login");
+}
+
 export function isAuthRoute(path: string): boolean {
   return (
-    path.startsWith("/login") ||
+    isLoginRoute(path) ||
     path.startsWith("/setup-2fa") ||
     path.startsWith("/verify-2fa") ||
     path.startsWith("/force-password-change")

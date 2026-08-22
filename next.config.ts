@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: "10mb",
+      allowedOrigins: [
+        "cs-njd.duckdns.org",
+        "https://cs-njd.duckdns.org",
+        "localhost:3000",
+        "localhost:3001",
+      ],
     },
   },
 };

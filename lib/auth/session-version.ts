@@ -25,7 +25,18 @@ export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
   const tokenVersion =
     typeof token.sessionVersion === "number" ? token.sessionVersion : null;
 
-  if (tokenVersion == null || tokenVersion !== dbUser.sessionVersion) {
+  if (tokenVersion == null) {
+    return {
+      ...token,
+      sessionVersion: dbUser.sessionVersion,
+      role: dbUser.role,
+      is2FAEnabled: dbUser.is2FAEnabled,
+      requiresPasswordChange: dbUser.requiresPasswordChange,
+      error: undefined,
+    };
+  }
+
+  if (tokenVersion !== dbUser.sessionVersion) {
     return { ...token, error: SESSION_REVOKED_ERROR };
   }
 
