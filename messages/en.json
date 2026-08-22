@@ -157,7 +157,9 @@
       "CODE_REQUIRED": "Enter the 6-digit code from your authenticator app.",
       "CODE_LENGTH": "The code must be exactly 6 digits.",
       "NOT_CONFIGURED": "Two-factor authentication is not set up on your account. Use the button below to scan a new QR code.",
-      "INVALID_CODE": "That code was rejected. Wait for the next code in your app, confirm the NJD CRM account is selected, and try again."
+      "INVALID_CODE": "That code was rejected. Wait for the next code in your app, confirm the NJD CRM account is selected, and try again.",
+      "USER_NOT_FOUND": "Account not found. Sign in again or contact your administrator.",
+      "QR_GENERATION_FAILED": "Could not generate the QR code. Tap Start over to retry."
     },
     "lostAuthenticatorTitle": "Lost access to your authenticator?",
     "lostAuthenticatorDescription": "You can reset 2FA and scan a new QR code. Your old authenticator codes will stop working immediately.",
@@ -168,6 +170,7 @@
     "loadingQr": "Loading QR code…",
     "qrAlt": "Two-factor authentication QR code",
     "qrLoadFailed": "Could not load the QR code.",
+    "setupExpired": "Setup expired. Tap Start over and scan the new QR code.",
     "retryQr": "Retry QR code",
     "startOver": "Start over",
     "setupNotReady": "QR not loaded yet. Tap Start over, then enter the code.",

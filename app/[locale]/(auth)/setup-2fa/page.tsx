@@ -3,56 +3,115 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useSession } from "next-auth/react";
+import { AlertCircle, Check, Copy, Loader2 } from "lucide-react";
+
 import {
-  confirmSetup2FA,
-  getSetup2FAData,
-  resetMy2FASetup,
-} from "@/lib/actions/two-factor";
-import { getPostAuthPath } from "@/lib/auth-redirect";
-import { useRouter } from "@/i18n/navigation";
+  getPostAuthRedirect,
+  resolveLocale,
+} from "@/lib/auth-redirect";
+import type { ActionResult } from "@/lib/actions/result";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Copy, Check } from "lucide-react";
+
+type SetupData = ActionResult & { secret?: string; qrDataUrl?: string };
+
+const SETUP_ERROR_CODES = [
+  "SESSION_EXPIRED",
+  "USER_NOT_FOUND",
+  "QR_GENERATION_FAILED",
+  "SETUP_EXPIRED",
+  "INVALID_CODE",
+  "Unauthorized",
+] as const;
+
+async function fetchSetupData(resetFirst = false): Promise<SetupData> {
+  if (resetFirst) {
+    await fetch("/api/auth/reset-2fa-setup", {
+      method: "POST",
+      credentials: "include",
+    });
+  }
+
+  const response = await fetch("/api/auth/setup-2fa", {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  return (await response.json()) as SetupData;
+}
 
 export default function Setup2FAPage() {
   const t = useTranslations("auth");
   const locale = useLocale();
-  const router = useRouter();
   const { data: session, status, update } = useSession();
   const [secret, setSecret] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const loadSetup = useCallback(async (forceReset = false) => {
-    setLoading(true);
-    setError("");
-    if (forceReset) {
-      await resetMy2FASetup();
-    }
-    const result = await getSetup2FAData();
-    if (!result.success) {
-      setError(result.error);
-      setSecret("");
-      setQrDataUrl("");
-      setLoading(false);
-      return;
-    }
-    setSecret(result.secret ?? "");
-    setQrDataUrl(result.qrDataUrl ?? "");
-    setToken("");
-    setLoading(false);
-  }, []);
+  const resolveSetupError = useCallback(
+    (code: string | undefined) => {
+      if (!code) return t("qrLoadFailed");
+      if (code === "Unauthorized") return t("verifyErrors.SESSION_EXPIRED");
+      if (code === "SETUP_EXPIRED") {
+        return t("setupExpired");
+      }
+      if (code === "QR_GENERATION_FAILED") return t("qrLoadFailed");
+      if (code === "INVALID_CODE") return t("invalidCode");
+      if (
+        SETUP_ERROR_CODES.includes(code as (typeof SETUP_ERROR_CODES)[number])
+      ) {
+        return t(`verifyErrors.${code}` as "verifyErrors.SESSION_EXPIRED");
+      }
+      return code;
+    },
+    [t]
+  );
+
+  const loadSetup = useCallback(
+    async (forceReset = false) => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const result = await fetchSetupData(forceReset);
+        if (!result.success) {
+          setError(resolveSetupError(result.error));
+          setSecret("");
+          setQrDataUrl("");
+          return;
+        }
+
+        setSecret(result.secret ?? "");
+        setQrDataUrl(result.qrDataUrl ?? "");
+        setToken("");
+      } catch {
+        setError(t("qrLoadFailed"));
+        setSecret("");
+        setQrDataUrl("");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [resolveSetupError, t]
+  );
 
   useEffect(() => {
-    if (status === "authenticated") {
-      void loadSetup();
+    if (status === "loading") return;
+
+    if (status === "unauthenticated") {
+      setLoading(false);
+      window.location.assign(`/${resolveLocale(locale)}/login`);
+      return;
     }
-  }, [status, loadSetup]);
+
+    void loadSetup();
+  }, [locale, loadSetup, status]);
 
   async function copySecret() {
     if (!secret) return;
@@ -67,23 +126,52 @@ export default function Setup2FAPage() {
       setError(t("setupNotReady"));
       return;
     }
-    const result = await confirmSetup2FA(secret, token);
-    if (!result.success) {
-      setError(result.error ?? t("invalidCode"));
-      return;
-    }
-    await update({
-      needs2FASetup: false,
-      is2FAEnabled: true,
-      twoFactorVerified: true,
-    });
-    router.replace(
-      getPostAuthPath({
-        requiresPasswordChange: session?.user.requiresPasswordChange ?? false,
+
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/auth/confirm-setup-2fa", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secret, token }),
+      });
+
+      const result = (await response.json()) as ActionResult;
+      if (!result.success) {
+        setError(resolveSetupError(result.error));
+        return;
+      }
+
+      await update({
         needs2FASetup: false,
+        is2FAEnabled: true,
         twoFactorVerified: true,
-        role: session!.user.role,
-      })
+      });
+
+      window.location.assign(
+        getPostAuthRedirect(resolveLocale(locale), {
+          requiresPasswordChange: session?.user.requiresPasswordChange ?? false,
+          needs2FASetup: false,
+          twoFactorVerified: true,
+          role: session!.user.role,
+        })
+      );
+    } catch {
+      setError(t("verifyUnexpectedError"));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const busy = loading || submitting;
+
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
@@ -97,7 +185,12 @@ export default function Setup2FAPage() {
           <p className="text-sm text-muted-foreground">{t("scanQr")}</p>
 
           {loading ? (
-            <p className="text-center text-sm text-muted-foreground">{t("loadingQr")}</p>
+            <div className="flex flex-col items-center gap-2 py-6">
+              <Loader2 className="size-8 animate-spin text-muted-foreground" />
+              <p className="text-center text-sm text-muted-foreground">
+                {t("loadingQr")}
+              </p>
+            </div>
           ) : qrDataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -109,7 +202,13 @@ export default function Setup2FAPage() {
             />
           ) : (
             <div className="space-y-2 text-center">
-              <p className="text-sm text-destructive">{error || t("qrLoadFailed")}</p>
+              <div
+                role="alert"
+                className="flex gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-start text-sm text-destructive"
+              >
+                <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                <p>{error || t("qrLoadFailed")}</p>
+              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -166,17 +265,31 @@ export default function Setup2FAPage() {
               <Input
                 id="token"
                 value={token}
-                onChange={(e) => setToken(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) =>
+                  setToken(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 maxLength={6}
                 required
-                disabled={loading}
+                disabled={busy || !secret}
               />
             </div>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <Button type="submit" className="w-full" disabled={loading || !secret}>
-              {t("continue")}
+            {error && secret ? (
+              <div
+                role="alert"
+                className="flex gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+              >
+                <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                <p>{error}</p>
+              </div>
+            ) : null}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={busy || !secret || token.length !== 6}
+            >
+              {submitting ? t("verifying") : t("continue")}
             </Button>
           </form>
         </CardContent>

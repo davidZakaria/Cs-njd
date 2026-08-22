@@ -3,15 +3,13 @@
 import { auth } from "@/lib/auth";
 import { prisma, auditContext } from "@/lib/prisma";
 import {
-  buildOtpAuthUrl,
-  generateQrDataUrl,
-  generateTwoFactorSecret,
-  verifyTotp,
-} from "@/lib/two-factor";
-import {
   resetTwoFactorSetupForSession,
   verifyTwoFactorCode,
 } from "@/lib/auth/two-factor-session";
+import {
+  confirmSetupTwoFactor,
+  getSetupTwoFactorData,
+} from "@/lib/auth/setup-two-factor";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -89,72 +87,11 @@ export async function resetMy2FASetup(): Promise<ActionResult> {
 export async function getSetup2FAData(): Promise<
   ActionResult & { secret?: string; qrDataUrl?: string }
 > {
-  const session = await auth();
-  if (!session?.user?.id || !session.user.email) {
-    return actionFail("Unauthorized");
-  }
-
-  let user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { is2FAEnabled: true, twoFactorSecret: true, email: true },
-  });
-
-  if (!user) return actionFail("User not found");
-
-  // Stuck state: user is on setup but DB says enabled — allow fresh setup.
-  if (user.is2FAEnabled) {
-    user = await prisma.user.update({
-      where: { id: session.user.id },
-      data: { is2FAEnabled: false, twoFactorSecret: null },
-      select: { is2FAEnabled: true, twoFactorSecret: true, email: true },
-    });
-  }
-
-  let secret = user.twoFactorSecret;
-  if (!secret) {
-    const generated = generateTwoFactorSecret(user.email);
-    secret = generated.secret;
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { twoFactorSecret: secret, is2FAEnabled: false },
-    });
-  }
-
-  try {
-    const otpauth = buildOtpAuthUrl(user.email, secret);
-    const qrDataUrl = await generateQrDataUrl(otpauth);
-    return { success: true, secret, qrDataUrl };
-  } catch {
-    return actionFail("Unable to generate QR code");
-  }
+  return getSetupTwoFactorData();
 }
 
 export async function confirmSetup2FA(secret: string, token: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { twoFactorSecret: true, is2FAEnabled: true },
-  });
-
-  if (!user?.twoFactorSecret || user.twoFactorSecret !== secret) {
-    return actionFail("Setup expired. Tap Start over and scan the QR code again.");
-  }
-
-  if (!verifyTotp(token, secret)) {
-    return actionFail("Invalid code");
-  }
-
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: {
-      twoFactorSecret: secret,
-      is2FAEnabled: true,
-    },
-  });
-
-  return actionOk();
+  return confirmSetupTwoFactor(secret, token);
 }
 
 export async function verify2FA(token: string): Promise<ActionResult> {
