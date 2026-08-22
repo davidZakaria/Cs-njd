@@ -1,7 +1,13 @@
 import { authenticator } from "otplib";
 import QRCode from "qrcode";
 
-authenticator.options = { window: 1 };
+authenticator.options = {
+  window: 5,
+};
+
+export function normalizeTotpSecret(secret: string): string {
+  return secret.replace(/\s/g, "").toUpperCase();
+}
 
 export function generateTwoFactorSecret(email: string) {
   const secret = authenticator.generateSecret();
@@ -10,7 +16,7 @@ export function generateTwoFactorSecret(email: string) {
 }
 
 export function buildOtpAuthUrl(email: string, secret: string) {
-  return authenticator.keyuri(email, "NJD CRM", secret);
+  return authenticator.keyuri(email, "NJD CRM", normalizeTotpSecret(secret));
 }
 
 export async function generateQrDataUrl(otpauth: string) {
@@ -22,5 +28,11 @@ export async function generateQrDataUrl(otpauth: string) {
 }
 
 export function verifyTotp(token: string, secret: string) {
-  return authenticator.verify({ token, secret });
+  const normalizedToken = token.replace(/\D/g, "").trim();
+  if (normalizedToken.length !== 6) return false;
+
+  return authenticator.check(
+    normalizedToken,
+    normalizeTotpSecret(secret)
+  );
 }

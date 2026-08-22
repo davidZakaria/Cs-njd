@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { useSession } from "next-auth/react";
+import { getSession, useSession } from "next-auth/react";
 import { AlertCircle, Check, Copy, Loader2 } from "lucide-react";
 
 import {
@@ -42,6 +42,30 @@ async function fetchSetupData(resetFirst = false): Promise<SetupData> {
   return (await response.json()) as SetupData;
 }
 
+async function waitForVerifiedSession(
+  update: ReturnType<typeof useSession>["update"]
+) {
+  await update({
+    needs2FASetup: false,
+    is2FAEnabled: true,
+    twoFactorVerified: true,
+  });
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const session = await getSession();
+    if (
+      session?.user?.is2FAEnabled &&
+      session.user.twoFactorVerified &&
+      !session.user.needs2FASetup
+    ) {
+      return session;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+
+  return getSession();
+}
+
 export default function Setup2FAPage() {
   const t = useTranslations("auth");
   const locale = useLocale();
@@ -53,6 +77,7 @@ export default function Setup2FAPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const initialLoadDone = useRef(false);
 
   const resolveSetupError = useCallback(
     (code: string | undefined) => {
@@ -62,7 +87,7 @@ export default function Setup2FAPage() {
         return t("setupExpired");
       }
       if (code === "QR_GENERATION_FAILED") return t("qrLoadFailed");
-      if (code === "INVALID_CODE") return t("invalidCode");
+      if (code === "INVALID_CODE") return t("verifyErrors.INVALID_CODE");
       if (
         SETUP_ERROR_CODES.includes(code as (typeof SETUP_ERROR_CODES)[number])
       ) {
@@ -110,6 +135,8 @@ export default function Setup2FAPage() {
       return;
     }
 
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
     void loadSetup();
   }, [locale, loadSetup, status]);
 
@@ -144,18 +171,20 @@ export default function Setup2FAPage() {
         return;
       }
 
-      await update({
-        needs2FASetup: false,
-        is2FAEnabled: true,
-        twoFactorVerified: true,
-      });
+      await waitForVerifiedSession(update);
+      const refreshed = await getSession();
+
+      if (!refreshed?.user?.role) {
+        setError(t("loginSessionFailed"));
+        return;
+      }
 
       window.location.assign(
         getPostAuthRedirect(resolveLocale(locale), {
-          requiresPasswordChange: session?.user.requiresPasswordChange ?? false,
+          requiresPasswordChange: refreshed.user.requiresPasswordChange ?? false,
           needs2FASetup: false,
           twoFactorVerified: true,
-          role: session!.user.role,
+          role: refreshed.user.role,
         })
       );
     } catch {
@@ -213,7 +242,10 @@ export default function Setup2FAPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => void loadSetup(true)}
+                onClick={() => {
+                initialLoadDone.current = false;
+                void loadSetup(true);
+              }}
               >
                 {t("startOver")}
               </Button>
@@ -253,7 +285,10 @@ export default function Setup2FAPage() {
               type="button"
               variant="secondary"
               className="w-full"
-              onClick={() => void loadSetup(true)}
+              onClick={() => {
+                initialLoadDone.current = false;
+                void loadSetup(true);
+              }}
             >
               {t("startOver")}
             </Button>

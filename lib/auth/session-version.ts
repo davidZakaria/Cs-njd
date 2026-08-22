@@ -4,6 +4,13 @@ import { prisma } from "@/lib/prisma";
 
 export const SESSION_REVOKED_ERROR = "SessionRevoked";
 
+function deriveNeeds2FASetup(
+  is2FAEnabled: boolean,
+  twoFactorSecret: string | null
+) {
+  return !is2FAEnabled || !twoFactorSecret;
+}
+
 export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
   if (!token.id) return token;
 
@@ -15,6 +22,7 @@ export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
       role: true,
       is2FAEnabled: true,
       requiresPasswordChange: true,
+      twoFactorSecret: true,
     },
   });
 
@@ -22,17 +30,28 @@ export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
     return { ...token, error: SESSION_REVOKED_ERROR };
   }
 
+  const needs2FASetup = deriveNeeds2FASetup(
+    dbUser.is2FAEnabled,
+    dbUser.twoFactorSecret
+  );
+
   const tokenVersion =
     typeof token.sessionVersion === "number" ? token.sessionVersion : null;
+
+  const synced = {
+    sessionVersion: dbUser.sessionVersion,
+    role: dbUser.role,
+    is2FAEnabled: dbUser.is2FAEnabled,
+    requiresPasswordChange: dbUser.requiresPasswordChange,
+    needs2FASetup,
+    error: undefined as string | undefined,
+  };
 
   if (tokenVersion == null) {
     return {
       ...token,
-      sessionVersion: dbUser.sessionVersion,
-      role: dbUser.role,
-      is2FAEnabled: dbUser.is2FAEnabled,
-      requiresPasswordChange: dbUser.requiresPasswordChange,
-      error: undefined,
+      ...synced,
+      twoFactorVerified: needs2FASetup ? false : token.twoFactorVerified,
     };
   }
 
@@ -42,10 +61,9 @@ export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
 
   return {
     ...token,
-    sessionVersion: dbUser.sessionVersion,
-    role: dbUser.role,
-    is2FAEnabled: dbUser.is2FAEnabled,
-    requiresPasswordChange: dbUser.requiresPasswordChange,
-    error: undefined,
+    ...synced,
+    twoFactorVerified: needs2FASetup
+      ? false
+      : token.twoFactorVerified,
   };
 }
