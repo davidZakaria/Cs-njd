@@ -5,8 +5,10 @@ import { useTranslations, useLocale } from "next-intl";
 import { useSession } from "next-auth/react";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 
-import { getPostAuthPath } from "@/lib/auth-redirect";
-import { useRouter } from "@/i18n/navigation";
+import {
+  getPostAuthRedirect,
+  resolveLocale,
+} from "@/lib/auth-redirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +44,6 @@ async function postAuthJson<T>(url: string, body?: unknown): Promise<T> {
 export default function Verify2FAPage() {
   const t = useTranslations("auth");
   const locale = useLocale();
-  const router = useRouter();
   const { data: session, status, update } = useSession();
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
@@ -51,7 +52,10 @@ export default function Verify2FAPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.replace("/login");
+      const timeout = window.setTimeout(() => {
+        window.location.assign(`/${resolveLocale(locale)}/login`);
+      }, 400);
+      return () => window.clearTimeout(timeout);
     }
   }, [locale, status]);
 
@@ -88,8 +92,8 @@ export default function Verify2FAPage() {
         return;
       }
 
-      router.replace(
-        getPostAuthPath({
+      window.location.assign(
+        getPostAuthRedirect(resolveLocale(locale), {
           requiresPasswordChange: session.user.requiresPasswordChange ?? false,
           needs2FASetup: session.user.needs2FASetup ?? false,
           twoFactorVerified: true,
@@ -127,7 +131,7 @@ export default function Verify2FAPage() {
         twoFactorVerified: false,
       });
 
-      router.replace("/setup-2fa");
+      window.location.assign(`/${resolveLocale(locale)}/setup-2fa`);
     } catch {
       setError(t("resetAuthenticatorFailed"));
     } finally {

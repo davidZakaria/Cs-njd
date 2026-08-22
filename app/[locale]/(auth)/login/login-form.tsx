@@ -1,21 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { signIn, getSession } from "next-auth/react";
 import { AlertCircle } from "lucide-react";
 
-import { getPostAuthPath } from "@/lib/auth-redirect";
-import { useRouter } from "@/i18n/navigation";
+import {
+  getPostAuthPath,
+  getPostAuthRedirect,
+  resolveLocale,
+} from "@/lib/auth-redirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+async function waitForSession(maxAttempts = 8) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const session = await getSession();
+    if (session?.user?.role) {
+      return session;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  return null;
+}
+
 export default function LoginForm() {
   const t = useTranslations("auth");
-  const router = useRouter();
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -34,37 +48,42 @@ export default function LoginForm() {
     setError("");
     setInfo("");
 
-    const formData = new FormData(e.currentTarget);
-    const email = String(formData.get("email")).trim();
-    const password = String(formData.get("password"));
+    try {
+      const formData = new FormData(e.currentTarget);
+      const email = String(formData.get("email")).trim();
+      const password = String(formData.get("password"));
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-    if (result?.error) {
-      setError(t("loginInvalidCredentials"));
-      setLoading(false);
-      return;
-    }
+      if (result?.error) {
+        setError(t("loginInvalidCredentials"));
+        return;
+      }
 
-    const session = await getSession();
-    if (!session?.user?.role) {
-      setError(t("loginSessionFailed"));
-      setLoading(false);
-      return;
-    }
+      const session = await waitForSession();
+      if (!session?.user?.role) {
+        setError(t("loginSessionFailed"));
+        return;
+      }
 
-    router.replace(
-      getPostAuthPath({
+      const target = getPostAuthRedirect(resolveLocale(locale), {
         requiresPasswordChange: session.user.requiresPasswordChange,
         needs2FASetup: session.user.needs2FASetup,
         twoFactorVerified: session.user.twoFactorVerified,
         role: session.user.role,
-      })
-    );
+      });
+
+      // Full navigation so the session cookie is included before middleware runs.
+      window.location.assign(target);
+    } catch {
+      setError(t("loginSessionFailed"));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -84,6 +103,7 @@ export default function LoginForm() {
                 autoComplete="username"
                 placeholder="you@company.com"
                 required
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -94,6 +114,7 @@ export default function LoginForm() {
                 type="password"
                 autoComplete="current-password"
                 required
+                disabled={loading}
               />
             </div>
 

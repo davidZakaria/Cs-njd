@@ -12,13 +12,16 @@ export function isLoginRoute(path: string): boolean {
   return path.startsWith("/login");
 }
 
-export function isAuthRoute(path: string): boolean {
+export function isTwoFactorFlowRoute(path: string): boolean {
   return (
-    isLoginRoute(path) ||
     path.startsWith("/setup-2fa") ||
     path.startsWith("/verify-2fa") ||
-    path.startsWith("/force-password-change")
+    isPasswordChangeRoute(path)
   );
+}
+
+export function isAuthRoute(path: string): boolean {
+  return isLoginRoute(path) || isTwoFactorFlowRoute(path);
 }
 
 export function isMaintenanceRoute(path: string): boolean {

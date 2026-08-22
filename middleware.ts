@@ -10,6 +10,7 @@ import {
   isMaintenanceRoute,
   isPasswordChangeRoute,
   isPublicRoute,
+  isTwoFactorFlowRoute,
 } from "@/lib/rbac";
 import {
   maintenanceCookieOptions,
@@ -52,17 +53,10 @@ export default auth(async (req) => {
   }
 
   if (!req.auth?.user) {
-    if (isLoginRoute(normalizedPath)) {
+    if (isLoginRoute(normalizedPath) || isTwoFactorFlowRoute(normalizedPath)) {
       return intlMiddleware(req);
     }
-    const loginUrl = new URL(`/${locale}/login`, req.url);
-    if (
-      normalizedPath.startsWith("/verify-2fa") ||
-      normalizedPath.startsWith("/setup-2fa")
-    ) {
-      loginUrl.searchParams.set("reason", "session_expired");
-    }
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL(`/${locale}/login`, req.url));
   }
 
   const user = req.auth.user;
