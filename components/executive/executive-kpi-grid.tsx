@@ -1,5 +1,10 @@
 import type { ExecutiveStats } from "@/lib/cases/executive-dashboard";
 import { Link } from "@/i18n/navigation";
+import {
+  entranceAnimationClass,
+  premiumCardHoverClass,
+  staggerEntranceClass,
+} from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -58,7 +63,7 @@ export function buildExecutiveKpiItems(
 export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-      {items.map((stat) => {
+      {items.map((stat, index) => {
         const toneClass =
           stat.key in KPI_TONE_CLASS
             ? KPI_TONE_CLASS[stat.key as ExecutiveKpiKey]
@@ -69,7 +74,10 @@ export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
         const card = (
           <Card
             className={cn(
-              "bg-card/80 shadow-sm transition-shadow hover:shadow-md",
+              "group bg-card shadow-sm",
+              premiumCardHoverClass,
+              entranceAnimationClass,
+              staggerEntranceClass(index),
               toneClass,
               stat.href && "cursor-pointer hover:ring-1 hover:ring-foreground/10"
             )}
@@ -80,7 +88,7 @@ export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold tabular-nums tracking-tight">
+              <div className="font-heading text-3xl font-bold tabular-nums tracking-tight transition-transform duration-300 group-hover:scale-[1.02]">
                 {stat.value.toLocaleString()}
               </div>
             </CardContent>

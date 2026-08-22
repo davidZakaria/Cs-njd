@@ -5,7 +5,7 @@ import { routing, type Locale } from "@/i18n/routing";
 import { ThemeProvider } from "@wrksz/themes/next";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
-import { geistMono, geistSans } from "@/app/layout";
+import { fontVariables } from "@/app/fonts";
 import "../globals.css";
 
 export function generateStaticParams() {
@@ -28,11 +28,20 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
   const messages = await getMessages();
   const dir = locale === "ar" ? "rtl" : "ltr";
+  const isArabic = locale === "ar";
 
   return (
-    <html lang={locale} dir={dir} suppressHydrationWarning>
+    <html
+      lang={locale}
+      dir={dir}
+      data-locale={locale}
+      suppressHydrationWarning
+      className={fontVariables}
+    >
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background font-sans antialiased`}
+        className={`min-h-screen bg-background font-sans antialiased ${
+          isArabic ? "locale-ar" : "locale-en"
+        }`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <NextIntlClientProvider messages={messages}>

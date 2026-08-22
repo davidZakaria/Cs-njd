@@ -170,7 +170,7 @@ export function ExecutiveCommandCenter({
         </div>
       </div>
 
-      <TabsContent value="overview" className="animate-in fade-in-50">
+      <TabsContent value="overview" className="animate-fade-up animate-delay-100 opacity-0 animate-fill-backwards">
         <ExecutiveOverviewPanel
           data={data}
           kpiLabels={kpiLabels}
@@ -178,7 +178,7 @@ export function ExecutiveCommandCenter({
         />
       </TabsContent>
 
-      <TabsContent value="resolved" className="animate-in fade-in-50">
+      <TabsContent value="resolved" className="animate-fade-up animate-delay-100 opacity-0 animate-fill-backwards">
         <ExecutiveResolvedPanel data={data} />
       </TabsContent>
 
@@ -186,7 +186,7 @@ export function ExecutiveCommandCenter({
           <TabsContent
             key={slice.slug}
             value={slice.slug}
-            className="animate-in fade-in-50"
+            className="animate-fade-up animate-delay-100 opacity-0 animate-fill-backwards"
           >
             <ExecutiveProjectPanel
               slice={slice}

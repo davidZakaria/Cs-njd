@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { premiumCardHoverClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
 
 export function ExecutiveCaseSearchBar({
@@ -50,6 +51,7 @@ export function ExecutiveCaseSearchBar({
       className={cn(
         "overflow-hidden border-0 bg-gradient-to-br from-[var(--color-chart-1)]/10 via-card to-card shadow-md",
         "ring-1 ring-[var(--color-chart-1)]/20",
+        premiumCardHoverClass,
         className
       )}
     >

@@ -21,6 +21,8 @@ import {
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import type { ProjectOpenCount } from "@/lib/cases/executive-dashboard";
 import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
+import { premiumCardHoverClass } from "@/lib/ui/premium-motion";
+import { cn } from "@/lib/utils";
 import { projectBarFill } from "@/lib/executive/chart-theme";
 
 type ProjectDistributionChartProps = {
@@ -70,7 +72,7 @@ export function ProjectDistributionChart({
   const total = chartData.reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <Card className={className}>
+    <Card className={cn(premiumCardHoverClass, className)}>
       <CardHeader>
         <CardTitle>{title ?? tExecutive("openCasesByProject")}</CardTitle>
         {description ? <CardDescription>{description}</CardDescription> : null}

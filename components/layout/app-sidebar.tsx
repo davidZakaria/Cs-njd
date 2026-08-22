@@ -34,6 +34,7 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { LanguageToggle } from "@/components/layout/language-toggle";
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/lib/actions/auth";
+import { cn } from "@/lib/utils";
 
 const iconMap = {
   dashboard: LayoutDashboard,
@@ -47,6 +48,25 @@ const iconMap = {
   system: Settings,
 } as const;
 
+function DashboardTopBar() {
+  return (
+    <header className="sticky top-0 z-50 -mx-4 mb-5 border-b border-border/50 bg-background/80 px-4 py-3 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 md:-mx-6 md:px-6">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <SidebarTrigger className="shrink-0 transition-transform duration-300 active:scale-95" />
+          <p className="hidden truncate text-sm font-medium text-muted-foreground sm:block">
+            NJD Post-Sales CRM
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <ThemeToggle />
+          <LanguageToggle />
+        </div>
+      </div>
+    </header>
+  );
+}
+
 export function AppSidebar({ role }: { role: Role }) {
   const locale = useLocale();
   const t = useTranslations("nav");
@@ -57,25 +77,33 @@ export function AppSidebar({ role }: { role: Role }) {
 
   return (
     <Sidebar collapsible="icon" side={isRtl ? "right" : "left"}>
-      <SidebarHeader className="border-b px-4 py-3">
-        <div className="flex items-center gap-2 font-semibold [dir=rtl]:flex-row-reverse">
-          <Building2 className="h-5 w-5 shrink-0" />
-          <span className="truncate">NJD CRM</span>
+      <SidebarHeader className="border-b border-border/50 px-4 py-4">
+        <div className="flex items-center gap-2.5 font-heading text-base font-semibold tracking-tight [dir=rtl]:flex-row-reverse">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Building2 className="h-4 w-4" />
+          </div>
+          <span className="truncate group-data-[collapsible=icon]:hidden">NJD CRM</span>
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-1 py-2">
         <SidebarGroup>
-          <SidebarGroupLabel>{tCommon("menu")}</SidebarGroupLabel>
+          <SidebarGroupLabel className="font-heading text-xs uppercase tracking-wider text-muted-foreground/80">
+            {tCommon("menu")}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1">
               {items.map((item) => {
                 const Icon = iconMap[item.key as keyof typeof iconMap];
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const active =
+                  pathname === item.href || pathname.startsWith(`${item.href}/`);
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       isActive={active}
-                      className="[dir=rtl]:flex-row-reverse"
+                      className={cn(
+                        "rounded-lg [dir=rtl]:flex-row-reverse",
+                        active && "bg-primary/10"
+                      )}
                       render={<Link href={item.href} />}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
@@ -88,14 +116,13 @@ export function AppSidebar({ role }: { role: Role }) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="gap-2 border-t p-3">
-        <div className="flex items-center gap-1 [dir=rtl]:flex-row-reverse">
-          <ThemeToggle />
-          <LanguageToggle />
-          <SidebarTrigger />
-        </div>
+      <SidebarFooter className="gap-2 border-t border-border/50 p-3">
         <form action={signOutAction}>
-          <Button variant="outline" className="w-full" type="submit">
+          <Button
+            variant="outline"
+            className="w-full transition-all duration-300 hover:bg-primary/5 active:scale-[0.98]"
+            type="submit"
+          >
             {tCommon("signOut")}
           </Button>
         </form>
@@ -114,8 +141,11 @@ export function DashboardShell({
   return (
     <SidebarProvider>
       <AppSidebar role={role} />
-      <SidebarInset className="min-h-svh min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6">
-        {children}
+      <SidebarInset className="min-h-svh min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+        <div className="flex min-h-full flex-col p-4 md:p-6">
+          <DashboardTopBar />
+          <div className="flex-1 animate-fade-in">{children}</div>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

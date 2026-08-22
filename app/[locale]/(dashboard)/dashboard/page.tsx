@@ -6,6 +6,12 @@ import { getTranslations } from "next-intl/server";
 import { getPendingWorkForSession } from "@/lib/cases/pending-work";
 import { PendingWorkQueue } from "@/components/cases/pending-work-queue";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  entranceAnimationClass,
+  premiumCardHoverClass,
+  staggerEntranceClass,
+} from "@/lib/ui/premium-motion";
+import { cn } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -70,21 +76,30 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t("welcome")}</h1>
+      <div className={cn(entranceAnimationClass, "animate-delay-75")}>
+        <h1 className="font-heading text-3xl font-bold tracking-tight">{t("welcome")}</h1>
         <p className="text-muted-foreground">{session?.user.name}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.label}>
+        {stats.map((stat, index) => (
+          <Card
+            key={stat.label}
+            className={cn(
+              premiumCardHoverClass,
+              entranceAnimationClass,
+              staggerEntranceClass(index)
+            )}
+          >
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.label}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{stat.value}</div>
+              <div className="font-heading text-3xl font-bold tabular-nums">
+                {stat.value}
+              </div>
             </CardContent>
           </Card>
         ))}

@@ -1,6 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { premiumCardHoverClass } from "@/lib/ui/premium-motion";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -19,9 +21,9 @@ export function ExecutiveQueueSection({
   children: ReactNode;
 }) {
   return (
-    <Card className="overflow-hidden shadow-sm">
+    <Card className={cn("overflow-hidden shadow-sm", premiumCardHoverClass)}>
       <CardHeader className="border-b bg-muted/20">
-        <CardTitle className="text-lg">{title}</CardTitle>
+        <CardTitle className="font-heading text-lg">{title}</CardTitle>
         <CardDescription>{subtitle}</CardDescription>
       </CardHeader>
       <CardContent className="p-0">{children}</CardContent>

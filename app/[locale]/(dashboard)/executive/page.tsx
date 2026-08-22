@@ -5,6 +5,7 @@ import { getExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
 import { ExecutiveCommandCenter } from "@/components/executive/executive-command-center";
 import { Link } from "@/i18n/navigation";
 import { buttonVariants } from "@/components/ui/button";
+import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
 
 export default async function ExecutiveDashboardPage() {
@@ -26,14 +27,16 @@ export default async function ExecutiveDashboardPage() {
       <div
         className={cn(
           "flex flex-wrap items-start justify-between gap-4 rounded-xl border bg-gradient-to-br from-muted/30 via-background to-background p-6 shadow-sm",
-          "ring-1 ring-foreground/5"
+          "ring-1 ring-foreground/5",
+          entranceAnimationClass,
+          "animate-delay-75"
         )}
       >
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-chart-1)]">
             {t("projectPortfolio")}
           </p>
-          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+          <h1 className="font-heading text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="max-w-2xl text-muted-foreground">
             {t("subtitle", { name: session.user.name })}
           </p>
@@ -46,7 +49,9 @@ export default async function ExecutiveDashboardPage() {
         </Link>
       </div>
 
-      <ExecutiveCommandCenter data={data} />
+      <div className={cn(entranceAnimationClass, "animate-delay-150")}>
+        <ExecutiveCommandCenter data={data} />
+      </div>
     </div>
   );
 }

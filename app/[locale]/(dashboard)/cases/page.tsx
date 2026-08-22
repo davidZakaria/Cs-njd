@@ -5,6 +5,8 @@ import { getAssignableAgentEmails } from "@/lib/staff";
 import { splitCasesForManager, getEffectiveCaseAgent } from "@/lib/cases/ownership";
 import { CasesTable, type CaseRow } from "@/components/cases/cases-table";
 import { parseCasesPageFilters } from "@/lib/cases/cases-filter-url";
+import { entranceAnimationClass } from "@/lib/ui/premium-motion";
+import { cn } from "@/lib/utils";
 
 export default async function CasesPage({
   searchParams,
@@ -117,11 +119,12 @@ export default async function CasesPage({
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+      <div className={cn(entranceAnimationClass, "animate-delay-75")}>
+        <h1 className="font-heading text-3xl font-bold tracking-tight">{t("title")}</h1>
         <p className="text-muted-foreground">{t("subtitle")}</p>
       </div>
-      <CasesTable
+      <div className={cn(entranceAnimationClass, "animate-delay-150")}>
+        <CasesTable
         data={rows}
         agents={agents}
         canAssign={canAssign}
@@ -135,7 +138,8 @@ export default async function CasesPage({
             : undefined
         }
         sectionDescription={isCsAgent ? t("assignedToMe.subtitle") : undefined}
-      />
+        />
+      </div>
     </div>
   );
 }
