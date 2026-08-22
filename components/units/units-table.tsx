@@ -36,6 +36,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExportCsvButton } from "@/components/export/export-csv-button";
 
+import { cn } from "@/lib/utils";
+
 export type UnitRow = {
   id: string;
   unitCode: string;
@@ -45,6 +47,16 @@ export type UnitRow = {
   area: number | null;
   agent: string;
   handoverStatus: string;
+};
+
+const COLUMN_WIDTHS: Record<string, string> = {
+  unitCode: "w-[7rem]",
+  project: "w-[9rem]",
+  client: "w-[26%]",
+  type: "w-[7rem]",
+  area: "w-[6.5rem]",
+  agent: "w-[11rem]",
+  handoverStatus: "w-[12rem]",
 };
 
 export function UnitsTable({
@@ -290,13 +302,19 @@ export function UnitsTable({
         />
       </div>
 
-      <div className="min-w-0 overflow-x-auto rounded-md border">
-        <Table className="min-w-[52rem]">
+      <div className="min-w-0 rounded-md border">
+        <Table className="min-w-[52rem] table-fixed">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="whitespace-nowrap">
+                  <TableHead
+                    key={header.id}
+                    className={cn(
+                      "whitespace-nowrap",
+                      COLUMN_WIDTHS[header.column.id]
+                    )}
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -310,7 +328,13 @@ export function UnitsTable({
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="align-top whitespace-normal">
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        "align-top whitespace-normal break-words",
+                        COLUMN_WIDTHS[cell.column.id]
+                      )}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

@@ -195,6 +195,12 @@
   html[dir="rtl"] body {
     font-feature-settings: "kern";
   }
+  [dir="rtl"] [data-slot="table-container"] {
+    direction: ltr;
+  }
+  [dir="rtl"] [data-slot="table"] {
+    direction: rtl;
+  }
   [dir="rtl"] [data-slot="table-head"],
   [dir="rtl"] [data-slot="table-cell"] {
     text-align: start;

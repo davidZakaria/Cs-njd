@@ -34,7 +34,7 @@ The CRM supports five canonical NJD projects:
 
 | Role | Who | Main access |
 |------|-----|-------------|
-| **Super Admin** | IT / system owner | Full system: imports, audit logs, backups, users, all modules |
+| **Super Admin** | IT / system owner | Full system: imports, audit logs, backups, users, system monitoring, security, maintenance mode, all modules |
 | **Management (Executive)** | Directors / managers | Executive Command Center, cases, units, users (CS agents only) |
 | **CS Agent** | Customer service staff | Dashboard, assigned units, cases, ticket updates |
 
@@ -145,8 +145,27 @@ Full backup bundles (`.tar.gz`), not database-only dumps:
 - Download successful backups
 - 14-day retention (configurable)
 
-### 10. System *(Super Admin)*
-- System version and update check placeholder
+### 10. System administration *(Super Admin)*
+
+Collapsible sidebar groups organize super-admin tools:
+
+**Users & Security**
+- User management (same advanced grid as Management, plus full role control)
+- **Security & Sessions** — login history table (email, IP, browser, success/fail) and active-session control with **Kill sessions** (increments session version; revoked users are signed out on next request)
+
+**Data Hub**
+- Imports, backups, audit logs (unchanged modules, grouped for clarity)
+
+**Monitoring**
+- **System health dashboard** — live CPU load, memory (system + process RSS), disk usage, server uptime; color-coded thresholds (green / amber / red)
+
+**System**
+- **General settings** — **maintenance mode** toggle stored in `SystemSetting`; when enabled, CS agents and Management are redirected to a maintenance screen; Super Admin bypasses
+- Legacy system version / update-check placeholder page
+
+**Session security (all roles)**
+- Login attempts recorded (success and failure) with IP and user agent
+- Per-user `sessionVersion` on JWT — admin session kill invalidates existing tokens immediately
 
 ### 11. In-app notifications
 - **Notification bell** in the top navbar for all authenticated roles
@@ -165,6 +184,7 @@ Full backup bundles (`.tar.gz`), not database-only dumps:
 
 - Full **English** and **Arabic** UI via next-intl
 - Automatic **RTL layout** for Arabic (navigation, tables, charts, forms)
+- **RTL table alignment fix** — fixed column headers/cells in Arabic data grids (Units, Cases, Users, security tables)
 - Localized project names, staff names, enums, and executive vocabulary
 - Language switcher in the app shell
 
@@ -187,6 +207,15 @@ Full backup bundles (`.tar.gz`), not database-only dumps:
 ---
 
 ## Release history (recent updates)
+
+### August 2026 — Super Admin expansion
+- **Schema:** `LoginHistory`, `SystemSetting`, user `lastLoginAt` + `sessionVersion`; migration `20260823140000_super_admin_expansion`
+- **Sidebar:** collapsible SUPER_ADMIN nav groups (Users & Security, Data Hub, Monitoring, System)
+- **System monitoring** (`/system/monitoring`) — CPU, memory, disk, uptime KPIs with usage thresholds
+- **Security & sessions** (`/system/security`) — login history + kill sessions for any user
+- **Maintenance mode** (`/system/settings`) — DB-backed toggle; middleware redirects CS Agent / Management to `/maintenance`; Super Admin bypass
+- **Auth hardening** — login attempt logging, JWT session-version validation, revoked-session middleware handling
+- **RTL table fixes** for Arabic column alignment across major data grids
 
 ### August 2026 — Handwritten CS/Engineering field specs
 - Schema: client addresses, unit delivery year/grace period, ROOF type, finishing current status
@@ -276,7 +305,9 @@ Full backup bundles (`.tar.gz`), not database-only dumps:
 | **Super Admin bootstrap** | `npm run db:bootstrap-admin` (see `.env` for credentials) |
 | **Executive account** | `npm run db:bootstrap-management` |
 | **Deploy on VPS** | `cd /var/www/cs-njd && bash deploy/update.sh` |
-| **Apply migrations (VPS)** | `npx prisma migrate deploy` (after pulling automation upgrade) |
+| **Apply migrations (VPS)** | `npx prisma migrate deploy` (includes `20260823140000_super_admin_expansion` if not yet applied) |
+| **Maintenance mode** | Super Admin → System → General Settings; blocks CS Agent & Management only |
+| **Kill user sessions** | Super Admin → Users & Security → Security & Sessions → Active sessions tab |
 | **Backup env (VPS)** | `BACKUP_DOCKER_CONTAINER=njd-crm-postgres-prod` |
 | **Reset user 2FA** | SQL: `UPDATE "User" SET "is2FAEnabled"=false, "twoFactorSecret"=NULL WHERE email='...'` |
 
@@ -293,6 +324,7 @@ These are natural next steps, not current features:
 - Mobile-optimized executive views
 - PDF export from Cases list (CSV export is available; handover protocol prints to PDF via browser)
 - Per-project email digests for management
+- Scheduled maintenance windows with advance user notice (maintenance mode toggle is live)
 
 ---
 

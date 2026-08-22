@@ -17,6 +17,10 @@ export function isAuthRoute(path: string): boolean {
   );
 }
 
+export function isMaintenanceRoute(path: string): boolean {
+  return path.startsWith("/maintenance");
+}
+
 const roleRoutes: Record<Role, string[]> = {
   SUPER_ADMIN: [
     "/dashboard",
@@ -45,26 +49,82 @@ export function canAccessRoute(role: Role, path: string): boolean {
   );
 }
 
+export type NavItemKey =
+  | "dashboard"
+  | "executive"
+  | "cases"
+  | "units"
+  | "users"
+  | "imports"
+  | "auditLogs"
+  | "backups"
+  | "system"
+  | "loginHistory"
+  | "systemHealth"
+  | "systemSettings";
+
+export type NavGroupKey =
+  | "usersSecurity"
+  | "dataHub"
+  | "monitoring"
+  | "systemAdmin";
+
+export function getCoreNavItems(role: Role) {
+  const items: Array<{ href: string; key: NavItemKey; roles: Role[] }> = [
+    { href: "/executive", key: "executive", roles: ["SUPER_ADMIN", "MANAGEMENT"] },
+    { href: "/dashboard", key: "dashboard", roles: ["SUPER_ADMIN", "CS_AGENT"] },
+    { href: "/cases", key: "cases", roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT"] },
+    { href: "/units", key: "units", roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT"] },
+  ];
+
+  return items.filter((item) => item.roles.includes(role));
+}
+
+export function getSuperAdminNavGroups(): Array<{
+  key: NavGroupKey;
+  items: Array<{ href: string; key: NavItemKey }>;
+}> {
+  return [
+    {
+      key: "usersSecurity",
+      items: [
+        { href: "/users", key: "users" },
+        { href: "/system/security", key: "loginHistory" },
+      ],
+    },
+    {
+      key: "dataHub",
+      items: [
+        { href: "/imports", key: "imports" },
+        { href: "/backups", key: "backups" },
+        { href: "/audit-logs", key: "auditLogs" },
+      ],
+    },
+    {
+      key: "monitoring",
+      items: [{ href: "/system/monitoring", key: "systemHealth" }],
+    },
+    {
+      key: "systemAdmin",
+      items: [
+        { href: "/system/settings", key: "systemSettings" },
+        { href: "/system", key: "system" },
+      ],
+    },
+  ];
+}
+
 export function getNavItems(role: Role) {
   const all: Array<{
     href: string;
-    key:
-      | "dashboard"
-      | "executive"
-      | "cases"
-      | "units"
-      | "users"
-      | "imports"
-      | "auditLogs"
-      | "backups"
-      | "system";
+    key: NavItemKey;
     roles: Role[];
   }> = [
     { href: "/executive", key: "executive", roles: ["SUPER_ADMIN", "MANAGEMENT"] },
     { href: "/dashboard", key: "dashboard", roles: ["SUPER_ADMIN", "CS_AGENT"] },
     { href: "/cases", key: "cases", roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT"] },
     { href: "/units", key: "units", roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT"] },
-    { href: "/users", key: "users", roles: ["SUPER_ADMIN", "MANAGEMENT"] },
+    { href: "/users", key: "users", roles: ["MANAGEMENT"] },
     { href: "/imports", key: "imports", roles: ["SUPER_ADMIN"] },
     { href: "/audit-logs", key: "auditLogs", roles: ["SUPER_ADMIN"] },
     { href: "/backups", key: "backups", roles: ["SUPER_ADMIN"] },

@@ -84,7 +84,17 @@
     "imports": "استيراد البيانات",
     "auditLogs": "سجل التدقيق",
     "backups": "النسخ الاحتياطي",
-    "system": "النظام"
+    "system": "النظام",
+    "loginHistory": "سجل تسجيل الدخول",
+    "systemHealth": "صحة النظام",
+    "systemSettings": "الإعدادات العامة",
+    "administration": "الإدارة",
+    "groups": {
+      "usersSecurity": "المستخدمون والأمان",
+      "dataHub": "مركز البيانات",
+      "monitoring": "المراقبة",
+      "systemAdmin": "النظام"
+    }
   },
   "common": {
     "language": "اللغة",
@@ -575,6 +585,76 @@
     "title": "النظام",
     "checkUpdates": "التحقق من التحديثات",
     "currentVersion": "الإصدار الحالي"
+  },
+  "systemMonitoring": {
+    "title": "صحة النظام",
+    "subtitle": "مقاييس مباشرة للخادم وبيئة تشغيل Node.js لتطبيق CRM.",
+    "lastUpdated": "آخر تحديث",
+    "hostname": "المضيف",
+    "platform": "النظام",
+    "cpuCores": "أنوية المعالج",
+    "serverMemory": "ذاكرة الخادم",
+    "memoryUsageDetail": "{used} مستخدم من {total}",
+    "nodeHeap": "ذاكرة Node.js",
+    "heapUsageDetail": "{used} مستخدم من {total}",
+    "processRss": "RSS للعملية",
+    "rssDetail": "ذاكرة خارجية: {external}",
+    "serverUptime": "مدة تشغيل الخادم",
+    "uptimeDetail": "{seconds} ثانية منذ آخر إقلاع",
+    "load1m": "حمل المعالج (دقيقة)",
+    "loadDetail": "{percent} من {cores} أنوية",
+    "load5m15m": "متوسط الحمل (5د / 15د)",
+    "loadAverageHint": "متوسط حمل Unix لنوافذ 5 و15 دقيقة",
+    "legendTitle": "عتبات الاستخدام",
+    "legendHealthy": "سليم (< 70%)",
+    "legendWarning": "تحذير (70–85%)",
+    "legendCritical": "حرج (> 85%)"
+  },
+  "systemSecurity": {
+    "title": "الأمان والجلسات",
+    "subtitle": "مراجعة محاولات تسجيل الدخول وإنهاء الجلسات النشطة على مستوى المؤسسة.",
+    "tabHistory": "سجل الدخول",
+    "tabSessions": "الجلسات النشطة",
+    "statusSuccess": "ناجح",
+    "statusFailed": "فاشل",
+    "killSessions": "إنهاء الجلسات",
+    "killConfirm": "إلغاء جميع الجلسات النشطة لـ {name}؟ سيتم تسجيل خروجه عند الطلب التالي.",
+    "killSuccess": "تم إلغاء الجلسات — سيتم تسجيل خروج المستخدم قريبًا.",
+    "sessionsHint": "زيادة رقم الجلسة تُبطل رموز JWT فورًا. لا يمكنك إلغاء جلستك من هذه اللوحة.",
+    "columns": {
+      "email": "البريد الإلكتروني",
+      "ip": "عنوان IP",
+      "browser": "المتصفح / الجهاز",
+      "status": "الحالة",
+      "time": "الوقت",
+      "user": "المستخدم",
+      "role": "الدور",
+      "lastLogin": "آخر دخول",
+      "sessionVersion": "الجلسة",
+      "actions": "إجراءات"
+    }
+  },
+  "systemSettings": {
+    "title": "الإعدادات العامة",
+    "subtitle": "مفاتيح عامة تؤثر على جميع مستخدمي المؤسسة.",
+    "maintenanceTitle": "وضع الصيانة",
+    "maintenanceDescription": "عند التفعيل، يُعاد توجيه وكلاء خدمة العملاء ومديري الإدارة إلى شاشة صيانة. يحتفظ المدير الأعلى بوصول كامل.",
+    "maintenanceActive": "وضع الصيانة مفعّل حاليًا",
+    "maintenanceInactive": "النظام يعمل بشكل طبيعي",
+    "maintenanceHint": "لا يمكن للوكلاء والإدارة الوصول إلى لوحات التحكم أثناء التفعيل.",
+    "maintenanceOn": "مفعّل",
+    "maintenanceOff": "متوقف",
+    "maintenanceEnableConfirm": "تفعيل وضع الصيانة؟ سيتم حظر وكلاء خدمة العملاء والإدارة من التطبيق.",
+    "maintenanceDisableConfirm": "إيقاف وضع الصيانة واستعادة الوصول العادي؟",
+    "maintenanceEnabledToast": "تم تفعيل وضع الصيانة",
+    "maintenanceDisabledToast": "تم إيقاف وضع الصيانة",
+    "maintenanceBypassTitle": "تجاوز المدير الأعلى",
+    "maintenanceBypassDescription": "حساب المدير الأعلى يتجاوز وضع الصيانة دائمًا حتى تتمكن من التحقق من الإصلاحات قبل إعادة فتح الوصول."
+  },
+  "maintenance": {
+    "title": "النظام قيد الصيانة",
+    "description": "نظام إدارة العملاء غير متاح مؤقتًا أثناء تطبيق التحديثات. يرجى المحاولة لاحقًا.",
+    "contactHint": "إذا كنت تعتقد أن هذا خطأ، تواصل مع مسؤول النظام."
   },
   "projects": {
     "GREEN AVENUE": "جرين أفنيو",

@@ -41,6 +41,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ExportCsvButton } from "@/components/export/export-csv-button";
+import { cn } from "@/lib/utils";
 
 export type CaseRow = {
   id: string;
@@ -132,6 +133,16 @@ function TicketStatusForm({
     </form>
   );
 }
+
+const CASE_COLUMN_WIDTHS: Record<string, string> = {
+  unit: "w-[11rem]",
+  client: "w-[10rem]",
+  category: "w-[9rem]",
+  notes: "w-[28%]",
+  agent: "w-[11rem]",
+  status: "w-[7rem]",
+  manage: "w-[12rem]",
+};
 
 export function CasesTable({
   data,
@@ -555,13 +566,19 @@ export function CasesTable({
         {t("showingResults", { from, to, total })}
       </p>
 
-      <div className="min-w-0 overflow-x-auto rounded-md border">
-        <Table className="min-w-[56rem]">
+      <div className="min-w-0 rounded-md border">
+        <Table className="min-w-[56rem] table-fixed">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className={cn(
+                      "whitespace-nowrap",
+                      CASE_COLUMN_WIDTHS[header.column.id]
+                    )}
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -575,7 +592,13 @@ export function CasesTable({
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="align-top whitespace-normal">
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        "align-top whitespace-normal break-words",
+                        CASE_COLUMN_WIDTHS[cell.column.id]
+                      )}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

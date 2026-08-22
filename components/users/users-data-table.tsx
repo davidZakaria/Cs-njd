@@ -40,6 +40,13 @@ import { cn } from "@/lib/utils";
 
 const ROLE_FILTER_ALL = "all";
 
+const USER_COLUMN_WIDTHS: Record<string, string> = {
+  user: "w-[34%]",
+  role: "w-[12rem]",
+  twoFactor: "w-[10rem]",
+  actions: "w-[5rem]",
+};
+
 export function UsersDataTable({
   data,
   canCreate,
@@ -200,8 +207,8 @@ export function UsersDataTable({
           "animate-delay-150"
         )}
       >
-        <div className="min-w-0 overflow-x-auto">
-          <Table className="min-w-[36rem]">
+        <div className="min-w-0 rounded-xl border border-border/50 bg-card shadow-premium">
+          <Table className="min-w-[36rem] table-fixed">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow
@@ -209,7 +216,13 @@ export function UsersDataTable({
                   className="border-border/50 bg-muted/30 hover:bg-muted/30"
                 >
                   {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="whitespace-nowrap">
+                    <TableHead
+                      key={header.id}
+                      className={cn(
+                        "whitespace-nowrap",
+                        USER_COLUMN_WIDTHS[header.column.id]
+                      )}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -231,7 +244,10 @@ export function UsersDataTable({
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
-                        className="align-middle whitespace-normal"
+                        className={cn(
+                          "align-middle whitespace-normal break-words",
+                          USER_COLUMN_WIDTHS[cell.column.id]
+                        )}
                       >
                         {flexRender(
                           cell.column.columnDef.cell,

@@ -84,7 +84,17 @@
     "imports": "Data Import",
     "auditLogs": "Audit Logs",
     "backups": "Backups",
-    "system": "System"
+    "system": "System",
+    "loginHistory": "Login History",
+    "systemHealth": "System Health",
+    "systemSettings": "General Settings",
+    "administration": "Administration",
+    "groups": {
+      "usersSecurity": "Users & Security",
+      "dataHub": "Data Hub",
+      "monitoring": "Monitoring",
+      "systemAdmin": "System"
+    }
   },
   "common": {
     "language": "Language",
@@ -575,6 +585,76 @@
     "title": "System",
     "checkUpdates": "Check for Updates",
     "currentVersion": "Current Version"
+  },
+  "systemMonitoring": {
+    "title": "System Health",
+    "subtitle": "Live VPS and Node.js runtime metrics for this application server.",
+    "lastUpdated": "Last updated",
+    "hostname": "Host",
+    "platform": "Platform",
+    "cpuCores": "CPU cores",
+    "serverMemory": "Server RAM",
+    "memoryUsageDetail": "{used} used of {total}",
+    "nodeHeap": "Node.js heap",
+    "heapUsageDetail": "{used} used of {total}",
+    "processRss": "Process RSS",
+    "rssDetail": "External memory: {external}",
+    "serverUptime": "Server uptime",
+    "uptimeDetail": "{seconds} seconds since last boot",
+    "load1m": "CPU load (1 min)",
+    "loadDetail": "{percent} of {cores} cores",
+    "load5m15m": "Load avg (5m / 15m)",
+    "loadAverageHint": "Unix load average across 5- and 15-minute windows",
+    "legendTitle": "Usage thresholds",
+    "legendHealthy": "Healthy (< 70%)",
+    "legendWarning": "Warning (70–85%)",
+    "legendCritical": "Critical (> 85%)"
+  },
+  "systemSecurity": {
+    "title": "Security & Sessions",
+    "subtitle": "Review login attempts and revoke active sessions across the organization.",
+    "tabHistory": "Login history",
+    "tabSessions": "Active sessions",
+    "statusSuccess": "Success",
+    "statusFailed": "Failed",
+    "killSessions": "Kill sessions",
+    "killConfirm": "Revoke all active sessions for {name}? They will be signed out on their next request.",
+    "killSuccess": "Sessions revoked — user will be signed out shortly.",
+    "sessionsHint": "Incrementing the session version immediately invalidates existing JWTs. You cannot revoke your own session from this panel.",
+    "columns": {
+      "email": "Email",
+      "ip": "IP address",
+      "browser": "Browser / device",
+      "status": "Status",
+      "time": "Time",
+      "user": "User",
+      "role": "Role",
+      "lastLogin": "Last login",
+      "sessionVersion": "Session",
+      "actions": "Actions"
+    }
+  },
+  "systemSettings": {
+    "title": "General Settings",
+    "subtitle": "Global switches that affect every user in the organization.",
+    "maintenanceTitle": "Maintenance mode",
+    "maintenanceDescription": "When enabled, CS agents and management users are redirected to a maintenance screen. Super admins retain full access.",
+    "maintenanceActive": "Maintenance is currently active",
+    "maintenanceInactive": "System is operating normally",
+    "maintenanceHint": "Agents and management cannot access dashboards while this is on.",
+    "maintenanceOn": "On",
+    "maintenanceOff": "Off",
+    "maintenanceEnableConfirm": "Enable maintenance mode? CS agents and management will be blocked from the app.",
+    "maintenanceDisableConfirm": "Disable maintenance mode and restore normal access?",
+    "maintenanceEnabledToast": "Maintenance mode enabled",
+    "maintenanceDisabledToast": "Maintenance mode disabled",
+    "maintenanceBypassTitle": "Super admin bypass",
+    "maintenanceBypassDescription": "Your super admin account always bypasses maintenance mode so you can verify fixes before reopening access."
+  },
+  "maintenance": {
+    "title": "System under maintenance",
+    "description": "The CRM is temporarily unavailable while updates are applied. Please try again later.",
+    "contactHint": "If you believe this is an error, contact your system administrator."
   },
   "projects": {
     "GREEN AVENUE": "Green Avenue",

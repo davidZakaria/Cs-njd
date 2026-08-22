@@ -111,23 +111,31 @@ enum BackupSource {
   SCHEDULED
 }
 
-model User {
-  id                     String   @id @default(cuid())
-  name                   String
-  email                  String   @unique
-  password               String
-  role                   Role     @default(CS_AGENT)
-  is2FAEnabled           Boolean  @default(false)
-  twoFactorSecret        String?
-  requiresPasswordChange Boolean  @default(true)
-  deletedAt              DateTime?
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+enum LoginAttemptStatus {
+  SUCCESS
+  FAILED
+}
 
-  assignedUnits Unit[]         @relation("AssignedAgent")
+model User {
+  id                     String    @id @default(cuid())
+  name                   String
+  email                  String    @unique
+  password               String
+  role                   Role      @default(CS_AGENT)
+  is2FAEnabled           Boolean   @default(false)
+  twoFactorSecret        String?
+  requiresPasswordChange Boolean   @default(true)
+  lastLoginAt            DateTime?
+  sessionVersion         Int       @default(1)
+  deletedAt              DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  assignedUnits Unit[]          @relation("AssignedAgent")
   tickets       Ticket[]
   auditLogs     AuditLog[]
   notifications Notification[]
+  loginHistory  LoginHistory[]
 
   @@index([role])
   @@index([deletedAt])
@@ -302,4 +310,29 @@ model BackupLog {
   createdAt DateTime     @default(now())
 
   @@index([createdAt])
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LoginHistory {
+  id        String             @id @default(cuid())
+  userId    String?
+  email     String
+  ipAddress String?
+  userAgent String?
+  status    LoginAttemptStatus
+  timestamp DateTime           @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([email])
+  @@index([status])
+  @@index([timestamp])
 }

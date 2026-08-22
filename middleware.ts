@@ -2,11 +2,31 @@ import createMiddleware from "next-intl/middleware";
 import { auth } from "@/lib/auth";
 import { routing } from "@/i18n/routing";
 import { NextResponse } from "next/server";
-import { canAccessRoute, getHomeRoute, isAuthRoute, isPasswordChangeRoute, isPublicRoute } from "@/lib/rbac";
+import {
+  canAccessRoute,
+  getHomeRoute,
+  isAuthRoute,
+  isMaintenanceRoute,
+  isPasswordChangeRoute,
+  isPublicRoute,
+} from "@/lib/rbac";
+import {
+  maintenanceCookieOptions,
+  parseMaintenanceCookie,
+} from "@/lib/system/maintenance-mode";
+import { resolveMaintenanceActive } from "@/lib/system/maintenance-request";
 
 const intlMiddleware = createMiddleware(routing);
 
-export default auth((req) => {
+function attachMaintenanceCookie(
+  response: NextResponse,
+  enabled: boolean
+): NextResponse {
+  response.cookies.set(maintenanceCookieOptions(enabled));
+  return response;
+}
+
+export default auth(async (req) => {
   const { pathname } = req.nextUrl;
   const segments = pathname.split("/").filter(Boolean);
   const locale = routing.locales.includes(segments[0] as "en" | "ar")
@@ -58,6 +78,38 @@ export default auth((req) => {
     return NextResponse.redirect(new URL(`/${locale}${home}`, req.url));
   }
 
+  const cookieMaintenance = parseMaintenanceCookie(
+    req.cookies.get("njd_maintenance_mode")?.value
+  );
+  const maintenanceActive = await resolveMaintenanceActive(req);
+  const shouldSyncCookie = cookieMaintenance !== maintenanceActive;
+
+  if (maintenanceActive && user.role !== "SUPER_ADMIN") {
+    if (!isMaintenanceRoute(normalizedPath)) {
+      const redirect = NextResponse.redirect(
+        new URL(`/${locale}/maintenance`, req.url)
+      );
+      return shouldSyncCookie
+        ? attachMaintenanceCookie(redirect, maintenanceActive)
+        : redirect;
+    }
+
+    const response = intlMiddleware(req);
+    return shouldSyncCookie
+      ? attachMaintenanceCookie(response, maintenanceActive)
+      : response;
+  }
+
+  if (!maintenanceActive && isMaintenanceRoute(normalizedPath)) {
+    const home = getHomeRoute(user.role);
+    const redirect = NextResponse.redirect(
+      new URL(`/${locale}${home}`, req.url)
+    );
+    return shouldSyncCookie
+      ? attachMaintenanceCookie(redirect, maintenanceActive)
+      : redirect;
+  }
+
   // Auth flow pages (login, setup/verify 2FA) are outside RBAC route lists.
   if (isAuthRoute(normalizedPath)) {
     return intlMiddleware(req);
@@ -65,10 +117,16 @@ export default auth((req) => {
 
   if (!canAccessRoute(user.role, normalizedPath)) {
     const home = getHomeRoute(user.role);
-    return NextResponse.redirect(new URL(`/${locale}${home}`, req.url));
+    const redirect = NextResponse.redirect(new URL(`/${locale}${home}`, req.url));
+    return shouldSyncCookie
+      ? attachMaintenanceCookie(redirect, maintenanceActive)
+      : redirect;
   }
 
-  return intlMiddleware(req);
+  const response = intlMiddleware(req);
+  return shouldSyncCookie
+    ? attachMaintenanceCookie(response, maintenanceActive)
+    : response;
 });
 
 export const config = {

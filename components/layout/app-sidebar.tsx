@@ -10,11 +10,13 @@ import {
   ScrollText,
   Settings,
   Users,
+  Shield,
+  Gauge,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import type { Role } from "@prisma/client";
-import { getNavItems } from "@/lib/rbac";
+import { getCoreNavItems, getNavItems } from "@/lib/rbac";
 import {
   Sidebar,
   SidebarContent,
@@ -36,6 +38,7 @@ import { NotificationBell } from "@/components/layout/notification-bell";
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
+import { AdminNavGroups } from "@/components/layout/admin-nav-groups";
 
 const iconMap = {
   dashboard: LayoutDashboard,
@@ -46,6 +49,9 @@ const iconMap = {
   imports: FileUp,
   auditLogs: ScrollText,
   backups: Database,
+  loginHistory: Shield,
+  systemHealth: Gauge,
+  systemSettings: Settings,
   system: Settings,
 } as const;
 
@@ -76,7 +82,9 @@ export function AppSidebar({ role }: { role: Role }) {
   const t = useTranslations("nav");
   const tCommon = useTranslations("common");
   const pathname = usePathname();
-  const items = getNavItems(role);
+  const coreItems = getCoreNavItems(role);
+  const flatItems =
+    role === "SUPER_ADMIN" ? coreItems : getNavItems(role);
   const isRtl = locale === "ar";
 
   return (
@@ -96,10 +104,13 @@ export function AppSidebar({ role }: { role: Role }) {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
-              {items.map((item) => {
-                const Icon = iconMap[item.key as keyof typeof iconMap];
+              {flatItems.map((item) => {
+                const Icon = iconMap[item.key];
                 const active =
-                  pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  item.href === "/system"
+                    ? pathname === "/system"
+                    : pathname === item.href ||
+                      pathname.startsWith(`${item.href}/`);
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
@@ -110,13 +121,14 @@ export function AppSidebar({ role }: { role: Role }) {
                       )}
                       render={<Link href={item.href} />}
                     >
-                      <Icon className="h-4 w-4 shrink-0" />
+                      {Icon ? <Icon className="h-4 w-4 shrink-0" /> : null}
                       <span>{t(item.key)}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
               })}
             </SidebarMenu>
+            {role === "SUPER_ADMIN" ? <AdminNavGroups /> : null}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
