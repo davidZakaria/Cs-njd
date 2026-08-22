@@ -1,9 +1,14 @@
 import { cookies } from "next/headers";
 
 import { basePrisma } from "@/lib/prisma";
+import {
+  MAINTENANCE_MODE_KEY,
+  MAINTENANCE_COOKIE,
+  maintenanceCookieOptions,
+  maintenanceCookieValue,
+} from "@/lib/system/maintenance-cookie";
 
-export const MAINTENANCE_MODE_KEY = "MAINTENANCE_MODE";
-export const MAINTENANCE_COOKIE = "njd_maintenance_mode";
+export { MAINTENANCE_MODE_KEY } from "@/lib/system/maintenance-cookie";
 
 export async function getMaintenanceMode(): Promise<boolean> {
   const row = await basePrisma.systemSetting.findUnique({
@@ -24,18 +29,6 @@ export async function setMaintenanceMode(enabled: boolean): Promise<void> {
   });
 }
 
-export function maintenanceCookieValue(enabled: boolean): "0" | "1" {
-  return enabled ? "1" : "0";
-}
-
-export function parseMaintenanceCookie(
-  value: string | undefined
-): boolean | null {
-  if (value === "1") return true;
-  if (value === "0") return false;
-  return null;
-}
-
 export async function syncMaintenanceCookie(): Promise<boolean> {
   const enabled = await getMaintenanceMode();
   const cookieStore = await cookies();
@@ -50,13 +43,4 @@ export async function syncMaintenanceCookie(): Promise<boolean> {
   return enabled;
 }
 
-export function maintenanceCookieOptions(enabled: boolean) {
-  return {
-    name: MAINTENANCE_COOKIE,
-    value: maintenanceCookieValue(enabled),
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
-  };
-}
+export { maintenanceCookieOptions };

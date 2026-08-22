@@ -1,12 +1,12 @@
+"use server";
+
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
 import { auth } from "@/lib/auth";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
-import {
-  maintenanceCookieOptions,
-  setMaintenanceMode,
-} from "@/lib/system/maintenance-mode";
+import { maintenanceCookieOptions } from "@/lib/system/maintenance-cookie";
+import { setMaintenanceMode } from "@/lib/system/maintenance-mode";
 
 export async function setMaintenanceModeAction(
   enabled: boolean

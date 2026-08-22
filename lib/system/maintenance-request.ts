@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import {
   MAINTENANCE_COOKIE,
   parseMaintenanceCookie,
-} from "@/lib/system/maintenance-mode";
+} from "@/lib/system/maintenance-cookie";
 
 export async function resolveMaintenanceActive(
   req: NextRequest

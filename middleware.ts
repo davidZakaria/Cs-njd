@@ -13,7 +13,7 @@ import {
 import {
   maintenanceCookieOptions,
   parseMaintenanceCookie,
-} from "@/lib/system/maintenance-mode";
+} from "@/lib/system/maintenance-cookie";
 import { resolveMaintenanceActive } from "@/lib/system/maintenance-request";
 
 const intlMiddleware = createMiddleware(routing);
