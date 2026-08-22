@@ -237,9 +237,57 @@
   },
   "users": {
     "title": "Users",
+    "subtitle": "Manage staff accounts, roles, and security settings.",
     "name": "Name",
+    "userColumn": "User",
     "role": "Role",
-    "createUser": "Create User"
+    "createUser": "Create User",
+    "addNewUser": "Add New User",
+    "addNewUserDescription": "Create a staff account with role and initial password.",
+    "searchUsers": "Search by name or email…",
+    "filterByRole": "Filter by role",
+    "allRoles": "All roles",
+    "noUsersFound": "No users match your search or filters.",
+    "showingUsers": "{count} of {total} users",
+    "roles": {
+      "superAdmin": "Super Admin",
+      "management": "Management",
+      "csAgent": "CS Agent"
+    },
+    "twoFactor": "2FA",
+    "twoFactorSecured": "Secured",
+    "twoFactorDisabled": "Disabled",
+    "openUserActions": "Actions for {name}",
+    "editDetails": "Edit details",
+    "editUserDescription": "Update name, email, and role for this staff account.",
+    "resetTwoFactor": "Reset 2FA",
+    "resetTwoFactorTitle": "Reset two-factor authentication",
+    "resetTwoFactorConfirm": "Are you sure you want to disable 2FA for {name}? They will be forced to re-enroll on next login.",
+    "resetTwoFactorAction": "Reset 2FA",
+    "forcePasswordReset": "Force password reset",
+    "forcePasswordResetTitle": "Force password change",
+    "forcePasswordResetConfirm": "Require {name} to set a new password on their next login?",
+    "forcePasswordResetAction": "Require password change",
+    "twoFactorToggle": "Toggle 2FA for {name}",
+    "twoFactorDisableTitle": "Disable two-factor authentication",
+    "twoFactorDisableConfirm": "Disable 2FA for {name}? Their authenticator will be cleared and they must set up 2FA again on next login.",
+    "twoFactorDisableAction": "Disable 2FA",
+    "twoFactorSetupRequired": "This user has not completed 2FA setup yet. They must enroll on their next login.",
+    "passwordHint": "Minimum 8 characters. Required for new accounts only.",
+    "validation": {
+      "nameRequired": "Name is required",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Enter a valid email address",
+      "passwordRequired": "Password is required",
+      "passwordMin": "Password must be at least 8 characters"
+    },
+    "toast": {
+      "userCreated": "User created successfully",
+      "userUpdated": "User updated successfully",
+      "userDeleted": "User deleted successfully",
+      "twoFactorReset": "2FA has been reset for this user",
+      "passwordResetForced": "User will be required to change their password on next login"
+    }
   },
   "cases": {
     "title": "Cases",

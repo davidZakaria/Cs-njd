@@ -6,7 +6,12 @@ import { auditContext } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import bcrypt from "bcryptjs";
-import type { Role } from "@prisma/client";
+import {
+  createUserSchema,
+  updateUserSchema,
+  type CreateUserInput,
+  type UpdateUserInput,
+} from "@/lib/validations/user";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import {
   finishingFormSchema,
@@ -23,20 +28,18 @@ async function withAudit<T>(fn: () => Promise<T>) {
   );
 }
 
-export async function createUser(formData: FormData): Promise<ActionResult> {
+export async function createUser(input: CreateUserInput): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user || !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)) {
     return actionFail("Unauthorized");
   }
 
-  const name = String(formData.get("name") ?? "");
-  const email = String(formData.get("email") ?? "").toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  const role = String(formData.get("role") ?? "CS_AGENT") as Role;
-
-  if (!name || !email || !password) {
-    return actionFail("Name, email, and password are required");
+  const parsed = createUserSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
   }
+
+  const { name, email, password, role } = parsed.data;
 
   if (session.user.role === "MANAGEMENT" && role !== "CS_AGENT") {
     return actionFail("Management can only create CS agents");
@@ -57,17 +60,18 @@ export async function createUser(formData: FormData): Promise<ActionResult> {
   return actionOk();
 }
 
-export async function updateUser(formData: FormData): Promise<ActionResult> {
+export async function updateUser(input: UpdateUserInput): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user || !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)) {
     return actionFail("Unauthorized");
   }
 
-  const id = String(formData.get("id"));
-  const name = String(formData.get("name") ?? "");
-  const role = String(formData.get("role") ?? "CS_AGENT") as Role;
+  const parsed = updateUserSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
+  }
 
-  if (!name) return actionFail("Name is required");
+  const { id, name, email, role } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { id } });
   if (!existing) return actionFail("User not found");
@@ -75,10 +79,51 @@ export async function updateUser(formData: FormData): Promise<ActionResult> {
     return actionFail("Cannot modify super admin");
   }
 
+  if (session.user.role === "MANAGEMENT" && role !== "CS_AGENT") {
+    return actionFail("Management can only assign CS agent role");
+  }
+
+  if (email !== existing.email) {
+    const duplicate = await prisma.user.findUnique({ where: { email } });
+    if (duplicate) return actionFail("A user with this email already exists");
+  }
+
   await withAudit(() =>
     prisma.user.update({
       where: { id },
-      data: { name, role },
+      data: { name, email, role },
+    })
+  );
+
+  revalidatePath("/users");
+  return actionOk();
+}
+
+export async function forcePasswordResetByAdmin(
+  userId: string
+): Promise<ActionResult> {
+  const session = await auth();
+  if (
+    !session?.user ||
+    !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)
+  ) {
+    return actionFail("Unauthorized");
+  }
+
+  if (session.user.id === userId) {
+    return actionFail("Cannot force password reset on yourself");
+  }
+
+  const existing = await prisma.user.findUnique({ where: { id: userId } });
+  if (!existing) return actionFail("User not found");
+  if (existing.role === "SUPER_ADMIN" && session.user.role !== "SUPER_ADMIN") {
+    return actionFail("Cannot modify super admin");
+  }
+
+  await withAudit(() =>
+    prisma.user.update({
+      where: { id: userId },
+      data: { requiresPasswordChange: true },
     })
   );
 
@@ -90,6 +135,10 @@ export async function deleteUser(id: string): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
     return actionFail("Unauthorized");
+  }
+
+  if (session.user.id === id) {
+    return actionFail("Cannot delete yourself");
   }
 
   const existing = await prisma.user.findUnique({ where: { id } });

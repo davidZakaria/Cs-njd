@@ -18,9 +18,13 @@ export function useCrudToast() {
     assigned: t("assignedSuccess"),
   };
 
-  function notify(result: ActionResult, kind: CrudToastKind = "saved") {
+  function notify(
+    result: ActionResult,
+    kind: CrudToastKind = "saved",
+    successMessage?: string
+  ) {
     if (result.success) {
-      toast.success(result.message ?? messages[kind]);
+      toast.success(successMessage ?? result.message ?? messages[kind]);
     } else {
       toast.error(result.error || t("actionFailed"));
     }
@@ -28,11 +32,12 @@ export function useCrudToast() {
 
   function runAction(
     action: () => Promise<ActionResult>,
-    kind: CrudToastKind = "saved"
+    kind: CrudToastKind = "saved",
+    successMessage?: string
   ) {
     startTransition(async () => {
       const result = await action();
-      notify(result, kind);
+      notify(result, kind, successMessage);
     });
   }
 

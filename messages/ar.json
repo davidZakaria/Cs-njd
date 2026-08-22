@@ -237,9 +237,57 @@
   },
   "users": {
     "title": "المستخدمون",
+    "subtitle": "إدارة حسابات الموظفين والأدوار وإعدادات الأمان.",
     "name": "الاسم",
+    "userColumn": "المستخدم",
     "role": "الدور",
-    "createUser": "إنشاء مستخدم"
+    "createUser": "إنشاء مستخدم",
+    "addNewUser": "إضافة مستخدم جديد",
+    "addNewUserDescription": "إنشاء حساب موظف مع الدور وكلمة المرور الأولية.",
+    "searchUsers": "بحث بالاسم أو البريد…",
+    "filterByRole": "تصفية حسب الدور",
+    "allRoles": "كل الأدوار",
+    "noUsersFound": "لا يوجد مستخدمون مطابقون للبحث أو التصفية.",
+    "showingUsers": "{count} من {total} مستخدم",
+    "roles": {
+      "superAdmin": "مدير النظام",
+      "management": "إدارة",
+      "csAgent": "موظف خدمة العملاء"
+    },
+    "twoFactor": "المصادقة الثنائية",
+    "twoFactorSecured": "مؤمّن",
+    "twoFactorDisabled": "معطّل",
+    "openUserActions": "إجراءات {name}",
+    "editDetails": "تعديل البيانات",
+    "editUserDescription": "تحديث الاسم والبريد والدور لهذا الحساب.",
+    "resetTwoFactor": "إعادة تعيين المصادقة الثنائية",
+    "resetTwoFactorTitle": "إعادة تعيين المصادقة الثنائية",
+    "resetTwoFactorConfirm": "هل أنت متأكد من تعطيل المصادقة الثنائية لـ {name}؟ سيُطلب منهم إعادة التسجيل عند تسجيل الدخول التالي.",
+    "resetTwoFactorAction": "إعادة تعيين المصادقة الثنائية",
+    "forcePasswordReset": "إجبار تغيير كلمة المرور",
+    "forcePasswordResetTitle": "إجبار تغيير كلمة المرور",
+    "forcePasswordResetConfirm": "هل تريد إلزام {name} بتعيين كلمة مرور جديدة عند تسجيل الدخول التالي؟",
+    "forcePasswordResetAction": "طلب تغيير كلمة المرور",
+    "twoFactorToggle": "تبديل المصادقة الثنائية لـ {name}",
+    "twoFactorDisableTitle": "تعطيل المصادقة الثنائية",
+    "twoFactorDisableConfirm": "تعطيل المصادقة الثنائية لـ {name}؟ سيتم مسح مفتاح التطبيق ويجب إعادة الإعداد عند تسجيل الدخول التالي.",
+    "twoFactorDisableAction": "تعطيل المصادقة الثنائية",
+    "twoFactorSetupRequired": "لم يُكمل هذا المستخدم إعداد المصادقة الثنائية بعد. يجب التسجيل وإكمال الإعداد عند الدخول التالي.",
+    "passwordHint": "8 أحرف على الأقل. مطلوبة للحسابات الجديدة فقط.",
+    "validation": {
+      "nameRequired": "الاسم مطلوب",
+      "emailRequired": "البريد الإلكتروني مطلوب",
+      "emailInvalid": "أدخل بريداً إلكترونياً صالحاً",
+      "passwordRequired": "كلمة المرور مطلوبة",
+      "passwordMin": "يجب أن تكون كلمة المرور 8 أحرف على الأقل"
+    },
+    "toast": {
+      "userCreated": "تم إنشاء المستخدم بنجاح",
+      "userUpdated": "تم تحديث المستخدم بنجاح",
+      "userDeleted": "تم حذف المستخدم بنجاح",
+      "twoFactorReset": "تم إعادة تعيين المصادقة الثنائية لهذا المستخدم",
+      "passwordResetForced": "سيُطلب من المستخدم تغيير كلمة المرور عند تسجيل الدخول التالي"
+    }
   },
   "cases": {
     "title": "بلاغات العملاء",
