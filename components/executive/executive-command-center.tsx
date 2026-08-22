@@ -14,12 +14,20 @@ import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
 
-function TabCountBadge({ count }: { count: number }) {
+function TabCountBadge({
+  count,
+  variant = "open",
+}: {
+  count: number;
+  variant?: "open" | "resolved";
+}) {
   return (
     <span
       className={cn(
         "inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums leading-none",
-        "bg-muted/80 text-muted-foreground group-data-active/tabs-trigger:bg-[var(--color-chart-1)]/15 group-data-active/tabs-trigger:text-[var(--color-chart-1)]"
+        variant === "open"
+          ? "bg-muted/80 text-muted-foreground group-data-active/tabs-trigger:bg-[var(--color-chart-1)]/15 group-data-active/tabs-trigger:text-[var(--color-chart-1)]"
+          : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 group-data-active/tabs-trigger:bg-emerald-500/15"
       )}
     >
       {count}
@@ -137,8 +145,24 @@ export function ExecutiveCommandCenter({
                     className="inline-flex"
                     title={t("viewProjectCases")}
                   >
-                    <TabCountBadge count={slice.stats.openTotal} />
+                    <TabCountBadge count={slice.stats.openTotal} variant="open" />
                   </Link>
+                  {slice.resolvedStats.resolvedTotal > 0 ? (
+                    <Link
+                      href={buildCasesFilterUrl({
+                        status: "RESOLVED",
+                        project: slice.slug,
+                      })}
+                      onClick={(event) => event.stopPropagation()}
+                      className="inline-flex"
+                      title={t("viewProjectResolved")}
+                    >
+                      <TabCountBadge
+                        count={slice.resolvedStats.resolvedTotal}
+                        variant="resolved"
+                      />
+                    </Link>
+                  ) : null}
                 </span>
               </TabsTrigger>
             ))}

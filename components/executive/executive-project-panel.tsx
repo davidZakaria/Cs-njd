@@ -2,16 +2,20 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 import { ExecutiveCaseSearchBar } from "@/components/executive/executive-case-search-bar";
 import { ExecutiveQuickActionsTable } from "@/components/executive/executive-quick-actions-table";
 import {
   buildExecutiveKpiItems,
   ExecutiveKpiGrid,
+  type StatItem,
 } from "@/components/executive/executive-kpi-grid";
 import { ExecutiveAgentWorkloadGrid } from "@/components/executive/executive-agent-workload-grid";
 import { ExecutiveQueueSection } from "@/components/executive/executive-queue-section";
 import { StatusDonutChart } from "@/components/executive/status-donut-chart";
+import { buttonVariants } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { filterExecutiveCaseRows } from "@/lib/executive/filter-case-rows";
@@ -20,6 +24,7 @@ import type {
   ProjectDashboardSlice,
 } from "@/lib/cases/executive-dashboard";
 import type { ExecutiveKpiKey } from "@/components/executive/executive-kpi-grid";
+import { cn } from "@/lib/utils";
 
 type WorkloadLabels = {
   openTotal: string;
@@ -42,7 +47,8 @@ export function ExecutiveProjectPanel({
   const t = useTranslations("executive");
   const tCases = useTranslations("cases");
   const labels = useDomainLabels();
-  const [query, setQuery] = useState("");
+  const [openQuery, setOpenQuery] = useState("");
+  const [resolvedQuery, setResolvedQuery] = useState("");
 
   const projectKpis = useMemo(
     () =>
@@ -67,6 +73,39 @@ export function ExecutiveProjectPanel({
     [slice.stats, slice.slug, kpiLabels]
   );
 
+  const resolvedKpis = useMemo(
+    (): StatItem[] => [
+      {
+        key: "resolvedTotal",
+        label: t("stats.resolvedTotal"),
+        value: slice.resolvedStats.resolvedTotal,
+        href: buildCasesFilterUrl({
+          status: "RESOLVED",
+          project: slice.slug,
+        }),
+      },
+      {
+        key: "myResolved",
+        label: t("stats.myResolved"),
+        value: slice.resolvedStats.myResolved,
+        href: buildCasesFilterUrl({
+          status: "RESOLVED",
+          project: slice.slug,
+        }),
+      },
+      {
+        key: "teamResolved",
+        label: t("stats.teamResolved"),
+        value: slice.resolvedStats.teamResolved,
+        href: buildCasesFilterUrl({
+          status: "RESOLVED",
+          project: slice.slug,
+        }),
+      },
+    ],
+    [slice.resolvedStats, slice.slug, t]
+  );
+
   const searchContext = useMemo(
     () => ({
       projectLabel: labels.project,
@@ -79,21 +118,43 @@ export function ExecutiveProjectPanel({
   );
 
   const filteredTeamQueue = useMemo(
-    () => filterExecutiveCaseRows(slice.teamQueue, query, searchContext),
-    [slice.teamQueue, query, searchContext]
+    () => filterExecutiveCaseRows(slice.teamQueue, openQuery, searchContext),
+    [slice.teamQueue, openQuery, searchContext]
   );
 
   const filteredMyQueue = useMemo(
-    () => filterExecutiveCaseRows(slice.myQueue, query, searchContext),
-    [slice.myQueue, query, searchContext]
+    () => filterExecutiveCaseRows(slice.myQueue, openQuery, searchContext),
+    [slice.myQueue, openQuery, searchContext]
   );
 
-  const hasCases = slice.stats.openTotal > 0;
-  const isSearching = query.trim().length > 0;
-  const totalMatches = filteredTeamQueue.length + filteredMyQueue.length;
-  const totalCases = slice.teamQueue.length + slice.myQueue.length;
+  const filteredResolvedTeamQueue = useMemo(
+    () =>
+      filterExecutiveCaseRows(
+        slice.resolvedTeamQueue,
+        resolvedQuery,
+        searchContext
+      ),
+    [slice.resolvedTeamQueue, resolvedQuery, searchContext]
+  );
 
-  if (!hasCases) {
+  const filteredResolvedMyQueue = useMemo(
+    () =>
+      filterExecutiveCaseRows(slice.resolvedMyQueue, resolvedQuery, searchContext),
+    [slice.resolvedMyQueue, resolvedQuery, searchContext]
+  );
+
+  const hasOpenCases = slice.stats.openTotal > 0;
+  const hasResolvedCases = slice.resolvedStats.resolvedTotal > 0;
+  const isOpenSearching = openQuery.trim().length > 0;
+  const isResolvedSearching = resolvedQuery.trim().length > 0;
+  const openTotalMatches = filteredTeamQueue.length + filteredMyQueue.length;
+  const openTotalCases = slice.teamQueue.length + slice.myQueue.length;
+  const resolvedTotalMatches =
+    filteredResolvedTeamQueue.length + filteredResolvedMyQueue.length;
+  const resolvedTotalCases =
+    slice.resolvedTeamQueue.length + slice.resolvedMyQueue.length;
+
+  if (!hasOpenCases && !hasResolvedCases) {
     return (
       <p className="rounded-xl border border-dashed bg-muted/20 py-12 text-center text-sm text-muted-foreground">
         {t("noProjectCases")}
@@ -103,60 +164,147 @@ export function ExecutiveProjectPanel({
 
   return (
     <div className="space-y-8">
-      <ExecutiveKpiGrid items={projectKpis} />
+      {hasOpenCases ? (
+        <>
+          <ExecutiveKpiGrid items={projectKpis} />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_1fr] lg:items-start">
-        <StatusDonutChart
-          breakdown={slice.categoryBreakdown}
-          title={t("casesByCategory")}
-          className="shadow-sm"
-          statusScope="open"
-          projectSlug={slice.slug}
-        />
-        <ExecutiveAgentWorkloadGrid
-          agents={slice.agentWorkload}
-          title={t("projectWorkload")}
-          labels={workloadLabels}
-        />
-      </div>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_1fr] lg:items-start">
+            <StatusDonutChart
+              breakdown={slice.categoryBreakdown}
+              title={t("casesByCategory")}
+              className="shadow-sm"
+              statusScope="open"
+              projectSlug={slice.slug}
+            />
+            <ExecutiveAgentWorkloadGrid
+              agents={slice.agentWorkload}
+              title={t("projectWorkload")}
+              labels={workloadLabels}
+            />
+          </div>
 
-      <ExecutiveCaseSearchBar
-        query={query}
-        onQueryChange={setQuery}
-        title={t("searchTitle")}
-        subtitle={t("searchSubtitleProject")}
-        placeholder={t("searchPlaceholder")}
-        totalMatches={totalMatches}
-        totalCases={totalCases}
-        teamMatches={filteredTeamQueue.length}
-        myMatches={filteredMyQueue.length}
-        teamLabel={t("stats.teamOpen")}
-        myLabel={t("stats.myOpen")}
-      />
+          <ExecutiveCaseSearchBar
+            query={openQuery}
+            onQueryChange={setOpenQuery}
+            title={t("searchTitle")}
+            subtitle={t("searchSubtitleProject")}
+            placeholder={t("searchPlaceholder")}
+            totalMatches={openTotalMatches}
+            totalCases={openTotalCases}
+            teamMatches={filteredTeamQueue.length}
+            myMatches={filteredMyQueue.length}
+            teamLabel={t("stats.teamOpen")}
+            myLabel={t("stats.myOpen")}
+          />
 
-      <ExecutiveQueueSection
-        title={t("teamQueueTitle")}
-        subtitle={t("teamQueueSubtitle")}
-      >
-        <ExecutiveQuickActionsTable
-          rows={filteredTeamQueue}
-          agents={agents}
-          canAssign={true}
-          emptyLabel={isSearching ? t("searchNoResults") : t("teamQueueEmpty")}
-        />
-      </ExecutiveQueueSection>
+          <ExecutiveQueueSection
+            title={t("teamQueueTitle")}
+            subtitle={t("teamQueueSubtitle")}
+          >
+            <ExecutiveQuickActionsTable
+              rows={filteredTeamQueue}
+              agents={agents}
+              canAssign={true}
+              emptyLabel={
+                isOpenSearching ? t("searchNoResults") : t("teamQueueEmpty")
+              }
+            />
+          </ExecutiveQueueSection>
 
-      <ExecutiveQueueSection
-        title={t("myQueueTitle")}
-        subtitle={t("myQueueSubtitle")}
-      >
-        <ExecutiveQuickActionsTable
-          rows={filteredMyQueue}
-          agents={agents}
-          canAssign={false}
-          emptyLabel={isSearching ? t("searchNoResults") : t("myQueueEmpty")}
-        />
-      </ExecutiveQueueSection>
+          <ExecutiveQueueSection
+            title={t("myQueueTitle")}
+            subtitle={t("myQueueSubtitle")}
+          >
+            <ExecutiveQuickActionsTable
+              rows={filteredMyQueue}
+              agents={agents}
+              canAssign={false}
+              emptyLabel={
+                isOpenSearching ? t("searchNoResults") : t("myQueueEmpty")
+              }
+            />
+          </ExecutiveQueueSection>
+        </>
+      ) : (
+        <p className="rounded-xl border border-dashed bg-muted/20 py-8 text-center text-sm text-muted-foreground">
+          {t("noOpenProjectCases")}
+        </p>
+      )}
+
+      {hasResolvedCases ? (
+        <>
+          {hasOpenCases ? <Separator className="my-2" /> : null}
+
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <ExecutiveKpiGrid items={resolvedKpis} />
+            </div>
+            <Link
+              href={buildCasesFilterUrl({
+                status: "RESOLVED",
+                project: slice.slug,
+              })}
+              className={cn(buttonVariants({ variant: "outline" }), "shrink-0")}
+            >
+              {t("viewProjectResolved")}
+            </Link>
+          </div>
+
+          <StatusDonutChart
+            breakdown={slice.resolvedCategoryBreakdown}
+            title={t("projectResolvedByCategory")}
+            className="max-w-md shadow-sm"
+            statusScope="RESOLVED"
+            projectSlug={slice.slug}
+          />
+
+          <ExecutiveCaseSearchBar
+            query={resolvedQuery}
+            onQueryChange={setResolvedQuery}
+            title={t("projectResolvedSearchTitle")}
+            subtitle={t("projectResolvedSearchSubtitle")}
+            placeholder={t("searchPlaceholder")}
+            totalMatches={resolvedTotalMatches}
+            totalCases={resolvedTotalCases}
+            teamMatches={filteredResolvedTeamQueue.length}
+            myMatches={filteredResolvedMyQueue.length}
+            teamLabel={t("stats.teamResolved")}
+            myLabel={t("stats.myResolved")}
+          />
+
+          <ExecutiveQueueSection
+            title={t("projectResolvedTeamQueueTitle")}
+            subtitle={t("projectResolvedTeamQueueSubtitle")}
+          >
+            <ExecutiveQuickActionsTable
+              rows={filteredResolvedTeamQueue}
+              agents={agents}
+              canAssign={false}
+              emptyLabel={
+                isResolvedSearching
+                  ? t("searchNoResults")
+                  : t("projectResolvedTeamQueueEmpty")
+              }
+            />
+          </ExecutiveQueueSection>
+
+          <ExecutiveQueueSection
+            title={t("projectResolvedMyQueueTitle")}
+            subtitle={t("projectResolvedMyQueueSubtitle")}
+          >
+            <ExecutiveQuickActionsTable
+              rows={filteredResolvedMyQueue}
+              agents={agents}
+              canAssign={false}
+              emptyLabel={
+                isResolvedSearching
+                  ? t("searchNoResults")
+                  : t("projectResolvedMyQueueEmpty")
+              }
+            />
+          </ExecutiveQueueSection>
+        </>
+      ) : null}
     </div>
   );
 }

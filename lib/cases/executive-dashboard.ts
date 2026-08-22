@@ -60,10 +60,14 @@ export type ProjectDashboardSlice = {
   project: string;
   slug: string;
   stats: ExecutiveStats;
+  resolvedStats: ResolvedStats;
   categoryBreakdown: CategoryBreakdown;
+  resolvedCategoryBreakdown: CategoryBreakdown;
   agentWorkload: AgentWorkload[];
   teamQueue: ExecutiveCaseRow[];
   myQueue: ExecutiveCaseRow[];
+  resolvedTeamQueue: ExecutiveCaseRow[];
+  resolvedMyQueue: ExecutiveCaseRow[];
 };
 
 export type ExecutiveDashboardData = {
@@ -256,21 +260,31 @@ function projectSlug(name: string): string {
 
 function buildProjectSlice(
   projectName: string,
-  rows: ExecutiveCaseRow[],
+  openRows: ExecutiveCaseRow[],
+  resolvedRows: ExecutiveCaseRow[],
   agents: Array<{ id: string; name: string }>
 ): ProjectDashboardSlice {
-  const projectRows = rows.filter((row) => row.project === projectName);
-  const teamRows = projectRows.filter((row) => !row.isMine);
-  const myRows = projectRows.filter((row) => row.isMine);
+  const projectOpenRows = openRows.filter((row) => row.project === projectName);
+  const projectResolvedRows = resolvedRows.filter(
+    (row) => row.project === projectName
+  );
+  const teamRows = projectOpenRows.filter((row) => !row.isMine);
+  const myRows = projectOpenRows.filter((row) => row.isMine);
+  const resolvedTeamRows = projectResolvedRows.filter((row) => !row.isMine);
+  const resolvedMyRows = projectResolvedRows.filter((row) => row.isMine);
 
   return {
     project: projectName,
     slug: projectSlug(projectName),
-    stats: computeStats(projectRows),
-    categoryBreakdown: computeCategoryBreakdown(projectRows),
-    agentWorkload: computeAgentWorkload(projectRows, agents),
+    stats: computeStats(projectOpenRows),
+    resolvedStats: computeResolvedStats(projectResolvedRows),
+    categoryBreakdown: computeCategoryBreakdown(projectOpenRows),
+    resolvedCategoryBreakdown: computeCategoryBreakdown(projectResolvedRows),
+    agentWorkload: computeAgentWorkload(projectOpenRows, agents),
     teamQueue: sortQueue(teamRows).slice(0, 30),
     myQueue: sortQueue(myRows).slice(0, 10),
+    resolvedTeamQueue: resolvedTeamRows.slice(0, 30),
+    resolvedMyQueue: resolvedMyRows.slice(0, 10),
   };
 }
 
@@ -325,7 +339,10 @@ export async function getExecutiveDashboardData(
   const globalCategoryBreakdown = computeCategoryBreakdown(rows);
   const globalAgentWorkload = computeAgentWorkload(rows, agents);
 
-  const projectNamesInData = new Set(rows.map((row) => row.project));
+  const projectNamesInData = new Set([
+    ...rows.map((row) => row.project),
+    ...resolvedTickets.map((ticket) => ticket.unit.project.name),
+  ]);
   const orderedProjectNames = [
     ...CANONICAL_PROJECTS.filter(
       (name) =>
@@ -349,19 +366,15 @@ export async function getExecutiveDashboardData(
     })
   );
 
-  const byProject = orderedProjectNames.map((projectName) =>
-    buildProjectSlice(projectName, rows, agents)
-  );
-
   const resolvedRows = resolvedTickets.map((ticket) =>
     toExecutiveRow(ticket, managerId)
   );
   const resolvedTeamRows = resolvedRows.filter((row) => !row.isMine);
   const resolvedMyRows = resolvedRows.filter((row) => row.isMine);
-  const resolvedProjectNames = new Set([
-    ...orderedProjectNames,
-    ...resolvedRows.map((row) => row.project),
-  ]);
+
+  const byProject = orderedProjectNames.map((projectName) =>
+    buildProjectSlice(projectName, rows, resolvedRows, agents)
+  );
 
   return {
     stats: globalStats,
@@ -381,7 +394,7 @@ export async function getExecutiveDashboardData(
       categoryBreakdown: computeCategoryBreakdown(resolvedRows),
       projectsResolvedCounts: buildResolvedProjectCounts(
         resolvedRows,
-        [...resolvedProjectNames]
+        orderedProjectNames
       ),
       teamQueue: sortQueue(resolvedTeamRows).slice(0, 30),
       myQueue: sortQueue(resolvedMyRows).slice(0, 10),
