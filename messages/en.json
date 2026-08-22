@@ -460,10 +460,20 @@
     },
     "handoverStatus": {
       "PENDING": "Pending",
-      "DELIVERED": "Delivered",
+      "DELIVERY_PROTOCOL": "Delivery Protocol",
+      "DELIVERY_EXTENSION": "Delivery Extension Addendum",
+      "FINISHING_CHANGE": "Finishing Type Change",
+      "UNIT_SWAP": "Unit Swap",
+      "NEW_CONTRACT": "New Contract",
+      "WAIVER": "Waiver",
       "CANCELLED": "Cancelled",
-      "EXTENSION": "Extension",
-      "LEGAL_DISPUTE": "Legal Dispute"
+      "REFUSED_DELIVERY": "Refused Delivery",
+      "REFUSED_EXTENSION": "Refused Extension",
+      "INSTALLMENT_STOP_WARNING": "Installment Stop Warning",
+      "DELIVERY_WARNING": "Delivery Warning",
+      "DELIVERED": "Delivered (legacy)",
+      "EXTENSION": "Extension (legacy)",
+      "LEGAL_DISPUTE": "Legal Dispute (legacy)"
     },
     "ticketStatus": {
       "PENDING": "Pending",
@@ -502,12 +512,16 @@
       "PACKAGE_3": "Package 3",
       "PACKAGE_4": "Package 4",
       "THREE_QUARTERS": "3/4 Finishing",
+      "FURNITURE": "Furniture",
+      "FURNITURE_AND_AC": "Furniture & Appliances",
+      "FINISHING": "Finishing",
+      "COMPANY_FINISHING": "Company Finishing",
       "CORE_AND_SHELL": "Core & Shell",
       "CUSTOM": "Custom"
     },
     "executingCompany": {
       "NJD": "NJD Finishing",
-      "GERGES_YOUSSEF": "Gerges Youssef Construction",
+      "GERGES_YOUSSEF": "Eng. Gerges Youssef Construction Co.",
       "OTHER": "Other"
     }
   }

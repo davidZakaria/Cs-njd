@@ -459,11 +459,21 @@
       "HOTEL_APARTMENT": "شقة فندقية"
     },
     "handoverStatus": {
-      "PENDING": "لم يُسلّم",
-      "DELIVERED": "تم التسليم",
+      "PENDING": "لم يُحدد",
+      "DELIVERY_PROTOCOL": "محضر استلام",
+      "DELIVERY_EXTENSION": "ملحق بمد الاستلام",
+      "FINISHING_CHANGE": "تغير نوع التشطيب",
+      "UNIT_SWAP": "تبديل وحده بأخري",
+      "NEW_CONTRACT": "عقد جديد",
+      "WAIVER": "تنازل",
       "CANCELLED": "فسخ",
-      "EXTENSION": "ملحق",
-      "LEGAL_DISPUTE": "نزاع قانوني"
+      "REFUSED_DELIVERY": "رافض الاستلام",
+      "REFUSED_EXTENSION": "رافض المد",
+      "INSTALLMENT_STOP_WARNING": "أخطار وقف أقساط",
+      "DELIVERY_WARNING": "أخطار بالأستلام",
+      "DELIVERED": "تم التسليم (قديم)",
+      "EXTENSION": "ملحق (قديم)",
+      "LEGAL_DISPUTE": "نزاع قانوني (قديم)"
     },
     "ticketStatus": {
       "PENDING": "معلّق",
@@ -497,17 +507,21 @@
     "finishingPackage": {
       "LESS_THAN_COMPANY": "أقل من باقة الشركة",
       "COMPANY_PACKAGE": "باقة الشركة",
-      "PACKAGE_1": "الباقة الأولى",
-      "PACKAGE_2": "الباقة الثانية",
-      "PACKAGE_3": "الباقة الثالثة",
-      "PACKAGE_4": "الباقة الرابعة",
+      "PACKAGE_1": "باقة أولي",
+      "PACKAGE_2": "باقة ثانية",
+      "PACKAGE_3": "باقة ثالثة",
+      "PACKAGE_4": "باقة رابعة",
       "THREE_QUARTERS": "3/4 تشطيب",
+      "FURNITURE": "فرش",
+      "FURNITURE_AND_AC": "فرش وأجهزه",
+      "FINISHING": "تشطيب",
+      "COMPANY_FINISHING": "تشطيب شركه",
       "CORE_AND_SHELL": "على العظم",
       "CUSTOM": "تشطيب خاص"
     },
     "executingCompany": {
       "NJD": "تشطيب شركة NJD",
-      "GERGES_YOUSSEF": "شركة جرجس يوسف للإنشاءات",
+      "GERGES_YOUSSEF": "شركة م/ جرجس يوسف للإنشاءات",
       "OTHER": "أخرى"
     }
   }

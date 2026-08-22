@@ -33,13 +33,21 @@ export default async function DashboardPage() {
       }),
       prisma.contractWorkflow.count({
         where: {
-          handoverStatus: "DELIVERED",
+          handoverStatus: { in: ["DELIVERY_PROTOCOL", "DELIVERED"] },
           unit: where.agentId ? { agentId: where.agentId } : undefined,
         },
       }),
       prisma.contractWorkflow.count({
         where: {
-          handoverStatus: "LEGAL_DISPUTE",
+          handoverStatus: {
+            in: [
+              "REFUSED_DELIVERY",
+              "REFUSED_EXTENSION",
+              "INSTALLMENT_STOP_WARNING",
+              "DELIVERY_WARNING",
+              "LEGAL_DISPUTE",
+            ],
+          },
           unit: where.agentId ? { agentId: where.agentId } : undefined,
         },
       }),

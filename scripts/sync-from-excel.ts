@@ -3,6 +3,10 @@ import fs from "fs/promises";
 import path from "path";
 import { ingestWorkbook } from "../lib/import/ingest";
 
+/**
+ * Sync units, finishing, and legal/action data from the master Excel workbook.
+ * Enum mapping uses fuzzy Arabic matching — see lib/import/columns.ts and fuzzy-match.ts.
+ */
 async function main() {
   const filePath =
     process.argv[2] ??

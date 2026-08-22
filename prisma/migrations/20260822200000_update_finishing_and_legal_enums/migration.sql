@@ -1,0 +1,22 @@
+-- Expand FinishingPackage enum
+ALTER TYPE "FinishingPackage" ADD VALUE IF NOT EXISTS 'FURNITURE';
+ALTER TYPE "FinishingPackage" ADD VALUE IF NOT EXISTS 'FURNITURE_AND_AC';
+ALTER TYPE "FinishingPackage" ADD VALUE IF NOT EXISTS 'FINISHING';
+ALTER TYPE "FinishingPackage" ADD VALUE IF NOT EXISTS 'COMPANY_FINISHING';
+
+-- Expand HandoverStatus enum with standardized action/warning types
+ALTER TYPE "HandoverStatus" ADD VALUE IF NOT EXISTS 'DELIVERY_PROTOCOL';
+ALTER TYPE "HandoverStatus" ADD VALUE IF NOT EXISTS 'DELIVERY_EXTENSION';
+ALTER TYPE "HandoverStatus" ADD VALUE IF NOT EXISTS 'FINISHING_CHANGE';
+ALTER TYPE "HandoverStatus" ADD VALUE IF NOT EXISTS 'UNIT_SWAP';
+ALTER TYPE "HandoverStatus" ADD VALUE IF NOT EXISTS 'NEW_CONTRACT';
+ALTER TYPE "HandoverStatus" ADD VALUE IF NOT EXISTS 'WAIVER';
+ALTER TYPE "HandoverStatus" ADD VALUE IF NOT EXISTS 'REFUSED_DELIVERY';
+ALTER TYPE "HandoverStatus" ADD VALUE IF NOT EXISTS 'REFUSED_EXTENSION';
+ALTER TYPE "HandoverStatus" ADD VALUE IF NOT EXISTS 'INSTALLMENT_STOP_WARNING';
+ALTER TYPE "HandoverStatus" ADD VALUE IF NOT EXISTS 'DELIVERY_WARNING';
+
+-- Migrate legacy handover statuses to new standardized values
+UPDATE "ContractWorkflow" SET "handoverStatus" = 'DELIVERY_PROTOCOL' WHERE "handoverStatus" = 'DELIVERED';
+UPDATE "ContractWorkflow" SET "handoverStatus" = 'DELIVERY_EXTENSION' WHERE "handoverStatus" = 'EXTENSION';
+UPDATE "ContractWorkflow" SET "handoverStatus" = 'REFUSED_DELIVERY' WHERE "handoverStatus" = 'LEGAL_DISPUTE';
