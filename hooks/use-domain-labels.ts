@@ -34,6 +34,10 @@ export function useDomainLabels() {
       role: (value: string) => enumLabel(tEnums, "role", value),
       finishingType: (value: string) =>
         enumLabel(tEnums, "finishingType", value),
+      finishingPackage: (value: string) =>
+        enumLabel(tEnums, "finishingPackage", value),
+      executingCompany: (value: string) =>
+        enumLabel(tEnums, "executingCompany", value),
       project: (value: string) => {
         if (!value) return value;
         return tProjects.has(value as Parameters<typeof tProjects>[0])
