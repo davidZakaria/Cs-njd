@@ -43,6 +43,17 @@ function optionalEnum<T extends string>(values: readonly T[]) {
     });
 }
 
+function optionalString() {
+  return z
+    .union([z.string(), z.literal(""), z.null()])
+    .optional()
+    .transform((value) => {
+      if (value == null) return null;
+      const trimmed = String(value).trim();
+      return trimmed === "" ? null : trimmed;
+    });
+}
+
 export const finishingFormSchema = z.object({
   unitId: z.string().min(1),
   packageType: optionalEnum(finishingPackageValues),
@@ -54,6 +65,7 @@ export const finishingFormSchema = z.object({
   totalFinishingPrice: optionalNumber(),
   doorFees: optionalNumber(),
   aluminumFees: optionalNumber(),
+  currentFinishingStatus: optionalString(),
 });
 
 export type FinishingFormInput = z.input<typeof finishingFormSchema>;

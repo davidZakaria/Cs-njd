@@ -17,6 +17,7 @@ enum UnitType {
   APARTMENT
   DUPLEX
   PENTHOUSE
+  ROOF
   CLINIC
   ADMIN
   COMMERCIAL
@@ -148,6 +149,8 @@ model Client {
   phone2     String?
   email      String?
   nationalId String?   @unique
+  address1   String?
+  address2   String?
   deletedAt  DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -160,17 +163,19 @@ model Client {
 }
 
 model Unit {
-  id        String    @id @default(cuid())
-  unitCode  String
-  projectId String
-  type      UnitType  @default(APARTMENT)
-  area      Float?
-  clientId  String?
-  agentId   String?
-  category  String?
-  deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  unitCode     String
+  projectId    String
+  type         UnitType  @default(APARTMENT)
+  area         Float?
+  deliveryYear String?
+  gracePeriod  String?
+  clientId     String?
+  agentId      String?
+  category     String?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   client           Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
@@ -206,23 +211,24 @@ model ContractWorkflow {
 }
 
 model Finishing {
-  id                  String            @id @default(cuid())
-  unitId              String            @unique
-  finishingType       FinishingType     @default(CUSTOM)
-  packageType         FinishingPackage?
-  executingCompany    ExecutingCompany?
-  packageLabel        String?
-  companyName         String?
-  contractDate        DateTime?
-  datedAt             DateTime?
-  emailDate           DateTime?
-  pricePerMeter       Float?
-  totalFinishingPrice Float?
-  doorFees            Float?
-  aluminumFees        Float?
-  deletedAt           DateTime?
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  id                      String            @id @default(cuid())
+  unitId                  String            @unique
+  finishingType           FinishingType     @default(CUSTOM)
+  packageType             FinishingPackage?
+  executingCompany        ExecutingCompany?
+  packageLabel            String?
+  companyName             String?
+  contractDate            DateTime?
+  datedAt                 DateTime?
+  emailDate               DateTime?
+  currentFinishingStatus  String?
+  pricePerMeter           Float?
+  totalFinishingPrice     Float?
+  doorFees                Float?
+  aluminumFees            Float?
+  deletedAt               DateTime?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
 
   unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 

@@ -48,6 +48,7 @@ export type FinishingFormDefaults = {
   totalFinishingPrice: number | null;
   doorFees: number | null;
   aluminumFees: number | null;
+  currentFinishingStatus: string | null;
   packageLabel: string | null;
   companyName: string | null;
   finishingType: string | null;
@@ -151,6 +152,7 @@ export function UnitFinishingForm({
   const locale = useLocale();
   const isRtl = locale === "ar";
   const t = useTranslations("units");
+  const tFinishing = useTranslations("finishing");
   const tCommon = useTranslations("common");
   const labels = useDomainLabels();
   const { pending, runAction } = useCrudToast();
@@ -167,6 +169,7 @@ export function UnitFinishingForm({
       totalFinishingPrice: defaults.totalFinishingPrice ?? "",
       doorFees: defaults.doorFees ?? "",
       aluminumFees: defaults.aluminumFees ?? "",
+      currentFinishingStatus: defaults.currentFinishingStatus ?? "",
     }),
     [defaults]
   );
@@ -205,9 +208,9 @@ export function UnitFinishingForm({
 
   return (
     <div className="space-y-6" dir={isRtl ? "rtl" : "ltr"}>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard label={t("packageType")} value={packageDisplayLabel} />
-        <SummaryCard label={t("executingCompany")} value={companyDisplayLabel} />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <SummaryCard label={tFinishing("packageType")} value={packageDisplayLabel} />
+        <SummaryCard label={tFinishing("executingCompany")} value={companyDisplayLabel} />
         <SummaryCard
           label={t("pricePerMeter")}
           value={formatCurrency(
@@ -226,6 +229,15 @@ export function UnitFinishingForm({
             locale
           )}
         />
+        <SummaryCard
+          label={tFinishing("currentStatus")}
+          value={
+            typeof watched.currentFinishingStatus === "string" &&
+            watched.currentFinishingStatus.trim()
+              ? watched.currentFinishingStatus
+              : defaults.currentFinishingStatus ?? "—"
+          }
+        />
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -237,7 +249,7 @@ export function UnitFinishingForm({
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>{t("packageType")}</Label>
+              <Label>{tFinishing("packageType")}</Label>
               <Controller
                 control={control}
                 name="packageType"
@@ -265,7 +277,7 @@ export function UnitFinishingForm({
             </div>
 
             <div className="space-y-2">
-              <Label>{t("executingCompany")}</Label>
+              <Label>{tFinishing("executingCompany")}</Label>
               <Controller
                 control={control}
                 name="executingCompany"
@@ -291,6 +303,16 @@ export function UnitFinishingForm({
                 )}
               />
             </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="currentFinishingStatus">
+                {tFinishing("currentStatus")}
+              </Label>
+              <Input
+                id="currentFinishingStatus"
+                disabled={!canEdit || pending}
+                {...register("currentFinishingStatus")}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -300,7 +322,7 @@ export function UnitFinishingForm({
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="pricePerMeter">{t("pricePerMeter")}</Label>
+              <Label htmlFor="pricePerMeter">{tFinishing("pricePerMeter")}</Label>
               <Input
                 id="pricePerMeter"
                 type="number"
@@ -310,7 +332,7 @@ export function UnitFinishingForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="totalFinishingPrice">{t("totalPrice")}</Label>
+              <Label htmlFor="totalFinishingPrice">{tFinishing("totalPrice")}</Label>
               <Input
                 id="totalFinishingPrice"
                 type="number"
@@ -320,7 +342,7 @@ export function UnitFinishingForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="doorFees">{t("doorFees")}</Label>
+              <Label htmlFor="doorFees">{tFinishing("doorFees")}</Label>
               <Input
                 id="doorFees"
                 type="number"
@@ -330,7 +352,7 @@ export function UnitFinishingForm({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="aluminumFees">{t("aluminumFees")}</Label>
+              <Label htmlFor="aluminumFees">{tFinishing("aluminumFees")}</Label>
               <Input
                 id="aluminumFees"
                 type="number"
@@ -353,7 +375,7 @@ export function UnitFinishingForm({
               render={({ field }) => (
                 <DatePickerField
                   id="contractDate"
-                  label={t("finishingContractDate")}
+                  label={tFinishing("contractDate")}
                   value={String(field.value ?? "")}
                   onChange={field.onChange}
                   disabled={!canEdit || pending}

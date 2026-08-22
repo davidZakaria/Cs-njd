@@ -119,8 +119,10 @@ const EXECUTING_COMPANY_CANDIDATES: FuzzyCandidate<ExecutingCompany>[] = [
   {
     value: "GERGES_YOUSSEF",
     patterns: [
+      "شركه م/ جرجس يوسف للانشاءات",
       "شركة م/ جرجس يوسف للإنشاءات",
       "شركة جرجس يوسف للإنشاءات",
+      "شركة جرجس يوسف للانشاءات",
       "جرجس يوسف",
       "gerges youssef",
       "م/ جرجس",
@@ -211,12 +213,22 @@ const HANDOVER_STATUS_CANDIDATES: FuzzyCandidate<HandoverStatus>[] = [
 
 export function mapUnitType(raw?: string): UnitType {
   const value = (raw ?? "").trim().toLowerCase();
-  if (value.includes("duplex")) return "DUPLEX";
-  if (value.includes("penthouse")) return "PENTHOUSE";
+  if (value.includes("roof") || value.includes("رووف") || value.includes("روف")) {
+    return "ROOF";
+  }
+  if (value.includes("duplex") || value.includes("دوبلكس")) return "DUPLEX";
+  if (value.includes("penthouse") || value.includes("بنتهاوس")) return "PENTHOUSE";
   if (value.includes("clinic") || value.includes("عياد")) return "CLINIC";
-  if (value.includes("admin") || value.includes("اداري")) return "ADMIN";
-  if (value.includes("commercial") || value.includes("تجاري") || value.includes("محل")) return "COMMERCIAL";
+  if (value.includes("admin") || value.includes("اداري") || value.includes("إداري")) {
+    return "ADMIN";
+  }
+  if (value.includes("commercial") || value.includes("تجاري") || value.includes("محل")) {
+    return "COMMERCIAL";
+  }
   if (value.includes("hotel") || value.includes("فندق")) return "HOTEL_APARTMENT";
+  if (value.includes("شقه") || value.includes("شقة") || value.includes("apartment")) {
+    return "APARTMENT";
+  }
   return "APARTMENT";
 }
 
@@ -257,6 +269,36 @@ export function mapExecutingCompany(raw?: string): ExecutingCompany | null {
   if (!(raw ?? "").trim()) return null;
   return fuzzyMatchEnum(raw, EXECUTING_COMPANY_CANDIDATES, 0.58);
 }
+
+/** Handwritten CS/Engineering Excel column headers (Arabic + legacy variants). */
+export const IMPORT_COLUMN_HEADERS = {
+  address1: ["عنوان 1", "address 1", "address1"],
+  address2: ["عنوان 2", "address 2", "address2"],
+  deliveryYear: ["السنه للتسليم", "السنة للتسليم", "delivery year"],
+  gracePeriod: ["فترة سماح", "grace period"],
+  packageType: [
+    "نوع / باقة التشطيب",
+    "نوع / باقة التشطيب ",
+    "نوع الباقه",
+    "نوع الباقة",
+    "Finishing",
+  ],
+  executingCompany: [
+    "الشركه المنفذه",
+    "الشركة المنفذة",
+    "الشركة المسئوله عن التشطيبات",
+    "الشركة المسؤولة عن التشطيبات",
+  ],
+  doorFees: ["رسوم الباب", "مصاريف باب", "مصاريف الباب"],
+  aluminumFees: ["الالوميتال", "الألوميتال", "مصاريف الوميتال", "مصاريف ألوميتال"],
+  pricePerMeter: ["سعر المتر", "سعر باقة التشطيب للمتر"],
+  totalFinishing: ["اجمالي التشطيب", "اجمالي السعر", "اجمالي سعر التشطيب"],
+  contractDate: ["تاريخ التعاقد", "تاريخ عقد التشطيب", "تاريخ عقد التشطيب "],
+  currentFinishingStatus: [
+    "موقف الوحده الحالي من التشطيب",
+    "موقف الوحدة الحالي من التشطيب",
+  ],
+} as const;
 
 export function slugifyAgentEmail(name: string): string {
   const slug = name

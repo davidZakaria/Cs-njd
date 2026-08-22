@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UnitTimelineCrud } from "@/components/units/unit-timeline-crud";
 import { UnitFinishingForm } from "@/components/units/unit-finishing-form";
-import { ClientPhoneRow } from "@/components/units/client-phone-row";
+import { UnitClientForm } from "@/components/units/unit-client-form";
 import { PrintProtocolButton } from "@/components/units/print-protocol-button";
 import { isAwaitingResponseNote } from "@/lib/import/master-cases";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
@@ -24,7 +24,6 @@ export default async function UnitProfilePage({
   const session = await auth();
   const t = await getTranslations("units");
   const tCases = await getTranslations("cases");
-  const tCommon = await getTranslations("common");
   const labels = await getDomainLabels(locale);
 
   const statusItems: Record<string, string> = {
@@ -57,7 +56,6 @@ export default async function UnitProfilePage({
   }
 
   const projectLabel = await labels.project(unit.project.name);
-  const unitTypeLabel = await labels.unitType(unit.type);
   const areaLabel = await labels.areaWithUnit(unit.area);
   const agentLabel = unit.agent
     ? await labels.staffName(unit.agent.name)
@@ -75,7 +73,7 @@ export default async function UnitProfilePage({
   const companyLabel = unit.finishing?.executingCompany
     ? await labels.executingCompany(unit.finishing.executingCompany)
     : unit.finishing?.companyName ?? "-";
-  const canEditFinishing =
+  const canEditProfile =
     session?.user.role === "SUPER_ADMIN" ||
     session?.user.role === "MANAGEMENT";
 
@@ -100,32 +98,25 @@ export default async function UnitProfilePage({
         </TabsList>
 
         <TabsContent value="client">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("clientInfo")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <p><strong>{t("client")}:</strong> {unit.client?.name ?? "-"}</p>
-              <ClientPhoneRow
-                label={t("phone1")}
-                phone={unit.client?.phone1}
-                clientName={unit.client?.name ?? t("client")}
-                unitCode={unit.unitCode}
-                projectName={projectLabel}
-              />
-              <ClientPhoneRow
-                label={t("phone2")}
-                phone={unit.client?.phone2}
-                clientName={unit.client?.name ?? t("client")}
-                unitCode={unit.unitCode}
-                projectName={projectLabel}
-              />
-              <p><strong>{tCommon("email")}:</strong> {unit.client?.email ?? "-"}</p>
-              <p><strong>{t("type")}:</strong> {unitTypeLabel}</p>
-              <p><strong>{t("area")}:</strong> {areaLabel}</p>
-              <p><strong>{t("agent")}:</strong> {agentLabel}</p>
-            </CardContent>
-          </Card>
+          <UnitClientForm
+            canEdit={canEditProfile}
+            defaults={{
+              unitId: unit.id,
+              clientName: unit.client?.name ?? "—",
+              phone1: unit.client?.phone1 ?? null,
+              phone2: unit.client?.phone2 ?? null,
+              email: unit.client?.email ?? null,
+              address1: unit.client?.address1 ?? null,
+              address2: unit.client?.address2 ?? null,
+              deliveryYear: unit.deliveryYear ?? null,
+              gracePeriod: unit.gracePeriod ?? null,
+              type: unit.type,
+              unitCode: unit.unitCode,
+              projectName: projectLabel,
+              agentLabel,
+              areaLabel,
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="financials">
@@ -141,11 +132,12 @@ export default async function UnitProfilePage({
               totalFinishingPrice: unit.finishing?.totalFinishingPrice ?? null,
               doorFees: unit.finishing?.doorFees ?? null,
               aluminumFees: unit.finishing?.aluminumFees ?? null,
+              currentFinishingStatus: unit.finishing?.currentFinishingStatus ?? null,
               packageLabel: unit.finishing?.packageLabel ?? null,
               companyName: unit.finishing?.companyName ?? null,
               finishingType: unit.finishing?.finishingType ?? null,
             }}
-            canEdit={canEditFinishing}
+            canEdit={canEditProfile}
             packageDisplayLabel={finishingLabel}
             companyDisplayLabel={companyLabel}
           />

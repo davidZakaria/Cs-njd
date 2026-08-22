@@ -2,6 +2,7 @@ import * as XLSX from "xlsx";
 import { basePrisma as prisma } from "@/lib/prisma";
 import { createAgentResolver } from "@/lib/import/agents";
 import {
+  IMPORT_COLUMN_HEADERS,
   mapExecutingCompany,
   mapFinishingPackage,
   mapFinishingType,
@@ -59,6 +60,42 @@ function col(row: unknown[], index: number) {
   const value = row[index];
   if (value == null || String(value).trim() === "") return undefined;
   return value;
+}
+
+function buildHeaderIndex(headerRow: unknown[]) {
+  const map = new Map<string, number>();
+  headerRow.forEach((cell, index) => {
+    const key = String(cell ?? "").trim().toLowerCase();
+    if (key) map.set(key, index);
+  });
+  return map;
+}
+
+function colByHeader(
+  row: unknown[],
+  headerIndex: Map<string, number>,
+  ...keys: string[]
+) {
+  for (const key of keys) {
+    const index = headerIndex.get(key.trim().toLowerCase());
+    if (index == null) continue;
+    const value = col(row, index);
+    if (value !== undefined) return value;
+  }
+  return undefined;
+}
+
+function cellString(row: Row, ...keys: string[]) {
+  const value = getCell(row, ...keys);
+  if (value == null) return undefined;
+  const trimmed = String(value).trim();
+  return trimmed || undefined;
+}
+
+function optionalString(value: unknown) {
+  if (value == null) return undefined;
+  const trimmed = String(value).trim();
+  return trimmed || undefined;
 }
 function getCell(row: Row, ...keys: string[]) {
   for (const key of keys) {
@@ -148,7 +185,12 @@ async function ensureProject(name: string) {
   });
 }
 
-async function ensureClient(name: string, phones?: string) {
+async function ensureClient(
+  name: string,
+  phones?: string,
+  address1?: string,
+  address2?: string
+) {
   const { phone1, phone2 } = splitPhones(phones);
   const existing = await prisma.client.findFirst({
     where: {
@@ -159,11 +201,22 @@ async function ensureClient(name: string, phones?: string) {
   if (existing) {
     return prisma.client.update({
       where: { id: existing.id },
-      data: { phone1: phone1 ?? existing.phone1, phone2: phone2 ?? existing.phone2 },
+      data: {
+        phone1: phone1 ?? existing.phone1,
+        phone2: phone2 ?? existing.phone2,
+        address1: address1 ?? existing.address1,
+        address2: address2 ?? existing.address2,
+      },
     });
   }
   return prisma.client.create({
-    data: { name: name.trim(), phone1, phone2 },
+    data: {
+      name: name.trim(),
+      phone1,
+      phone2,
+      address1: address1 ?? null,
+      address2: address2 ?? null,
+    },
   });
 }
 
@@ -186,6 +239,7 @@ type FinishingImportPatch = {
   totalFinishingPrice?: number | null;
   doorFees?: number | null;
   aluminumFees?: number | null;
+  currentFinishingStatus?: string | null;
 };
 
 function hasPresentValue(value: unknown) {
@@ -203,6 +257,7 @@ function buildFinishingFields(input: {
   totalPrice?: unknown;
   doorFees?: unknown;
   aluminumFees?: unknown;
+  currentFinishingStatus?: string;
 }): FinishingImportPatch | null {
   const patch: FinishingImportPatch = {};
   const packageSource = input.packageLabel ?? input.finishingType;
@@ -239,6 +294,10 @@ function buildFinishingFields(input: {
   }
   if (hasPresentValue(input.aluminumFees)) {
     patch.aluminumFees = parseLegacyNumber(input.aluminumFees);
+  }
+  if (input.currentFinishingStatus !== undefined) {
+    patch.currentFinishingStatus =
+      input.currentFinishingStatus.trim() || null;
   }
 
   return Object.keys(patch).length > 0 ? patch : null;
@@ -277,8 +336,12 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
     unitCode: string;
     clientName?: string;
     phones?: string;
+    address1?: string;
+    address2?: string;
     type?: string;
     area?: unknown;
+    deliveryYear?: string;
+    gracePeriod?: string;
     category?: string;
     contractDate?: unknown;
     deliveryDate?: unknown;
@@ -295,6 +358,7 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
     totalPrice?: unknown;
     doorFees?: unknown;
     aluminumFees?: unknown;
+    currentFinishingStatus?: string;
     notes?: string;
     cases?: ImportCase[];
     ticketStatus?: "PENDING" | "ENGINEERING" | "LEGAL" | "RESOLVED";
@@ -305,7 +369,12 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
     }
 
     const project = await ensureProject(input.projectName);
-    const client = await ensureClient(input.clientName, input.phones);
+    const client = await ensureClient(
+      input.clientName,
+      input.phones,
+      input.address1,
+      input.address2
+    );
     const agentId = input.agentName
       ? await agentResolver.resolve(input.agentName)
       : null;
@@ -321,6 +390,8 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
       update: {
         type: mapUnitType(String(input.type ?? existing?.type ?? "APARTMENT")),
         area: parseLegacyNumber(input.area) ?? undefined,
+        deliveryYear: input.deliveryYear ?? undefined,
+        gracePeriod: input.gracePeriod ?? undefined,
         clientId: client.id,
         agentId: agentId ?? existing?.agentId ?? undefined,
         category: input.category ?? undefined,
@@ -330,6 +401,8 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         projectId: project.id,
         type: mapUnitType(String(input.type ?? "")),
         area: parseLegacyNumber(input.area) ?? undefined,
+        deliveryYear: input.deliveryYear ?? null,
+        gracePeriod: input.gracePeriod ?? null,
         clientId: client.id,
         agentId: agentId ?? undefined,
         category: input.category,
@@ -372,6 +445,7 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
       totalPrice: input.totalPrice,
       doorFees: input.doorFees,
       aluminumFees: input.aluminumFees,
+      currentFinishingStatus: input.currentFinishingStatus,
     });
 
     if (finishingFields) {
@@ -414,6 +488,8 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
   }
 
   const masterRows = masterName ? sheetArrayRows(workbook, masterName) : [];
+  const masterHeader = masterRows[0] ?? [];
+  const masterCols = buildHeaderIndex(masterHeader);
   for (let i = 1; i < masterRows.length; i++) {
     const row = masterRows[i];
     try {
@@ -427,8 +503,22 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         unitCode: String(unitCode),
         clientName,
         phones: String(col(row, 20) ?? ""),
-        type: String(col(row, 5) ?? ""),
-        area: col(row, 6),
+        address1: optionalString(
+          colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.address1)
+        ),
+        address2: optionalString(
+          colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.address2)
+        ),
+        type:
+          optionalString(colByHeader(row, masterCols, "النوع", "Type")) ??
+          String(col(row, 5) ?? ""),
+        area: colByHeader(row, masterCols, "مساحة الوحده", "Area") ?? col(row, 6),
+        deliveryYear: optionalString(
+          colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.deliveryYear)
+        ),
+        gracePeriod: optionalString(
+          colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.gracePeriod)
+        ),
         category: String(col(row, 23) ?? "") || undefined,
         contractDate: col(row, 2),
         deliveryDate: col(row, 7),
@@ -441,7 +531,32 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         ),
         agentName: String(col(row, 13) ?? "") || undefined,
         finishingType: String(col(row, 17) ?? "") || undefined,
-        totalPrice: col(row, 18),
+        packageLabel:
+          optionalString(
+            colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.packageType)
+          ) ?? undefined,
+        companyName:
+          optionalString(
+            colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.executingCompany)
+          ) ?? undefined,
+        finishingContractDate:
+          colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.contractDate) ??
+          undefined,
+        pricePerMeter:
+          colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.pricePerMeter) ??
+          undefined,
+        totalPrice:
+          colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.totalFinishing) ??
+          col(row, 18),
+        doorFees:
+          colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.doorFees) ??
+          undefined,
+        aluminumFees:
+          colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.aluminumFees) ??
+          undefined,
+        currentFinishingStatus: optionalString(
+          colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.currentFinishingStatus)
+        ),
         cases: buildMasterSheetCases(col(row, 14), col(row, 15), col(row, 16)),
       });
     } catch (error) {
@@ -466,22 +581,20 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         projectName,
         unitCode: String(unitCode),
         clientName,
+        address1: cellString(row, ...IMPORT_COLUMN_HEADERS.address1),
+        address2: cellString(row, ...IMPORT_COLUMN_HEADERS.address2),
+        deliveryYear: cellString(row, ...IMPORT_COLUMN_HEADERS.deliveryYear),
+        gracePeriod: cellString(row, ...IMPORT_COLUMN_HEADERS.gracePeriod),
         type: String(getCell(row, "النوع", "G") ?? ""),
         area: getCell(row, "مساحة الوحده", "F"),
         actionLabel: String(getCell(row, "النوع", "G") ?? "") || undefined,
         handoverStatus: mapHandoverStatus(String(getCell(row, "النوع", "G") ?? "")),
         agentName: String(getCell(row, "المسئول", "B") ?? "") || undefined,
-        packageLabel:
-          String(
-            getCell(row, "نوع الباقه", "نوع الباقة", "Finishing") ?? ""
-          ) || undefined,
-        companyName:
-          String(getCell(row, "الشركة المسئوله عن التشطيبات", "I") ?? "") ||
-          undefined,
+        packageLabel: cellString(row, ...IMPORT_COLUMN_HEADERS.packageType),
+        companyName: cellString(row, ...IMPORT_COLUMN_HEADERS.executingCompany),
         finishingContractDate: getCell(
           row,
-          "تاريخ عقد التشطيب",
-          "تاريخ عقد التشطيب "
+          ...IMPORT_COLUMN_HEADERS.contractDate
         ),
         datedAt: getCell(row, "المؤرخ في", "H"),
         emailDate: getCell(
@@ -490,10 +603,14 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
           "تاريخ إرسال الإيميل",
           "تاريخ ارسال الإيميل"
         ),
-        pricePerMeter: getCell(row, "سعر باقة التشطيب للمتر", "M"),
-        totalPrice: getCell(row, "اجمالي السعر", "اجمالي سعر التشطيب", "N"),
-        doorFees: getCell(row, "مصاريف باب", "J"),
-        aluminumFees: getCell(row, "مصاريف الوميتال", "مصاريف ألوميتال", "K"),
+        pricePerMeter: getCell(row, ...IMPORT_COLUMN_HEADERS.pricePerMeter),
+        totalPrice: getCell(row, ...IMPORT_COLUMN_HEADERS.totalFinishing),
+        doorFees: getCell(row, ...IMPORT_COLUMN_HEADERS.doorFees),
+        aluminumFees: getCell(row, ...IMPORT_COLUMN_HEADERS.aluminumFees),
+        currentFinishingStatus: cellString(
+          row,
+          ...IMPORT_COLUMN_HEADERS.currentFinishingStatus
+        ),
         notes: String(getCell(row, "ملاحظات", "O") ?? "") || undefined,
       });
     } catch (error) {
@@ -518,15 +635,16 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         projectName,
         unitCode: String(unitCode),
         clientName,
+        address1: cellString(row, ...IMPORT_COLUMN_HEADERS.address1),
+        address2: cellString(row, ...IMPORT_COLUMN_HEADERS.address2),
+        deliveryYear: cellString(row, ...IMPORT_COLUMN_HEADERS.deliveryYear),
+        gracePeriod: cellString(row, ...IMPORT_COLUMN_HEADERS.gracePeriod),
         area: getCell(row, "مساحة الوحده", "G"),
-        packageLabel:
-          String(getCell(row, "نوع الباقه", "نوع الباقة", "H") ?? "") ||
-          undefined,
+        packageLabel: cellString(row, ...IMPORT_COLUMN_HEADERS.packageType),
         datedAt: getCell(row, "المؤرخ في", "I"),
         finishingContractDate: getCell(
           row,
-          "تاريخ عقد التشطيب",
-          "تاريخ عقد التشطيب "
+          ...IMPORT_COLUMN_HEADERS.contractDate
         ),
         emailDate: getCell(
           row,
@@ -534,18 +652,15 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
           "تاريخ إرسال الإيميل",
           "تاريخ ارسال الإيميل"
         ),
-        companyName:
-          String(getCell(row, "الشركة المسئوله عن التشطيبات", "J") ?? "") ||
-          undefined,
-        pricePerMeter: getCell(row, "سعر باقة التشطيب للمتر", "L"),
-        totalPrice: getCell(
+        companyName: cellString(row, ...IMPORT_COLUMN_HEADERS.executingCompany),
+        pricePerMeter: getCell(row, ...IMPORT_COLUMN_HEADERS.pricePerMeter),
+        totalPrice: getCell(row, ...IMPORT_COLUMN_HEADERS.totalFinishing),
+        doorFees: getCell(row, ...IMPORT_COLUMN_HEADERS.doorFees),
+        aluminumFees: getCell(row, ...IMPORT_COLUMN_HEADERS.aluminumFees),
+        currentFinishingStatus: cellString(
           row,
-          "اجمالي السعر",
-          "اجمالي سعر التشطيب",
-          "M"
+          ...IMPORT_COLUMN_HEADERS.currentFinishingStatus
         ),
-        doorFees: getCell(row, "مصاريف باب", "N"),
-        aluminumFees: getCell(row, "مصاريف الوميتال", "مصاريف ألوميتال", "O"),
         agentName: String(getCell(row, "المسئول", "C") ?? "") || undefined,
         notes: String(getCell(row, "ملاحظات", "P") ?? "") || undefined,
       });
@@ -624,24 +739,31 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
           projectName,
           unitCode: String(unitCode),
           clientName,
+          address1: cellString(row, ...IMPORT_COLUMN_HEADERS.address1),
+          address2: cellString(row, ...IMPORT_COLUMN_HEADERS.address2),
+          deliveryYear: cellString(row, ...IMPORT_COLUMN_HEADERS.deliveryYear),
+          gracePeriod: cellString(row, ...IMPORT_COLUMN_HEADERS.gracePeriod),
           area: getCell(row, "مساحة الوحده", "F", "G"),
-          packageLabel:
-            String(getCell(row, "Finishing", "نوع الباقه", "نوع الباقة", "H") ?? "") ||
-            undefined,
-          companyName:
-            String(getCell(row, "الشركة المسئوله عن التشطيبات") ?? "") ||
-            undefined,
-          finishingContractDate: getCell(row, "تاريخ عقد التشطيب"),
+          packageLabel: cellString(row, ...IMPORT_COLUMN_HEADERS.packageType),
+          companyName: cellString(row, ...IMPORT_COLUMN_HEADERS.executingCompany),
+          finishingContractDate: getCell(
+            row,
+            ...IMPORT_COLUMN_HEADERS.contractDate
+          ),
           datedAt: getCell(row, "المؤرخ في"),
           emailDate: getCell(
             row,
             "تاريخ ارسال الايميل",
             "تاريخ إرسال الإيميل"
           ),
-          pricePerMeter: getCell(row, "سعر باقة التشطيب للمتر"),
-          totalPrice: getCell(row, "اجمالي السعر", "اجمالي سعر التشطيب"),
-          doorFees: getCell(row, "مصاريف باب"),
-          aluminumFees: getCell(row, "مصاريف الوميتال", "مصاريف ألوميتال"),
+          pricePerMeter: getCell(row, ...IMPORT_COLUMN_HEADERS.pricePerMeter),
+          totalPrice: getCell(row, ...IMPORT_COLUMN_HEADERS.totalFinishing),
+          doorFees: getCell(row, ...IMPORT_COLUMN_HEADERS.doorFees),
+          aluminumFees: getCell(row, ...IMPORT_COLUMN_HEADERS.aluminumFees),
+          currentFinishingStatus: cellString(
+            row,
+            ...IMPORT_COLUMN_HEADERS.currentFinishingStatus
+          ),
           agentName: String(getCell(row, "CS", "المسئول", "C", "I") ?? "") || undefined,
           notes: String(getCell(row, "ملاحظات", "J", "L") ?? "") || undefined,
         });

@@ -39,6 +39,30 @@
       "footerNote": "شركة نيوجيرسي للتطوير العقاري — خدمة العملاء"
     }
   },
+  "client": {
+    "address1": "عنوان 1",
+    "address2": "عنوان 2"
+  },
+  "unit": {
+    "deliveryYear": "السنه للتسليم",
+    "gracePeriod": "فترة سماح",
+    "types": {
+      "ROOF": "رووف",
+      "DUPLEX": "دوبلكس",
+      "PENTHOUSE": "بنتهاوس",
+      "APARTMENT": "شقه"
+    }
+  },
+  "finishing": {
+    "packageType": "نوع / باقة التشطيب",
+    "doorFees": "رسوم الباب",
+    "aluminumFees": "الالوميتال",
+    "pricePerMeter": "سعر المتر",
+    "totalPrice": "اجمالي التشطيب",
+    "contractDate": "تاريخ التعاقد",
+    "executingCompany": "الشركه المنفذه",
+    "currentStatus": "موقف الوحده الحالي من التشطيب"
+  },
   "notifications": {
     "title": "الإشعارات",
     "bellLabel": "فتح الإشعارات",
@@ -257,20 +281,25 @@
     "timeline": "سجل ملاحظات خدمة العملاء",
     "phone1": "الهاتف ١",
     "phone2": "الهاتف ٢",
+    "address1": "عنوان 1",
+    "address2": "عنوان 2",
+    "deliveryYear": "السنه للتسليم",
+    "gracePeriod": "فترة سماح",
     "whatsapp": {
       "buttonLabelShort": "واتساب",
       "buttonLabel": "مراسلة {phone} على واتساب",
       "messageTemplate": "عزيزي عميل شركة نيوجيرسي {clientName}، نود إعلامكم بخصوص وحدتكم رقم {unitCode} في مشروع {projectName}. يرجى التواصل معنا في حال لديكم أي استفسار."
     },
     "package": "الباقة",
-    "packageType": "نوع الباقة",
-    "executingCompany": "الشركة المنفذة",
+    "packageType": "نوع / باقة التشطيب",
+    "executingCompany": "الشركه المنفذه",
     "company": "الشركة المنفّذة",
-    "pricePerMeter": "سعر باقة التشطيب للمتر",
-    "totalPrice": "إجمالي سعر التشطيب",
-    "doorFees": "مصاريف باب",
-    "aluminumFees": "مصاريف ألوميتال",
-    "finishingContractDate": "تاريخ عقد التشطيب",
+    "pricePerMeter": "سعر المتر",
+    "totalPrice": "اجمالي التشطيب",
+    "doorFees": "رسوم الباب",
+    "aluminumFees": "الالوميتال",
+    "currentFinishingStatus": "موقف الوحده الحالي من التشطيب",
+    "finishingContractDate": "تاريخ التعاقد",
     "datedAt": "المؤرخ في",
     "emailDate": "تاريخ إرسال الإيميل",
     "sectionGeneral": "عام",
@@ -289,7 +318,7 @@
     },
     "companies": {
       "NJD": "تشطيب شركة NJD",
-      "GERGES_YOUSSEF": "شركة جرجس يوسف للإنشاءات",
+      "GERGES_YOUSSEF": "شركه م/ جرجس يوسف للانشاءات",
       "OTHER": "أخرى"
     },
     "actionLabel": "الإجراء",
@@ -563,10 +592,22 @@
   },
   "enums": {
     "areaSqm": "م²",
+    "packages": {
+      "LESS_THAN_COMPANY": "أقل من باقة الشركة",
+      "COMPANY_PACKAGE": "باقة الشركة",
+      "PACKAGE_3": "الباقة الثالثة",
+      "PACKAGE_4": "الباقة الرابعة",
+      "THREE_QUARTERS": "3/4 تشطيب"
+    },
+    "companies": {
+      "NJD": "تشطيب شركة NJD",
+      "GERGES_YOUSSEF": "شركه م/ جرجس يوسف للانشاءات"
+    },
     "unitType": {
-      "APARTMENT": "شقة",
+      "APARTMENT": "شقه",
       "DUPLEX": "دوبلكس",
       "PENTHOUSE": "بنتهاوس",
+      "ROOF": "رووف",
       "CLINIC": "عيادة",
       "ADMIN": "إداري",
       "COMMERCIAL": "تجاري",
@@ -621,10 +662,10 @@
     "finishingPackage": {
       "LESS_THAN_COMPANY": "أقل من باقة الشركة",
       "COMPANY_PACKAGE": "باقة الشركة",
-      "PACKAGE_1": "باقة أولي",
-      "PACKAGE_2": "باقة ثانية",
-      "PACKAGE_3": "باقة ثالثة",
-      "PACKAGE_4": "باقة رابعة",
+      "PACKAGE_1": "الباقة الأولى",
+      "PACKAGE_2": "الباقة الثانية",
+      "PACKAGE_3": "الباقة الثالثة",
+      "PACKAGE_4": "الباقة الرابعة",
       "THREE_QUARTERS": "3/4 تشطيب",
       "FURNITURE": "فرش",
       "FURNITURE_AND_AC": "فرش وأجهزه",
@@ -635,7 +676,7 @@
     },
     "executingCompany": {
       "NJD": "تشطيب شركة NJD",
-      "GERGES_YOUSSEF": "شركة م/ جرجس يوسف للإنشاءات",
+      "GERGES_YOUSSEF": "شركه م/ جرجس يوسف للانشاءات",
       "OTHER": "أخرى"
     }
   }

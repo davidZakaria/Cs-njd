@@ -97,6 +97,10 @@ Project-first command center for leadership:
 
 ### 5. Units (Unit 360)
 - Unit profile: client, project, handover, finishing financials
+- **Client addresses** — عنوان 1 / عنوان 2 editable on Client Info tab
+- **Delivery year & grace period** — السنه للتسليم, فترة سماح (editable)
+- **Unit type ROOF** (رووف) plus apartment, duplex, penthouse
+- **Current finishing status** — موقف الوحده الحالي من التشطيب on Finishing tab
 - **CSV export** of the filtered units list from the Units page
 - **Expanded finishing details** — package type, executing company, contract/dated/email dates (General · Financials · Dates sections)
 - Editable finishing form with validation (Management / Super Admin)
@@ -113,6 +117,7 @@ Project-first command center for leadership:
 ### 7. Data import *(Super Admin)*
 - Bulk import from official Excel workbook
 - Legacy customer service / feedback rows map to **tickets**, not bogus user accounts
+- **Handwritten-spec column mapping** — Arabic headers from CS/Engineering sheets (addresses, delivery year, grace period, finishing status, رسوم الباب, الالوميتال, سعر المتر, etc.)
 - **Finishing field mapping** — package type, executing company, contract/dated/email dates from Excel columns
 - Excel sync script for ongoing updates (`npm run sync:excel`)
 - Cleanup tools for bad imported data
@@ -182,6 +187,12 @@ Full backup bundles (`.tar.gz`), not database-only dumps:
 ---
 
 ## Release history (recent updates)
+
+### August 2026 — Handwritten CS/Engineering field specs
+- Schema: client addresses, unit delivery year/grace period, ROOF type, finishing current status
+- Bilingual labels aligned with handwritten Arabic terminology (EN / AR)
+- Unit 360 forms for client info and finishing status; Excel importer header registry
+- Migration: `20260823120000_add_handwritten_specs`
 
 ### August 2026 — Automation & intelligence upgrade
 - **Soft deletes** across core models with Prisma middleware; deleted data excluded from KPIs and lists

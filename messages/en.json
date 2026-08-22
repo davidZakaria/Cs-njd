@@ -39,6 +39,30 @@
       "footerNote": "NJD Development — Customer Service"
     }
   },
+  "client": {
+    "address1": "Address 1",
+    "address2": "Address 2"
+  },
+  "unit": {
+    "deliveryYear": "Delivery year",
+    "gracePeriod": "Grace period",
+    "types": {
+      "ROOF": "Roof",
+      "DUPLEX": "Duplex",
+      "PENTHOUSE": "Penthouse",
+      "APARTMENT": "Apartment"
+    }
+  },
+  "finishing": {
+    "packageType": "Finishing package type",
+    "doorFees": "Door fees",
+    "aluminumFees": "Aluminum",
+    "pricePerMeter": "Price per m²",
+    "totalPrice": "Total finishing",
+    "contractDate": "Contract date",
+    "executingCompany": "Executing company",
+    "currentStatus": "Current unit finishing status"
+  },
   "notifications": {
     "title": "Notifications",
     "bellLabel": "Open notifications",
@@ -257,20 +281,25 @@
     "timeline": "CS Feedback Timeline",
     "phone1": "Phone 1",
     "phone2": "Phone 2",
+    "address1": "Address 1",
+    "address2": "Address 2",
+    "deliveryYear": "Delivery year",
+    "gracePeriod": "Grace period",
     "whatsapp": {
       "buttonLabelShort": "WhatsApp",
       "buttonLabel": "Message {phone} on WhatsApp",
       "messageTemplate": "Dear NJD client {clientName}, we would like to inform you regarding your unit {unitCode} at {projectName}. Please contact us if you have any questions."
     },
     "package": "Package",
-    "packageType": "Package Type",
-    "executingCompany": "Executing Company",
+    "packageType": "Finishing package type",
+    "executingCompany": "Executing company",
     "company": "Company",
-    "pricePerMeter": "Finishing Price per m²",
-    "totalPrice": "Total Finishing Price",
-    "doorFees": "Door Fees",
-    "aluminumFees": "Aluminum Fees",
-    "finishingContractDate": "Finishing Contract Date",
+    "pricePerMeter": "Price per m²",
+    "totalPrice": "Total finishing",
+    "doorFees": "Door fees",
+    "aluminumFees": "Aluminum",
+    "currentFinishingStatus": "Current unit finishing status",
+    "finishingContractDate": "Finishing contract date",
     "datedAt": "Dated At",
     "emailDate": "Email Sent Date",
     "sectionGeneral": "General",
@@ -289,7 +318,7 @@
     },
     "companies": {
       "NJD": "NJD Finishing",
-      "GERGES_YOUSSEF": "Gerges Youssef Construction",
+      "GERGES_YOUSSEF": "Eng. Gerges Youssef Construction Co.",
       "OTHER": "Other"
     },
     "actionLabel": "Action",
@@ -563,10 +592,22 @@
   },
   "enums": {
     "areaSqm": "m²",
+    "packages": {
+      "LESS_THAN_COMPANY": "Below company package",
+      "COMPANY_PACKAGE": "Company package",
+      "PACKAGE_3": "Package 3",
+      "PACKAGE_4": "Package 4",
+      "THREE_QUARTERS": "3/4 finishing"
+    },
+    "companies": {
+      "NJD": "NJD Finishing",
+      "GERGES_YOUSSEF": "Eng. Gerges Youssef Construction Co."
+    },
     "unitType": {
       "APARTMENT": "Apartment",
       "DUPLEX": "Duplex",
       "PENTHOUSE": "Penthouse",
+      "ROOF": "Roof",
       "CLINIC": "Clinic",
       "ADMIN": "Admin",
       "COMMERCIAL": "Commercial",
@@ -619,13 +660,13 @@
       "CUSTOM": "Custom"
     },
     "finishingPackage": {
-      "LESS_THAN_COMPANY": "Below Company Package",
-      "COMPANY_PACKAGE": "Company Package",
+      "LESS_THAN_COMPANY": "Below company package",
+      "COMPANY_PACKAGE": "Company package",
       "PACKAGE_1": "Package 1",
       "PACKAGE_2": "Package 2",
       "PACKAGE_3": "Package 3",
       "PACKAGE_4": "Package 4",
-      "THREE_QUARTERS": "3/4 Finishing",
+      "THREE_QUARTERS": "3/4 finishing",
       "FURNITURE": "Furniture",
       "FURNITURE_AND_AC": "Furniture & Appliances",
       "FINISHING": "Finishing",

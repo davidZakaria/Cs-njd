@@ -22,6 +22,10 @@ import {
   finishingFormSchema,
   type FinishingFormInput,
 } from "@/lib/validations/finishing";
+import {
+  unitProfileFormSchema,
+  type UnitProfileFormInput,
+} from "@/lib/validations/unit-profile";
 
 async function withAudit<T>(fn: () => Promise<T>) {
   const session = await auth();
@@ -331,6 +335,7 @@ export async function updateFinishing(
         totalFinishingPrice: data.totalFinishingPrice,
         doorFees: data.doorFees,
         aluminumFees: data.aluminumFees,
+        currentFinishingStatus: data.currentFinishingStatus,
       },
       create: {
         unitId,
@@ -343,9 +348,54 @@ export async function updateFinishing(
         totalFinishingPrice: data.totalFinishingPrice,
         doorFees: data.doorFees,
         aluminumFees: data.aluminumFees,
+        currentFinishingStatus: data.currentFinishingStatus,
       },
     })
   );
+
+  revalidatePath(`/units/${unitId}`);
+  revalidatePath("/units");
+  return actionOk();
+}
+
+export async function updateUnitProfile(
+  input: UnitProfileFormInput
+): Promise<ActionResult> {
+  const session = await auth();
+  if (
+    !session?.user ||
+    !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)
+  ) {
+    return actionFail("Unauthorized");
+  }
+
+  const parsed = unitProfileFormSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
+  }
+
+  const { unitId, address1, address2, deliveryYear, gracePeriod, type } =
+    parsed.data;
+
+  const unit = await prisma.unit.findUnique({
+    where: { id: unitId },
+    include: { client: true },
+  });
+  if (!unit) return actionFail("Unit not found");
+
+  await withAudit(async () => {
+    await prisma.unit.update({
+      where: { id: unitId },
+      data: { deliveryYear, gracePeriod, type },
+    });
+
+    if (unit.clientId) {
+      await prisma.client.update({
+        where: { id: unit.clientId },
+        data: { address1, address2 },
+      });
+    }
+  });
 
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/units");
