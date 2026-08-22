@@ -8,7 +8,8 @@ import {
   getSetup2FAData,
   resetMy2FASetup,
 } from "@/lib/actions/two-factor";
-import { getPostAuthRedirect } from "@/lib/auth-redirect";
+import { getPostAuthPath } from "@/lib/auth-redirect";
+import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ import { Copy, Check } from "lucide-react";
 export default function Setup2FAPage() {
   const t = useTranslations("auth");
   const locale = useLocale();
+  const router = useRouter();
   const { data: session, status, update } = useSession();
   const [secret, setSecret] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
@@ -75,12 +77,14 @@ export default function Setup2FAPage() {
       is2FAEnabled: true,
       twoFactorVerified: true,
     });
-    window.location.href = getPostAuthRedirect(locale, {
-      requiresPasswordChange: session?.user.requiresPasswordChange ?? false,
-      needs2FASetup: false,
-      twoFactorVerified: true,
-      role: session!.user.role,
-    });
+    router.replace(
+      getPostAuthPath({
+        requiresPasswordChange: session?.user.requiresPasswordChange ?? false,
+        needs2FASetup: false,
+        twoFactorVerified: true,
+        role: session!.user.role,
+      })
+    );
   }
 
   return (

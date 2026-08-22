@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useSession } from "next-auth/react";
 import { forcePasswordChange } from "@/lib/actions/password";
-import { getPostAuthRedirect } from "@/lib/auth-redirect";
+import { getPostAuthPath } from "@/lib/auth-redirect";
+import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default function ForcePasswordChangePage() {
   const t = useTranslations("auth.forcePasswordChange");
   const locale = useLocale();
+  const router = useRouter();
   const { data: session, update } = useSession();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,14 +36,14 @@ export default function ForcePasswordChangePage() {
     await update({ requiresPasswordChange: false });
 
     const user = session?.user;
-    const target = getPostAuthRedirect(locale, {
-      requiresPasswordChange: false,
-      needs2FASetup: user?.needs2FASetup,
-      twoFactorVerified: user?.twoFactorVerified,
-      role: user!.role,
-    });
-
-    window.location.href = target;
+    router.replace(
+      getPostAuthPath({
+        requiresPasswordChange: false,
+        needs2FASetup: user?.needs2FASetup,
+        twoFactorVerified: user?.twoFactorVerified,
+        role: user!.role,
+      })
+    );
   }
 
   return (

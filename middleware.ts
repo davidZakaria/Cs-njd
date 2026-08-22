@@ -30,10 +30,21 @@ function attachMaintenanceCookie(
 export default auth(async (req) => {
   const { pathname } = req.nextUrl;
   const segments = pathname.split("/").filter(Boolean);
-  const locale = routing.locales.includes(segments[0] as "en" | "ar")
+  const hasLocalePrefix = routing.locales.includes(segments[0] as "en" | "ar");
+
+  if (segments[0] && !hasLocalePrefix) {
+    const rest = segments.join("/");
+    const target =
+      rest === "login" || rest.startsWith("login/")
+        ? `/${routing.defaultLocale}/login`
+        : `/${routing.defaultLocale}/login`;
+    return NextResponse.redirect(new URL(target, req.url));
+  }
+
+  const locale = hasLocalePrefix
     ? segments[0]
     : routing.defaultLocale;
-  const pathWithoutLocale = "/" + segments.slice(routing.locales.includes(segments[0] as "en" | "ar") ? 1 : 0).join("/");
+  const pathWithoutLocale = "/" + segments.slice(hasLocalePrefix ? 1 : 0).join("/");
   const normalizedPath = pathWithoutLocale === "/" ? "/" : pathWithoutLocale.replace(/\/$/, "") || "/";
 
   if (isPublicRoute(normalizedPath)) {
@@ -44,7 +55,14 @@ export default auth(async (req) => {
     if (isLoginRoute(normalizedPath)) {
       return intlMiddleware(req);
     }
-    return NextResponse.redirect(new URL(`/${locale}/login`, req.url));
+    const loginUrl = new URL(`/${locale}/login`, req.url);
+    if (
+      normalizedPath.startsWith("/verify-2fa") ||
+      normalizedPath.startsWith("/setup-2fa")
+    ) {
+      loginUrl.searchParams.set("reason", "session_expired");
+    }
+    return NextResponse.redirect(loginUrl);
   }
 
   const user = req.auth.user;

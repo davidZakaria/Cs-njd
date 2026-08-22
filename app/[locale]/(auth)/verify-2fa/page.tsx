@@ -5,7 +5,8 @@ import { useTranslations, useLocale } from "next-intl";
 import { useSession } from "next-auth/react";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 
-import { getPostAuthRedirect } from "@/lib/auth-redirect";
+import { getPostAuthPath } from "@/lib/auth-redirect";
+import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,7 @@ async function postAuthJson<T>(url: string, body?: unknown): Promise<T> {
 export default function Verify2FAPage() {
   const t = useTranslations("auth");
   const locale = useLocale();
+  const router = useRouter();
   const { data: session, status, update } = useSession();
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
@@ -49,7 +51,7 @@ export default function Verify2FAPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      window.location.href = `/${locale}/login`;
+      router.replace("/login");
     }
   }, [locale, status]);
 
@@ -86,12 +88,14 @@ export default function Verify2FAPage() {
         return;
       }
 
-      window.location.href = getPostAuthRedirect(locale, {
-        requiresPasswordChange: session.user.requiresPasswordChange ?? false,
-        needs2FASetup: session.user.needs2FASetup ?? false,
-        twoFactorVerified: true,
-        role: session.user.role,
-      });
+      router.replace(
+        getPostAuthPath({
+          requiresPasswordChange: session.user.requiresPasswordChange ?? false,
+          needs2FASetup: session.user.needs2FASetup ?? false,
+          twoFactorVerified: true,
+          role: session.user.role,
+        })
+      );
     } catch {
       setError(t("verifyUnexpectedError"));
     } finally {
@@ -123,7 +127,7 @@ export default function Verify2FAPage() {
         twoFactorVerified: false,
       });
 
-      window.location.href = `/${locale}/setup-2fa`;
+      router.replace("/setup-2fa");
     } catch {
       setError(t("resetAuthenticatorFailed"));
     } finally {
