@@ -6,12 +6,16 @@ import type { Role } from "@prisma/client";
 import { authConfig } from "@/lib/auth.config";
 import { recordLoginAttempt } from "@/lib/auth/login-history";
 import {
+  applyJwtClientUpdate,
+  applyJwtUserFields,
+  buildSessionFromToken,
+} from "@/lib/auth/jwt-session-callbacks";
+import {
   getIpFromRequest,
   getUserAgentFromRequest,
 } from "@/lib/auth/request-meta";
 import {
   applySessionVersionToToken,
-  SESSION_REVOKED_ERROR,
 } from "@/lib/auth/session-version";
 import { prisma } from "@/lib/prisma";
 
@@ -132,55 +136,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig.callbacks,
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        token.id = user.id!;
-        token.role = user.role;
-        token.is2FAEnabled = user.is2FAEnabled;
-        token.needs2FASetup = user.needs2FASetup;
-        token.twoFactorVerified = user.twoFactorVerified;
-        token.requiresPasswordChange = user.requiresPasswordChange;
-        token.sessionVersion = user.sessionVersion;
-        delete token.error;
-      }
-
-      if (trigger === "update" && session) {
-        token.needs2FASetup =
-          (session as { needs2FASetup?: boolean }).needs2FASetup ??
-          token.needs2FASetup;
-        token.twoFactorVerified =
-          (session as { twoFactorVerified?: boolean }).twoFactorVerified ??
-          token.twoFactorVerified;
-        token.is2FAEnabled =
-          (session as { is2FAEnabled?: boolean }).is2FAEnabled ??
-          token.is2FAEnabled;
-        token.requiresPasswordChange =
-          (session as { requiresPasswordChange?: boolean })
-            .requiresPasswordChange ?? token.requiresPasswordChange;
+        token = applyJwtUserFields(token, user);
+      } else if (trigger === "update") {
+        token = applyJwtClientUpdate(
+          token,
+          session as Record<string, unknown> | undefined
+        );
       }
 
       return applySessionVersionToToken(token);
     },
     async session({ session, token }) {
-      if (token.error === SESSION_REVOKED_ERROR) {
-        return {
-          ...session,
-          user: undefined,
-          error: SESSION_REVOKED_ERROR,
-        } as unknown as typeof session;
-      }
-
-      if (!token.id) {
-        return session;
-      }
-
-      session.user.id = token.id as string;
-      session.user.role = token.role as Role;
-      session.user.is2FAEnabled = token.is2FAEnabled as boolean;
-      session.user.needs2FASetup = token.needs2FASetup as boolean;
-      session.user.twoFactorVerified = token.twoFactorVerified as boolean;
-      session.user.requiresPasswordChange =
-        token.requiresPasswordChange as boolean;
-      session.user.sessionVersion = token.sessionVersion as number;
-      return session;
+      return buildSessionFromToken(session, token);
     },
   },
 });

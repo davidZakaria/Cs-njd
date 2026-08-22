@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
-import { signIn, getSession } from "next-auth/react";
+import { signIn, getSession, signOut, useSession } from "next-auth/react";
 import { AlertCircle } from "lucide-react";
 
 import {
-  getPostAuthPath,
   getPostAuthRedirect,
   resolveLocale,
 } from "@/lib/auth-redirect";
@@ -16,13 +15,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-async function waitForSession(maxAttempts = 8) {
+async function waitForSession(maxAttempts = 15) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const session = await getSession();
     if (session?.user?.role) {
       return session;
     }
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    await new Promise((resolve) => setTimeout(resolve, 200));
   }
   return null;
 }
@@ -31,6 +30,7 @@ export default function LoginForm() {
   const t = useTranslations("auth");
   const locale = useLocale();
   const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,8 +39,29 @@ export default function LoginForm() {
     const reason = searchParams.get("reason");
     if (reason === "session_expired") {
       setInfo(t("loginSessionExpired"));
+      void signOut({ redirect: false });
     }
   }, [searchParams, t]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || !session?.user?.role) {
+      return;
+    }
+
+    const reason = searchParams.get("reason");
+    if (reason === "session_expired") {
+      return;
+    }
+
+    window.location.assign(
+      getPostAuthRedirect(resolveLocale(locale), {
+        requiresPasswordChange: session.user.requiresPasswordChange,
+        needs2FASetup: session.user.needs2FASetup,
+        twoFactorVerified: session.user.twoFactorVerified,
+        role: session.user.role,
+      })
+    );
+  }, [locale, searchParams, session, status]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -59,26 +80,25 @@ export default function LoginForm() {
         redirect: false,
       });
 
-      if (result?.error) {
+      if (!result || result.error || result.ok === false) {
         setError(t("loginInvalidCredentials"));
         return;
       }
 
-      const session = await waitForSession();
-      if (!session?.user?.role) {
+      const activeSession = await waitForSession();
+      if (!activeSession?.user?.role) {
         setError(t("loginSessionFailed"));
         return;
       }
 
-      const target = getPostAuthRedirect(resolveLocale(locale), {
-        requiresPasswordChange: session.user.requiresPasswordChange,
-        needs2FASetup: session.user.needs2FASetup,
-        twoFactorVerified: session.user.twoFactorVerified,
-        role: session.user.role,
-      });
-
-      // Full navigation so the session cookie is included before middleware runs.
-      window.location.assign(target);
+      window.location.assign(
+        getPostAuthRedirect(resolveLocale(locale), {
+          requiresPasswordChange: activeSession.user.requiresPasswordChange,
+          needs2FASetup: activeSession.user.needs2FASetup,
+          twoFactorVerified: activeSession.user.twoFactorVerified,
+          role: activeSession.user.role,
+        })
+      );
     } catch {
       setError(t("loginSessionFailed"));
     } finally {

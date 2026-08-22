@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { useSession } from "next-auth/react";
+import { getSession, useSession } from "next-auth/react";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 
 import {
@@ -44,20 +44,11 @@ async function postAuthJson<T>(url: string, body?: unknown): Promise<T> {
 export default function Verify2FAPage() {
   const t = useTranslations("auth");
   const locale = useLocale();
-  const { data: session, status, update } = useSession();
+  const { update } = useSession();
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resetting, setResetting] = useState(false);
-
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      const timeout = window.setTimeout(() => {
-        window.location.assign(`/${resolveLocale(locale)}/login`);
-      }, 400);
-      return () => window.clearTimeout(timeout);
-    }
-  }, [locale, status]);
 
   function resolveVerifyError(code: string | undefined): string {
     if (!code) return t("verifyFailed");
@@ -87,17 +78,18 @@ export default function Verify2FAPage() {
 
       await update({ twoFactorVerified: true });
 
-      if (!session?.user) {
+      const refreshed = await getSession();
+      if (!refreshed?.user?.role) {
         setError(t("verifyErrors.SESSION_EXPIRED"));
         return;
       }
 
       window.location.assign(
         getPostAuthRedirect(resolveLocale(locale), {
-          requiresPasswordChange: session.user.requiresPasswordChange ?? false,
-          needs2FASetup: session.user.needs2FASetup ?? false,
+          requiresPasswordChange: refreshed.user.requiresPasswordChange ?? false,
+          needs2FASetup: refreshed.user.needs2FASetup ?? false,
           twoFactorVerified: true,
-          role: session.user.role,
+          role: refreshed.user.role,
         })
       );
     } catch {
@@ -140,14 +132,6 @@ export default function Verify2FAPage() {
   }
 
   const busy = submitting || resetting;
-
-  if (status === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">

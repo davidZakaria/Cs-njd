@@ -2,7 +2,9 @@ import type { JWT } from "@auth/core/jwt";
 
 import { prisma } from "@/lib/prisma";
 
-export const SESSION_REVOKED_ERROR = "SessionRevoked";
+import { SESSION_REVOKED_ERROR } from "@/lib/auth/session-constants";
+
+export { SESSION_REVOKED_ERROR };
 
 function deriveNeeds2FASetup(
   is2FAEnabled: boolean,

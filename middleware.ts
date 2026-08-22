@@ -1,7 +1,7 @@
 import createMiddleware from "next-intl/middleware";
-import { auth } from "@/lib/auth";
 import { routing } from "@/i18n/routing";
 import { NextResponse } from "next/server";
+import { middlewareAuth } from "@/lib/auth.middleware";
 import {
   canAccessRoute,
   getHomeRoute,
@@ -12,6 +12,7 @@ import {
   isPublicRoute,
   isTwoFactorFlowRoute,
 } from "@/lib/rbac";
+import { getAuthGateRedirect } from "@/lib/auth/auth-gate";
 import {
   maintenanceCookieOptions,
   parseMaintenanceCookie,
@@ -28,7 +29,7 @@ function attachMaintenanceCookie(
   return response;
 }
 
-export default auth(async (req) => {
+export default middlewareAuth(async (req) => {
   const { pathname } = req.nextUrl;
   const segments = pathname.split("/").filter(Boolean);
   const hasLocalePrefix = routing.locales.includes(segments[0] as "en" | "ar");
@@ -47,6 +48,23 @@ export default auth(async (req) => {
     : routing.defaultLocale;
   const pathWithoutLocale = "/" + segments.slice(hasLocalePrefix ? 1 : 0).join("/");
   const normalizedPath = pathWithoutLocale === "/" ? "/" : pathWithoutLocale.replace(/\/$/, "") || "/";
+
+  if (isLoginRoute(normalizedPath)) {
+    const wantsReauth =
+      req.nextUrl.searchParams.get("reason") === "session_expired" ||
+      req.nextUrl.searchParams.get("signout") === "1";
+
+    if (wantsReauth || req.auth?.error === "SessionRevoked") {
+      return intlMiddleware(req);
+    }
+
+    if (req.auth?.user) {
+      return NextResponse.redirect(
+        new URL(getAuthGateRedirect(String(locale), req.auth.user), req.url)
+      );
+    }
+    return intlMiddleware(req);
+  }
 
   if (isPublicRoute(normalizedPath)) {
     return intlMiddleware(req);

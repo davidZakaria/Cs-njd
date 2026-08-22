@@ -138,6 +138,8 @@
     "loginInvalidCredentials": "Invalid email or password. Check your credentials and try again.",
     "loginSessionFailed": "Sign-in succeeded but the session could not be started. Please try again.",
     "loginSessionExpired": "Your session expired before two-factor verification finished. Sign in again to continue.",
+    "loginRequiredForSetup": "You must sign in before setting up two-factor authentication.",
+    "returnToSignIn": "Return to sign in",
     "email": "Email",
     "password": "Password",
     "setup2fa": "Set up two-factor authentication",

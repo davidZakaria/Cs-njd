@@ -69,7 +69,7 @@ async function waitForVerifiedSession(
 export default function Setup2FAPage() {
   const t = useTranslations("auth");
   const locale = useLocale();
-  const { data: session, status, update } = useSession();
+  const { update } = useSession();
   const [secret, setSecret] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [token, setToken] = useState("");
@@ -77,6 +77,7 @@ export default function Setup2FAPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [needsSignIn, setNeedsSignIn] = useState(false);
   const initialLoadDone = useRef(false);
 
   const resolveSetupError = useCallback(
@@ -102,11 +103,17 @@ export default function Setup2FAPage() {
     async (forceReset = false) => {
       setLoading(true);
       setError("");
+      setNeedsSignIn(false);
 
       try {
         const result = await fetchSetupData(forceReset);
         if (!result.success) {
-          setError(resolveSetupError(result.error));
+          if (result.error === "SESSION_EXPIRED") {
+            setNeedsSignIn(true);
+            setError(t("loginRequiredForSetup"));
+          } else {
+            setError(resolveSetupError(result.error));
+          }
           setSecret("");
           setQrDataUrl("");
           return;
@@ -127,18 +134,10 @@ export default function Setup2FAPage() {
   );
 
   useEffect(() => {
-    if (status === "loading") return;
-
-    if (status === "unauthenticated") {
-      setLoading(false);
-      window.location.assign(`/${resolveLocale(locale)}/login`);
-      return;
-    }
-
     if (initialLoadDone.current) return;
     initialLoadDone.current = true;
     void loadSetup();
-  }, [locale, loadSetup, status]);
+  }, [loadSetup]);
 
   async function copySecret() {
     if (!secret) return;
@@ -195,14 +194,6 @@ export default function Setup2FAPage() {
   }
 
   const busy = loading || submitting;
-
-  if (status === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -280,7 +271,22 @@ export default function Setup2FAPage() {
             </div>
           ) : null}
 
-          {!loading && !secret ? (
+          {!loading && !secret && needsSignIn ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                window.location.assign(
+                  `/${resolveLocale(locale)}/login?reason=session_expired`
+                );
+              }}
+            >
+              {t("returnToSignIn")}
+            </Button>
+          ) : null}
+
+          {!loading && !secret && !needsSignIn ? (
             <Button
               type="button"
               variant="secondary"

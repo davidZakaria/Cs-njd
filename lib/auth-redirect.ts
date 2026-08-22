@@ -1,13 +1,14 @@
 import type { Role } from "@prisma/client";
 import { routing, type Locale } from "@/i18n/routing";
-import { getHomeRoute, isPasswordChangeRoute } from "@/lib/rbac";
+import { isPasswordChangeRoute } from "@/lib/rbac";
+import {
+  getAuthGatePath,
+  type AuthGateUser,
+} from "@/lib/auth/auth-gate";
 
 export { isPasswordChangeRoute };
 
-type PostAuthUser = {
-  requiresPasswordChange?: boolean;
-  needs2FASetup?: boolean;
-  twoFactorVerified?: boolean;
+type PostAuthUser = AuthGateUser & {
   role: Role;
 };
 
@@ -20,16 +21,7 @@ export function resolveLocale(locale: string | undefined): Locale {
 
 /** Locale-agnostic app path after auth gates (for next-intl router). */
 export function getPostAuthPath(user: PostAuthUser): string {
-  if (user.requiresPasswordChange) {
-    return "/force-password-change";
-  }
-  if (user.needs2FASetup) {
-    return "/setup-2fa";
-  }
-  if (!user.twoFactorVerified) {
-    return "/verify-2fa";
-  }
-  return getHomeRoute(user.role);
+  return getAuthGatePath(user);
 }
 
 /** Ordered gate: password change → 2FA setup → 2FA verify → home. */
