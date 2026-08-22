@@ -50,28 +50,42 @@ export function ExecutiveProjectPanel({
   const [openQuery, setOpenQuery] = useState("");
   const [resolvedQuery, setResolvedQuery] = useState("");
 
-  const projectKpis = useMemo(
-    () =>
-      buildExecutiveKpiItems(slice.stats, kpiLabels, {
-        openTotal: buildCasesFilterUrl({
-          status: "open",
+  const projectKpis = useMemo(() => {
+    const openItems =
+      slice.stats.openTotal > 0
+        ? buildExecutiveKpiItems(slice.stats, kpiLabels, {
+            openTotal: buildCasesFilterUrl({
+              status: "open",
+              project: slice.slug,
+            }),
+            unassigned: buildCasesFilterUrl({
+              status: "open",
+              project: slice.slug,
+              agent: "unassigned",
+            }),
+            legal: buildCasesFilterUrl({ status: "LEGAL", project: slice.slug }),
+            engineering: buildCasesFilterUrl({
+              status: "ENGINEERING",
+              project: slice.slug,
+            }),
+            myOpen: buildCasesFilterUrl({ status: "open", project: slice.slug }),
+            teamOpen: buildCasesFilterUrl({ status: "open", project: slice.slug }),
+          })
+        : [];
+
+    return [
+      ...openItems,
+      {
+        key: "resolvedTotal",
+        label: t("stats.resolvedTotal"),
+        value: slice.resolvedStats.resolvedTotal,
+        href: buildCasesFilterUrl({
+          status: "RESOLVED",
           project: slice.slug,
         }),
-        unassigned: buildCasesFilterUrl({
-          status: "open",
-          project: slice.slug,
-          agent: "unassigned",
-        }),
-        legal: buildCasesFilterUrl({ status: "LEGAL", project: slice.slug }),
-        engineering: buildCasesFilterUrl({
-          status: "ENGINEERING",
-          project: slice.slug,
-        }),
-        myOpen: buildCasesFilterUrl({ status: "open", project: slice.slug }),
-        teamOpen: buildCasesFilterUrl({ status: "open", project: slice.slug }),
-      }),
-    [slice.stats, slice.slug, kpiLabels]
-  );
+      },
+    ];
+  }, [slice.stats, slice.resolvedStats.resolvedTotal, slice.slug, kpiLabels, t]);
 
   const resolvedKpis = useMemo(
     (): StatItem[] => [
@@ -164,10 +178,10 @@ export function ExecutiveProjectPanel({
 
   return (
     <div className="space-y-8">
+      <ExecutiveKpiGrid items={projectKpis} />
+
       {hasOpenCases ? (
         <>
-          <ExecutiveKpiGrid items={projectKpis} />
-
           <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_1fr] lg:items-start">
             <StatusDonutChart
               breakdown={slice.categoryBreakdown}
@@ -237,7 +251,9 @@ export function ExecutiveProjectPanel({
 
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <ExecutiveKpiGrid items={resolvedKpis} />
+              <ExecutiveKpiGrid
+                items={resolvedKpis.filter((item) => item.key !== "resolvedTotal")}
+              />
             </div>
             <Link
               href={buildCasesFilterUrl({
