@@ -161,17 +161,31 @@ export async function confirmSetup2FA(secret: string, token: string) {
   return actionOk();
 }
 
-export async function verify2FA(token: string) {
+export async function verify2FA(token: string): Promise<ActionResult> {
   const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
-  if (!user?.twoFactorSecret || !user.is2FAEnabled) {
-    return actionFail("2FA not configured");
+  if (!session?.user?.id) {
+    return actionFail("SESSION_EXPIRED");
   }
 
-  if (!verifyTotp(token, user.twoFactorSecret)) {
-    return actionFail("Invalid code");
+  const normalized = token.replace(/\D/g, "").trim();
+  if (!normalized) {
+    return actionFail("CODE_REQUIRED");
+  }
+  if (normalized.length !== 6) {
+    return actionFail("CODE_LENGTH");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { twoFactorSecret: true, is2FAEnabled: true },
+  });
+
+  if (!user?.twoFactorSecret || !user.is2FAEnabled) {
+    return actionFail("NOT_CONFIGURED");
+  }
+
+  if (!verifyTotp(normalized, user.twoFactorSecret)) {
+    return actionFail("INVALID_CODE");
   }
 
   return actionOk();
