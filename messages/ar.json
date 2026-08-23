@@ -693,8 +693,9 @@
   },
   "systemMonitoring": {
     "title": "صحة النظام",
-    "subtitle": "مقاييس مباشرة للخادم وبيئة تشغيل Node.js لتطبيق CRM.",
+    "subtitle": "مقاييس مباشرة للخادم والقرص وقاعدة البيانات وبيئة تشغيل Node.js لتطبيق CRM.",
     "lastUpdated": "آخر تحديث",
+    "liveAutoRefresh": "تحديث تلقائي مباشر",
     "hostname": "المضيف",
     "platform": "النظام",
     "cpuCores": "أنوية المعالج",
@@ -711,11 +712,19 @@
     "loadDetail": "{percent} من {cores} أنوية",
     "load5m15m": "متوسط الحمل (5د / 15د)",
     "loadAverageHint": "متوسط حمل Unix لنوافذ 5 و15 دقيقة",
+    "serverDiskStorage": "تخزين قرص الخادم",
+    "diskUsageDetail": "{used} مستخدم من {total}",
+    "diskMockHint": "بيانات قرص تجريبية على هذا الجهاز — الخادم الفعلي يستخدم إحصائيات القرص الحية.",
+    "databaseHealth": "صحة قاعدة البيانات",
+    "databaseSizeLabel": "حجم قاعدة البيانات",
+    "activeConnections": "الاتصالات النشطة",
+    "activeConnectionsDetail": "الاتصالات النشطة: {count}",
     "legendTitle": "عتبات الاستخدام",
     "legendHealthy": "سليم (< 70%)",
     "legendWarning": "تحذير (70–85%)",
     "legendCritical": "حرج (> 85%)",
-    "legendHeapNote": "ذاكرة الخادم وحمل المعالج يستخدمان العتبات أعلاه. ذاكرة Node.js تبقى خضراء حتى ~300 ميجابايت فعلية؛ حمراء فقط فوق ~500 ميجابايت مع نسبة مرتفعة."
+    "legendHeapNote": "ذاكرة الخادم وحمل المعالج يستخدمان العتبات أعلاه. ذاكرة Node.js تبقى خضراء حتى ~300 ميجابايت فعلية؛ حمراء فقط فوق ~500 ميجابايت مع نسبة مرتفعة.",
+    "legendDiskNote": "تخزين قرص الخادم يستخدم مقياساً أشد: تحذير من 75% ممتلئ، حرج من 85% ممتلئ."
   },
   "systemSecurity": {
     "title": "الأمان والجلسات",

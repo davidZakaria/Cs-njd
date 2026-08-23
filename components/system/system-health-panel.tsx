@@ -1,11 +1,14 @@
+"use client";
+
 import {
   Activity,
   Clock3,
   Cpu,
+  Database,
   HardDrive,
   Server,
 } from "lucide-react";
-import { getLocale, getTranslations } from "next-intl/server";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -15,12 +18,13 @@ import {
   formatUptime,
   getHeapTone,
   getLoadTone,
+  getDiskTone,
   getUsageTone,
   USAGE_TONE_BAR_CLASS,
   USAGE_TONE_RING_CLASS,
   USAGE_TONE_TEXT_CLASS,
 } from "@/lib/system/health-format";
-import type { SystemHealthMetrics } from "@/lib/system/health-metrics";
+import type { MonitoringMetrics } from "@/lib/system/health-metrics";
 import { cn } from "@/lib/utils";
 
 function MetricCard({
@@ -31,6 +35,7 @@ function MetricCard({
   percent,
   tone,
   hint,
+  details,
 }: {
   title: string;
   icon: typeof Activity;
@@ -39,6 +44,7 @@ function MetricCard({
   percent?: number;
   tone?: ReturnType<typeof getUsageTone>;
   hint?: string;
+  details?: string[];
 }) {
   const resolvedTone = tone ?? (percent != null ? getUsageTone(percent) : "healthy");
 
@@ -49,7 +55,7 @@ function MetricCard({
         USAGE_TONE_RING_CLASS[resolvedTone]
       )}
     >
-      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-2">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-2 text-start">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
@@ -68,6 +74,11 @@ function MetricCard({
             {value}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+          {details?.map((line) => (
+            <p key={line} className="mt-1 text-xs text-muted-foreground">
+              {line}
+            </p>
+          ))}
           {hint ? (
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground/90">
               {hint}
@@ -85,14 +96,9 @@ function MetricCard({
   );
 }
 
-export async function SystemHealthPanel({
-  metrics,
-}: {
-  metrics: SystemHealthMetrics;
-}) {
-  const t = await getTranslations("systemMonitoring");
-  const locale = await getLocale();
-  const capturedAt = new Date(metrics.capturedAt).toLocaleString(locale);
+export function SystemHealthPanel({ metrics }: { metrics: MonitoringMetrics }) {
+  const t = useTranslations("systemMonitoring");
+  const locale = useLocale();
 
   const ramTone = getUsageTone(metrics.memory.usedPercent);
   const heapTone = getHeapTone(
@@ -103,19 +109,10 @@ export async function SystemHealthPanel({
     metrics.loadAverage.oneMinute,
     metrics.cpuCount
   );
+  const diskTone = getDiskTone(metrics.disk.usedPercent);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
-          <p className="text-muted-foreground">{t("subtitle")}</p>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {t("lastUpdated")}: {capturedAt}
-        </p>
-      </div>
-
       <Card className="border-dashed bg-muted/20 shadow-none">
         <CardContent className="flex flex-wrap gap-4 py-4 text-sm">
           <div className="flex items-center gap-2">
@@ -198,6 +195,31 @@ export async function SystemHealthPanel({
           value={`${metrics.loadAverage.fiveMinutes.toFixed(2)} / ${metrics.loadAverage.fifteenMinutes.toFixed(2)}`}
           subtitle={t("loadAverageHint")}
         />
+        <MetricCard
+          title={t("serverDiskStorage")}
+          icon={HardDrive}
+          value={formatPercent(metrics.disk.usedPercent)}
+          subtitle={t("diskUsageDetail", {
+            used: formatBytes(metrics.disk.usedBytes),
+            total: formatBytes(metrics.disk.totalBytes),
+          })}
+          percent={metrics.disk.usedPercent}
+          tone={diskTone}
+          hint={
+            metrics.disk.source === "mock" ? t("diskMockHint") : undefined
+          }
+        />
+        <MetricCard
+          title={t("databaseHealth")}
+          icon={Database}
+          value={metrics.database.sizePretty}
+          subtitle={t("databaseSizeLabel")}
+          details={[
+            t("activeConnectionsDetail", {
+              count: metrics.database.activeConnections.toLocaleString(locale),
+            }),
+          ]}
+        />
       </div>
 
       <Card>
@@ -218,6 +240,7 @@ export async function SystemHealthPanel({
             {t("legendCritical")}
           </span>
           <p className="w-full text-xs leading-relaxed">{t("legendHeapNote")}</p>
+          <p className="w-full text-xs leading-relaxed">{t("legendDiskNote")}</p>
         </CardContent>
       </Card>
     </div>

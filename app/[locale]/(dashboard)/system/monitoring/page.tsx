@@ -1,10 +1,10 @@
-import { SystemHealthPanel } from "@/components/system/system-health-panel";
+import { LiveMonitoringDashboard } from "@/components/system/live-monitoring-dashboard";
 import { requireSuperAdmin } from "@/lib/auth/require-super-admin";
-import { getSystemHealthMetrics } from "@/lib/system/health-metrics";
+import { collectMonitoringMetrics } from "@/lib/system/health-metrics";
 
 export default async function SystemMonitoringPage() {
   await requireSuperAdmin();
-  const metrics = getSystemHealthMetrics();
+  const initialData = await collectMonitoringMetrics();
 
-  return <SystemHealthPanel metrics={metrics} />;
+  return <LiveMonitoringDashboard initialData={initialData} />;
 }

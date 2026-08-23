@@ -1,5 +1,8 @@
 import os from "node:os";
 
+import { getDatabaseMetrics, type DatabaseMetrics } from "@/lib/system/database-metrics";
+import { getDiskMetrics, type DiskMetrics } from "@/lib/system/disk-metrics";
+
 export type SystemHealthMetrics = {
   capturedAt: string;
   hostname: string;
@@ -24,6 +27,11 @@ export type SystemHealthMetrics = {
     fiveMinutes: number;
     fifteenMinutes: number;
   };
+};
+
+export type MonitoringMetrics = SystemHealthMetrics & {
+  disk: DiskMetrics;
+  database: DatabaseMetrics;
 };
 
 export function getSystemHealthMetrics(): SystemHealthMetrics {
@@ -64,5 +72,18 @@ export function getSystemHealthMetrics(): SystemHealthMetrics {
       fiveMinutes,
       fifteenMinutes,
     },
+  };
+}
+
+export async function collectMonitoringMetrics(): Promise<MonitoringMetrics> {
+  const [disk, database] = await Promise.all([
+    getDiskMetrics(),
+    getDatabaseMetrics(),
+  ]);
+
+  return {
+    ...getSystemHealthMetrics(),
+    disk,
+    database,
   };
 }

@@ -11,6 +11,13 @@ export function getLoadTone(load: number, cpuCount: number): UsageTone {
   return getUsageTone((load / cpuCount) * 100);
 }
 
+/** VPS root volume — warning from 75%, critical from 85%. */
+export function getDiskTone(usedPercent: number): UsageTone {
+  if (usedPercent >= 85) return "critical";
+  if (usedPercent >= 75) return "warning";
+  return "healthy";
+}
+
 /** V8 often runs at 85%+ of its current heap segment even when healthy — tone by absolute MB. */
 const HEAP_WARN_BYTES = 300 * 1024 * 1024;
 const HEAP_CRITICAL_BYTES = 500 * 1024 * 1024;
