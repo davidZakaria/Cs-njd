@@ -202,6 +202,15 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
     })
   );
 
+  if (status === "LEGAL" || status === "RESOLVED") {
+    await notifyCaseStatusUpdated({
+      unitCode: unit.unitCode,
+      unitId,
+      status,
+      agentName: session.user.name ?? session.user.email ?? "Agent",
+    });
+  }
+
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/cases");
   revalidatePath("/dashboard");
