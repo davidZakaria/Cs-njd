@@ -612,8 +612,48 @@
   },
   "system": {
     "title": "System",
+    "subtitle": "Infrastructure controls, data retention, and administrative actions.",
+    "saving": "Saving…",
     "checkUpdates": "Check for Updates",
-    "currentVersion": "Current Version"
+    "currentVersion": "Current Version",
+    "maintenance": {
+      "title": "Infrastructure & maintenance",
+      "description": "Control platform availability for all users except super admins.",
+      "warning": "Locks out all non–Super Admin users instantly.",
+      "enableLabel": "Maintenance mode",
+      "activeHint": "Maintenance is active — agents and management are blocked.",
+      "inactiveHint": "System is operating normally.",
+      "enableConfirm": "Enable maintenance mode? All non–Super Admin users will be locked out immediately.",
+      "disableConfirm": "Disable maintenance mode and restore normal access?",
+      "enabledToast": "Maintenance mode enabled",
+      "disabledToast": "Maintenance mode disabled"
+    },
+    "backup": {
+      "title": "Data management",
+      "description": "Configure automated backup retention on the server.",
+      "retentionLabel": "Keep backups for (days)",
+      "retentionHint": "Older .tar.gz backup files are deleted automatically after this period.",
+      "save": "Save retention policy",
+      "invalidDays": "Enter a whole number between 1 and 365."
+    },
+    "updates": {
+      "title": "Deployment status",
+      "description": "Compare the running build with the latest available release.",
+      "checking": "Checking…",
+      "checkFailed": "Could not check for updates.",
+      "current": "Current",
+      "latest": "Latest"
+    },
+    "danger": {
+      "title": "System actions",
+      "description": "Advanced operations that affect the whole application.",
+      "clearCacheTitle": "Clear application cache",
+      "clearCacheDescription": "Forces Next.js to refresh cached layout and settings data for all users.",
+      "clearCache": "Clear application cache",
+      "clearCacheConfirm": "Clear the application cache? This refreshes settings and layout data immediately.",
+      "clearCacheSuccess": "Application cache cleared",
+      "clearing": "Clearing…"
+    }
   },
   "systemMonitoring": {
     "title": "System Health",
@@ -680,10 +720,45 @@
     "maintenanceBypassTitle": "Super admin bypass",
     "maintenanceBypassDescription": "Your super admin account always bypasses maintenance mode so you can verify fixes before reopening access."
   },
+  "generalSettings": {
+    "title": "General Settings",
+    "subtitle": "Configure global messaging, communications templates, and company details used across the CRM.",
+    "saving": "Saving…",
+    "savedToast": "Settings saved",
+    "announcementEnabledToast": "Announcement banner enabled",
+    "announcementDisabledToast": "Announcement banner disabled",
+    "saveAnnouncement": "Save announcement",
+    "saveWhatsapp": "Save WhatsApp template",
+    "saveCompany": "Save company profile",
+    "announcement": {
+      "title": "Global announcement banner",
+      "description": "Show a dismissible banner at the top of the app for all signed-in users.",
+      "enableLabel": "Enable announcement",
+      "enableHint": "When on, the banner appears on every page until dismissed for the session.",
+      "textLabel": "Announcement text",
+      "textPlaceholder": "e.g. System maintenance tonight at 10 PM — expect brief downtime."
+    },
+    "whatsapp": {
+      "title": "Communications (WhatsApp)",
+      "description": "Default message template when agents open WhatsApp from a unit profile.",
+      "templateLabel": "WhatsApp default message",
+      "variablesHint": "Allowed variables: {client_name}, {unit_code}, {project_name}"
+    },
+    "company": {
+      "title": "Company profile (PDFs)",
+      "description": "Official details printed on handover documents and exported PDFs.",
+      "nameLabel": "Official company name",
+      "addressLabel": "Official company address"
+    }
+  },
   "maintenance": {
     "title": "System under maintenance",
     "description": "The CRM is temporarily unavailable while updates are applied. Please try again later.",
     "contactHint": "If you believe this is an error, contact your system administrator."
+  },
+  "announcement": {
+    "title": "Announcement",
+    "dismiss": "Dismiss announcement"
   },
   "projects": {
     "GREEN AVENUE": "Green Avenue",

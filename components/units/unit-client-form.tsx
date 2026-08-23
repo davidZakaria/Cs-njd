@@ -41,6 +41,7 @@ export type UnitClientFormDefaults = {
   projectName: string;
   agentLabel: string;
   areaLabel: string;
+  waMessageTemplate: string;
 };
 
 export function UnitClientForm({
@@ -108,6 +109,7 @@ export function UnitClientForm({
             clientName={defaults.clientName}
             unitCode={defaults.unitCode}
             projectName={defaults.projectName}
+            messageTemplate={defaults.waMessageTemplate}
           />
           <ClientPhoneRow
             label={t("phone2")}
@@ -115,6 +117,7 @@ export function UnitClientForm({
             clientName={defaults.clientName}
             unitCode={defaults.unitCode}
             projectName={defaults.projectName}
+            messageTemplate={defaults.waMessageTemplate}
           />
           <p>
             <strong>{tCommon("email")}:</strong> {defaults.email ?? "—"}

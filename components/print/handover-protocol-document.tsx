@@ -18,6 +18,8 @@ export type HandoverProtocolData = {
   executingCompany: string | null;
   totalFinishingPrice: number | null;
   issuedAt: string;
+  companyOfficialName: string;
+  companyOfficialAddress: string;
   labels: {
     companyName: string;
     documentTitle: string;
@@ -64,10 +66,8 @@ export function HandoverProtocolDocument({ data }: { data: HandoverProtocolData 
       }`}
     >
       <header className="mb-8 flex items-start justify-between gap-6 border-b border-black/15 pb-6">
-        <div className="flex h-16 w-28 items-center justify-center rounded-md border-2 border-black/20 bg-black/[0.03] text-center text-xs font-bold uppercase tracking-wider">
-          NJD
-          <br />
-          Development
+        <div className="flex min-h-16 w-28 flex-col items-center justify-center rounded-md border-2 border-black/20 bg-black/[0.03] px-2 text-center text-[10px] font-bold leading-tight">
+          {data.companyOfficialName}
         </div>
         <div className="min-w-0 flex-1 text-center">
           <h1 className="text-xl font-bold tracking-tight">{data.labels.documentTitle}</h1>
@@ -189,7 +189,9 @@ export function HandoverProtocolDocument({ data }: { data: HandoverProtocolData 
         <div className="space-y-8">
           <p className="font-semibold">{data.labels.signatureCompany}</p>
           <div className="border-b border-black/40 pt-10" />
-          <p className="text-xs text-black/60">{data.labels.footerNote}</p>
+          <p className="text-xs text-black/60">
+            {data.companyOfficialAddress || data.labels.footerNote}
+          </p>
         </div>
       </footer>
     </article>

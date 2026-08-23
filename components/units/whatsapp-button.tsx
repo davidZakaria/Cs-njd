@@ -3,7 +3,7 @@
 import { MessageCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { buildWhatsAppUrl, sanitizePhoneForWhatsApp } from "@/lib/format/whatsapp";
+import { buildWhatsAppUrl, applyWhatsAppTemplate, sanitizePhoneForWhatsApp } from "@/lib/format/whatsapp";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -12,12 +12,14 @@ export function WhatsAppButton({
   clientName,
   unitCode,
   projectName,
+  messageTemplate,
   className,
 }: {
   phone: string | null | undefined;
   clientName: string;
   unitCode: string;
   projectName: string;
+  messageTemplate: string;
   className?: string;
 }) {
   const t = useTranslations("units.whatsapp");
@@ -27,7 +29,7 @@ export function WhatsAppButton({
     return null;
   }
 
-  const message = t("messageTemplate", {
+  const message = applyWhatsAppTemplate(messageTemplate, {
     clientName,
     unitCode,
     projectName,

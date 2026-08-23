@@ -39,6 +39,7 @@ import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
 import { AdminNavGroups } from "@/components/layout/admin-nav-groups";
+import { GlobalAnnouncementBanner } from "@/components/layout/global-announcement-banner";
 
 const iconMap = {
   dashboard: LayoutDashboard,
@@ -149,9 +150,11 @@ export function AppSidebar({ role }: { role: Role }) {
 
 export function DashboardShell({
   role,
+  announcementText,
   children,
 }: {
   role: Role;
+  announcementText?: string | null;
   children: React.ReactNode;
 }) {
   return (
@@ -159,6 +162,9 @@ export function DashboardShell({
       <AppSidebar role={role} />
       <SidebarInset className="min-h-svh min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div className="flex min-h-full flex-col p-4 md:p-6">
+          {announcementText ? (
+            <GlobalAnnouncementBanner text={announcementText} />
+          ) : null}
           <DashboardTopBar />
           <div className="flex-1 animate-fade-in">{children}</div>
         </div>

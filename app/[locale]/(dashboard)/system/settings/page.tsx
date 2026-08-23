@@ -1,10 +1,7 @@
-import { SystemSettingsPanel } from "@/components/system/system-settings-panel";
-import { requireSuperAdmin } from "@/lib/auth/require-super-admin";
-import { syncMaintenanceCookie } from "@/lib/system/maintenance-mode";
+import { redirect } from "@/i18n/navigation";
+import { getLocale } from "next-intl/server";
 
-export default async function SystemSettingsPage() {
-  await requireSuperAdmin();
-  const maintenanceEnabled = await syncMaintenanceCookie();
-
-  return <SystemSettingsPanel maintenanceEnabled={maintenanceEnabled} />;
+export default async function LegacySystemSettingsPage() {
+  const locale = await getLocale();
+  redirect({ href: "/system/system", locale });
 }

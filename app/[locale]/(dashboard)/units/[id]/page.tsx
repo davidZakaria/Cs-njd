@@ -11,6 +11,7 @@ import { UnitClientForm } from "@/components/units/unit-client-form";
 import { PrintProtocolButton } from "@/components/units/print-protocol-button";
 import { isAwaitingResponseNote } from "@/lib/import/master-cases";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
+import { getWhatsAppTemplateSetting } from "@/lib/system/settings-store";
 
 export default async function UnitProfilePage({
   params,
@@ -25,6 +26,7 @@ export default async function UnitProfilePage({
   const t = await getTranslations("units");
   const tCases = await getTranslations("cases");
   const labels = await getDomainLabels(locale);
+  const waMessageTemplate = await getWhatsAppTemplateSetting();
 
   const statusItems: Record<string, string> = {
     PENDING: await labels.ticketStatus("PENDING"),
@@ -115,6 +117,7 @@ export default async function UnitProfilePage({
               projectName: projectLabel,
               agentLabel,
               areaLabel,
+              waMessageTemplate,
             }}
           />
         </TabsContent>

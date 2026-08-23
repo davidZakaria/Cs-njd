@@ -114,8 +114,8 @@ export function getSuperAdminNavGroups(): Array<{
     {
       key: "systemAdmin",
       items: [
-        { href: "/system/settings", key: "systemSettings" },
-        { href: "/system", key: "system" },
+        { href: "/system/general-settings", key: "systemSettings" },
+        { href: "/system/system", key: "system" },
       ],
     },
   ];
@@ -135,7 +135,7 @@ export function getNavItems(role: Role) {
     { href: "/imports", key: "imports", roles: ["SUPER_ADMIN"] },
     { href: "/audit-logs", key: "auditLogs", roles: ["SUPER_ADMIN"] },
     { href: "/backups", key: "backups", roles: ["SUPER_ADMIN"] },
-    { href: "/system", key: "system", roles: ["SUPER_ADMIN"] },
+    { href: "/system/system", key: "system", roles: ["SUPER_ADMIN"] },
   ];
 
   return all.filter((item) => item.roles.includes(role));

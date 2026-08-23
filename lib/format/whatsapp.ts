@@ -39,3 +39,23 @@ export function sanitizePhoneForWhatsApp(
 export function buildWhatsAppUrl(phone: string, message: string): string {
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
+
+export type WhatsAppTemplateVars = {
+  clientName: string;
+  unitCode: string;
+  projectName: string;
+};
+
+/** Replace `{client_name}` / legacy `{clientName}` placeholders in DB templates. */
+export function applyWhatsAppTemplate(
+  template: string,
+  vars: WhatsAppTemplateVars
+): string {
+  return template
+    .replace(/\{client_name\}/gi, vars.clientName)
+    .replace(/\{unit_code\}/gi, vars.unitCode)
+    .replace(/\{project_name\}/gi, vars.projectName)
+    .replace(/\{clientName\}/g, vars.clientName)
+    .replace(/\{unitCode\}/g, vars.unitCode)
+    .replace(/\{projectName\}/g, vars.projectName);
+}

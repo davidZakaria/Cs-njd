@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
+import { getCompanyProfileSettings } from "@/lib/system/settings-store";
 import { HandoverProtocolDocument } from "@/components/print/handover-protocol-document";
 import { PrintOnLoad } from "@/components/print/print-on-load";
 import { getTranslations } from "next-intl/server";
@@ -48,6 +49,7 @@ export default async function HandoverPrintPage({
   }
 
   const labels = await getDomainLabels(locale);
+  const companyProfile = await getCompanyProfileSettings();
   const issuedAt = new Date().toLocaleDateString(
     locale === "ar" ? "ar-EG" : "en-GB",
     { day: "numeric", month: "long", year: "numeric" }
@@ -84,6 +86,8 @@ export default async function HandoverPrintPage({
     executingCompany,
     totalFinishingPrice: unit.finishing?.totalFinishingPrice ?? null,
     issuedAt,
+    companyOfficialName: companyProfile.name,
+    companyOfficialAddress: companyProfile.address,
     labels: {
       companyName: t("companyName"),
       documentTitle: t("documentTitle"),

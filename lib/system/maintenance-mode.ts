@@ -7,16 +7,14 @@ import {
   maintenanceCookieOptions,
   maintenanceCookieValue,
 } from "@/lib/system/maintenance-cookie";
+import { getSettingValue } from "@/lib/system/settings-store";
+import { SYSTEM_SETTING_KEYS } from "@/lib/system/settings-keys";
 
 export { MAINTENANCE_MODE_KEY } from "@/lib/system/maintenance-cookie";
 
 export async function getMaintenanceMode(): Promise<boolean> {
-  const row = await basePrisma.systemSetting.findUnique({
-    where: { key: MAINTENANCE_MODE_KEY },
-    select: { value: true },
-  });
-
-  return row?.value === "true";
+  const value = await getSettingValue(SYSTEM_SETTING_KEYS.MAINTENANCE_MODE);
+  return value === "true";
 }
 
 export async function setMaintenanceMode(enabled: boolean): Promise<void> {

@@ -13,6 +13,7 @@ import {
   type BackupManifest,
 } from "@/lib/backup/backup-manifest";
 import { basePrisma } from "@/lib/prisma";
+import { getBackupRetentionDaysSetting } from "@/lib/system/settings-store";
 
 const execFileAsync = promisify(execFile);
 
@@ -66,7 +67,7 @@ async function createArchive(
 }
 
 async function pruneOldBackups(prisma: BackupDb, backupDir: string): Promise<void> {
-  const retentionDays = Number(process.env.BACKUP_RETENTION_DAYS ?? "14");
+  const retentionDays = await getBackupRetentionDaysSetting();
   if (!Number.isFinite(retentionDays) || retentionDays <= 0) return;
 
   const cutoff = new Date();
@@ -84,6 +85,20 @@ async function pruneOldBackups(prisma: BackupDb, backupDir: string): Promise<voi
       // keep going
     }
     await prisma.backupLog.delete({ where: { id: entry.id } });
+  }
+
+  try {
+    const entries = await readdir(backupDir);
+    for (const name of entries) {
+      if (!name.endsWith(".tar.gz")) continue;
+      const filepath = path.join(backupDir, name);
+      const fileStat = await stat(filepath);
+      if (fileStat.mtime < cutoff) {
+        await rm(filepath, { force: true });
+      }
+    }
+  } catch {
+    // ignore directory read errors
   }
 }
 

@@ -8,12 +8,14 @@ export function ClientPhoneRow({
   clientName,
   unitCode,
   projectName,
+  messageTemplate,
 }: {
   label: string;
   phone: string | null | undefined;
   clientName: string;
   unitCode: string;
   projectName: string;
+  messageTemplate: string;
 }) {
   const display = phone?.trim() || "-";
 
@@ -28,6 +30,7 @@ export function ClientPhoneRow({
           clientName={clientName}
           unitCode={unitCode}
           projectName={projectName}
+          messageTemplate={messageTemplate}
         />
       ) : null}
     </div>

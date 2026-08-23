@@ -48,8 +48,8 @@ const itemIconMap: Partial<Record<NavItemKey, typeof Users>> = {
 };
 
 function isPathActive(pathname: string, href: string) {
-  if (href === "/system") {
-    return pathname === "/system";
+  if (href === "/system/system") {
+    return pathname === "/system/system";
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }

@@ -1,12 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 
 import { auth } from "@/lib/auth";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { maintenanceCookieOptions } from "@/lib/system/maintenance-cookie";
 import { setMaintenanceMode } from "@/lib/system/maintenance-mode";
+import { SYSTEM_SETTINGS_CACHE_TAG } from "@/lib/system/settings-store";
 
 export async function setMaintenanceModeAction(
   enabled: boolean
@@ -21,6 +22,8 @@ export async function setMaintenanceModeAction(
   const cookieStore = await cookies();
   cookieStore.set(maintenanceCookieOptions(enabled));
 
-  revalidatePath("/system/settings");
+  revalidatePath("/system/system");
+  revalidatePath("/", "layout");
+  revalidateTag(SYSTEM_SETTINGS_CACHE_TAG, "max");
   return actionOk(enabled ? "Maintenance mode enabled" : "Maintenance mode disabled");
 }
