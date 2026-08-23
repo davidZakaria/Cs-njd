@@ -13,7 +13,7 @@ import {
   type BackupManifest,
 } from "@/lib/backup/backup-manifest";
 import { basePrisma } from "@/lib/prisma";
-import { getBackupRetentionDaysSetting } from "@/lib/system/settings-store";
+import { getBackupRetentionDaysDirect } from "@/lib/system/settings-db-read";
 
 const execFileAsync = promisify(execFile);
 
@@ -67,7 +67,7 @@ async function createArchive(
 }
 
 async function pruneOldBackups(prisma: BackupDb, backupDir: string): Promise<void> {
-  const retentionDays = await getBackupRetentionDaysSetting();
+  const retentionDays = await getBackupRetentionDaysDirect();
   if (!Number.isFinite(retentionDays) || retentionDays <= 0) return;
 
   const cutoff = new Date();

@@ -24,6 +24,9 @@ module.exports = {
       max_memory_restart: "512M",
       env: {
         NODE_ENV: "production",
+        PATH:
+          process.env.PATH ||
+          "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
       },
     },
   ],

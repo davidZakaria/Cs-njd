@@ -36,6 +36,20 @@ export function getBackupFilePath(filename: string): string {
   return path.join(getBackupDirectory(), filename);
 }
 
+function formatExecError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "pg_dump failed";
+  }
+
+  const withOutput = error as Error & { stderr?: string; stdout?: string };
+  const detail = [withOutput.stderr, withOutput.stdout, error.message]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(" — ");
+
+  return detail || "pg_dump failed";
+}
+
 /** Run pg_dump into `filepath`. Uses Docker when BACKUP_DOCKER_CONTAINER is set. */
 export async function runDatabaseBackup(filepath: string): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL?.trim();
@@ -47,29 +61,38 @@ export async function runDatabaseBackup(filepath: string): Promise<void> {
   const db = parseDatabaseUrl(databaseUrl);
 
   if (container) {
-    const { stdout } = await execFileAsync(
-      "docker",
-      [
-        "exec",
-        container,
-        "pg_dump",
-        "-U",
-        db.user,
-        "-d",
-        db.database,
-        "--no-owner",
-        "--no-acl",
-      ],
-      {
-        env: {
-          ...process.env,
-          PGPASSWORD: db.password,
-        },
+    const dockerArgs = [
+      "exec",
+      "-T",
+      ...(db.password ? ["-e", `PGPASSWORD=${db.password}`] : []),
+      container,
+      "pg_dump",
+      "-U",
+      db.user,
+      "-d",
+      db.database,
+      "--no-owner",
+      "--no-acl",
+    ];
+
+    try {
+      const { stdout } = await execFileAsync("docker", dockerArgs, {
         maxBuffer: 1024 * 1024 * 512,
+      });
+
+      if (!stdout?.trim()) {
+        throw new Error(
+          "pg_dump returned empty output. Check BACKUP_DOCKER_CONTAINER, DATABASE_URL user/password, and that docker is available to the backup worker."
+        );
       }
-    );
-    await fs.writeFile(filepath, stdout);
-    return;
+
+      await fs.writeFile(filepath, stdout);
+      return;
+    } catch (error) {
+      throw new Error(
+        `Docker pg_dump failed (${container}): ${formatExecError(error)}`
+      );
+    }
   }
 
   try {
@@ -77,9 +100,8 @@ export async function runDatabaseBackup(filepath: string): Promise<void> {
       env: process.env,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "pg_dump failed";
     throw new Error(
-      `${message}. On Docker Postgres set BACKUP_DOCKER_CONTAINER in .env (e.g. njd-crm-postgres-prod).`
+      `${formatExecError(error)}. On Docker Postgres set BACKUP_DOCKER_CONTAINER in .env (e.g. njd-crm-postgres-prod).`
     );
   }
 }

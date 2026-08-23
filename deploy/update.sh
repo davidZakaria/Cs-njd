@@ -4,6 +4,7 @@ set -euo pipefail
 
 APP_DIR="/var/www/cs-njd"
 PM2_NAME="cs-njd-crm"
+BACKUP_CRON_NAME="cs-njd-backup-cron"
 
 cd "$APP_DIR"
 
@@ -22,6 +23,12 @@ npm run build:strict
 
 echo "==> Restart PM2 app ($PM2_NAME only)"
 pm2 restart "$PM2_NAME" --update-env
+if pm2 describe "$BACKUP_CRON_NAME" >/dev/null 2>&1; then
+  pm2 restart "$BACKUP_CRON_NAME" --update-env
+else
+  echo "==> Start backup cron ($BACKUP_CRON_NAME)"
+  pm2 start deploy/ecosystem.config.cjs --only "$BACKUP_CRON_NAME"
+fi
 pm2 save
 
 echo "==> Smoke test"

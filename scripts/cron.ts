@@ -16,7 +16,12 @@ async function runScheduledBackup() {
       `[backup-cron] SUCCESS ${manifest.archive.filename} (${manifest.archive.sizeBytes} bytes)`
     );
   } catch (error) {
-    console.error("[backup-cron] FAILED:", error);
+    const message =
+      error instanceof Error ? error.message : "Unknown backup failure";
+    console.error("[backup-cron] FAILED:", message);
+    if (error instanceof Error && error.stack) {
+      console.error(error.stack);
+    }
   }
 }
 
