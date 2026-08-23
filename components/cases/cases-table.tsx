@@ -62,12 +62,20 @@ export type CaseRow = {
 };
 
 const TICKET_STATUSES = ["PENDING", "ENGINEERING", "LEGAL", "RESOLVED"] as const;
-const TICKET_CATEGORIES = [
+/** Category filter dropdown order — Current Status immediately after “All categories”. */
+const CATEGORY_FILTER_ORDER = [
   "CUSTOMER_SERVICE",
   "FEEDBACK_HISTORY",
   "LEGAL",
   "GENERAL",
 ] as const;
+
+function categoryFilterRank(category: string) {
+  const index = CATEGORY_FILTER_ORDER.indexOf(
+    category as (typeof CATEGORY_FILTER_ORDER)[number]
+  );
+  return index === -1 ? CATEGORY_FILTER_ORDER.length : index;
+}
 
 function TicketStatusSelect({
   status,
@@ -195,7 +203,7 @@ export function CasesTable({
 
   const categoryItems = useMemo(() => {
     const items: Record<string, string> = { all: t("allCategories") };
-    for (const category of TICKET_CATEGORIES) {
+    for (const category of CATEGORY_FILTER_ORDER) {
       items[category] = labels.ticketCategory(category);
     }
     return items;
@@ -249,7 +257,7 @@ export function CasesTable({
   }, [data, labels, t]);
 
   const filtered = useMemo(() => {
-    return data.filter((row) => {
+    const rows = data.filter((row) => {
       if (
         statusFilter === "open" &&
         !OPEN_TICKET_STATUSES.includes(
@@ -286,6 +294,12 @@ export function CasesTable({
         row.project.toLowerCase().includes(q)
       );
     });
+
+    if (categoryFilter !== "all") return rows;
+
+    return [...rows].sort(
+      (a, b) => categoryFilterRank(a.category) - categoryFilterRank(b.category)
+    );
   }, [data, statusFilter, projectFilter, categoryFilter, agentFilter, query]);
 
   const exportHeaders = useMemo(
@@ -499,6 +513,26 @@ export function CasesTable({
           </SelectContent>
         </Select>
         <Select
+          value={categoryFilter}
+          onValueChange={(value) => {
+            setCategoryFilter(value ?? "all");
+            table.setPageIndex(0);
+          }}
+          items={categoryItems}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={t("category")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("allCategories")}</SelectItem>
+            {CATEGORY_FILTER_ORDER.map((category) => (
+              <SelectItem key={category} value={category}>
+                {labels.ticketCategory(category)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
           value={statusFilter}
           onValueChange={(value) => {
             setStatusFilter(value ?? "all");
@@ -515,26 +549,6 @@ export function CasesTable({
             {TICKET_STATUSES.map((status) => (
               <SelectItem key={status} value={status}>
                 {labels.ticketStatus(status)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={categoryFilter}
-          onValueChange={(value) => {
-            setCategoryFilter(value ?? "all");
-            table.setPageIndex(0);
-          }}
-          items={categoryItems}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={t("category")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("allCategories")}</SelectItem>
-            {TICKET_CATEGORIES.map((category) => (
-              <SelectItem key={category} value={category}>
-                {labels.ticketCategory(category)}
               </SelectItem>
             ))}
           </SelectContent>
