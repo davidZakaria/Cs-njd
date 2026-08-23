@@ -13,6 +13,9 @@ export function normalizeFinishingPhases(
 ): FinishingPhase[] {
   if (!phases?.length) return ["NOT_STARTED"];
   const unique = [...new Set(phases)];
+  if (unique.includes("FINISHED") && unique.length > 1) {
+    return ["FINISHED"];
+  }
   if (unique.includes("NOT_STARTED") && unique.length > 1) {
     return sortPhases(unique.filter((phase) => phase !== "NOT_STARTED"));
   }
@@ -27,10 +30,20 @@ export function toggleFinishingPhase(
     return ["NOT_STARTED"];
   }
 
-  const withoutNotStarted = current.filter((item) => item !== "NOT_STARTED");
-  const next = withoutNotStarted.includes(phase)
-    ? withoutNotStarted.filter((item) => item !== phase)
-    : [...withoutNotStarted, phase];
+  if (phase === "FINISHED") {
+    const active = current.filter((item) => item !== "NOT_STARTED");
+    if (active.includes("FINISHED")) {
+      return ["NOT_STARTED"];
+    }
+    return ["FINISHED"];
+  }
+
+  const withoutExclusive = current.filter(
+    (item) => item !== "NOT_STARTED" && item !== "FINISHED"
+  );
+  const next = withoutExclusive.includes(phase)
+    ? withoutExclusive.filter((item) => item !== phase)
+    : [...withoutExclusive, phase];
 
   return next.length ? sortPhases(next) : ["NOT_STARTED"];
 }
