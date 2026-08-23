@@ -33,12 +33,14 @@ export type PendingWorkUnit = {
 export async function getPendingWorkForSession(user: {
   id: string;
   role: Role;
+  effectiveAgentId?: string;
 }): Promise<PendingWorkUnit[]> {
+  const agentId = user.effectiveAgentId ?? user.id;
   const ticketWhere =
     user.role === "CS_AGENT"
       ? activeTicketWhere({
           status: { in: OPEN_TICKET_STATUSES },
-          OR: [{ agentId: user.id }, { unit: { agentId: user.id } }],
+          OR: [{ agentId }, { unit: { agentId } }],
         })
       : activeTicketWhere({ status: { in: OPEN_TICKET_STATUSES } });
 

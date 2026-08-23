@@ -1,4 +1,8 @@
 import { auth } from "@/lib/auth";
+import {
+  canAccessUnitAsCsAgent,
+  resolveCsAgentScope,
+} from "@/lib/auth/cs-agent-scope";
 import { prisma, notDeleted } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -10,6 +14,7 @@ import { HandoverChecklistForm } from "@/components/units/handover-checklist-for
 import { UnitFinishingForm } from "@/components/units/unit-finishing-form";
 import { UnitClientForm } from "@/components/units/unit-client-form";
 import { PrintProtocolButton } from "@/components/units/print-protocol-button";
+import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
 import { isAwaitingResponseNote } from "@/lib/import/master-cases";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
 import { getWhatsAppTemplateSetting } from "@/lib/system/settings-store";
@@ -54,7 +59,12 @@ export default async function UnitProfilePage({
 
   if (!unit) notFound();
 
-  if (session?.user.role === "CS_AGENT" && unit.agentId !== session.user.id) {
+  const csScope =
+    session?.user.role === "CS_AGENT"
+      ? await resolveCsAgentScope(session.user)
+      : null;
+
+  if (csScope && !canAccessUnitAsCsAgent(csScope, unit.agentId)) {
     redirect("/units");
   }
 
@@ -82,6 +92,9 @@ export default async function UnitProfilePage({
 
   return (
     <div className="space-y-6">
+      {csScope?.isPreview && csScope.previewSourceEmail ? (
+        <CsAgentPreviewBanner previewSourceEmail={csScope.previewSourceEmail} />
+      ) : null}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("profile")}</h1>
@@ -206,7 +219,9 @@ export default async function UnitProfilePage({
                     : ticket.notes,
                   canEdit:
                     session?.user.role !== "CS_AGENT" ||
-                    unit.agentId === session.user.id,
+                    (csScope
+                      ? canAccessUnitAsCsAgent(csScope, unit.agentId)
+                      : unit.agentId === session?.user.id),
                 }))
               )
             )}

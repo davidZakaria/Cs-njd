@@ -1,4 +1,8 @@
 import { auth } from "@/lib/auth";
+import {
+  canAccessUnitAsCsAgent,
+  resolveCsAgentScope,
+} from "@/lib/auth/cs-agent-scope";
 import { prisma } from "@/lib/prisma";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
 import { getCompanyProfileSettings } from "@/lib/system/settings-store";
@@ -41,10 +45,12 @@ export default async function HandoverPrintPage({
 
   if (!unit) notFound();
 
-  if (
-    session.user.role === "CS_AGENT" &&
-    unit.agentId !== session.user.id
-  ) {
+  const csScope =
+    session.user.role === "CS_AGENT"
+      ? await resolveCsAgentScope(session.user)
+      : null;
+
+  if (csScope && !canAccessUnitAsCsAgent(csScope, unit.agentId)) {
     redirect(`/${locale}/units`);
   }
 

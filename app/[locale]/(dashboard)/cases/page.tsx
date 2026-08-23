@@ -1,10 +1,15 @@
 import { auth } from "@/lib/auth";
+import {
+  csAgentTicketScope,
+  resolveCsAgentScope,
+} from "@/lib/auth/cs-agent-scope";
 import { prisma } from "@/lib/prisma";
 import { activeTicketWhere } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
 import { getAssignableAgentEmails } from "@/lib/staff";
 import { splitCasesForManager, getEffectiveCaseAgent } from "@/lib/cases/ownership";
 import { CasesTable, type CaseRow } from "@/components/cases/cases-table";
+import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
 import { parseCasesPageFilters } from "@/lib/cases/cases-filter-url";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
@@ -18,15 +23,14 @@ export default async function CasesPage({
   const t = await getTranslations("cases");
   const isManager = session?.user.role === "MANAGEMENT";
   const filters = parseCasesPageFilters(await searchParams);
+  const csScope =
+    session?.user.role === "CS_AGENT"
+      ? await resolveCsAgentScope(session.user)
+      : null;
 
   const ticketWhere =
-    session?.user.role === "CS_AGENT"
-      ? activeTicketWhere({
-          OR: [
-            { agentId: session.user.id },
-            { unit: { agentId: session.user.id } },
-          ],
-        })
+    csScope
+      ? activeTicketWhere(csAgentTicketScope(csScope))
       : activeTicketWhere({});
 
   const [tickets, agents] = await Promise.all([
@@ -121,6 +125,9 @@ export default async function CasesPage({
 
   return (
     <div className="space-y-8">
+      {csScope?.isPreview && csScope.previewSourceEmail ? (
+        <CsAgentPreviewBanner previewSourceEmail={csScope.previewSourceEmail} />
+      ) : null}
       <div className={cn(entranceAnimationClass, "animate-delay-75")}>
         <h1 className="font-heading text-3xl font-bold tracking-tight">{t("title")}</h1>
         <p className="text-muted-foreground">{t("subtitle")}</p>

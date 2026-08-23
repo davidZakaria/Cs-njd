@@ -1,6 +1,10 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import {
+  canAccessUnitAsCsAgent,
+  resolveCsAgentScope,
+} from "@/lib/auth/cs-agent-scope";
 import { prisma } from "@/lib/prisma";
 import { auditContext } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -38,7 +42,7 @@ import {
   mergeTicketWorkflowFields,
 } from "@/lib/workflow/resolution-gates";
 import { formatResolutionGateErrors } from "@/lib/workflow/resolution-gate-messages";
-import type { PendingParty } from "@prisma/client";
+import type { PendingParty, Role } from "@prisma/client";
 
 async function withAudit<T>(fn: () => Promise<T>) {
   const session = await auth();
@@ -48,6 +52,18 @@ async function withAudit<T>(fn: () => Promise<T>) {
     { userId: session?.user?.id, ipAddress: ip },
     fn
   );
+}
+
+async function assertCsAgentUnitAccess(
+  user: { id: string; email?: string | null; role: Role },
+  unitAgentId: string | null | undefined
+): Promise<ActionResult | null> {
+  if (user.role !== "CS_AGENT") return null;
+  const scope = await resolveCsAgentScope(user);
+  if (!canAccessUnitAsCsAgent(scope, unitAgentId)) {
+    return actionFail("Not assigned to this unit");
+  }
+  return null;
 }
 
 export async function createUser(input: CreateUserInput): Promise<ActionResult> {
@@ -247,9 +263,8 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
   const unit = await prisma.unit.findUnique({ where: { id: unitId } });
   if (!unit) return actionFail("Unit not found");
 
-  if (session.user.role === "CS_AGENT" && unit.agentId !== session.user.id) {
-    return actionFail("Not assigned to this unit");
-  }
+  const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
+  if (accessError) return accessError;
 
   const gateError = await assertCanResolveTicket(
     session.user.role,
@@ -312,9 +327,11 @@ export async function updateTicketStatus(formData: FormData): Promise<ActionResu
   });
   if (!ticket) return actionFail("Ticket not found");
 
-  if (session.user.role === "CS_AGENT" && ticket.unit.agentId !== session.user.id) {
-    return actionFail("Not assigned to this unit");
-  }
+  const accessError = await assertCsAgentUnitAccess(
+    session.user,
+    ticket.unit.agentId
+  );
+  if (accessError) return accessError;
 
   const mergedWorkflow = mergeTicketWorkflowFields(ticket, {
     pendingParty: pendingPartyInput,
@@ -380,12 +397,11 @@ export async function updateTicketWorkflow(
   });
   if (!ticket) return actionFail("Ticket not found");
 
-  if (
-    session.user.role === "CS_AGENT" &&
-    ticket.unit.agentId !== session.user.id
-  ) {
-    return actionFail("Not assigned to this unit");
-  }
+  const accessError = await assertCsAgentUnitAccess(
+    session.user,
+    ticket.unit.agentId
+  );
+  if (accessError) return accessError;
 
   if (ticket.status === "RESOLVED" && pendingParty !== "NONE") {
     const gateError = await assertCanResolveTicket(

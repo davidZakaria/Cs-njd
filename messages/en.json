@@ -233,6 +233,9 @@
       }
     }
   },
+  "csPreview": {
+    "banner": "Preview mode — you are viewing units and cases assigned to {sourceEmail}. Changes you make are saved under your login."
+  },
   "dashboard": {
     "welcome": "Welcome to NJD Post-Sales CRM",
     "totalUnits": "Total Units",

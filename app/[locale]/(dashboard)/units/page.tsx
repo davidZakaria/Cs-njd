@@ -1,16 +1,24 @@
 import { auth } from "@/lib/auth";
+import {
+  csAgentUnitScope,
+  resolveCsAgentScope,
+} from "@/lib/auth/cs-agent-scope";
 import { prisma } from "@/lib/prisma";
-import { activeTicketWhere, activeUnitWhere } from "@/lib/prisma";
+import { activeUnitWhere } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
 import { getAssignableAgentEmails } from "@/lib/staff";
+import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
 import { UnitsTable } from "@/components/units/units-table";
 
 export default async function UnitsPage() {
   const session = await auth();
   const t = await getTranslations("units");
+  const csScope =
+    session?.user.role === "CS_AGENT"
+      ? await resolveCsAgentScope(session.user)
+      : null;
 
-  const scope =
-    session?.user.role === "CS_AGENT" ? { agentId: session.user.id } : {};
+  const scope = csScope ? csAgentUnitScope(csScope) : {};
 
   const [units, staffUsers] = await Promise.all([
     prisma.unit.findMany({
@@ -47,6 +55,9 @@ export default async function UnitsPage() {
 
   return (
     <div className="space-y-6">
+      {csScope?.isPreview && csScope.previewSourceEmail ? (
+        <CsAgentPreviewBanner previewSourceEmail={csScope.previewSourceEmail} />
+      ) : null}
       <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
       <UnitsTable data={rows} projects={projects} agents={agents} statuses={statuses} />
     </div>

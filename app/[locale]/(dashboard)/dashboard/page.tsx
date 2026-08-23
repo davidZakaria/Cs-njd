@@ -1,6 +1,10 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
+import {
+  csAgentUnitScope,
+  resolveCsAgentScope,
+} from "@/lib/auth/cs-agent-scope";
 import { prisma } from "@/lib/prisma";
 import {
   activeContractWorkflowWhere,
@@ -10,6 +14,7 @@ import {
 import { getTranslations } from "next-intl/server";
 import { getPendingWorkForSession } from "@/lib/cases/pending-work";
 import { PendingWorkQueue } from "@/components/cases/pending-work-queue";
+import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   entranceAnimationClass,
@@ -27,11 +32,14 @@ export default async function DashboardPage() {
   }
 
   const t = await getTranslations("dashboard");
-
-  const unitScope =
+  const csScope =
     session?.user.role === "CS_AGENT"
-      ? { agentId: session.user.id }
-      : {};
+      ? await resolveCsAgentScope(session.user)
+      : null;
+
+  const unitScope: { agentId?: string } = csScope
+    ? csAgentUnitScope(csScope)
+    : {};
 
   const [totalUnits, pendingTickets, deliveredUnits, legalDisputes, pendingWork] =
     await Promise.all([
@@ -66,6 +74,7 @@ export default async function DashboardPage() {
         ? getPendingWorkForSession({
             id: session.user.id,
             role: session.user.role,
+            effectiveAgentId: csScope?.effectiveAgentId,
           })
         : Promise.resolve([]),
     ]);
@@ -81,6 +90,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {csScope?.isPreview && csScope.previewSourceEmail ? (
+        <CsAgentPreviewBanner previewSourceEmail={csScope.previewSourceEmail} />
+      ) : null}
       <div className={cn(entranceAnimationClass, "animate-delay-75")}>
         <h1 className="font-heading text-3xl font-bold tracking-tight">{t("welcome")}</h1>
         <p className="text-muted-foreground">{session?.user.name}</p>

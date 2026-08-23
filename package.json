@@ -13,6 +13,7 @@
     "db:bootstrap-admin": "tsx scripts/bootstrap-super-admin.ts",
     "db:bootstrap-management": "tsx scripts/bootstrap-management-user.ts",
     "db:sync-staff": "tsx scripts/sync-staff-users.ts",
+    "db:bootstrap-cs-preview": "tsx scripts/bootstrap-cs-preview.ts",
     "db:push": "prisma db push",
     "import:legacy": "tsx scripts/import-legacy.ts",
     "sync:excel": "tsx scripts/sync-from-excel.ts",
