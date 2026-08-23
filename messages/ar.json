@@ -356,6 +356,8 @@
     "timeline": "سجل ملاحظات خدمة العملاء",
     "phone1": "الهاتف ١",
     "phone2": "الهاتف ٢",
+    "contactRestricted": "محجوب",
+    "contactRestrictedHint": "أرقام الهاتف والعناوين مخفية عن موظفي خدمة العملاء.",
     "address1": "عنوان 1",
     "address2": "عنوان 2",
     "deliveryYear": "السنه للتسليم",

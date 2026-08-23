@@ -89,6 +89,7 @@ export default async function UnitProfilePage({
   const canEditProfile =
     session?.user.role === "SUPER_ADMIN" ||
     session?.user.role === "MANAGEMENT";
+  const hideClientContact = session?.user.role === "CS_AGENT";
 
   return (
     <div className="space-y-6">
@@ -116,14 +117,15 @@ export default async function UnitProfilePage({
         <TabsContent value="client">
           <UnitClientForm
             canEdit={canEditProfile}
+            hideClientContact={hideClientContact}
             defaults={{
               unitId: unit.id,
               clientName: unit.client?.name ?? "—",
-              phone1: unit.client?.phone1 ?? null,
-              phone2: unit.client?.phone2 ?? null,
+              phone1: hideClientContact ? null : unit.client?.phone1 ?? null,
+              phone2: hideClientContact ? null : unit.client?.phone2 ?? null,
               email: unit.client?.email ?? null,
-              address1: unit.client?.address1 ?? null,
-              address2: unit.client?.address2 ?? null,
+              address1: hideClientContact ? null : unit.client?.address1 ?? null,
+              address2: hideClientContact ? null : unit.client?.address2 ?? null,
               deliveryYear: unit.deliveryYear ?? null,
               gracePeriod: unit.gracePeriod ?? null,
               contractPricePerMeter: unit.contractPricePerMeter ?? null,

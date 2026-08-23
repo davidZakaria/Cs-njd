@@ -87,6 +87,9 @@ export default async function DashboardPage() {
   ];
 
   const isCsAgent = session?.user.role === "CS_AGENT";
+  const pendingWorkForDisplay = isCsAgent
+    ? pendingWork.map((item) => ({ ...item, clientPhone: null }))
+    : pendingWork;
 
   return (
     <div className="space-y-8">
@@ -122,7 +125,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {isCsAgent ? <PendingWorkQueue items={pendingWork} /> : null}
+      {isCsAgent ? <PendingWorkQueue items={pendingWorkForDisplay} /> : null}
     </div>
   );
 }

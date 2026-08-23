@@ -72,6 +72,8 @@ export default async function HandoverPrintPage({
     ? await labels.executingCompany(unit.finishing.executingCompany)
     : unit.finishing?.companyName ?? null;
 
+  const hideClientContact = session.user.role === "CS_AGENT";
+
   const documentData = {
     locale,
     unitCode: unit.unitCode,
@@ -79,10 +81,10 @@ export default async function HandoverPrintPage({
     unitType: await labels.unitType(unit.type),
     areaLabel: await labels.areaWithUnit(unit.area),
     clientName: unit.client?.name ?? "—",
-    clientNationalId: unit.client?.nationalId ?? null,
-    clientPhone1: unit.client?.phone1 ?? null,
-    clientPhone2: unit.client?.phone2 ?? null,
-    clientEmail: unit.client?.email ?? null,
+    clientNationalId: hideClientContact ? null : unit.client?.nationalId ?? null,
+    clientPhone1: hideClientContact ? null : unit.client?.phone1 ?? null,
+    clientPhone2: hideClientContact ? null : unit.client?.phone2 ?? null,
+    clientEmail: hideClientContact ? null : unit.client?.email ?? null,
     handoverStatus: await labels.handoverStatus(
       unit.contractWorkflow?.handoverStatus ?? "PENDING"
     ),

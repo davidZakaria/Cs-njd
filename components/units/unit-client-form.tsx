@@ -50,9 +50,11 @@ export type UnitClientFormDefaults = {
 export function UnitClientForm({
   defaults,
   canEdit,
+  hideClientContact = false,
 }: {
   defaults: UnitClientFormDefaults;
   canEdit: boolean;
+  hideClientContact?: boolean;
 }) {
   const locale = useLocale();
   const isRtl = locale === "ar";
@@ -109,22 +111,38 @@ export function UnitClientForm({
           <p>
             <strong>{t("client")}:</strong> {defaults.clientName}
           </p>
-          <ClientPhoneRow
-            label={t("phone1")}
-            phone={defaults.phone1}
-            clientName={defaults.clientName}
-            unitCode={defaults.unitCode}
-            projectName={defaults.projectName}
-            messageTemplate={defaults.waMessageTemplate}
-          />
-          <ClientPhoneRow
-            label={t("phone2")}
-            phone={defaults.phone2}
-            clientName={defaults.clientName}
-            unitCode={defaults.unitCode}
-            projectName={defaults.projectName}
-            messageTemplate={defaults.waMessageTemplate}
-          />
+          {hideClientContact ? (
+            <>
+              <p>
+                <strong>{t("phone1")}:</strong> {t("contactRestricted")}
+              </p>
+              <p>
+                <strong>{t("phone2")}:</strong> {t("contactRestricted")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t("contactRestrictedHint")}
+              </p>
+            </>
+          ) : (
+            <>
+              <ClientPhoneRow
+                label={t("phone1")}
+                phone={defaults.phone1}
+                clientName={defaults.clientName}
+                unitCode={defaults.unitCode}
+                projectName={defaults.projectName}
+                messageTemplate={defaults.waMessageTemplate}
+              />
+              <ClientPhoneRow
+                label={t("phone2")}
+                phone={defaults.phone2}
+                clientName={defaults.clientName}
+                unitCode={defaults.unitCode}
+                projectName={defaults.projectName}
+                messageTemplate={defaults.waMessageTemplate}
+              />
+            </>
+          )}
           <p>
             <strong>{tCommon("email")}:</strong> {defaults.email ?? "—"}
           </p>
@@ -140,29 +158,31 @@ export function UnitClientForm({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <input type="hidden" {...register("unitId")} />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{tClient("address1")} / {tClient("address2")}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="address1">{tClient("address1")}</Label>
-              <Input
-                id="address1"
-                disabled={!canEdit || pending}
-                {...register("address1")}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address2">{tClient("address2")}</Label>
-              <Input
-                id="address2"
-                disabled={!canEdit || pending}
-                {...register("address2")}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        {!hideClientContact ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>{tClient("address1")} / {tClient("address2")}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="address1">{tClient("address1")}</Label>
+                <Input
+                  id="address1"
+                  disabled={!canEdit || pending}
+                  {...register("address1")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address2">{tClient("address2")}</Label>
+                <Input
+                  id="address2"
+                  disabled={!canEdit || pending}
+                  {...register("address2")}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card>
           <CardHeader>
