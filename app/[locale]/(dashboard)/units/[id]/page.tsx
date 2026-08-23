@@ -146,6 +146,7 @@ export default async function UnitProfilePage({
             canEdit={canEditProfile}
             packageDisplayLabel={finishingLabel}
             companyDisplayLabel={companyLabel}
+            clientEmail={unit.client?.email ?? null}
           />
         </TabsContent>
 
