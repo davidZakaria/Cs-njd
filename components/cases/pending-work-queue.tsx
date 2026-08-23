@@ -5,9 +5,9 @@ import {
   groupPendingWorkByProject,
   sortPendingWorkProjectKeys,
 } from "@/lib/cases/pending-work";
+import { CsPendingWorkDashboard } from "@/components/cases/cs-pending-work-dashboard";
 import { PendingCaseCard } from "@/components/cases/pending-case-card";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
 
 type AgentOption = { id: string; name: string };
@@ -47,56 +47,11 @@ function PendingWorkSection({
           notes={item.primaryTicket.notes}
           category={item.primaryTicket.category}
           status={item.primaryTicket.status}
+          workflowKey={item.primaryTicket.workflowKey}
           canAssign={canAssign}
           agents={agents}
         />
       ))}
-    </div>
-  );
-}
-
-async function PendingWorkByProject({
-  items,
-  empty,
-}: {
-  items: PendingWorkUnit[];
-  empty: string;
-}) {
-  const t = await getTranslations("cases.pendingWork");
-  const locale = await getLocale();
-  const labels = await getDomainLabels(locale);
-  const grouped = groupPendingWorkByProject(items);
-  const projectKeys = sortPendingWorkProjectKeys([...grouped.keys()]);
-
-  return (
-    <div className="space-y-6">
-      {projectKeys.map((projectKey) => {
-        const projectItems = grouped.get(projectKey) ?? [];
-        const openTickets = projectItems.reduce(
-          (sum, item) => sum + item.openCount,
-          0
-        );
-
-        return (
-          <section
-            key={projectKey}
-            className="space-y-3 rounded-xl border border-border/60 bg-card/40 p-4"
-          >
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-base font-semibold">
-                {labels.project(projectKey)}
-              </h3>
-              <Badge variant="secondary">
-                {t("projectUnitCount", { count: projectItems.length })}
-              </Badge>
-              <Badge variant="outline">
-                {t("projectOpenCases", { count: openTickets })}
-              </Badge>
-            </div>
-            <PendingWorkSection items={projectItems} empty={empty} />
-          </section>
-        );
-      })}
     </div>
   );
 }
@@ -172,14 +127,42 @@ export async function PendingWorkQueue({
     );
   }
 
+  if (groupByProject) {
+    const locale = await getLocale();
+    const labels = await getDomainLabels(locale);
+    const grouped = groupPendingWorkByProject(list);
+    const projectKeys = sortPendingWorkProjectKeys([...grouped.keys()]);
+    const groups = await Promise.all(
+      projectKeys.map(async (projectKey) => {
+        const projectItems = grouped.get(projectKey) ?? [];
+        return {
+          projectKey,
+          projectLabel: await labels.project(projectKey),
+          unitCount: projectItems.length,
+          openCaseCount: projectItems.reduce(
+            (sum, item) => sum + item.openCount,
+            0
+          ),
+          items: projectItems,
+        };
+      })
+    );
+
+    return (
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold">{t("title")}</h2>
+          <p className="text-sm text-muted-foreground">{t("subtitleCalm")}</p>
+        </div>
+        <CsPendingWorkDashboard groups={groups} />
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-4">
       <h2 className="text-lg font-semibold">{t("title")}</h2>
-      {groupByProject ? (
-        <PendingWorkByProject items={list} empty={t("empty")} />
-      ) : (
-        <PendingWorkSection items={list} empty={t("empty")} />
-      )}
+      <PendingWorkSection items={list} empty={t("empty")} />
     </section>
   );
 }
