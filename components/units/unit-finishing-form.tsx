@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
 import { format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
-import { CalendarIcon, HardHat, Mail } from "lucide-react";
+import { CalendarIcon, HardHat } from "lucide-react";
 
 import { updateFinishing } from "@/lib/actions/crm";
 import { formatCurrency } from "@/lib/format/currency";
@@ -146,13 +146,11 @@ export function UnitFinishingForm({
   canEdit,
   packageDisplayLabel,
   companyDisplayLabel,
-  clientEmail,
 }: {
   defaults: FinishingFormDefaults;
   canEdit: boolean;
   packageDisplayLabel: string;
   companyDisplayLabel: string;
-  clientEmail: string | null;
 }) {
   const locale = useLocale();
   const isRtl = locale === "ar";
@@ -298,6 +296,7 @@ export function UnitFinishingForm({
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <input type="hidden" {...register("unitId")} />
+        <input type="hidden" {...register("emailDate")} />
 
         <Card>
           <CardHeader>
@@ -427,7 +426,7 @@ export function UnitFinishingForm({
           <CardHeader>
             <CardTitle>{t("sectionDates")}</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
+          <CardContent className="grid gap-4 md:grid-cols-2">
             <Controller
               control={control}
               name="contractDate"
@@ -454,42 +453,6 @@ export function UnitFinishingForm({
                   disabled={!canEdit || pending}
                   locale={locale}
                 />
-              )}
-            />
-            <Controller
-              control={control}
-              name="emailDate"
-              render={({ field }) => (
-                <div className="space-y-2">
-                  <DatePickerField
-                    id="emailDate"
-                    label={t("emailDate")}
-                    value={String(field.value ?? "")}
-                    onChange={field.onChange}
-                    disabled={!canEdit || pending}
-                    locale={locale}
-                  />
-                  <p className="text-xs leading-snug text-muted-foreground">
-                    {t("emailDateHint")}
-                  </p>
-                  <div className="flex items-start gap-2 rounded-md border bg-muted/20 px-3 py-2 text-sm">
-                    <Mail className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground">{t("emailSentTo")}</p>
-                      {clientEmail ? (
-                        <a
-                          href={`mailto:${clientEmail}`}
-                          className="break-all font-medium text-primary hover:underline"
-                          dir="ltr"
-                        >
-                          {clientEmail}
-                        </a>
-                      ) : (
-                        <p className="text-muted-foreground">—</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
               )}
             />
           </CardContent>
