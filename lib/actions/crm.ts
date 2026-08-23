@@ -161,6 +161,7 @@ export async function deleteUser(id: string): Promise<ActionResult> {
       data: {
         deletedAt: new Date(),
         email: archivedUserEmail(id),
+        sessionVersion: { increment: 1 },
       },
     })
   );

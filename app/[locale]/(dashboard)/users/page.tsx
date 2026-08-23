@@ -10,7 +10,10 @@ export default async function UsersPage() {
   const t = await getTranslations("users");
 
   const users = await prisma.user.findMany({
-    where: { NOT: { email: { endsWith: "@imported.njd.local" } } },
+    where: {
+      deletedAt: null,
+      NOT: { email: { endsWith: "@imported.njd.local" } },
+    },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,

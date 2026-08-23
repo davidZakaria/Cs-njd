@@ -80,6 +80,18 @@ enum ExecutingCompany {
   OTHER
 }
 
+enum FinishingPhase {
+  NOT_STARTED
+  PLUMBING
+  ELECTRICAL
+  PLASTERING
+  GYPSUM_BOARD
+  CERAMIC
+  PAINTING
+  SANITARY
+  FINISHED
+}
+
 enum TicketStatus {
   PENDING
   ENGINEERING
@@ -229,6 +241,7 @@ model Finishing {
   contractDate            DateTime?
   datedAt                 DateTime?
   emailDate               DateTime?
+  phase                   FinishingPhase?   @default(NOT_STARTED)
   currentFinishingStatus  String?
   pricePerMeter           Float?
   totalFinishingPrice     Float?
@@ -241,6 +254,7 @@ model Finishing {
   unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
   @@index([deletedAt])
+  @@index([phase])
 }
 
 model Ticket {
