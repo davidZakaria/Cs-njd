@@ -114,7 +114,17 @@ const FINISHING_PACKAGE_CANDIDATES: FuzzyCandidate<FinishingPackage>[] = [
 const EXECUTING_COMPANY_CANDIDATES: FuzzyCandidate<ExecutingCompany>[] = [
   {
     value: "NJD",
-    patterns: ["تشطيب شركة njd", "njd", "شركة njd"],
+    patterns: [
+      "تشطيب شركة njd",
+      "تشطيب شركه njd",
+      "تشطيب شركه نيوجيرسي",
+      "تشطيب شركة نيوجيرسي",
+      "njd",
+      "شركة njd",
+      "شركه njd",
+      "new jersey",
+      "نيوجيرسي",
+    ],
   },
   {
     value: "GERGES_YOUSSEF",
@@ -122,6 +132,11 @@ const EXECUTING_COMPANY_CANDIDATES: FuzzyCandidate<ExecutingCompany>[] = [
       "شركه م/ جرجس يوسف للانشاءات",
       "شركة م/ جرجس يوسف للإنشاءات",
       "شركة جرجس يوسف للإنشاءات",
+      "شركة جرجس يوسف للإنشاءات",
+      "شركة جرجس يوسف للانشاءات",
+      "شركه جرجس يوسف للأنشاءات",
+      "شركه جرجس يوسف للأشاءات",
+      "شركة جرجس يوسف للأشاءات",
       "شركة جرجس يوسف للانشاءات",
       "جرجس يوسف",
       "gerges youssef",
@@ -268,6 +283,18 @@ export function mapFinishingPackage(raw?: string): FinishingPackage | null {
 export function mapExecutingCompany(raw?: string): ExecutingCompany | null {
   if (!(raw ?? "").trim()) return null;
   return fuzzyMatchEnum(raw, EXECUTING_COMPANY_CANDIDATES, 0.58);
+}
+
+/** First source that maps to NJD or Gerges Youssef; used to seed Finishing.executingCompany. */
+export function resolveExecutingCompanyLabel(
+  ...sources: unknown[]
+): string | undefined {
+  for (const raw of sources) {
+    const text = String(raw ?? "").trim();
+    if (!text) continue;
+    if (mapExecutingCompany(text)) return text;
+  }
+  return undefined;
 }
 
 /** Handwritten CS/Engineering Excel column headers (Arabic + legacy variants). */

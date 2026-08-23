@@ -99,7 +99,7 @@ export async function syncAssignmentsFromWorkbook(buffer: Buffer) {
       await assignUnitAgent(resolver, {
         projectName: String(col(row, 1) ?? "").trim(),
         unitCode: String(col(row, 4) ?? ""),
-        agentName: String(col(row, 13) ?? "").trim() || undefined,
+        agentName: String(col(row, 14) ?? "").trim() || undefined,
       }, stats);
     }
   }

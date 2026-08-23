@@ -4,6 +4,7 @@ import { createAgentResolver } from "@/lib/import/agents";
 import {
   IMPORT_COLUMN_HEADERS,
   mapExecutingCompany,
+  resolveExecutingCompanyLabel,
   mapFinishingPackage,
   mapFinishingType,
   mapHandoverStatus,
@@ -529,16 +530,16 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
           String(col(row, 10) ?? ""),
           String(col(row, 12) ?? "")
         ),
-        agentName: String(col(row, 13) ?? "") || undefined,
+        agentName: String(col(row, 14) ?? "") || undefined,
         finishingType: String(col(row, 17) ?? "") || undefined,
         packageLabel:
           optionalString(
             colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.packageType)
           ) ?? undefined,
-        companyName:
-          optionalString(
-            colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.executingCompany)
-          ) ?? undefined,
+        companyName: resolveExecutingCompanyLabel(
+          colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.executingCompany),
+          col(row, 10)
+        ),
         finishingContractDate:
           colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.contractDate) ??
           undefined,
@@ -557,7 +558,15 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         currentFinishingStatus: optionalString(
           colByHeader(row, masterCols, ...IMPORT_COLUMN_HEADERS.currentFinishingStatus)
         ),
-        cases: buildMasterSheetCases(col(row, 14), col(row, 15), col(row, 16)),
+        cases: buildMasterSheetCases({
+          handoverRaw: col(row, 8),
+          actionRaw: col(row, 13),
+          customerServiceRaw: col(row, 15),
+          feedbackOldRaw: col(row, 16),
+          legalRaw: col(row, 21),
+          warningsRaw: col(row, 22),
+          engineeringRaw: col(row, 24),
+        }),
       });
     } catch (error) {
       result.errors.push({
@@ -591,7 +600,10 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         handoverStatus: mapHandoverStatus(String(getCell(row, "النوع", "G") ?? "")),
         agentName: String(getCell(row, "المسئول", "B") ?? "") || undefined,
         packageLabel: cellString(row, ...IMPORT_COLUMN_HEADERS.packageType),
-        companyName: cellString(row, ...IMPORT_COLUMN_HEADERS.executingCompany),
+        companyName: resolveExecutingCompanyLabel(
+          cellString(row, ...IMPORT_COLUMN_HEADERS.executingCompany),
+          cellString(row, "تشطيب")
+        ),
         finishingContractDate: getCell(
           row,
           ...IMPORT_COLUMN_HEADERS.contractDate
@@ -652,7 +664,10 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
           "تاريخ إرسال الإيميل",
           "تاريخ ارسال الإيميل"
         ),
-        companyName: cellString(row, ...IMPORT_COLUMN_HEADERS.executingCompany),
+        companyName: resolveExecutingCompanyLabel(
+          cellString(row, ...IMPORT_COLUMN_HEADERS.executingCompany),
+          cellString(row, "تشطيب")
+        ),
         pricePerMeter: getCell(row, ...IMPORT_COLUMN_HEADERS.pricePerMeter),
         totalPrice: getCell(row, ...IMPORT_COLUMN_HEADERS.totalFinishing),
         doorFees: getCell(row, ...IMPORT_COLUMN_HEADERS.doorFees),
@@ -726,9 +741,11 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
     [greenReadyName, "PENDING"],
   ] as const) {
     if (!sheetName) continue;
-    const rows = sheetRows(workbook, sheetName);
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
+    const arrayRows = sheetArrayRows(workbook, sheetName);
+    const objectRows = sheetRows(workbook, sheetName);
+    for (let i = 0; i < objectRows.length; i++) {
+      const row = objectRows[i];
+      const arrayRow = arrayRows[i + 1] ?? [];
       try {
         const projectName = String(getCell(row, "PROJECT", "اسم المشروع", "C", "D") ?? "").trim();
         const clientName = String(getCell(row, "CLIENT NAME", "اسم العميل", "D", "E") ?? "").trim();
@@ -745,7 +762,10 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
           gracePeriod: cellString(row, ...IMPORT_COLUMN_HEADERS.gracePeriod),
           area: getCell(row, "مساحة الوحده", "F", "G"),
           packageLabel: cellString(row, ...IMPORT_COLUMN_HEADERS.packageType),
-          companyName: cellString(row, ...IMPORT_COLUMN_HEADERS.executingCompany),
+          companyName: resolveExecutingCompanyLabel(
+            cellString(row, ...IMPORT_COLUMN_HEADERS.executingCompany),
+            col(arrayRow, 9)
+          ),
           finishingContractDate: getCell(
             row,
             ...IMPORT_COLUMN_HEADERS.contractDate
