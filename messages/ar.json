@@ -507,6 +507,8 @@
       "updateStatus": "حفظ الحالة",
       "markResolved": "تم الحل",
       "openCount": "{count} بلاغات مفتوحة",
+      "projectUnitCount": "{count, plural, one {وحدة واحدة} other {# وحدات}}",
+      "projectOpenCases": "{count, plural, one {بلاغ مفتوح} other {# بلاغات مفتوحة}}",
       "workflow": {
         "customerServiceAwaiting": {
           "requirements": [

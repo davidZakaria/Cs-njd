@@ -125,7 +125,9 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {isCsAgent ? <PendingWorkQueue items={pendingWorkForDisplay} /> : null}
+      {isCsAgent ? (
+        <PendingWorkQueue items={pendingWorkForDisplay} groupByProject />
+      ) : null}
     </div>
   );
 }

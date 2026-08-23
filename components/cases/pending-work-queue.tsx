@@ -1,7 +1,14 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+
 import type { PendingWorkUnit } from "@/lib/cases/pending-work";
+import {
+  groupPendingWorkByProject,
+  sortPendingWorkProjectKeys,
+} from "@/lib/cases/pending-work";
 import { PendingCaseCard } from "@/components/cases/pending-case-card";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { getDomainLabels } from "@/lib/i18n/domain-labels";
 
 type AgentOption = { id: string; name: string };
 
@@ -48,16 +55,64 @@ function PendingWorkSection({
   );
 }
 
+async function PendingWorkByProject({
+  items,
+  empty,
+}: {
+  items: PendingWorkUnit[];
+  empty: string;
+}) {
+  const t = await getTranslations("cases.pendingWork");
+  const locale = await getLocale();
+  const labels = await getDomainLabels(locale);
+  const grouped = groupPendingWorkByProject(items);
+  const projectKeys = sortPendingWorkProjectKeys([...grouped.keys()]);
+
+  return (
+    <div className="space-y-6">
+      {projectKeys.map((projectKey) => {
+        const projectItems = grouped.get(projectKey) ?? [];
+        const openTickets = projectItems.reduce(
+          (sum, item) => sum + item.openCount,
+          0
+        );
+
+        return (
+          <section
+            key={projectKey}
+            className="space-y-3 rounded-xl border border-border/60 bg-card/40 p-4"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-base font-semibold">
+                {labels.project(projectKey)}
+              </h3>
+              <Badge variant="secondary">
+                {t("projectUnitCount", { count: projectItems.length })}
+              </Badge>
+              <Badge variant="outline">
+                {t("projectOpenCases", { count: openTickets })}
+              </Badge>
+            </div>
+            <PendingWorkSection items={projectItems} empty={empty} />
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 export async function PendingWorkQueue({
   items,
   mine,
   team,
   teamAgents,
+  groupByProject = false,
 }: {
   items?: PendingWorkUnit[];
   mine?: PendingWorkUnit[];
   team?: PendingWorkUnit[];
   teamAgents?: AgentOption[];
+  groupByProject?: boolean;
 }) {
   const t = await getTranslations("cases.pendingWork");
   const tManager = await getTranslations("cases.manager");
@@ -118,9 +173,13 @@ export async function PendingWorkQueue({
   }
 
   return (
-    <section className="space-y-2">
+    <section className="space-y-4">
       <h2 className="text-lg font-semibold">{t("title")}</h2>
-      <PendingWorkSection items={list} empty={t("empty")} />
+      {groupByProject ? (
+        <PendingWorkByProject items={list} empty={t("empty")} />
+      ) : (
+        <PendingWorkSection items={list} empty={t("empty")} />
+      )}
     </section>
   );
 }

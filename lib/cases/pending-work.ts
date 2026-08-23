@@ -113,6 +113,37 @@ export async function getPendingWorkForSession(user: {
   return groups.sort((a, b) => priority(a) - priority(b));
 }
 
+export function groupPendingWorkByProject(items: PendingWorkUnit[]) {
+  const byProject = new Map<string, PendingWorkUnit[]>();
+
+  for (const item of items) {
+    const list = byProject.get(item.project) ?? [];
+    list.push(item);
+    byProject.set(item.project, list);
+  }
+
+  return byProject;
+}
+
+export function sortPendingWorkProjectKeys(keys: string[]) {
+  const order = [
+    "GREEN AVENUE",
+    "JURA",
+    "GENESIS",
+    "SOUL PLAZA",
+    "JAMILA NORTH COAST",
+  ];
+
+  return [...keys].sort((a, b) => {
+    const ai = order.indexOf(a);
+    const bi = order.indexOf(b);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return a.localeCompare(b);
+  });
+}
+
 export function splitPendingWorkForManager(
   items: PendingWorkUnit[],
   managerId: string

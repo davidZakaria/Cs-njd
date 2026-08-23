@@ -507,6 +507,8 @@
       "updateStatus": "Save status",
       "markResolved": "Mark resolved",
       "openCount": "{count} open cases",
+      "projectUnitCount": "{count, plural, one {# unit} other {# units}}",
+      "projectOpenCases": "{count, plural, one {# open case} other {# open cases}}",
       "workflow": {
         "customerServiceAwaiting": {
           "requirements": [
