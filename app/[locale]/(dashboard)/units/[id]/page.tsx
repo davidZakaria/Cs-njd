@@ -113,6 +113,7 @@ export default async function UnitProfilePage({
               address2: unit.client?.address2 ?? null,
               deliveryYear: unit.deliveryYear ?? null,
               gracePeriod: unit.gracePeriod ?? null,
+              contractPricePerMeter: unit.contractPricePerMeter ?? null,
               type: unit.type,
               unitCode: unit.unitCode,
               projectName: projectLabel,

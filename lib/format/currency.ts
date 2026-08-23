@@ -11,6 +11,10 @@ export function formatCurrency(
   const formatted = new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-EG", {
     maximumFractionDigits: 2,
   }).format(value);
-  const suffix = CURRENCY_SUFFIX[locale] ?? CURRENCY_SUFFIX.en;
+  const suffix = currencySuffix(locale);
   return locale === "ar" ? `${formatted} ${suffix}` : `${suffix} ${formatted}`;
+}
+
+export function currencySuffix(locale: string): string {
+  return CURRENCY_SUFFIX[locale] ?? CURRENCY_SUFFIX.en;
 }

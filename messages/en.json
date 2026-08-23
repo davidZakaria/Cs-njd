@@ -46,6 +46,7 @@
   "unit": {
     "deliveryYear": "Delivery year",
     "gracePeriod": "Grace period",
+    "contractPricePerMeter": "Contract price per m²",
     "types": {
       "ROOF": "Roof",
       "DUPLEX": "Duplex",
@@ -355,6 +356,7 @@
     "address2": "Address 2",
     "deliveryYear": "Delivery year",
     "gracePeriod": "Grace period",
+    "contractPricePerMeter": "Contract price per m²",
     "whatsapp": {
       "buttonLabelShort": "WhatsApp",
       "buttonLabel": "Message {phone} on WhatsApp",

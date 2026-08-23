@@ -14,12 +14,23 @@ function optionalString() {
     });
 }
 
+function optionalNumber() {
+  return z
+    .union([z.coerce.number(), z.literal(""), z.null()])
+    .optional()
+    .transform((value) => {
+      if (value === "" || value == null || Number.isNaN(value)) return null;
+      return value;
+    });
+}
+
 export const unitProfileFormSchema = z.object({
   unitId: z.string().min(1),
   address1: optionalString(),
   address2: optionalString(),
   deliveryYear: optionalString(),
   gracePeriod: optionalString(),
+  contractPricePerMeter: optionalNumber(),
   type: z.enum(unitTypeValues),
 });
 

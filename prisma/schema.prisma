@@ -197,10 +197,11 @@ model Unit {
   unitCode     String
   projectId    String
   type         UnitType  @default(APARTMENT)
-  area         Float?
-  deliveryYear String?
-  gracePeriod  String?
-  clientId     String?
+  area                 Float?
+  deliveryYear         String?
+  gracePeriod          String?
+  contractPricePerMeter Float?
+  clientId             String?
   agentId      String?
   category     String?
   deletedAt    DateTime?

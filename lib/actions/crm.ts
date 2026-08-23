@@ -572,7 +572,7 @@ export async function updateUnitProfile(
     return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  const { unitId, address1, address2, deliveryYear, gracePeriod, type } =
+  const { unitId, address1, address2, deliveryYear, gracePeriod, contractPricePerMeter, type } =
     parsed.data;
 
   const unit = await prisma.unit.findUnique({
@@ -584,7 +584,7 @@ export async function updateUnitProfile(
   await withAudit(async () => {
     await prisma.unit.update({
       where: { id: unitId },
-      data: { deliveryYear, gracePeriod, type },
+      data: { deliveryYear, gracePeriod, contractPricePerMeter, type },
     });
 
     if (unit.clientId) {

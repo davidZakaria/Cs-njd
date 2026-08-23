@@ -25,6 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { currencySuffix } from "@/lib/format/currency";
+import { cn } from "@/lib/utils";
 
 export type UnitClientFormDefaults = {
   unitId: string;
@@ -36,6 +38,7 @@ export type UnitClientFormDefaults = {
   address2: string | null;
   deliveryYear: string | null;
   gracePeriod: string | null;
+  contractPricePerMeter: number | null;
   type: string;
   unitCode: string;
   projectName: string;
@@ -67,6 +70,7 @@ export function UnitClientForm({
       address2: defaults.address2 ?? "",
       deliveryYear: defaults.deliveryYear ?? "",
       gracePeriod: defaults.gracePeriod ?? "",
+      contractPricePerMeter: defaults.contractPricePerMeter ?? "",
       type: defaults.type as UnitProfileFormInput["type"],
     }),
     [defaults]
@@ -88,6 +92,8 @@ export function UnitClientForm({
     }
     return items;
   }, [labels]);
+
+  const currencyLabel = currencySuffix(locale);
 
   function onSubmit(values: UnitProfileFormInput) {
     runAction(() => updateUnitProfile(values), "saved");
@@ -162,7 +168,7 @@ export function UnitClientForm({
           <CardHeader>
             <CardTitle>{t("type")}</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
+          <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
               <Label>{t("type")}</Label>
               <Controller
@@ -205,6 +211,30 @@ export function UnitClientForm({
                 disabled={!canEdit || pending}
                 {...register("gracePeriod")}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contractPricePerMeter">
+                {tUnit("contractPricePerMeter")}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="contractPricePerMeter"
+                  type="number"
+                  step="any"
+                  min="0"
+                  disabled={!canEdit || pending}
+                  className={cn(isRtl ? "pl-14" : "pr-14")}
+                  {...register("contractPricePerMeter")}
+                />
+                <span
+                  className={cn(
+                    "pointer-events-none absolute inset-y-0 flex items-center text-xs font-medium text-muted-foreground",
+                    isRtl ? "left-3" : "right-3"
+                  )}
+                >
+                  {currencyLabel}
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>

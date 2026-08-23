@@ -46,6 +46,7 @@
   "unit": {
     "deliveryYear": "السنه للتسليم",
     "gracePeriod": "فترة سماح",
+    "contractPricePerMeter": "سعر المتر وقت التعاقد",
     "types": {
       "ROOF": "رووف",
       "DUPLEX": "دوبلكس",
@@ -355,6 +356,7 @@
     "address2": "عنوان 2",
     "deliveryYear": "السنه للتسليم",
     "gracePeriod": "فترة سماح",
+    "contractPricePerMeter": "سعر المتر وقت التعاقد",
     "whatsapp": {
       "buttonLabelShort": "واتساب",
       "buttonLabel": "مراسلة {phone} على واتساب",
