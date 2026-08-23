@@ -67,6 +67,32 @@
     "finishingNotesPlaceholder": "ملاحظات الموقع، التأخيرات، تعليقات المقاول…",
     "currentStatus": "موقف الوحده الحالي من التشطيب"
   },
+  "workflow": {
+    "pendingParty": "جهة العطلة (في انتظار)",
+    "nextFollowUpDate": "تاريخ المتابعة القادم",
+    "parties": {
+      "CLIENT": "العميل",
+      "ENGINEERING": "الإدارة الهندسية",
+      "LEGAL": "الشؤون القانونية",
+      "FINANCE": "الحسابات",
+      "MANAGEMENT": "الإدارة العليا",
+      "LOGISTICS": "شحن / لوجستيات",
+      "NONE": "لا يوجد"
+    },
+    "checklist": {
+      "title": "قائمة مراجعة الاستلام والماليات",
+      "signedProtocol": "تم توقيع محضر الاستلام",
+      "signedExtension": "تم توقيع ملحق المد",
+      "paidFees": "تم سداد المصاريف (باب/ألوميتال)",
+      "papersReceived": "تم استلام كافة الأوراق الأصلية"
+    },
+    "errors": {
+      "finishing_not_done": "لا يمكن إغلاق التذكرة: أعمال التشطيبات الهندسية لم تكتمل.",
+      "fees_unpaid": "لا يمكن إغلاق التذكرة: توجد مصاريف معلقة لم يتم سدادها.",
+      "missing_papers": "لا يمكن إغلاق التذكرة: لم يتم استلام الأوراق / التوقيعات.",
+      "party_not_none": "لا يمكن إغلاق التذكرة: ما زالت معلقة مع جهة أخرى."
+    }
+  },
   "notifications": {
     "title": "الإشعارات",
     "bellLabel": "فتح الإشعارات",
@@ -282,6 +308,7 @@
       "myOpen": "بلاغاتي",
       "teamOpen": "بلاغات الفريق",
       "pending": "معلّقة",
+      "pendingWithParty": "معلّقة لدى جهة",
       "customerService": "خدمة العملاء",
       "resolvedTotal": "بلاغات مغلقة",
       "myResolved": "مغلقة لدي",
@@ -879,6 +906,15 @@
       "PAINTING": "أعمال الدهان",
       "SANITARY": "التركيبات الصحية",
       "FINISHED": "تم التشطيب"
+    },
+    "pendingParty": {
+      "CLIENT": "العميل",
+      "ENGINEERING": "الإدارة الهندسية",
+      "LEGAL": "الشؤون القانونية",
+      "FINANCE": "الحسابات",
+      "MANAGEMENT": "الإدارة العليا",
+      "LOGISTICS": "شحن / لوجستيات",
+      "NONE": "لا يوجد"
     }
   }
 }

@@ -18,6 +18,7 @@ export type ExecutiveCaseRow = {
   notes: string;
   category: string;
   status: string;
+  pendingParty: string;
   agentId: string | null;
   agentName: string;
   unitAgentId: string | null;
@@ -41,6 +42,7 @@ export type ExecutiveStats = {
   myOpen: number;
   teamOpen: number;
   pending: number;
+  pendingWithParty: number;
 };
 
 export type CategoryBreakdown = {
@@ -120,6 +122,7 @@ function toExecutiveRow(
     notes: string;
     category: string;
     status: string;
+    pendingParty: string | null;
     agentId: string | null;
     agent: { name: string } | null;
     unitId: string;
@@ -149,6 +152,7 @@ function toExecutiveRow(
     notes: ticket.notes,
     category: ticket.category,
     status: ticket.status,
+    pendingParty: ticket.pendingParty ?? "NONE",
     agentId: ticket.agentId,
     agentName: effective.name,
     unitAgentId: ticket.unit.agentId,
@@ -174,6 +178,9 @@ function computeStats(rows: ExecutiveCaseRow[]): ExecutiveStats {
     myOpen: myRows.length,
     teamOpen: teamRows.length,
     pending: rows.filter((row) => row.status === "PENDING").length,
+    pendingWithParty: rows.filter(
+      (row) => row.pendingParty && row.pendingParty !== "NONE"
+    ).length,
   };
 }
 

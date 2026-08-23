@@ -171,6 +171,11 @@ export function ExecutiveQuickActionsTable({
                   <Badge variant="outline">
                     {labels.ticketCategory(row.category)}
                   </Badge>
+                  {row.pendingParty !== "NONE" ? (
+                    <Badge variant="secondary">
+                      {labels.pendingParty(row.pendingParty)}
+                    </Badge>
+                  ) : null}
                 </div>
               </TableCell>
               <TableCell className="max-w-sm whitespace-normal">

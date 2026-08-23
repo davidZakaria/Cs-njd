@@ -23,6 +23,12 @@ import {
   CANONICAL_CASE_CATEGORIES,
   type ImportCase,
 } from "@/lib/import/master-cases";
+import {
+  deriveHandoverChecklist,
+  type ImportGateContext,
+  reconcileImportCaseStatus,
+} from "@/lib/import/workflow-sync";
+import type { PendingParty } from "@prisma/client";
 import { syncAssignmentsFromWorkbook } from "@/lib/import/sync-assignments";
 import type { HandoverStatus } from "@prisma/client";
 
@@ -121,17 +127,48 @@ function combineNotes(...parts: unknown[]) {
 
 type TicketCounters = { created: number; skipped: number; updated: number };
 
+async function loadImportGateContext(unitId: string): Promise<ImportGateContext> {
+  const unit = await prisma.unit.findUnique({
+    where: { id: unitId },
+    include: { finishing: true, contractWorkflow: true },
+  });
+
+  if (!unit) {
+    return { finishing: null, contractWorkflow: null };
+  }
+
+  return {
+    finishing: unit.finishing
+      ? {
+          phase: unit.finishing.phase,
+          doorFees: unit.finishing.doorFees,
+          aluminumFees: unit.finishing.aluminumFees,
+        }
+      : null,
+    contractWorkflow: unit.contractWorkflow
+      ? {
+          hasSignedProtocol: unit.contractWorkflow.hasSignedProtocol,
+          hasSignedExtension: unit.contractWorkflow.hasSignedExtension,
+          hasPaidFees: unit.contractWorkflow.hasPaidFees,
+          papersReceived: unit.contractWorkflow.papersReceived,
+          handoverStatus: unit.contractWorkflow.handoverStatus,
+        }
+      : null,
+  };
+}
+
 async function upsertCaseTickets(
   unitId: string,
   agentId: string | null | undefined,
   cases: ImportCase[],
-  counters: TicketCounters
+  counters: TicketCounters,
+  gateContext?: ImportGateContext
 ) {
   for (const item of cases) {
     const notes = item.notes.trim();
     if (!notes) continue;
 
-    const status = item.status ?? "PENDING";
+    const proposedStatus = item.status ?? "PENDING";
     const useCanonical = CANONICAL_CASE_CATEGORIES.has(item.category);
 
     const existing = useCanonical
@@ -143,10 +180,24 @@ async function upsertCaseTickets(
           where: { unitId, category: item.category, notes },
         });
 
+    const reconciled = gateContext
+      ? reconcileImportCaseStatus(
+          proposedStatus,
+          notes,
+          gateContext,
+          existing?.pendingParty
+        )
+      : {
+          status: proposedStatus,
+          pendingParty: (existing?.pendingParty ?? "NONE") as PendingParty,
+        };
+    const { status, pendingParty } = reconciled;
+
     if (existing) {
       const changed =
         existing.notes !== notes ||
         existing.status !== status ||
+        existing.pendingParty !== pendingParty ||
         (!existing.agentId && !!agentId);
 
       if (changed) {
@@ -155,6 +206,7 @@ async function upsertCaseTickets(
           data: {
             notes,
             status,
+            pendingParty,
             agentId: agentId ?? existing.agentId ?? undefined,
           },
         });
@@ -172,6 +224,7 @@ async function upsertCaseTickets(
         notes,
         category: item.category,
         status,
+        pendingParty,
       },
     });
     counters.created += 1;
@@ -359,6 +412,7 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
     contractDate?: unknown;
     deliveryDate?: unknown;
     handoverStatus?: HandoverStatus;
+    handoverRaw?: unknown;
     actionLabel?: string;
     agentName?: string;
     finishingType?: string;
@@ -430,6 +484,16 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
       input.handoverStatus ??
       mapHandoverStatus(input.actionLabel, String(input.type ?? ""));
 
+    const doorFeesAmount = parseLegacyNumber(input.doorFees);
+    const aluminumFeesAmount = parseLegacyNumber(input.aluminumFees);
+    const checklist = deriveHandoverChecklist({
+      handoverRaw: input.handoverRaw ?? input.actionLabel,
+      handoverStatus,
+      doorFees: doorFeesAmount,
+      aluminumFees: aluminumFeesAmount,
+      actionLabel: input.actionLabel,
+    });
+
     await prisma.contractWorkflow.upsert({
       where: { unitId: unit.id },
       update: {
@@ -437,6 +501,7 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         deliveryDate: parseLegacyDate(input.deliveryDate) ?? undefined,
         handoverStatus,
         actionLabel: input.actionLabel,
+        ...checklist,
       },
       create: {
         unitId: unit.id,
@@ -444,6 +509,7 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         deliveryDate: parseLegacyDate(input.deliveryDate),
         handoverStatus,
         actionLabel: input.actionLabel,
+        ...checklist,
       },
     });
 
@@ -474,8 +540,34 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
       });
     }
 
+    const gateContext: ImportGateContext = {
+      finishing: finishingFields
+        ? {
+            phase: finishingFields.phase ?? null,
+            doorFees: doorFeesAmount,
+            aluminumFees: aluminumFeesAmount,
+          }
+        : doorFeesAmount != null || aluminumFeesAmount != null
+          ? {
+              phase: null,
+              doorFees: doorFeesAmount,
+              aluminumFees: aluminumFeesAmount,
+            }
+          : null,
+      contractWorkflow: {
+        ...checklist,
+        handoverStatus,
+      },
+    };
+
     if (input.cases?.length) {
-      await upsertCaseTickets(unit.id, agentId, input.cases, ticketCounters);
+      await upsertCaseTickets(
+        unit.id,
+        agentId,
+        input.cases,
+        ticketCounters,
+        gateContext
+      );
     } else if (input.notes) {
       await upsertCaseTickets(
         unit.id,
@@ -487,7 +579,8 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
             status: input.ticketStatus ?? "PENDING",
           },
         ],
-        ticketCounters
+        ticketCounters,
+        gateContext
       );
     }
 
@@ -537,6 +630,7 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         contractDate: col(row, 2),
         deliveryDate: col(row, 7),
         actionLabel: String(col(row, 12) ?? "") || undefined,
+        handoverRaw: col(row, 8),
         handoverStatus: mapHandoverStatus(
           String(col(row, 8) ?? ""),
           String(col(row, 9) ?? ""),
@@ -828,6 +922,7 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         });
         if (!unit) continue;
 
+        const gateContext = await loadImportGateContext(unit.id);
         await upsertCaseTickets(
           unit.id,
           await agentResolver.resolve(String(getCell(row, "المسئول", "E") ?? "")),
@@ -838,7 +933,8 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
               status: "LEGAL",
             },
           ],
-          ticketCounters
+          ticketCounters,
+          gateContext
         );
       } catch (error) {
         result.errors.push({

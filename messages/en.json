@@ -67,6 +67,32 @@
     "finishingNotesPlaceholder": "Site notes, delays, contractor comments…",
     "currentStatus": "Current unit finishing status"
   },
+  "workflow": {
+    "pendingParty": "Pending with",
+    "nextFollowUpDate": "Next follow-up date",
+    "parties": {
+      "CLIENT": "Client",
+      "ENGINEERING": "Engineering",
+      "LEGAL": "Legal",
+      "FINANCE": "Finance",
+      "MANAGEMENT": "Management",
+      "LOGISTICS": "Shipping / Logistics",
+      "NONE": "None"
+    },
+    "checklist": {
+      "title": "Handover & financial checklist",
+      "signedProtocol": "Delivery protocol signed",
+      "signedExtension": "Extension annex signed",
+      "paidFees": "Fees paid (door / aluminum)",
+      "papersReceived": "All original papers received"
+    },
+    "errors": {
+      "finishing_not_done": "Cannot close ticket: engineering finishing work is not complete.",
+      "fees_unpaid": "Cannot close ticket: outstanding fees have not been paid.",
+      "missing_papers": "Cannot close ticket: papers / signatures are still missing.",
+      "party_not_none": "Cannot close ticket: still pending with another party."
+    }
+  },
   "notifications": {
     "title": "Notifications",
     "bellLabel": "Open notifications",
@@ -282,6 +308,7 @@
       "myOpen": "My open",
       "teamOpen": "Team open",
       "pending": "Pending",
+      "pendingWithParty": "Pending with party",
       "customerService": "Customer service",
       "resolvedTotal": "Resolved cases",
       "myResolved": "My resolved",
@@ -879,6 +906,15 @@
       "PAINTING": "Painting",
       "SANITARY": "Sanitary",
       "FINISHED": "Finished"
+    },
+    "pendingParty": {
+      "CLIENT": "Client",
+      "ENGINEERING": "Engineering",
+      "LEGAL": "Legal",
+      "FINANCE": "Finance",
+      "MANAGEMENT": "Management",
+      "LOGISTICS": "Shipping / Logistics",
+      "NONE": "None"
     }
   }
 }

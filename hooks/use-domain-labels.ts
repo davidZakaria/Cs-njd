@@ -40,6 +40,8 @@ export function useDomainLabels() {
         enumLabel(tEnums, "executingCompany", value),
       finishingPhase: (value: string) =>
         enumLabel(tEnums, "finishingPhase", value),
+      pendingParty: (value: string) =>
+        enumLabel(tEnums, "pendingParty", value),
       project: (value: string) => {
         if (!value) return value;
         return tProjects.has(value as Parameters<typeof tProjects>[0])

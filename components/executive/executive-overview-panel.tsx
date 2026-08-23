@@ -45,8 +45,8 @@ export function ExecutiveOverviewPanel({
   const [query, setQuery] = useState("");
 
   const overviewKpis = useMemo(
-    () =>
-      buildExecutiveKpiItems(data.global.stats, kpiLabels, {
+    () => [
+      ...buildExecutiveKpiItems(data.global.stats, kpiLabels, {
         openTotal: buildCasesFilterUrl({ status: "open" }),
         unassigned: buildCasesFilterUrl({ status: "open", agent: "unassigned" }),
         legal: buildCasesFilterUrl({ status: "LEGAL" }),
@@ -54,7 +54,14 @@ export function ExecutiveOverviewPanel({
         myOpen: buildCasesFilterUrl({ status: "open" }),
         teamOpen: buildCasesFilterUrl({ status: "open" }),
       }),
-    [data.global.stats, kpiLabels]
+      {
+        key: "pendingWithParty",
+        label: t("stats.pendingWithParty"),
+        value: data.global.stats.pendingWithParty,
+        href: buildCasesFilterUrl({ status: "open" }),
+      },
+    ],
+    [data.global.stats, kpiLabels, t]
   );
 
   const searchContext = useMemo(

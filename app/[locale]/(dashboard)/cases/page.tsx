@@ -64,6 +64,7 @@ export default async function CasesPage({
       notes: ticket.notes,
       category: ticket.category,
       status: ticket.status,
+      pendingParty: ticket.pendingParty ?? "NONE",
       createdAt: ticket.createdAt.toISOString(),
       unitId: ticket.unitId,
       unitCode: ticket.unit.unitCode,

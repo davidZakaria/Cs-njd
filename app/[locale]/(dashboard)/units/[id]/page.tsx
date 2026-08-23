@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UnitTimelineCrud } from "@/components/units/unit-timeline-crud";
+import { HandoverChecklistForm } from "@/components/units/handover-checklist-form";
 import { UnitFinishingForm } from "@/components/units/unit-finishing-form";
 import { UnitClientForm } from "@/components/units/unit-client-form";
 import { PrintProtocolButton } from "@/components/units/print-protocol-button";
@@ -147,7 +148,7 @@ export default async function UnitProfilePage({
           />
         </TabsContent>
 
-        <TabsContent value="legal">
+        <TabsContent value="legal" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>{t("legalStatus")}</CardTitle>
@@ -162,6 +163,16 @@ export default async function UnitProfilePage({
               <p><strong>{t("deliveryDate")}:</strong> {unit.contractWorkflow?.deliveryDate?.toLocaleDateString(locale) ?? "-"}</p>
             </CardContent>
           </Card>
+          <HandoverChecklistForm
+            canEdit={canEditProfile}
+            defaults={{
+              unitId: unit.id,
+              hasSignedProtocol: unit.contractWorkflow?.hasSignedProtocol ?? false,
+              hasSignedExtension: unit.contractWorkflow?.hasSignedExtension ?? false,
+              hasPaidFees: unit.contractWorkflow?.hasPaidFees ?? false,
+              papersReceived: unit.contractWorkflow?.papersReceived ?? false,
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="timeline">
@@ -173,6 +184,11 @@ export default async function UnitProfilePage({
                   id: ticket.id,
                   notes: ticket.notes,
                   status: ticket.status,
+                  pendingParty: ticket.pendingParty ?? "NONE",
+                  pendingPartyLabel: await labels.pendingParty(
+                    ticket.pendingParty ?? "NONE"
+                  ),
+                  nextFollowUpDate: ticket.nextFollowUpDate?.toISOString() ?? "",
                   categoryLabel: await labels.ticketCategory(ticket.category),
                   statusLabel: await labels.ticketStatus(ticket.status),
                   agentLabel: ticket.agent

@@ -99,6 +99,16 @@ enum TicketStatus {
   RESOLVED
 }
 
+enum PendingParty {
+  CLIENT
+  ENGINEERING
+  LEGAL
+  FINANCE
+  MANAGEMENT
+  LOGISTICS
+  NONE
+}
+
 enum TicketCategory {
   CUSTOMER_SERVICE
   FEEDBACK_HISTORY
@@ -214,15 +224,19 @@ model Unit {
 }
 
 model ContractWorkflow {
-  id             String         @id @default(cuid())
-  unitId         String         @unique
-  contractDate   DateTime?
-  deliveryDate   DateTime?
-  handoverStatus HandoverStatus @default(PENDING)
-  actionLabel    String?
-  deletedAt      DateTime?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id                 String         @id @default(cuid())
+  unitId             String         @unique
+  contractDate       DateTime?
+  deliveryDate       DateTime?
+  handoverStatus     HandoverStatus @default(PENDING)
+  actionLabel        String?
+  hasSignedProtocol  Boolean        @default(false)
+  hasSignedExtension Boolean        @default(false)
+  hasPaidFees        Boolean        @default(false)
+  papersReceived     Boolean        @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
@@ -258,15 +272,17 @@ model Finishing {
 }
 
 model Ticket {
-  id        String         @id @default(cuid())
-  unitId    String
-  agentId   String?
-  notes     String
-  category  TicketCategory @default(GENERAL)
-  status    TicketStatus   @default(PENDING)
-  deletedAt DateTime?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id               String         @id @default(cuid())
+  unitId           String
+  agentId          String?
+  notes            String
+  category         TicketCategory @default(GENERAL)
+  status           TicketStatus   @default(PENDING)
+  pendingParty     PendingParty?  @default(NONE)
+  nextFollowUpDate DateTime?
+  deletedAt        DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   unit  Unit  @relation(fields: [unitId], references: [id], onDelete: Cascade)
   agent User? @relation(fields: [agentId], references: [id], onDelete: SetNull)
@@ -278,6 +294,8 @@ model Ticket {
   @@index([status, agentId])
   @@index([status, updatedAt])
   @@index([deletedAt])
+  @@index([pendingParty])
+  @@index([nextFollowUpDate])
 }
 
 model Notification {

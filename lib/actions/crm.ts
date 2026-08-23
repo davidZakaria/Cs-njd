@@ -26,6 +26,18 @@ import {
   unitProfileFormSchema,
   type UnitProfileFormInput,
 } from "@/lib/validations/unit-profile";
+import {
+  handoverChecklistSchema,
+  ticketWorkflowSchema,
+  type HandoverChecklistInput,
+  type TicketWorkflowInput,
+} from "@/lib/validations/workflow";
+import {
+  evaluateResolutionGates,
+  mergeTicketWorkflowFields,
+} from "@/lib/workflow/resolution-gates";
+import { formatResolutionGateErrors } from "@/lib/workflow/resolution-gate-messages";
+import type { PendingParty } from "@prisma/client";
 
 async function withAudit<T>(fn: () => Promise<T>) {
   const session = await auth();
@@ -169,6 +181,52 @@ export async function deleteUser(id: string): Promise<ActionResult> {
   return actionOk();
 }
 
+async function loadUnitGateContext(unitId: string) {
+  return prisma.unit.findUnique({
+    where: { id: unitId },
+    include: {
+      finishing: true,
+      contractWorkflow: true,
+    },
+  });
+}
+
+async function assertCanResolveTicket(
+  role: string,
+  status: string,
+  ticket: { pendingParty: PendingParty | null },
+  unitId: string
+): Promise<ActionResult | null> {
+  if (status !== "RESOLVED") return null;
+  if (role === "SUPER_ADMIN" || role === "MANAGEMENT") return null;
+
+  const unit = await loadUnitGateContext(unitId);
+  if (!unit) return actionFail("Unit not found");
+
+  const failures = evaluateResolutionGates({
+    ticket,
+    finishing: unit.finishing,
+    contractWorkflow: unit.contractWorkflow,
+  });
+
+  if (failures.length > 0) {
+    return actionFail(await formatResolutionGateErrors(failures));
+  }
+
+  return null;
+}
+
+function parsePendingParty(value: FormDataEntryValue | null): PendingParty | null {
+  if (!value || value === "") return null;
+  return String(value) as PendingParty;
+}
+
+function parseFollowUpDate(value: FormDataEntryValue | null): Date | null {
+  if (!value || value === "") return null;
+  const parsed = new Date(String(value));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export async function createTicket(formData: FormData): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
@@ -180,6 +238,8 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
     | "ENGINEERING"
     | "LEGAL"
     | "RESOLVED";
+  const pendingParty = parsePendingParty(formData.get("pendingParty"));
+  const nextFollowUpDate = parseFollowUpDate(formData.get("nextFollowUpDate"));
 
   if (!notes.trim()) return actionFail("Notes are required");
 
@@ -190,6 +250,14 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
     return actionFail("Not assigned to this unit");
   }
 
+  const gateError = await assertCanResolveTicket(
+    session.user.role,
+    status,
+    { pendingParty: pendingParty ?? "NONE" },
+    unitId
+  );
+  if (gateError) return gateError;
+
   await withAudit(() =>
     prisma.ticket.create({
       data: {
@@ -198,6 +266,8 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
         status,
         category: "GENERAL",
         agentId: session.user.id,
+        pendingParty: pendingParty ?? "NONE",
+        nextFollowUpDate,
       },
     })
   );
@@ -228,6 +298,12 @@ export async function updateTicketStatus(formData: FormData): Promise<ActionResu
     | "ENGINEERING"
     | "LEGAL"
     | "RESOLVED";
+  const pendingPartyInput = formData.has("pendingParty")
+    ? parsePendingParty(formData.get("pendingParty"))
+    : undefined;
+  const nextFollowUpInput = formData.has("nextFollowUpDate")
+    ? parseFollowUpDate(formData.get("nextFollowUpDate"))
+    : undefined;
 
   const ticket = await prisma.ticket.findUnique({
     where: { id },
@@ -239,9 +315,31 @@ export async function updateTicketStatus(formData: FormData): Promise<ActionResu
     return actionFail("Not assigned to this unit");
   }
 
+  const mergedWorkflow = mergeTicketWorkflowFields(ticket, {
+    pendingParty: pendingPartyInput,
+    nextFollowUpDate: nextFollowUpInput,
+  });
+
+  const gateError = await assertCanResolveTicket(
+    session.user.role,
+    status,
+    mergedWorkflow,
+    ticket.unitId
+  );
+  if (gateError) return gateError;
+
   const previousStatus = ticket.status;
 
-  await withAudit(() => prisma.ticket.update({ where: { id }, data: { status } }));
+  await withAudit(() =>
+    prisma.ticket.update({
+      where: { id },
+      data: {
+        status,
+        pendingParty: mergedWorkflow.pendingParty,
+        nextFollowUpDate: mergedWorkflow.nextFollowUpDate,
+      },
+    })
+  );
 
   if (
     previousStatus !== status &&
@@ -259,6 +357,94 @@ export async function updateTicketStatus(formData: FormData): Promise<ActionResu
   revalidatePath("/cases");
   revalidatePath("/dashboard");
   revalidatePath("/executive");
+  return actionOk();
+}
+
+export async function updateTicketWorkflow(
+  input: TicketWorkflowInput
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const parsed = ticketWorkflowSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
+  }
+
+  const { ticketId, pendingParty, nextFollowUpDate } = parsed.data;
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    include: { unit: true },
+  });
+  if (!ticket) return actionFail("Ticket not found");
+
+  if (
+    session.user.role === "CS_AGENT" &&
+    ticket.unit.agentId !== session.user.id
+  ) {
+    return actionFail("Not assigned to this unit");
+  }
+
+  if (ticket.status === "RESOLVED" && pendingParty !== "NONE") {
+    const gateError = await assertCanResolveTicket(
+      session.user.role,
+      "RESOLVED",
+      { pendingParty },
+      ticket.unitId
+    );
+    if (gateError) return gateError;
+  }
+
+  await withAudit(() =>
+    prisma.ticket.update({
+      where: { id: ticketId },
+      data: { pendingParty, nextFollowUpDate },
+    })
+  );
+
+  revalidatePath(`/units/${ticket.unitId}`);
+  revalidatePath("/cases");
+  revalidatePath("/dashboard");
+  revalidatePath("/executive");
+  return actionOk();
+}
+
+export async function updateHandoverChecklist(
+  input: HandoverChecklistInput
+): Promise<ActionResult> {
+  const session = await auth();
+  if (
+    !session?.user ||
+    !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)
+  ) {
+    return actionFail("Unauthorized");
+  }
+
+  const parsed = handoverChecklistSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
+  }
+
+  const { unitId, ...checklist } = parsed.data;
+
+  const unit = await prisma.unit.findUnique({ where: { id: unitId } });
+  if (!unit) return actionFail("Unit not found");
+
+  await withAudit(() =>
+    prisma.contractWorkflow.upsert({
+      where: { unitId },
+      update: checklist,
+      create: {
+        unitId,
+        ...checklist,
+      },
+    })
+  );
+
+  revalidatePath(`/units/${unitId}`);
+  revalidatePath("/units");
+  revalidatePath("/dashboard");
   return actionOk();
 }
 

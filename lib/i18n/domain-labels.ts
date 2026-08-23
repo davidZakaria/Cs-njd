@@ -28,6 +28,7 @@ export async function getDomainLabels(locale: string) {
     finishingPackage: (value: string) => enumLabel(tEnums, "finishingPackage", value),
     executingCompany: (value: string) => enumLabel(tEnums, "executingCompany", value),
     finishingPhase: (value: string) => enumLabel(tEnums, "finishingPhase", value),
+    pendingParty: (value: string) => enumLabel(tEnums, "pendingParty", value),
     project: async (value: string) => {
       if (!value) return value;
       return tProjects.has(value as Parameters<typeof tProjects>[0])

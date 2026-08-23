@@ -48,6 +48,7 @@ export type CaseRow = {
   notes: string;
   category: string;
   status: string;
+  pendingParty: string;
   createdAt: string;
   unitId: string;
   unitCode: string;
@@ -394,7 +395,14 @@ export function CasesTable({
         id: "status",
         header: t("status"),
         cell: ({ row }) => (
-          <span className="text-sm">{labels.ticketStatus(row.original.status)}</span>
+          <div className="flex flex-col gap-1">
+            <span className="text-sm">{labels.ticketStatus(row.original.status)}</span>
+            {row.original.pendingParty !== "NONE" ? (
+              <Badge variant="secondary" className="w-fit text-xs">
+                {labels.pendingParty(row.original.pendingParty)}
+              </Badge>
+            ) : null}
+          </div>
         ),
       },
       {
