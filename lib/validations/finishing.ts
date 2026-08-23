@@ -59,6 +59,16 @@ function optionalString() {
     });
 }
 
+function optionalPhases() {
+  return z
+    .array(z.enum(finishingPhaseValues))
+    .default([])
+    .transform((value) => {
+      const unique = [...new Set(value)];
+      return unique.length ? unique : (["NOT_STARTED"] as FinishingPhase[]);
+    });
+}
+
 export const finishingFormSchema = z.object({
   unitId: z.string().min(1),
   packageType: optionalEnum(finishingPackageValues),
@@ -70,7 +80,7 @@ export const finishingFormSchema = z.object({
   totalFinishingPrice: optionalNumber(),
   doorFees: optionalNumber(),
   aluminumFees: optionalNumber(),
-  phase: optionalEnum(finishingPhaseValues),
+  phases: optionalPhases(),
   currentFinishingStatus: optionalString(),
 });
 

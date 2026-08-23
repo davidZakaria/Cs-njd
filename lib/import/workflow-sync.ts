@@ -100,7 +100,7 @@ function pendingPartyFromGate(code: ResolutionGateCode): PendingParty {
 
 export type ImportGateContext = {
   finishing: {
-    phase: FinishingPhase | null;
+    phases: FinishingPhase[];
     doorFees: number | null;
     aluminumFees: number | null;
   } | null;

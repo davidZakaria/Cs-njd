@@ -64,6 +64,7 @@
     "executingCompany": "Executing company",
     "phaseBannerLabel": "Current finishing phase",
     "phaseBannerHint": "Pinned tracker — update as work progresses on site.",
+    "phaseMultiHint": "Select every phase currently in progress on site (multiple allowed).",
     "finishingNotes": "Finishing notes",
     "finishingNotesPlaceholder": "Site notes, delays, contractor comments…",
     "currentStatus": "Current unit finishing status"

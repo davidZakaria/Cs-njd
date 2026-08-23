@@ -257,6 +257,7 @@ model Finishing {
   datedAt                 DateTime?
   emailDate               DateTime?
   phase                   FinishingPhase?   @default(NOT_STARTED)
+  phases                  FinishingPhase[]  @default([])
   currentFinishingStatus  String?
   pricePerMeter           Float?
   totalFinishingPrice     Float?

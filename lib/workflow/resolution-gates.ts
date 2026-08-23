@@ -1,9 +1,13 @@
 import type {
   ContractWorkflow,
-  Finishing,
+  FinishingPhase,
   PendingParty,
   Ticket,
 } from "@prisma/client";
+import {
+  hasTrackedFinishingWork,
+  isFinishingWorkComplete,
+} from "@/lib/finishing/phases";
 
 export const RESOLUTION_GATE_CODES = [
   "finishing_not_done",
@@ -16,10 +20,12 @@ export type ResolutionGateCode = (typeof RESOLUTION_GATE_CODES)[number];
 
 type GateContext = {
   ticket: Pick<Ticket, "pendingParty">;
-  finishing: Pick<
-    Finishing,
-    "phase" | "doorFees" | "aluminumFees"
-  > | null;
+  finishing: {
+    phases?: FinishingPhase[] | null;
+    phase?: FinishingPhase | null;
+    doorFees: number | null;
+    aluminumFees: number | null;
+  } | null;
   contractWorkflow: Pick<
     ContractWorkflow,
     | "hasSignedProtocol"
@@ -38,7 +44,13 @@ export function evaluateResolutionGates(ctx: GateContext): ResolutionGateCode[] 
     failures.push("party_not_none");
   }
 
-  if (ctx.finishing?.phase && ctx.finishing.phase !== "FINISHED") {
+  const phases = ctx.finishing?.phases?.length
+    ? ctx.finishing.phases
+    : ctx.finishing?.phase
+      ? [ctx.finishing.phase]
+      : [];
+
+  if (hasTrackedFinishingWork(phases) && !isFinishingWorkComplete(phases)) {
     failures.push("finishing_not_done");
   }
 

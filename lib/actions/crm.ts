@@ -32,6 +32,7 @@ import {
   type HandoverChecklistInput,
   type TicketWorkflowInput,
 } from "@/lib/validations/workflow";
+import { sortPhases } from "@/lib/finishing/phases";
 import {
   evaluateResolutionGates,
   mergeTicketWorkflowFields,
@@ -514,6 +515,9 @@ export async function updateFinishing(
   }
 
   const { unitId, ...data } = parsed.data;
+  const legacyPhase = data.phases.includes("FINISHED")
+    ? "FINISHED"
+    : sortPhases(data.phases).at(-1) ?? "NOT_STARTED";
 
   const unit = await prisma.unit.findUnique({ where: { id: unitId } });
   if (!unit) return actionFail("Unit not found");
@@ -531,7 +535,8 @@ export async function updateFinishing(
         totalFinishingPrice: data.totalFinishingPrice,
         doorFees: data.doorFees,
         aluminumFees: data.aluminumFees,
-        phase: data.phase,
+        phases: data.phases,
+        phase: legacyPhase,
         currentFinishingStatus: data.currentFinishingStatus,
       },
       create: {
@@ -545,7 +550,8 @@ export async function updateFinishing(
         totalFinishingPrice: data.totalFinishingPrice,
         doorFees: data.doorFees,
         aluminumFees: data.aluminumFees,
-        phase: data.phase,
+        phases: data.phases,
+        phase: legacyPhase,
         currentFinishingStatus: data.currentFinishingStatus,
       },
     })

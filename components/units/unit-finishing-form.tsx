@@ -13,12 +13,12 @@ import { formatCurrency } from "@/lib/format/currency";
 import {
   EXECUTING_COMPANY_OPTIONS,
   FINISHING_PACKAGE_OPTIONS,
-  FINISHING_PHASE_OPTIONS,
   finishingFormSchema,
   type FinishingFormInput,
 } from "@/lib/validations/finishing";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,11 +37,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { FinishingPhasePicker } from "@/components/units/finishing-phase-picker";
+import {
+  normalizeFinishingPhases,
+  sortPhases,
+} from "@/lib/finishing/phases";
 import { cn } from "@/lib/utils";
 
 export type FinishingFormDefaults = {
   unitId: string;
-  phase: string | null;
+  phases: string[];
   packageType: string | null;
   executingCompany: string | null;
   contractDate: string | null;
@@ -172,7 +177,9 @@ export function UnitFinishingForm({
       totalFinishingPrice: defaults.totalFinishingPrice ?? "",
       doorFees: defaults.doorFees ?? "",
       aluminumFees: defaults.aluminumFees ?? "",
-      phase: (defaults.phase ?? "NOT_STARTED") as FinishingFormInput["phase"],
+      phases: (defaults.phases.length
+        ? defaults.phases
+        : ["NOT_STARTED"]) as FinishingFormInput["phases"],
       currentFinishingStatus: defaults.currentFinishingStatus ?? "",
     }),
     [defaults]
@@ -206,19 +213,13 @@ export function UnitFinishingForm({
     return items;
   }, [labels, tCommon]);
 
-  const phaseItems = useMemo(() => {
-    const items: Record<string, string> = {};
-    for (const value of FINISHING_PHASE_OPTIONS) {
-      items[value] = labels.finishingPhase(value);
-    }
-    return items;
-  }, [labels]);
-
-  const activePhase =
-    (typeof watched.phase === "string" && watched.phase) ||
-    defaults.phase ||
-    "NOT_STARTED";
-  const activePhaseLabel = labels.finishingPhase(activePhase);
+  const selectedPhases = normalizeFinishingPhases(
+    Array.isArray(watched.phases) && watched.phases.length
+      ? (watched.phases as FinishingFormInput["phases"])
+      : defaults.phases.length
+        ? (defaults.phases as FinishingFormInput["phases"])
+        : ["NOT_STARTED"]
+  );
 
   function onSubmit(values: FinishingFormInput) {
     runAction(() => updateFinishing(values), "saved");
@@ -236,35 +237,31 @@ export function UnitFinishingForm({
               <p className="text-xs font-semibold uppercase tracking-wide text-primary">
                 {tFinishing("phaseBannerLabel")}
               </p>
-              <p className="text-xl font-bold tracking-tight">{activePhaseLabel}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {sortPhases(selectedPhases).map((phase) => (
+                  <Badge key={phase} variant="secondary" className="text-sm">
+                    {labels.finishingPhase(phase)}
+                  </Badge>
+                ))}
+              </div>
               <p className="text-sm text-muted-foreground">
                 {tFinishing("phaseBannerHint")}
               </p>
             </div>
           </div>
-          <div className="w-full min-w-[14rem] space-y-2 sm:max-w-xs">
-            <Label>{tFinishing("phaseBannerLabel")}</Label>
+          <div className="w-full sm:max-w-md">
             <Controller
               control={control}
-              name="phase"
+              name="phases"
               render={({ field }) => (
-                <Select
-                  value={field.value ?? "NOT_STARTED"}
-                  onValueChange={(value) => field.onChange(value ?? "NOT_STARTED")}
-                  items={phaseItems}
+                <FinishingPhasePicker
+                  value={normalizeFinishingPhases(field.value ?? [])}
+                  onChange={field.onChange}
                   disabled={!canEdit || pending}
-                >
-                  <SelectTrigger className="w-full border-primary/30 bg-background/90 font-medium">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FINISHING_PHASE_OPTIONS.map((value) => (
-                      <SelectItem key={value} value={value}>
-                        {labels.finishingPhase(value)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  label={tFinishing("phaseBannerLabel")}
+                  hint={tFinishing("phaseMultiHint")}
+                  labelForPhase={labels.finishingPhase}
+                />
               )}
             />
           </div>

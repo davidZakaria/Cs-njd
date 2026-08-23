@@ -28,9 +28,8 @@ import {
   type ImportGateContext,
   reconcileImportCaseStatus,
 } from "@/lib/import/workflow-sync";
-import type { PendingParty } from "@prisma/client";
+import type { FinishingPhase, HandoverStatus, PendingParty } from "@prisma/client";
 import { syncAssignmentsFromWorkbook } from "@/lib/import/sync-assignments";
-import type { HandoverStatus } from "@prisma/client";
 
 type Row = Record<string, unknown>;
 
@@ -140,7 +139,11 @@ async function loadImportGateContext(unitId: string): Promise<ImportGateContext>
   return {
     finishing: unit.finishing
       ? {
-          phase: unit.finishing.phase,
+          phases: unit.finishing.phases?.length
+            ? unit.finishing.phases
+            : unit.finishing.phase
+              ? [unit.finishing.phase]
+              : [],
           doorFees: unit.finishing.doorFees,
           aluminumFees: unit.finishing.aluminumFees,
         }
@@ -296,6 +299,7 @@ type FinishingImportPatch = {
   aluminumFees?: number | null;
   currentFinishingStatus?: string | null;
   phase?: ReturnType<typeof mapFinishingPhase>;
+  phases?: FinishingPhase[];
 };
 
 function hasPresentValue(value: unknown) {
@@ -363,7 +367,10 @@ function buildFinishingFields(input: {
     .join(" ");
   if (phaseSource) {
     const phase = mapFinishingPhase(phaseSource);
-    if (phase) patch.phase = phase;
+    if (phase) {
+      patch.phase = phase;
+      patch.phases = [phase];
+    }
   }
 
   return Object.keys(patch).length > 0 ? patch : null;
@@ -540,16 +547,22 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
       });
     }
 
+    const resolvedPhases =
+      finishingFields?.phases?.filter(
+        (phase): phase is NonNullable<typeof phase> => phase != null
+      ) ??
+      (finishingFields?.phase ? [finishingFields.phase] : []);
+
     const gateContext: ImportGateContext = {
       finishing: finishingFields
         ? {
-            phase: finishingFields.phase ?? null,
+            phases: resolvedPhases,
             doorFees: doorFeesAmount,
             aluminumFees: aluminumFeesAmount,
           }
         : doorFeesAmount != null || aluminumFeesAmount != null
           ? {
-              phase: null,
+              phases: [],
               doorFees: doorFeesAmount,
               aluminumFees: aluminumFeesAmount,
             }

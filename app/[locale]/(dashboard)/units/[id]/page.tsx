@@ -137,7 +137,12 @@ export default async function UnitProfilePage({
               totalFinishingPrice: unit.finishing?.totalFinishingPrice ?? null,
               doorFees: unit.finishing?.doorFees ?? null,
               aluminumFees: unit.finishing?.aluminumFees ?? null,
-              phase: unit.finishing?.phase ?? null,
+              phases:
+                unit.finishing?.phases?.length
+                  ? unit.finishing.phases
+                  : unit.finishing?.phase
+                    ? [unit.finishing.phase]
+                    : [],
               currentFinishingStatus: unit.finishing?.currentFinishingStatus ?? null,
               packageLabel: unit.finishing?.packageLabel ?? null,
               companyName: unit.finishing?.companyName ?? null,
