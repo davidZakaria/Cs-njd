@@ -345,6 +345,7 @@ export async function updateFinishing(
         totalFinishingPrice: data.totalFinishingPrice,
         doorFees: data.doorFees,
         aluminumFees: data.aluminumFees,
+        phase: data.phase,
         currentFinishingStatus: data.currentFinishingStatus,
       },
       create: {
@@ -358,6 +359,7 @@ export async function updateFinishing(
         totalFinishingPrice: data.totalFinishingPrice,
         doorFees: data.doorFees,
         aluminumFees: data.aluminumFees,
+        phase: data.phase,
         currentFinishingStatus: data.currentFinishingStatus,
       },
     })

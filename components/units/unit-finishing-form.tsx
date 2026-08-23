@@ -6,13 +6,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
 import { format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, HardHat } from "lucide-react";
 
 import { updateFinishing } from "@/lib/actions/crm";
 import { formatCurrency } from "@/lib/format/currency";
 import {
   EXECUTING_COMPANY_OPTIONS,
   FINISHING_PACKAGE_OPTIONS,
+  FINISHING_PHASE_OPTIONS,
   finishingFormSchema,
   type FinishingFormInput,
 } from "@/lib/validations/finishing";
@@ -35,10 +36,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 export type FinishingFormDefaults = {
   unitId: string;
+  phase: string | null;
   packageType: string | null;
   executingCompany: string | null;
   contractDate: string | null;
@@ -169,6 +172,7 @@ export function UnitFinishingForm({
       totalFinishingPrice: defaults.totalFinishingPrice ?? "",
       doorFees: defaults.doorFees ?? "",
       aluminumFees: defaults.aluminumFees ?? "",
+      phase: (defaults.phase ?? "NOT_STARTED") as FinishingFormInput["phase"],
       currentFinishingStatus: defaults.currentFinishingStatus ?? "",
     }),
     [defaults]
@@ -202,13 +206,72 @@ export function UnitFinishingForm({
     return items;
   }, [labels, tCommon]);
 
+  const phaseItems = useMemo(() => {
+    const items: Record<string, string> = {};
+    for (const value of FINISHING_PHASE_OPTIONS) {
+      items[value] = labels.finishingPhase(value);
+    }
+    return items;
+  }, [labels]);
+
+  const activePhase =
+    (typeof watched.phase === "string" && watched.phase) ||
+    defaults.phase ||
+    "NOT_STARTED";
+  const activePhaseLabel = labels.finishingPhase(activePhase);
+
   function onSubmit(values: FinishingFormInput) {
     runAction(() => updateFinishing(values), "saved");
   }
 
   return (
     <div className="space-y-6" dir={isRtl ? "rtl" : "ltr"}>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <Card className="overflow-hidden border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-background shadow-premium ring-1 ring-primary/20">
+        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-primary/15 p-2.5 text-primary">
+              <HardHat className="size-5" />
+            </div>
+            <div className="space-y-1 text-start">
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                {tFinishing("phaseBannerLabel")}
+              </p>
+              <p className="text-xl font-bold tracking-tight">{activePhaseLabel}</p>
+              <p className="text-sm text-muted-foreground">
+                {tFinishing("phaseBannerHint")}
+              </p>
+            </div>
+          </div>
+          <div className="w-full min-w-[14rem] space-y-2 sm:max-w-xs">
+            <Label>{tFinishing("phaseBannerLabel")}</Label>
+            <Controller
+              control={control}
+              name="phase"
+              render={({ field }) => (
+                <Select
+                  value={field.value ?? "NOT_STARTED"}
+                  onValueChange={(value) => field.onChange(value ?? "NOT_STARTED")}
+                  items={phaseItems}
+                  disabled={!canEdit || pending}
+                >
+                  <SelectTrigger className="w-full border-primary/30 bg-background/90 font-medium">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FINISHING_PHASE_OPTIONS.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {labels.finishingPhase(value)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard label={tFinishing("packageType")} value={packageDisplayLabel} />
         <SummaryCard label={tFinishing("executingCompany")} value={companyDisplayLabel} />
         <SummaryCard
@@ -228,15 +291,6 @@ export function UnitFinishingForm({
               : defaults.totalFinishingPrice,
             locale
           )}
-        />
-        <SummaryCard
-          label={tFinishing("currentStatus")}
-          value={
-            typeof watched.currentFinishingStatus === "string" &&
-            watched.currentFinishingStatus.trim()
-              ? watched.currentFinishingStatus
-              : defaults.currentFinishingStatus ?? "—"
-          }
         />
       </div>
 
@@ -305,11 +359,14 @@ export function UnitFinishingForm({
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="currentFinishingStatus">
-                {tFinishing("currentStatus")}
+                {tFinishing("finishingNotes")}
               </Label>
-              <Input
+              <Textarea
                 id="currentFinishingStatus"
+                rows={4}
                 disabled={!canEdit || pending}
+                placeholder={tFinishing("finishingNotesPlaceholder")}
+                className="min-h-24 resize-y text-start"
                 {...register("currentFinishingStatus")}
               />
             </div>

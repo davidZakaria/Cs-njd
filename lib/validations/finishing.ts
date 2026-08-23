@@ -1,9 +1,14 @@
-import { ExecutingCompany, FinishingPackage } from "@prisma/client";
+import { ExecutingCompany, FinishingPackage, FinishingPhase } from "@prisma/client";
 import { z } from "zod";
 
 const finishingPackageValues = Object.values(FinishingPackage) as [
   FinishingPackage,
   ...FinishingPackage[],
+];
+
+const finishingPhaseValues = Object.values(FinishingPhase) as [
+  FinishingPhase,
+  ...FinishingPhase[],
 ];
 
 const executingCompanyValues = Object.values(ExecutingCompany) as [
@@ -65,6 +70,7 @@ export const finishingFormSchema = z.object({
   totalFinishingPrice: optionalNumber(),
   doorFees: optionalNumber(),
   aluminumFees: optionalNumber(),
+  phase: optionalEnum(finishingPhaseValues),
   currentFinishingStatus: optionalString(),
 });
 
@@ -73,3 +79,4 @@ export type FinishingFormValues = z.output<typeof finishingFormSchema>;
 
 export const FINISHING_PACKAGE_OPTIONS = finishingPackageValues;
 export const EXECUTING_COMPANY_OPTIONS = executingCompanyValues;
+export const FINISHING_PHASE_OPTIONS = finishingPhaseValues;

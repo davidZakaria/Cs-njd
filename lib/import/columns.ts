@@ -1,6 +1,7 @@
 import type {
   ExecutingCompany,
   FinishingPackage,
+  FinishingPhase,
   FinishingType,
   HandoverStatus,
   UnitType,
@@ -108,6 +109,41 @@ const FINISHING_PACKAGE_CANDIDATES: FuzzyCandidate<FinishingPackage>[] = [
   {
     value: "CUSTOM",
     patterns: ["custom", "تشطيب خاص"],
+  },
+];
+
+const FINISHING_PHASE_CANDIDATES: FuzzyCandidate<FinishingPhase>[] = [
+  {
+    value: "FINISHED",
+    patterns: ["finished", "completed", "done", "انته", "مكتمل", "تم التشطيب"],
+  },
+  {
+    value: "SANITARY",
+    patterns: ["se7y", "sanitary", "صحي", "صحية", "تركيبات صحية"],
+  },
+  {
+    value: "PAINTING",
+    patterns: ["dehanat", "painting", "paint", "دهان", "دهانات"],
+  },
+  {
+    value: "CERAMIC",
+    patterns: ["ceramic", "سيراميك", "سراميك", "سيراميك"],
+  },
+  {
+    value: "GYPSUM_BOARD",
+    patterns: ["jipson", "gypsum", "جبس", "جبس بورد"],
+  },
+  {
+    value: "PLASTERING",
+    patterns: ["m7ara", "m7ara", "plaster", "plastering", "محار", "محارة"],
+  },
+  {
+    value: "ELECTRICAL",
+    patterns: ["kahrba", "electrical", "electric", "كهرب", "كهرباء"],
+  },
+  {
+    value: "PLUMBING",
+    patterns: ["sebaka", "plumbing", "plumber", "سباك", "سباكة"],
   },
 ];
 
@@ -278,6 +314,11 @@ export function mapFinishingType(raw?: string): FinishingType {
 export function mapFinishingPackage(raw?: string): FinishingPackage | null {
   if (!(raw ?? "").trim()) return null;
   return fuzzyMatchEnum(raw, FINISHING_PACKAGE_CANDIDATES, 0.58);
+}
+
+export function mapFinishingPhase(raw?: string): FinishingPhase | null {
+  if (!(raw ?? "").trim()) return null;
+  return fuzzyMatchEnum(raw, FINISHING_PHASE_CANDIDATES, 0.52);
 }
 
 export function mapExecutingCompany(raw?: string): ExecutingCompany | null {

@@ -4,6 +4,7 @@ import { createAgentResolver } from "@/lib/import/agents";
 import {
   IMPORT_COLUMN_HEADERS,
   mapExecutingCompany,
+  mapFinishingPhase,
   resolveExecutingCompanyLabel,
   mapFinishingPackage,
   mapFinishingType,
@@ -241,6 +242,7 @@ type FinishingImportPatch = {
   doorFees?: number | null;
   aluminumFees?: number | null;
   currentFinishingStatus?: string | null;
+  phase?: ReturnType<typeof mapFinishingPhase>;
 };
 
 function hasPresentValue(value: unknown) {
@@ -259,6 +261,7 @@ function buildFinishingFields(input: {
   doorFees?: unknown;
   aluminumFees?: unknown;
   currentFinishingStatus?: string;
+  notes?: string;
 }): FinishingImportPatch | null {
   const patch: FinishingImportPatch = {};
   const packageSource = input.packageLabel ?? input.finishingType;
@@ -299,6 +302,15 @@ function buildFinishingFields(input: {
   if (input.currentFinishingStatus !== undefined) {
     patch.currentFinishingStatus =
       input.currentFinishingStatus.trim() || null;
+  }
+
+  const phaseSource = [input.currentFinishingStatus, input.notes]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
+  if (phaseSource) {
+    const phase = mapFinishingPhase(phaseSource);
+    if (phase) patch.phase = phase;
   }
 
   return Object.keys(patch).length > 0 ? patch : null;
@@ -447,6 +459,7 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
       doorFees: input.doorFees,
       aluminumFees: input.aluminumFees,
       currentFinishingStatus: input.currentFinishingStatus,
+      notes: input.notes,
     });
 
     if (finishingFields) {

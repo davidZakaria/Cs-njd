@@ -61,6 +61,10 @@
     "totalPrice": "اجمالي التشطيب",
     "contractDate": "تاريخ التعاقد",
     "executingCompany": "الشركه المنفذه",
+    "phaseBannerLabel": "مرحلة التشطيب الحالية",
+    "phaseBannerHint": "مؤشر ثابت — حدّث المرحلة مع تقدم الأعمال في الموقع.",
+    "finishingNotes": "ملاحظات التشطيب",
+    "finishingNotesPlaceholder": "ملاحظات الموقع، التأخيرات، تعليقات المقاول…",
     "currentStatus": "موقف الوحده الحالي من التشطيب"
   },
   "notifications": {
@@ -864,6 +868,17 @@
       "NJD": "تشطيب شركة NJD",
       "GERGES_YOUSSEF": "شركه م/ جرجس يوسف للانشاءات",
       "OTHER": "أخرى"
+    },
+    "finishingPhase": {
+      "NOT_STARTED": "لم يبدأ",
+      "PLUMBING": "أعمال السباكة",
+      "ELECTRICAL": "أعمال الكهرباء",
+      "PLASTERING": "أعمال المحارة",
+      "GYPSUM_BOARD": "أعمال الجبس",
+      "CERAMIC": "أعمال السيراميك",
+      "PAINTING": "أعمال الدهان",
+      "SANITARY": "التركيبات الصحية",
+      "FINISHED": "تم التشطيب"
     }
   }
 }

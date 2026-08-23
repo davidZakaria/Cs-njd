@@ -61,6 +61,10 @@
     "totalPrice": "Total finishing",
     "contractDate": "Contract date",
     "executingCompany": "Executing company",
+    "phaseBannerLabel": "Current finishing phase",
+    "phaseBannerHint": "Pinned tracker — update as work progresses on site.",
+    "finishingNotes": "Finishing notes",
+    "finishingNotesPlaceholder": "Site notes, delays, contractor comments…",
     "currentStatus": "Current unit finishing status"
   },
   "notifications": {
@@ -864,6 +868,17 @@
       "NJD": "NJD Finishing",
       "GERGES_YOUSSEF": "Eng. Gerges Youssef Construction Co.",
       "OTHER": "Other"
+    },
+    "finishingPhase": {
+      "NOT_STARTED": "Not started",
+      "PLUMBING": "Plumbing",
+      "ELECTRICAL": "Electrical",
+      "PLASTERING": "Plastering",
+      "GYPSUM_BOARD": "Gypsum board",
+      "CERAMIC": "Ceramic",
+      "PAINTING": "Painting",
+      "SANITARY": "Sanitary",
+      "FINISHED": "Finished"
     }
   }
 }
