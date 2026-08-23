@@ -119,6 +119,9 @@ export function UnitClientForm({
               <p>
                 <strong>{t("phone2")}:</strong> {t("contactRestricted")}
               </p>
+              <p>
+                <strong>{tCommon("email")}:</strong> {t("contactRestricted")}
+              </p>
               <p className="text-xs text-muted-foreground">
                 {t("contactRestrictedHint")}
               </p>
@@ -141,11 +144,11 @@ export function UnitClientForm({
                 projectName={defaults.projectName}
                 messageTemplate={defaults.waMessageTemplate}
               />
+              <p>
+                <strong>{tCommon("email")}:</strong> {defaults.email ?? "—"}
+              </p>
             </>
           )}
-          <p>
-            <strong>{tCommon("email")}:</strong> {defaults.email ?? "—"}
-          </p>
           <p>
             <strong>{t("area")}:</strong> {defaults.areaLabel}
           </p>

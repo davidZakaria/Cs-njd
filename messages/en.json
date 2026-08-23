@@ -357,7 +357,7 @@
     "phone1": "Phone 1",
     "phone2": "Phone 2",
     "contactRestricted": "Restricted",
-    "contactRestrictedHint": "Phone numbers and addresses are hidden for CS agents.",
+    "contactRestrictedHint": "Phone numbers, email, and addresses are hidden for CS agents.",
     "address1": "Address 1",
     "address2": "Address 2",
     "deliveryYear": "Delivery year",

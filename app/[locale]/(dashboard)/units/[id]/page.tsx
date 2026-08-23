@@ -123,7 +123,7 @@ export default async function UnitProfilePage({
               clientName: unit.client?.name ?? "—",
               phone1: hideClientContact ? null : unit.client?.phone1 ?? null,
               phone2: hideClientContact ? null : unit.client?.phone2 ?? null,
-              email: unit.client?.email ?? null,
+              email: hideClientContact ? null : unit.client?.email ?? null,
               address1: hideClientContact ? null : unit.client?.address1 ?? null,
               address2: hideClientContact ? null : unit.client?.address2 ?? null,
               deliveryYear: unit.deliveryYear ?? null,
