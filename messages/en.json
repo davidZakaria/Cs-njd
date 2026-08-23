@@ -666,6 +666,7 @@
     "memoryUsageDetail": "{used} used of {total}",
     "nodeHeap": "Node.js heap",
     "heapUsageDetail": "{used} used of {total}",
+    "heapHint": "High % is normal for Node.js — it reuses a small memory block before growing. Watch absolute size and Process RSS instead.",
     "processRss": "Process RSS",
     "rssDetail": "External memory: {external}",
     "serverUptime": "Server uptime",
@@ -677,7 +678,8 @@
     "legendTitle": "Usage thresholds",
     "legendHealthy": "Healthy (< 70%)",
     "legendWarning": "Warning (70–85%)",
-    "legendCritical": "Critical (> 85%)"
+    "legendCritical": "Critical (> 85%)",
+    "legendHeapNote": "Server RAM and CPU load use the thresholds above. Node.js heap stays green until ~300 MB absolute usage; red only above ~500 MB with high %."
   },
   "systemSecurity": {
     "title": "Security & Sessions",

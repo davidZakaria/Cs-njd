@@ -666,6 +666,7 @@
     "memoryUsageDetail": "{used} مستخدم من {total}",
     "nodeHeap": "ذاكرة Node.js",
     "heapUsageDetail": "{used} مستخدم من {total}",
+    "heapHint": "النسبة المرتفعة طبيعية في Node.js — يعيد استخدام كتلة صغيرة قبل التوسع. راقب الحجم الفعلي وRSS للعملية.",
     "processRss": "RSS للعملية",
     "rssDetail": "ذاكرة خارجية: {external}",
     "serverUptime": "مدة تشغيل الخادم",
@@ -677,7 +678,8 @@
     "legendTitle": "عتبات الاستخدام",
     "legendHealthy": "سليم (< 70%)",
     "legendWarning": "تحذير (70–85%)",
-    "legendCritical": "حرج (> 85%)"
+    "legendCritical": "حرج (> 85%)",
+    "legendHeapNote": "ذاكرة الخادم وحمل المعالج يستخدمان العتبات أعلاه. ذاكرة Node.js تبقى خضراء حتى ~300 ميجابايت فعلية؛ حمراء فقط فوق ~500 ميجابايت مع نسبة مرتفعة."
   },
   "systemSecurity": {
     "title": "الأمان والجلسات",

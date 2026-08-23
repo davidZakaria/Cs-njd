@@ -13,6 +13,7 @@ import {
   formatBytes,
   formatPercent,
   formatUptime,
+  getHeapTone,
   getLoadTone,
   getUsageTone,
   USAGE_TONE_BAR_CLASS,
@@ -29,6 +30,7 @@ function MetricCard({
   subtitle,
   percent,
   tone,
+  hint,
 }: {
   title: string;
   icon: typeof Activity;
@@ -36,6 +38,7 @@ function MetricCard({
   subtitle: string;
   percent?: number;
   tone?: ReturnType<typeof getUsageTone>;
+  hint?: string;
 }) {
   const resolvedTone = tone ?? (percent != null ? getUsageTone(percent) : "healthy");
 
@@ -65,6 +68,11 @@ function MetricCard({
             {value}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+          {hint ? (
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground/90">
+              {hint}
+            </p>
+          ) : null}
         </div>
         {percent != null ? (
           <Progress
@@ -87,7 +95,10 @@ export async function SystemHealthPanel({
   const capturedAt = new Date(metrics.capturedAt).toLocaleString(locale);
 
   const ramTone = getUsageTone(metrics.memory.usedPercent);
-  const heapTone = getUsageTone(metrics.processMemory.heapUsedPercent);
+  const heapTone = getHeapTone(
+    metrics.processMemory.heapUsedPercent,
+    metrics.processMemory.heapUsedBytes
+  );
   const load1Tone = getLoadTone(
     metrics.loadAverage.oneMinute,
     metrics.cpuCount
@@ -144,6 +155,7 @@ export async function SystemHealthPanel({
           })}
           percent={metrics.processMemory.heapUsedPercent}
           tone={heapTone}
+          hint={t("heapHint")}
         />
         <MetricCard
           title={t("processRss")}
@@ -205,6 +217,7 @@ export async function SystemHealthPanel({
             <span className="size-2.5 rounded-full bg-red-500" />
             {t("legendCritical")}
           </span>
+          <p className="w-full text-xs leading-relaxed">{t("legendHeapNote")}</p>
         </CardContent>
       </Card>
     </div>

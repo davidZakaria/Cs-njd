@@ -11,6 +11,23 @@ export function getLoadTone(load: number, cpuCount: number): UsageTone {
   return getUsageTone((load / cpuCount) * 100);
 }
 
+/** V8 often runs at 85%+ of its current heap segment even when healthy — tone by absolute MB. */
+const HEAP_WARN_BYTES = 300 * 1024 * 1024;
+const HEAP_CRITICAL_BYTES = 500 * 1024 * 1024;
+
+export function getHeapTone(
+  heapUsedPercent: number,
+  heapUsedBytes: number
+): UsageTone {
+  if (heapUsedBytes >= HEAP_CRITICAL_BYTES) {
+    return getUsageTone(heapUsedPercent);
+  }
+  if (heapUsedBytes >= HEAP_WARN_BYTES) {
+    return heapUsedPercent >= 90 ? "warning" : "healthy";
+  }
+  return "healthy";
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
