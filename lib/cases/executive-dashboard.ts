@@ -116,6 +116,19 @@ function sortQueue(items: ExecutiveCaseRow[]) {
   return [...items].sort((a, b) => queuePriority(a) - queuePriority(b));
 }
 
+function countUniqueUnits(
+  rows: ExecutiveCaseRow[],
+  predicate?: (row: ExecutiveCaseRow) => boolean
+): number {
+  const unitIds = new Set<string>();
+  for (const row of rows) {
+    if (!predicate || predicate(row)) {
+      unitIds.add(row.unitId);
+    }
+  }
+  return unitIds.size;
+}
+
 function toExecutiveRow(
   ticket: {
     id: string;
@@ -169,32 +182,48 @@ function computeStats(rows: ExecutiveCaseRow[]): ExecutiveStats {
   const myRows = rows.filter((row) => row.isMine);
 
   return {
-    openTotal: rows.length,
-    unassigned: teamRows.filter((row) => !row.agentId && !row.unitAgentId).length,
-    legal: rows.filter(
+    openTotal: countUniqueUnits(rows),
+    unassigned: countUniqueUnits(
+      teamRows,
+      (row) => !row.agentId && !row.unitAgentId
+    ),
+    legal: countUniqueUnits(
+      rows,
       (row) => row.status === "LEGAL" || row.category === "LEGAL"
-    ).length,
-    engineering: rows.filter((row) => row.status === "ENGINEERING").length,
-    myOpen: myRows.length,
-    teamOpen: teamRows.length,
-    pending: rows.filter((row) => row.status === "PENDING").length,
-    pendingWithParty: rows.filter(
+    ),
+    engineering: countUniqueUnits(
+      rows,
+      (row) => row.status === "ENGINEERING"
+    ),
+    myOpen: countUniqueUnits(myRows),
+    teamOpen: countUniqueUnits(teamRows),
+    pending: countUniqueUnits(rows, (row) => row.status === "PENDING"),
+    pendingWithParty: countUniqueUnits(
+      rows,
       (row) => row.pendingParty && row.pendingParty !== "NONE"
-    ).length,
+    ),
   };
 }
 
 function computeCategoryBreakdown(rows: ExecutiveCaseRow[]): CategoryBreakdown {
   return {
-    legal: rows.filter(
+    legal: countUniqueUnits(
+      rows,
       (row) => row.status === "LEGAL" || row.category === "LEGAL"
-    ).length,
-    engineering: rows.filter((row) => row.status === "ENGINEERING").length,
-    customerService: rows.filter((row) => row.category === "CUSTOMER_SERVICE")
-      .length,
-    feedbackHistory: rows.filter((row) => row.category === "FEEDBACK_HISTORY")
-      .length,
-    general: rows.filter((row) => row.category === "GENERAL").length,
+    ),
+    engineering: countUniqueUnits(
+      rows,
+      (row) => row.status === "ENGINEERING"
+    ),
+    customerService: countUniqueUnits(
+      rows,
+      (row) => row.category === "CUSTOMER_SERVICE"
+    ),
+    feedbackHistory: countUniqueUnits(
+      rows,
+      (row) => row.category === "FEEDBACK_HISTORY"
+    ),
+    general: countUniqueUnits(rows, (row) => row.category === "GENERAL"),
   };
 }
 
@@ -224,15 +253,40 @@ function computeAgentWorkload(
     engineeringCount: 0,
   });
 
+  const openUnits = new Map<string, Set<string>>();
+  const pendingUnits = new Map<string, Set<string>>();
+  const legalUnits = new Map<string, Set<string>>();
+  const engineeringUnits = new Map<string, Set<string>>();
+
+  function trackUnit(
+    map: Map<string, Set<string>>,
+    key: string,
+    unitId: string
+  ) {
+    const bucket = map.get(key) ?? new Set<string>();
+    bucket.add(unitId);
+    map.set(key, bucket);
+  }
+
   for (const row of rows) {
     const key = row.agentId ?? row.unitAgentId ?? "unassigned";
-    const bucket = workloadMap.get(key) ?? workloadMap.get("unassigned")!;
-    bucket.openCount += 1;
-    if (row.status === "PENDING") bucket.pendingCount += 1;
-    if (row.status === "LEGAL" || row.category === "LEGAL") {
-      bucket.legalCount += 1;
+    trackUnit(openUnits, key, row.unitId);
+    if (row.status === "PENDING") {
+      trackUnit(pendingUnits, key, row.unitId);
     }
-    if (row.status === "ENGINEERING") bucket.engineeringCount += 1;
+    if (row.status === "LEGAL" || row.category === "LEGAL") {
+      trackUnit(legalUnits, key, row.unitId);
+    }
+    if (row.status === "ENGINEERING") {
+      trackUnit(engineeringUnits, key, row.unitId);
+    }
+  }
+
+  for (const [key, bucket] of workloadMap) {
+    bucket.openCount = openUnits.get(key)?.size ?? 0;
+    bucket.pendingCount = pendingUnits.get(key)?.size ?? 0;
+    bucket.legalCount = legalUnits.get(key)?.size ?? 0;
+    bucket.engineeringCount = engineeringUnits.get(key)?.size ?? 0;
   }
 
   return [...workloadMap.values()]
@@ -370,7 +424,7 @@ export async function getExecutiveDashboardData(
     (project) => ({
       project,
       slug: projectSlug(project),
-      count: rows.filter((row) => row.project === project).length,
+      count: countUniqueUnits(rows, (row) => row.project === project),
     })
   );
 
