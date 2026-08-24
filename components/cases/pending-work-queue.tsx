@@ -139,10 +139,7 @@ export async function PendingWorkQueue({
           projectKey,
           projectLabel: await labels.project(projectKey),
           unitCount: projectItems.length,
-          openCaseCount: projectItems.reduce(
-            (sum, item) => sum + item.openCount,
-            0
-          ),
+          openCaseCount: projectItems.length,
           items: projectItems,
         };
       })

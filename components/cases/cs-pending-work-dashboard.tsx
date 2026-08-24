@@ -39,8 +39,7 @@ export function CsPendingWorkDashboard({
 
   const totals = useMemo(() => {
     const units = groups.reduce((sum, group) => sum + group.unitCount, 0);
-    const cases = groups.reduce((sum, group) => sum + group.openCaseCount, 0);
-    return { units, cases, projects: groups.length };
+    return { units, projects: groups.length };
   }, [groups]);
 
   const filteredGroups = useMemo(() => {
@@ -68,7 +67,7 @@ export function CsPendingWorkDashboard({
           ...group,
           items,
           unitCount: items.length,
-          openCaseCount: items.reduce((sum, item) => sum + item.openCount, 0),
+          openCaseCount: items.length,
         };
       })
       .filter((group) => group.items.length > 0);
@@ -180,17 +179,12 @@ export function CsPendingWorkDashboard({
                     <div className="min-w-0">
                       <p className="font-semibold">{group.projectLabel}</p>
                       <p className="text-xs text-muted-foreground">
-                        {t("projectSummary", {
-                          units: group.unitCount,
-                          cases: group.openCaseCount,
-                        })}
+                        {t("projectSummary", { units: group.unitCount })}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <Badge variant="outline">
-                        {t("projectOpenCases", {
-                          count: group.openCaseCount,
-                        })}
+                        {t("projectUnitCount", { count: group.unitCount })}
                       </Badge>
                       <ChevronDown
                         className={cn(
@@ -204,10 +198,7 @@ export function CsPendingWorkDashboard({
                   <div className="border-b px-4 py-3">
                     <p className="font-semibold">{group.projectLabel}</p>
                     <p className="text-xs text-muted-foreground">
-                      {t("projectSummary", {
-                        units: group.unitCount,
-                        cases: group.openCaseCount,
-                      })}
+                      {t("projectSummary", { units: group.unitCount })}
                     </p>
                   </div>
                 )}
