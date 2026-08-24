@@ -200,7 +200,7 @@ function computeStats(rows: ExecutiveCaseRow[]): ExecutiveStats {
     pending: countUniqueUnits(rows, (row) => row.status === "PENDING"),
     pendingWithParty: countUniqueUnits(
       rows,
-      (row) => row.pendingParty && row.pendingParty !== "NONE"
+      (row) => row.pendingParty !== "NONE"
     ),
   };
 }
