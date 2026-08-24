@@ -18,7 +18,10 @@ import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { filterExecutiveCaseRows } from "@/lib/executive/filter-case-rows";
 import { ExecutiveFinancialsPanel } from "@/components/executive/executive-financials-panel";
 import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
-import type { ExecutiveFinancials } from "@/lib/executive/financial-analytics";
+import {
+  EXECUTIVE_FINANCIALS_ENABLED,
+  type ExecutiveFinancials,
+} from "@/lib/executive/financial-analytics";
 import type { ExecutiveKpiKey } from "@/components/executive/executive-kpi-grid";
 
 type WorkloadLabels = {
@@ -35,7 +38,7 @@ export function ExecutiveOverviewPanel({
   workloadLabels,
 }: {
   data: ExecutiveDashboardData;
-  financials: ExecutiveFinancials;
+  financials: ExecutiveFinancials | null;
   kpiLabels: Record<ExecutiveKpiKey, string>;
   workloadLabels: WorkloadLabels;
 }) {
@@ -94,7 +97,9 @@ export function ExecutiveOverviewPanel({
     <div className="space-y-8">
       <ExecutiveKpiGrid items={overviewKpis} />
 
-      <ExecutiveFinancialsPanel financials={financials} />
+      {EXECUTIVE_FINANCIALS_ENABLED && financials ? (
+        <ExecutiveFinancialsPanel financials={financials} />
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-2">
         <ProjectDistributionChart

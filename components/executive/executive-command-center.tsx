@@ -41,7 +41,7 @@ export function ExecutiveCommandCenter({
   financials,
 }: {
   data: ExecutiveDashboardData;
-  financials: ExecutiveFinancials;
+  financials: ExecutiveFinancials | null;
 }) {
   const locale = useLocale();
   const isRtl = locale === "ar";

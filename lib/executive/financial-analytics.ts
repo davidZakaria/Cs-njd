@@ -2,6 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { notDeleted } from "@/lib/prisma/soft-delete";
 import { CANONICAL_PROJECTS, PROJECT_SLUGS, type CanonicalProject } from "@/lib/projects";
 
+/** Re-enable when finishing import data is complete for executive reporting. */
+export const EXECUTIVE_FINANCIALS_ENABLED = false;
+
 export type ProjectFinancialTotals = {
   project: string;
   slug: string;

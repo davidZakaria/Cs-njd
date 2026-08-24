@@ -2,7 +2,10 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
-import { getExecutiveFinancials } from "@/lib/executive/financial-analytics";
+import {
+  EXECUTIVE_FINANCIALS_ENABLED,
+  getExecutiveFinancials,
+} from "@/lib/executive/financial-analytics";
 import { ExecutiveCommandCenter } from "@/components/executive/executive-command-center";
 import { Link } from "@/i18n/navigation";
 import { buttonVariants } from "@/components/ui/button";
@@ -21,10 +24,10 @@ export default async function ExecutiveDashboardPage() {
     redirect(`/${locale}/dashboard`);
   }
 
-  const [data, financials] = await Promise.all([
-    getExecutiveDashboardData(session.user.id),
-    getExecutiveFinancials(),
-  ]);
+  const data = await getExecutiveDashboardData(session.user.id);
+  const financials = EXECUTIVE_FINANCIALS_ENABLED
+    ? await getExecutiveFinancials()
+    : null;
 
   return (
     <div className="space-y-6">
