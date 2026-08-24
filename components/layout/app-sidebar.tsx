@@ -40,6 +40,7 @@ import { signOutAction } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
 import { AdminNavGroups } from "@/components/layout/admin-nav-groups";
 import { GlobalAnnouncementBanner } from "@/components/layout/global-announcement-banner";
+import { NjdMark } from "@/components/brand/njd-mark";
 
 const iconMap = {
   dashboard: LayoutDashboard,
@@ -92,9 +93,7 @@ export function AppSidebar({ role }: { role: Role }) {
     <Sidebar collapsible="icon" side={isRtl ? "right" : "left"}>
       <SidebarHeader className="border-b border-border/50 px-4 py-4">
         <div className="flex items-center gap-2.5 font-heading text-base font-semibold tracking-tight [dir=rtl]:flex-row-reverse">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Building2 className="h-4 w-4" />
-          </div>
+          <NjdMark size={32} className="rounded-lg shadow-sm" />
           <span className="truncate group-data-[collapsible=icon]:hidden">NJD CRM</span>
         </div>
       </SidebarHeader>

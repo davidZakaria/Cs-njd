@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { NjdMark } from "@/components/brand/njd-mark";
 
 async function waitForSession(maxAttempts = 15) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -109,8 +110,16 @@ export default function LoginForm() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>{t("login")}</CardTitle>
+        <CardHeader className="space-y-4 text-center">
+          <div className="flex flex-col items-center gap-3">
+            <NjdMark size={48} className="rounded-xl shadow-md" />
+            <div className="space-y-1">
+              <p className="font-heading text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                NJD Post-Sales CRM
+              </p>
+              <CardTitle>{t("login")}</CardTitle>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
