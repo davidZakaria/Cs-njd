@@ -227,7 +227,6 @@ function ManagementEditForm({
   const t = useTranslations("units");
   const tCases = useTranslations("cases");
   const tCommon = useTranslations("common");
-  const tCases = useTranslations("cases");
   const tWorkflow = useTranslations("workflow");
   const [status, setStatus] = useState(ticket.status);
   const [override, setOverride] = useState(false);
