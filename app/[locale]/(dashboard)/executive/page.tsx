@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
+import { canUseManagementOverride } from "@/lib/workflow/management-override";
 import {
   EXECUTIVE_FINANCIALS_ENABLED,
   getExecutiveFinancials,
@@ -57,7 +58,11 @@ export default async function ExecutiveDashboardPage() {
       </div>
 
       <div className={cn(entranceAnimationClass, "animate-delay-150")}>
-        <ExecutiveCommandCenter data={data} financials={financials} />
+        <ExecutiveCommandCenter
+          data={data}
+          financials={financials}
+          canUseManagementOverride={canUseManagementOverride(session.user)}
+        />
       </div>
     </div>
   );

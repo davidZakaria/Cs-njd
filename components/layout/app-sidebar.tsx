@@ -40,6 +40,7 @@ import { signOutAction } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
 import { AdminNavGroups } from "@/components/layout/admin-nav-groups";
 import { GlobalAnnouncementBanner } from "@/components/layout/global-announcement-banner";
+import { GlobalSpotlight } from "@/components/layout/global-spotlight";
 import { NjdMark } from "@/components/brand/njd-mark";
 
 const iconMap = {
@@ -158,6 +159,7 @@ export function DashboardShell({
 }) {
   return (
     <SidebarProvider>
+      <GlobalSpotlight />
       <AppSidebar role={role} />
       <SidebarInset className="min-h-svh min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div className="flex min-h-full flex-col p-4 md:p-6">

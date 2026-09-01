@@ -38,11 +38,13 @@ export function ExecutiveProjectPanel({
   agents,
   kpiLabels,
   workloadLabels,
+  canUseManagementOverride = false,
 }: {
   slice: ProjectDashboardSlice;
   agents: ExecutiveDashboardData["agents"];
   kpiLabels: Record<ExecutiveKpiKey, string>;
   workloadLabels: WorkloadLabels;
+  canUseManagementOverride?: boolean;
 }) {
   const t = useTranslations("executive");
   const tCases = useTranslations("cases");
@@ -219,6 +221,7 @@ export function ExecutiveProjectPanel({
               rows={filteredTeamQueue}
               agents={agents}
               canAssign={true}
+              canUseManagementOverride={canUseManagementOverride}
               emptyLabel={
                 isOpenSearching ? t("searchNoResults") : t("teamQueueEmpty")
               }
@@ -233,6 +236,7 @@ export function ExecutiveProjectPanel({
               rows={filteredMyQueue}
               agents={agents}
               canAssign={false}
+              canUseManagementOverride={canUseManagementOverride}
               emptyLabel={
                 isOpenSearching ? t("searchNoResults") : t("myQueueEmpty")
               }
@@ -296,6 +300,7 @@ export function ExecutiveProjectPanel({
               rows={filteredResolvedTeamQueue}
               agents={agents}
               canAssign={false}
+              canUseManagementOverride={canUseManagementOverride}
               emptyLabel={
                 isResolvedSearching
                   ? t("searchNoResults")
@@ -312,6 +317,7 @@ export function ExecutiveProjectPanel({
               rows={filteredResolvedMyQueue}
               agents={agents}
               canAssign={false}
+              canUseManagementOverride={canUseManagementOverride}
               emptyLabel={
                 isResolvedSearching
                   ? t("searchNoResults")

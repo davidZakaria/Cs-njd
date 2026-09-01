@@ -65,6 +65,7 @@
     "phaseBannerLabel": "مرحلة التشطيب الحالية",
     "phaseBannerHint": "مؤشر ثابت — حدّث المرحلة مع تقدم الأعمال في الموقع.",
     "phaseMultiHint": "اختر كل المراحل الجارية حالياً في الموقع (يمكن اختيار أكثر من واحدة).",
+    "phaseChecklistDisabled": "قائمة التشطيب متاحة فقط لباقات التشطيب الكامل (وليس العظم أو أقل من باقة الشركة).",
     "finishingNotes": "ملاحظات التشطيب",
     "finishingNotesPlaceholder": "ملاحظات الموقع، التأخيرات، تعليقات المقاول…",
     "currentStatus": "موقف الوحده الحالي من التشطيب"
@@ -72,6 +73,13 @@
   "workflow": {
     "pendingParty": "جهة العطلة (في انتظار)",
     "nextFollowUpDate": "تاريخ المتابعة القادم",
+    "logCall": "📞 تسجيل مكالمة",
+    "searchShortcut": "البحث السريع (Cmd+K)",
+    "override": {
+      "title": "تجاوز الإدارة",
+      "confirm": "إغلاق البلاغ رغم وجود بوابات تحقق مفتوحة؟",
+      "auditNote": "تم تطبيق تجاوز الإدارة"
+    },
     "parties": {
       "CLIENT": "العميل",
       "ENGINEERING": "الإدارة الهندسية",
@@ -104,8 +112,36 @@
       "caseAssignedTitle": "بلاغ جديد معيّن",
       "caseAssignedMessage": "بلاغ جديد معيّن: الوحدة {unitCode}",
       "caseStatusUpdatedTitle": "تحديث حالة البلاغ",
-      "caseStatusUpdatedMessage": "تم تحديث حالة البلاغ {unitCode} إلى {status} بواسطة {agentName}"
+      "caseStatusUpdatedMessage": "تم تحديث حالة البلاغ {unitCode} إلى {status} بواسطة {agentName}",
+      "callLoggedTitle": "تم تسجيل مكالمة لوحدتك",
+      "callLoggedMessage": "تولى {callerName} مكالمة للوحدة {unitCode}."
     }
+  },
+  "actions": {
+    "logCall": "📞 تسجيل مكالمة",
+    "searchShortcut": "البحث السريع (Cmd+K)",
+    "searchPlaceholder": "ابحث بالهاتف أو العميل أو رقم الوحدة…",
+    "searchGroupUnits": "الوحدات",
+    "selectAllPhases": "تحديد الكل (تشطيب كامل)"
+  },
+  "fields": {
+    "contractPricePerMeter": "سعر المتر وقت التعاقد",
+    "deliveryDate": "تاريخ التسليم"
+  },
+  "filters": {
+    "dueToday": "مستحق اليوم / متأخر"
+  },
+  "finishingPhases": {
+    "PLUMBING_FOUNDATION": "تأسيس سباكة",
+    "ELECTRICAL_FOUNDATION": "تأسيس كهرباء",
+    "PLASTERING_FOUNDATION": "تأسيس محارة",
+    "CERAMIC_WORKS": "أعمال سيراميك",
+    "PAINTING_FINISHES": "تشطيبات دهانات",
+    "ELECTRICAL_FINISHES": "تشطيبات كهرباء",
+    "INTERNAL_DOORS": "الأبواب الداخلية",
+    "SANITARY_MIXERS": "الصحي والخلاطات",
+    "FINAL_PAINT": "آخر وش / دهان نهائي",
+    "selectAll": "تحديد الكل (تشطيب كامل)"
   },
   "nav": {
     "dashboard": "لوحة التحكم",
@@ -280,6 +316,7 @@
     "projectTab": "{project}",
     "openCasesByProject": "الوحدات ذات العمل المفتوح حسب المشروع",
     "casesByCategory": "البلاغات حسب التصنيف",
+    "pendingPartiesChart": "جهات العطلة (اختناقات)",
     "agentWorkload": "عبء العمل حسب الموظف",
     "projectWorkload": "عبء العمل حسب المشروع",
     "teamQueueTitle": "بلاغات الفريق — تعيين وإجراء",
@@ -475,6 +512,7 @@
     "assignToCs": "تعيين لموظف خدمة العملاء",
     "unassigned": "غير معيّن",
     "allStatuses": "كل الحالات",
+    "allFollowUps": "كل المتابعات",
     "allCategories": "كل التصنيفات",
     "allProjects": "كل المشاريع",
     "allAgents": "كل الموظفين",
@@ -930,14 +968,15 @@
     },
     "finishingPhase": {
       "NOT_STARTED": "لم يبدأ",
-      "PLUMBING": "أعمال السباكة",
-      "ELECTRICAL": "أعمال الكهرباء",
-      "PLASTERING": "أعمال المحارة",
-      "GYPSUM_BOARD": "أعمال الجبس",
-      "CERAMIC": "أعمال السيراميك",
-      "PAINTING": "أعمال الدهان",
-      "SANITARY": "التركيبات الصحية",
-      "FINISHED": "تم التشطيب"
+      "PLUMBING_FOUNDATION": "تأسيس سباكة",
+      "ELECTRICAL_FOUNDATION": "تأسيس كهرباء",
+      "PLASTERING_FOUNDATION": "تأسيس محارة",
+      "CERAMIC_WORKS": "أعمال سيراميك",
+      "PAINTING_FINISHES": "تشطيبات دهانات",
+      "ELECTRICAL_FINISHES": "تشطيبات كهرباء",
+      "INTERNAL_DOORS": "الأبواب الداخلية",
+      "SANITARY_MIXERS": "الصحي والخلاطات",
+      "FINAL_PAINT": "آخر وش / دهان نهائي"
     },
     "pendingParty": {
       "CLIENT": "العميل",

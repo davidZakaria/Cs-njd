@@ -57,3 +57,24 @@ export async function notifyCaseStatusUpdated({
     }))
   );
 }
+
+export async function notifyCallLogged({
+  agentUserId,
+  unitCode,
+  unitId,
+  callerName,
+}: {
+  agentUserId: string;
+  unitCode: string;
+  unitId: string;
+  callerName: string;
+}) {
+  const t = await getTranslations("notifications.messages");
+
+  await createNotification({
+    userId: agentUserId,
+    title: t("callLoggedTitle"),
+    message: t("callLoggedMessage", { callerName, unitCode }),
+    link: `/units/${unitId}`,
+  });
+}

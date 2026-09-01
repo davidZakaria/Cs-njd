@@ -1,12 +1,24 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { createTicket, updateTicketStatus } from "@/lib/actions/crm";
+import { createTicket, logCallQuickAction, updateTicketStatus } from "@/lib/actions/crm";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
+import {
+  confirmManagementOverride,
+  ManagementOverrideCheckbox,
+} from "@/components/workflow/management-override-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,6 +64,109 @@ function toDateInput(value: string): string {
   return date.toISOString().slice(0, 10);
 }
 
+function TicketUpdateForm({
+  ticket,
+  statusItems,
+  partyItems,
+  pending,
+  canUseManagementOverride,
+  onSubmit,
+}: {
+  ticket: TicketRow;
+  statusItems: Record<string, string>;
+  partyItems: Record<string, string>;
+  pending: boolean;
+  canUseManagementOverride: boolean;
+  onSubmit: (formData: FormData) => void | Promise<void>;
+}) {
+  const tCommon = useTranslations("common");
+  const tWorkflow = useTranslations("workflow");
+  const [status, setStatus] = useState(ticket.status);
+  const [override, setOverride] = useState(false);
+
+  async function handleSubmit(formData: FormData) {
+    if (
+      !confirmManagementOverride(
+        status,
+        override,
+        tWorkflow("override.confirm")
+      )
+    ) {
+      return;
+    }
+    await onSubmit(formData);
+  }
+
+  return (
+    <form action={handleSubmit} className="mt-3 space-y-3">
+      <input type="hidden" name="id" value={ticket.id} />
+      <input type="hidden" name="status" value={status} />
+      <div className="flex flex-wrap gap-2">
+        <Select
+          value={status}
+          onValueChange={(next) => {
+            if (next != null) {
+              setStatus(next);
+              if (next !== "RESOLVED") setOverride(false);
+            }
+          }}
+          items={statusItems}
+          disabled={pending}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TICKET_STATUSES.map((item) => (
+              <SelectItem key={item} value={item}>
+                {statusItems[item]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          name="pendingParty"
+          defaultValue={ticket.pendingParty}
+          items={partyItems}
+          disabled={pending}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder={tWorkflow("pendingParty")} />
+          </SelectTrigger>
+          <SelectContent>
+            {PENDING_PARTIES.map((party) => (
+              <SelectItem key={party} value={party}>
+                {partyItems[party]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={`follow-up-${ticket.id}`} className="text-xs">
+          {tWorkflow("nextFollowUpDate")}
+        </Label>
+        <Input
+          id={`follow-up-${ticket.id}`}
+          name="nextFollowUpDate"
+          type="date"
+          defaultValue={toDateInput(ticket.nextFollowUpDate)}
+          disabled={pending}
+          className="w-44"
+        />
+      </div>
+      <ManagementOverrideCheckbox
+        visible={canUseManagementOverride && status === "RESOLVED"}
+        checked={override}
+        onCheckedChange={setOverride}
+      />
+      <Button type="submit" size="sm" disabled={pending}>
+        {tCommon("update")}
+      </Button>
+    </form>
+  );
+}
+
 export function UnitTimelineCrud({
   unitId,
   tickets,
@@ -60,6 +175,7 @@ export function UnitTimelineCrud({
   noTicketsLabel,
   addFeedbackLabel,
   notesPlaceholder,
+  canUseManagementOverride = false,
 }: {
   unitId: string;
   tickets: TicketRow[];
@@ -68,11 +184,16 @@ export function UnitTimelineCrud({
   noTicketsLabel: string;
   addFeedbackLabel: string;
   notesPlaceholder: string;
+  canUseManagementOverride?: boolean;
 }) {
   const tCommon = useTranslations("common");
+  const tCases = useTranslations("cases");
+  const tActions = useTranslations("actions");
   const tWorkflow = useTranslations("workflow");
   const labels = useDomainLabels();
-  const { pending, notify } = useCrudToast();
+  const { pending, notify, runAction } = useCrudToast();
+  const [logCallOpen, setLogCallOpen] = useState(false);
+  const [callNotes, setCallNotes] = useState("📞 ");
 
   const partyItems = useMemo(() => {
     const items: Record<string, string> = {};
@@ -90,11 +211,62 @@ export function UnitTimelineCrud({
     notify(await updateTicketStatus(formData), "saved");
   }
 
+  function handleLogCall() {
+    runAction(
+      () =>
+        logCallQuickAction({
+          unitId,
+          notes: callNotes.trim(),
+        }),
+      "created",
+      tWorkflow("logCall")
+    );
+    setCallNotes("📞 ");
+    setLogCallOpen(false);
+  }
+
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle>{timelineLabel}</CardTitle>
+          <Dialog open={logCallOpen} onOpenChange={setLogCallOpen}>
+            <DialogTrigger render={<Button type="button" size="sm" variant="outline" />}>
+              {tWorkflow("logCall")}
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>{tWorkflow("logCall")}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2">
+                <Label htmlFor="log-call-notes">{tCases("caseNotes")}</Label>
+                <Textarea
+                  id="log-call-notes"
+                  value={callNotes}
+                  onChange={(event) => setCallNotes(event.target.value)}
+                  rows={4}
+                  disabled={pending}
+                />
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setLogCallOpen(false)}
+                  disabled={pending}
+                >
+                  {tCommon("cancel")}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleLogCall}
+                  disabled={pending || !callNotes.trim()}
+                >
+                  {tActions("logCall")}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent className="space-y-4">
           {tickets.length === 0 && (
@@ -120,61 +292,14 @@ export function UnitTimelineCrud({
                 </p>
               ) : null}
               {ticket.canEdit ? (
-                <form action={handleUpdate} className="mt-3 space-y-3">
-                  <input type="hidden" name="id" value={ticket.id} />
-                  <div className="flex flex-wrap gap-2">
-                    <Select
-                      name="status"
-                      defaultValue={ticket.status}
-                      items={statusItems}
-                      disabled={pending}
-                    >
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TICKET_STATUSES.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {statusItems[status]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      name="pendingParty"
-                      defaultValue={ticket.pendingParty}
-                      items={partyItems}
-                      disabled={pending}
-                    >
-                      <SelectTrigger className="w-44">
-                        <SelectValue placeholder={tWorkflow("pendingParty")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PENDING_PARTIES.map((party) => (
-                          <SelectItem key={party} value={party}>
-                            {partyItems[party]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor={`follow-up-${ticket.id}`} className="text-xs">
-                      {tWorkflow("nextFollowUpDate")}
-                    </Label>
-                    <Input
-                      id={`follow-up-${ticket.id}`}
-                      name="nextFollowUpDate"
-                      type="date"
-                      defaultValue={toDateInput(ticket.nextFollowUpDate)}
-                      disabled={pending}
-                      className="w-44"
-                    />
-                  </div>
-                  <Button type="submit" size="sm" disabled={pending}>
-                    {tCommon("update")}
-                  </Button>
-                </form>
+                <TicketUpdateForm
+                  ticket={ticket}
+                  statusItems={statusItems}
+                  partyItems={partyItems}
+                  pending={pending}
+                  canUseManagementOverride={canUseManagementOverride}
+                  onSubmit={handleUpdate}
+                />
               ) : null}
             </div>
           ))}

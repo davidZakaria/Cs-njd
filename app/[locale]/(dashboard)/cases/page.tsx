@@ -10,6 +10,7 @@ import { getAssignableAgentEmails } from "@/lib/staff";
 import { splitCasesForManager, getEffectiveCaseAgent } from "@/lib/cases/ownership";
 import { CasesTable, type CaseRow } from "@/components/cases/cases-table";
 import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
+import { canUseManagementOverride } from "@/lib/workflow/management-override";
 import { parseCasesPageFilters } from "@/lib/cases/cases-filter-url";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,10 @@ export default async function CasesPage({
     session?.user.role === "CS_AGENT"
       ? await resolveCsAgentScope(session.user)
       : null;
+
+  const canOverride = session?.user
+    ? canUseManagementOverride(session.user)
+    : false;
 
   const ticketWhere =
     csScope
@@ -69,6 +74,7 @@ export default async function CasesPage({
       category: ticket.category,
       status: ticket.status,
       pendingParty: ticket.pendingParty ?? "NONE",
+      nextFollowUpDate: ticket.nextFollowUpDate?.toISOString() ?? "",
       createdAt: ticket.createdAt.toISOString(),
       unitId: ticket.unitId,
       unitCode: ticket.unit.unitCode,
@@ -98,10 +104,13 @@ export default async function CasesPage({
           data={team}
           agents={agents}
           canAssign={true}
+          canUseManagementOverride={canOverride}
           defaultStatusFilter={filters.status}
           defaultProjectFilter={filters.project}
           defaultCategoryFilter={filters.category}
           defaultAgentFilter={filters.agent}
+          defaultFollowUpFilter={filters.followUp}
+          defaultPendingPartyFilter={filters.pendingParty}
           sectionTitle={t("manager.teamCases.title", { count: team.length })}
           sectionDescription={t("manager.teamCases.subtitle")}
         />
@@ -109,11 +118,14 @@ export default async function CasesPage({
           data={mine}
           agents={agents}
           canAssign={false}
+          canUseManagementOverride={canOverride}
           defaultCollapsed={true}
           defaultStatusFilter={filters.status}
           defaultProjectFilter={filters.project}
           defaultCategoryFilter={filters.category}
           defaultAgentFilter={filters.agent}
+          defaultFollowUpFilter={filters.followUp}
+          defaultPendingPartyFilter={filters.pendingParty}
           sectionTitle={t("manager.myCases.title", { count: mine.length })}
           sectionDescription={t("manager.myCases.subtitle")}
         />
@@ -137,10 +149,13 @@ export default async function CasesPage({
         data={rows}
         agents={agents}
         canAssign={canAssign}
+        canUseManagementOverride={canOverride}
         defaultStatusFilter={filters.status}
         defaultProjectFilter={filters.project}
         defaultCategoryFilter={filters.category}
         defaultAgentFilter={filters.agent}
+        defaultFollowUpFilter={filters.followUp}
+        defaultPendingPartyFilter={filters.pendingParty}
         sectionTitle={
           isCsAgent
             ? t("assignedToMe.title", { count: rows.length })

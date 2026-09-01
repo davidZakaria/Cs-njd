@@ -39,9 +39,11 @@ function TabCountBadge({
 export function ExecutiveCommandCenter({
   data,
   financials,
+  canUseManagementOverride = false,
 }: {
   data: ExecutiveDashboardData;
   financials: ExecutiveFinancials | null;
+  canUseManagementOverride?: boolean;
 }) {
   const locale = useLocale();
   const isRtl = locale === "ar";
@@ -179,11 +181,15 @@ export function ExecutiveCommandCenter({
           financials={financials}
           kpiLabels={kpiLabels}
           workloadLabels={workloadLabels}
+          canUseManagementOverride={canUseManagementOverride}
         />
       </TabsContent>
 
       <TabsContent value="resolved" className="animate-fade-up animate-delay-100 opacity-0 animate-fill-backwards">
-        <ExecutiveResolvedPanel data={data} />
+        <ExecutiveResolvedPanel
+          data={data}
+          canUseManagementOverride={canUseManagementOverride}
+        />
       </TabsContent>
 
       {data.byProject.map((slice) => (
@@ -197,6 +203,7 @@ export function ExecutiveCommandCenter({
               agents={data.agents}
               kpiLabels={kpiLabels}
               workloadLabels={workloadLabels}
+              canUseManagementOverride={canUseManagementOverride}
             />
           </TabsContent>
         ))}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import type { FinishingPackage } from "@prisma/client";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
@@ -51,6 +52,7 @@ export type FinishingFormDefaults = {
   executingCompany: string | null;
   contractDate: string | null;
   datedAt: string | null;
+  deliveryDate: string | null;
   emailDate: string | null;
   pricePerMeter: number | null;
   totalFinishingPrice: number | null;
@@ -161,6 +163,8 @@ export function UnitFinishingForm({
   const isRtl = locale === "ar";
   const t = useTranslations("units");
   const tFinishing = useTranslations("finishing");
+  const tFields = useTranslations("fields");
+  const tFinishingPhases = useTranslations("finishingPhases");
   const tCommon = useTranslations("common");
   const labels = useDomainLabels();
   const { pending, runAction } = useCrudToast();
@@ -172,6 +176,7 @@ export function UnitFinishingForm({
       executingCompany: (defaults.executingCompany ?? "") as FinishingFormInput["executingCompany"],
       contractDate: toDateInput(defaults.contractDate),
       datedAt: toDateInput(defaults.datedAt),
+      deliveryDate: toDateInput(defaults.deliveryDate),
       emailDate: toDateInput(defaults.emailDate),
       pricePerMeter: defaults.pricePerMeter ?? "",
       totalFinishingPrice: defaults.totalFinishingPrice ?? "",
@@ -196,6 +201,11 @@ export function UnitFinishingForm({
   });
 
   const watched = watch();
+
+  const checklistPackageType = useMemo((): FinishingPackage | null => {
+    const raw = watched.packageType || defaults.packageType;
+    return raw && raw !== "" ? (raw as FinishingPackage) : null;
+  }, [watched.packageType, defaults.packageType]);
 
   const packageItems = useMemo(() => {
     const items: Record<string, string> = { "": tCommon("all") };
@@ -258,8 +268,11 @@ export function UnitFinishingForm({
                   value={normalizeFinishingPhases(field.value ?? [])}
                   onChange={field.onChange}
                   disabled={!canEdit || pending}
+                  packageType={checklistPackageType}
                   label={tFinishing("phaseBannerLabel")}
                   hint={tFinishing("phaseMultiHint")}
+                  disabledHint={tFinishing("phaseChecklistDisabled")}
+                  selectAllLabel={tFinishingPhases("selectAll")}
                   labelForPhase={labels.finishingPhase}
                 />
               )}
@@ -445,6 +458,20 @@ export function UnitFinishingForm({
                 <DatePickerField
                   id="datedAt"
                   label={t("datedAt")}
+                  value={String(field.value ?? "")}
+                  onChange={field.onChange}
+                  disabled={!canEdit || pending}
+                  locale={locale}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="deliveryDate"
+              render={({ field }) => (
+                <DatePickerField
+                  id="deliveryDate"
+                  label={tFields("deliveryDate")}
                   value={String(field.value ?? "")}
                   onChange={field.onChange}
                   disabled={!canEdit || pending}

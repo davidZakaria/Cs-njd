@@ -1,5 +1,6 @@
 import type {
   ContractWorkflow,
+  FinishingPackage,
   FinishingPhase,
   PendingParty,
   Ticket,
@@ -7,6 +8,7 @@ import type {
 import {
   hasTrackedFinishingWork,
   isFinishingWorkComplete,
+  isFullyFinishedPackage,
 } from "@/lib/finishing/phases";
 
 export const RESOLUTION_GATE_CODES = [
@@ -23,6 +25,7 @@ type GateContext = {
   finishing: {
     phases?: FinishingPhase[] | null;
     phase?: FinishingPhase | null;
+    packageType?: FinishingPackage | null;
     doorFees: number | null;
     aluminumFees: number | null;
   } | null;
@@ -50,7 +53,12 @@ export function evaluateResolutionGates(ctx: GateContext): ResolutionGateCode[] 
       ? [ctx.finishing.phase]
       : [];
 
-  if (hasTrackedFinishingWork(phases) && !isFinishingWorkComplete(phases)) {
+  const packageType = ctx.finishing?.packageType ?? null;
+  if (isFullyFinishedPackage(packageType)) {
+    if (!isFinishingWorkComplete(phases)) {
+      failures.push("finishing_not_done");
+    }
+  } else if (hasTrackedFinishingWork(phases) && !isFinishingWorkComplete(phases)) {
     failures.push("finishing_not_done");
   }
 

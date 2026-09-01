@@ -26,6 +26,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  confirmManagementOverride,
+  ManagementOverrideCheckbox,
+} from "@/components/workflow/management-override-field";
 import { cn } from "@/lib/utils";
 
 const TICKET_STATUSES = ["PENDING", "ENGINEERING", "LEGAL", "RESOLVED"] as const;
@@ -36,17 +40,30 @@ function StatusQuickForm({
   statusItems,
   saveLabel,
   isRtl,
+  canUseManagementOverride,
 }: {
   ticketId: string;
   status: string;
   statusItems: Record<string, string>;
   saveLabel: string;
   isRtl: boolean;
+  canUseManagementOverride: boolean;
 }) {
   const [value, setValue] = useState(status);
+  const [override, setOverride] = useState(false);
   const { pending, notify } = useCrudToast();
+  const tWorkflow = useTranslations("workflow");
 
   async function handleUpdate(formData: FormData) {
+    if (
+      !confirmManagementOverride(
+        value,
+        override,
+        tWorkflow("override.confirm")
+      )
+    ) {
+      return;
+    }
     notify(await updateTicketStatus(formData), "saved");
   }
 
@@ -54,40 +71,55 @@ function StatusQuickForm({
     <form
       action={handleUpdate}
       className={cn(
-        "flex min-w-[10.5rem] items-center gap-1.5",
-        isRtl ? "flex-row-reverse justify-end" : "justify-start"
+        "flex min-w-[10.5rem] flex-col gap-1.5",
+        isRtl ? "items-end" : "items-start"
       )}
     >
       <input type="hidden" name="id" value={ticketId} />
       <input type="hidden" name="status" value={value} />
-      <Select
-        value={value}
-        onValueChange={(next) => {
-          if (next != null) setValue(next);
-        }}
-        items={statusItems}
-        disabled={pending}
+      <div
+        className={cn(
+          "flex items-center gap-1.5",
+          isRtl ? "flex-row-reverse justify-end" : "justify-start"
+        )}
       >
-        <SelectTrigger className="h-8 w-[7.5rem]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {TICKET_STATUSES.map((item) => (
-            <SelectItem key={item} value={item}>
-              {statusItems[item]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Button
-        type="submit"
-        size="sm"
-        variant="outline"
-        className="h-8 shrink-0"
-        disabled={pending}
-      >
-        {saveLabel}
-      </Button>
+        <Select
+          value={value}
+          onValueChange={(next) => {
+            if (next != null) {
+              setValue(next);
+              if (next !== "RESOLVED") setOverride(false);
+            }
+          }}
+          items={statusItems}
+          disabled={pending}
+        >
+          <SelectTrigger className="h-8 w-[7.5rem]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TICKET_STATUSES.map((item) => (
+              <SelectItem key={item} value={item}>
+                {statusItems[item]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          type="submit"
+          size="sm"
+          variant="outline"
+          className="h-8 shrink-0"
+          disabled={pending}
+        >
+          {saveLabel}
+        </Button>
+      </div>
+      <ManagementOverrideCheckbox
+        visible={canUseManagementOverride && value === "RESOLVED"}
+        checked={override}
+        onCheckedChange={setOverride}
+      />
     </form>
   );
 }
@@ -97,11 +129,13 @@ export function ExecutiveQuickActionsTable({
   agents,
   canAssign,
   emptyLabel,
+  canUseManagementOverride = false,
 }: {
   rows: ExecutiveCaseRow[];
   agents: Array<{ id: string; name: string }>;
   canAssign: boolean;
   emptyLabel: string;
+  canUseManagementOverride?: boolean;
 }) {
   const locale = useLocale();
   const isRtl = locale === "ar";
@@ -216,6 +250,7 @@ export function ExecutiveQuickActionsTable({
                   statusItems={statusItems}
                   saveLabel={tExec("saveStatus")}
                   isRtl={isRtl}
+                  canUseManagementOverride={canUseManagementOverride}
                 />
               </TableCell>
             </TableRow>

@@ -21,6 +21,7 @@ import { archivedUserEmail } from "@/lib/prisma/soft-delete";
 import {
   notifyCaseAssigned,
   notifyCaseStatusUpdated,
+  notifyCallLogged,
 } from "@/lib/notifications/triggers";
 import {
   finishingFormSchema,
@@ -42,6 +43,7 @@ import {
   mergeTicketWorkflowFields,
 } from "@/lib/workflow/resolution-gates";
 import { formatResolutionGateErrors } from "@/lib/workflow/resolution-gate-messages";
+import { canUseManagementOverride } from "@/lib/workflow/management-override";
 import type { PendingParty, Role } from "@prisma/client";
 
 async function withAudit<T>(fn: () => Promise<T>) {
@@ -209,13 +211,14 @@ async function loadUnitGateContext(unitId: string) {
 }
 
 async function assertCanResolveTicket(
-  role: string,
+  user: { role: Role; email?: string | null },
   status: string,
   ticket: { pendingParty: PendingParty | null },
-  unitId: string
+  unitId: string,
+  options?: { managementOverride?: boolean }
 ): Promise<ActionResult | null> {
   if (status !== "RESOLVED") return null;
-  if (role === "SUPER_ADMIN" || role === "MANAGEMENT") return null;
+  if (user.role === "SUPER_ADMIN") return null;
 
   const unit = await loadUnitGateContext(unitId);
   if (!unit) return actionFail("Unit not found");
@@ -226,11 +229,25 @@ async function assertCanResolveTicket(
     contractWorkflow: unit.contractWorkflow,
   });
 
+  if (failures.length === 0) return null;
+
+  if (options?.managementOverride && canUseManagementOverride(user)) {
+    return null;
+  }
+
   if (failures.length > 0) {
     return actionFail(await formatResolutionGateErrors(failures));
   }
 
   return null;
+}
+
+function parseManagementOverride(value: FormDataEntryValue | null): boolean {
+  return value === "true" || value === "on" || value === "1";
+}
+
+function managementOverrideNote(agentName: string): string {
+  return `[Management override by ${agentName}]`;
 }
 
 function parsePendingParty(value: FormDataEntryValue | null): PendingParty | null {
@@ -257,6 +274,9 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
     | "RESOLVED";
   const pendingParty = parsePendingParty(formData.get("pendingParty"));
   const nextFollowUpDate = parseFollowUpDate(formData.get("nextFollowUpDate"));
+  const managementOverride = parseManagementOverride(
+    formData.get("managementOverride")
+  );
 
   if (!notes.trim()) return actionFail("Notes are required");
 
@@ -267,18 +287,24 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
   if (accessError) return accessError;
 
   const gateError = await assertCanResolveTicket(
-    session.user.role,
+    session.user,
     status,
     { pendingParty: pendingParty ?? "NONE" },
-    unitId
+    unitId,
+    { managementOverride }
   );
   if (gateError) return gateError;
+
+  const noteBody =
+    managementOverride && status === "RESOLVED"
+      ? `${managementOverrideNote(session.user.name ?? session.user.email ?? "Manager")}\n${notes}`
+      : notes;
 
   await withAudit(() =>
     prisma.ticket.create({
       data: {
         unitId,
-        notes,
+        notes: noteBody,
         status,
         category: "GENERAL",
         agentId: session.user.id,
@@ -320,6 +346,9 @@ export async function updateTicketStatus(formData: FormData): Promise<ActionResu
   const nextFollowUpInput = formData.has("nextFollowUpDate")
     ? parseFollowUpDate(formData.get("nextFollowUpDate"))
     : undefined;
+  const managementOverride = parseManagementOverride(
+    formData.get("managementOverride")
+  );
 
   const ticket = await prisma.ticket.findUnique({
     where: { id },
@@ -339,20 +368,27 @@ export async function updateTicketStatus(formData: FormData): Promise<ActionResu
   });
 
   const gateError = await assertCanResolveTicket(
-    session.user.role,
+    session.user,
     status,
     mergedWorkflow,
-    ticket.unitId
+    ticket.unitId,
+    { managementOverride }
   );
   if (gateError) return gateError;
 
   const previousStatus = ticket.status;
+  const noteSuffix =
+    managementOverride && status === "RESOLVED"
+      ? `\n${managementOverrideNote(session.user.name ?? session.user.email ?? "Manager")}`
+      : "";
+  const nextNotes = noteSuffix ? `${ticket.notes}${noteSuffix}` : ticket.notes;
 
   await withAudit(() =>
     prisma.ticket.update({
       where: { id },
       data: {
         status,
+        notes: nextNotes,
         pendingParty: mergedWorkflow.pendingParty,
         nextFollowUpDate: mergedWorkflow.nextFollowUpDate,
       },
@@ -405,7 +441,7 @@ export async function updateTicketWorkflow(
 
   if (ticket.status === "RESOLVED" && pendingParty !== "NONE") {
     const gateError = await assertCanResolveTicket(
-      session.user.role,
+      session.user,
       "RESOLVED",
       { pendingParty },
       ticket.unitId
@@ -530,17 +566,15 @@ export async function updateFinishing(
     return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  const { unitId, ...data } = parsed.data;
+  const { unitId, deliveryDate, ...data } = parsed.data;
   const phases = normalizeFinishingPhases(data.phases);
-  const legacyPhase = phases.includes("FINISHED")
-    ? "FINISHED"
-    : sortPhases(phases).at(-1) ?? "NOT_STARTED";
+  const legacyPhase = sortPhases(phases).at(-1) ?? "NOT_STARTED";
 
   const unit = await prisma.unit.findUnique({ where: { id: unitId } });
   if (!unit) return actionFail("Unit not found");
 
-  await withAudit(() =>
-    prisma.finishing.upsert({
+  await withAudit(async () => {
+    await prisma.finishing.upsert({
       where: { unitId },
       update: {
         packageType: data.packageType,
@@ -571,11 +605,66 @@ export async function updateFinishing(
         phase: legacyPhase,
         currentFinishingStatus: data.currentFinishingStatus,
       },
-    })
-  );
+    });
+
+    if (deliveryDate !== undefined) {
+      await prisma.contractWorkflow.upsert({
+        where: { unitId },
+        update: { deliveryDate },
+        create: { unitId, deliveryDate },
+      });
+    }
+  });
 
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/units");
+  return actionOk();
+}
+
+export async function logCallQuickAction(input: {
+  unitId: string;
+  notes: string;
+}): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const notes = input.notes.trim();
+  if (!notes) return actionFail("Notes are required");
+
+  const unit = await prisma.unit.findUnique({
+    where: { id: input.unitId },
+    include: { agent: true },
+  });
+  if (!unit) return actionFail("Unit not found");
+
+  const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
+  if (accessError) return accessError;
+
+  await withAudit(() =>
+    prisma.ticket.create({
+      data: {
+        unitId: unit.id,
+        notes,
+        status: "PENDING",
+        category: "FEEDBACK_HISTORY",
+        agentId: session.user.id,
+        pendingParty: "NONE",
+      },
+    })
+  );
+
+  if (unit.agentId && unit.agentId !== session.user.id) {
+    await notifyCallLogged({
+      agentUserId: unit.agentId,
+      unitCode: unit.unitCode,
+      unitId: unit.id,
+      callerName: session.user.name ?? session.user.email ?? "Agent",
+    });
+  }
+
+  revalidatePath(`/units/${unit.id}`);
+  revalidatePath("/cases");
+  revalidatePath("/dashboard");
   return actionOk();
 }
 

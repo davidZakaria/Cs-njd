@@ -65,6 +65,7 @@
     "phaseBannerLabel": "Current finishing phase",
     "phaseBannerHint": "Pinned tracker — update as work progresses on site.",
     "phaseMultiHint": "Select every phase currently in progress on site (multiple allowed).",
+    "phaseChecklistDisabled": "Finishing checklist is only available for fully-finished packages (not Core & Shell or below company package).",
     "finishingNotes": "Finishing notes",
     "finishingNotesPlaceholder": "Site notes, delays, contractor comments…",
     "currentStatus": "Current unit finishing status"
@@ -72,6 +73,13 @@
   "workflow": {
     "pendingParty": "Pending with",
     "nextFollowUpDate": "Next follow-up date",
+    "logCall": "📞 Log call",
+    "searchShortcut": "Quick search (Cmd+K)",
+    "override": {
+      "title": "Management override",
+      "confirm": "Force resolve despite open checklist gates?",
+      "auditNote": "Management override applied"
+    },
     "parties": {
       "CLIENT": "Client",
       "ENGINEERING": "Engineering",
@@ -104,8 +112,36 @@
       "caseAssignedTitle": "New case assigned",
       "caseAssignedMessage": "New Case Assigned: Unit {unitCode}",
       "caseStatusUpdatedTitle": "Case status updated",
-      "caseStatusUpdatedMessage": "Case {unitCode} status updated to {status} by {agentName}"
+      "caseStatusUpdatedMessage": "Case {unitCode} status updated to {status} by {agentName}",
+      "callLoggedTitle": "Call logged for your unit",
+      "callLoggedMessage": "{callerName} handled a call for your unit {unitCode}."
     }
+  },
+  "actions": {
+    "logCall": "📞 Log call",
+    "searchShortcut": "Quick search (Cmd+K)",
+    "searchPlaceholder": "Search phone, client, or unit code…",
+    "searchGroupUnits": "Units",
+    "selectAllPhases": "Select all (full finishing)"
+  },
+  "fields": {
+    "contractPricePerMeter": "Contract price per m²",
+    "deliveryDate": "Delivery date"
+  },
+  "filters": {
+    "dueToday": "Due today / past due"
+  },
+  "finishingPhases": {
+    "PLUMBING_FOUNDATION": "Plumbing foundation",
+    "ELECTRICAL_FOUNDATION": "Electrical foundation",
+    "PLASTERING_FOUNDATION": "Plastering foundation",
+    "CERAMIC_WORKS": "Ceramic works",
+    "PAINTING_FINISHES": "Painting finishes",
+    "ELECTRICAL_FINISHES": "Electrical finishes",
+    "INTERNAL_DOORS": "Internal doors",
+    "SANITARY_MIXERS": "Sanitary & mixers",
+    "FINAL_PAINT": "Final paint coat",
+    "selectAll": "Select all (full finishing)"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -280,6 +316,7 @@
     "projectTab": "{project}",
     "openCasesByProject": "Units with open work by project",
     "casesByCategory": "Cases by category",
+    "pendingPartiesChart": "Pending parties (bottlenecks)",
     "agentWorkload": "Agent workload",
     "projectWorkload": "Project workload",
     "teamQueueTitle": "Team cases — assign & act",
@@ -475,6 +512,7 @@
     "assignToCs": "Assign to CS agent",
     "unassigned": "Unassigned",
     "allStatuses": "All statuses",
+    "allFollowUps": "All follow-ups",
     "allCategories": "All categories",
     "allProjects": "All projects",
     "allAgents": "All agents",
@@ -930,14 +968,15 @@
     },
     "finishingPhase": {
       "NOT_STARTED": "Not started",
-      "PLUMBING": "Plumbing",
-      "ELECTRICAL": "Electrical",
-      "PLASTERING": "Plastering",
-      "GYPSUM_BOARD": "Gypsum board",
-      "CERAMIC": "Ceramic",
-      "PAINTING": "Painting",
-      "SANITARY": "Sanitary",
-      "FINISHED": "Finished"
+      "PLUMBING_FOUNDATION": "Plumbing foundation",
+      "ELECTRICAL_FOUNDATION": "Electrical foundation",
+      "PLASTERING_FOUNDATION": "Plastering foundation",
+      "CERAMIC_WORKS": "Ceramic works",
+      "PAINTING_FINISHES": "Painting finishes",
+      "ELECTRICAL_FINISHES": "Electrical finishes",
+      "INTERNAL_DOORS": "Internal doors",
+      "SANITARY_MIXERS": "Sanitary & mixers",
+      "FINAL_PAINT": "Final paint coat"
     },
     "pendingParty": {
       "CLIENT": "Client",

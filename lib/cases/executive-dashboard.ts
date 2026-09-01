@@ -59,6 +59,15 @@ export type ProjectOpenCount = {
   count: number;
 };
 
+export type PendingPartyBreakdown = {
+  CLIENT: number;
+  ENGINEERING: number;
+  LEGAL: number;
+  FINANCE: number;
+  MANAGEMENT: number;
+  LOGISTICS: number;
+};
+
 export type ProjectDashboardSlice = {
   project: string;
   slug: string;
@@ -86,6 +95,7 @@ export type ExecutiveDashboardData = {
     categoryBreakdown: CategoryBreakdown;
     agentWorkload: AgentWorkload[];
     projectsOpenCounts: ProjectOpenCount[];
+    pendingPartyBreakdown: PendingPartyBreakdown;
   };
   byProject: ProjectDashboardSlice[];
   resolved: {
@@ -224,6 +234,35 @@ function computeCategoryBreakdown(rows: ExecutiveCaseRow[]): CategoryBreakdown {
       (row) => row.category === "FEEDBACK_HISTORY"
     ),
     general: countUniqueUnits(rows, (row) => row.category === "GENERAL"),
+  };
+}
+
+function computePendingPartyBreakdown(
+  rows: ExecutiveCaseRow[]
+): PendingPartyBreakdown {
+  const buckets: Record<keyof PendingPartyBreakdown, Set<string>> = {
+    CLIENT: new Set(),
+    ENGINEERING: new Set(),
+    LEGAL: new Set(),
+    FINANCE: new Set(),
+    MANAGEMENT: new Set(),
+    LOGISTICS: new Set(),
+  };
+
+  for (const row of rows) {
+    const party = row.pendingParty as keyof PendingPartyBreakdown;
+    if (party in buckets) {
+      buckets[party].add(row.unitId);
+    }
+  }
+
+  return {
+    CLIENT: buckets.CLIENT.size,
+    ENGINEERING: buckets.ENGINEERING.size,
+    LEGAL: buckets.LEGAL.size,
+    FINANCE: buckets.FINANCE.size,
+    MANAGEMENT: buckets.MANAGEMENT.size,
+    LOGISTICS: buckets.LOGISTICS.size,
   };
 }
 
@@ -400,6 +439,7 @@ export async function getExecutiveDashboardData(
   const globalStats = computeStats(rows);
   const globalCategoryBreakdown = computeCategoryBreakdown(rows);
   const globalAgentWorkload = computeAgentWorkload(rows, agents);
+  const pendingPartyBreakdown = computePendingPartyBreakdown(rows);
 
   const projectNamesInData = new Set([
     ...rows.map((row) => row.project),
@@ -449,6 +489,7 @@ export async function getExecutiveDashboardData(
       categoryBreakdown: globalCategoryBreakdown,
       agentWorkload: globalAgentWorkload,
       projectsOpenCounts,
+      pendingPartyBreakdown,
     },
     byProject,
     resolved: {

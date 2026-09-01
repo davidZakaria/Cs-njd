@@ -114,36 +114,40 @@ const FINISHING_PACKAGE_CANDIDATES: FuzzyCandidate<FinishingPackage>[] = [
 
 const FINISHING_PHASE_CANDIDATES: FuzzyCandidate<FinishingPhase>[] = [
   {
-    value: "FINISHED",
-    patterns: ["finished", "completed", "done", "انته", "مكتمل", "تم التشطيب"],
+    value: "FINAL_PAINT",
+    patterns: ["final paint", "last paint", "اخر وش", "آخر وش", "دهانات نهائية"],
   },
   {
-    value: "SANITARY",
-    patterns: ["se7y", "sanitary", "صحي", "صحية", "تركيبات صحية"],
+    value: "SANITARY_MIXERS",
+    patterns: ["sanitary", "mixers", "صحي", "خلاطات", "تركيب الصحى"],
   },
   {
-    value: "PAINTING",
-    patterns: ["dehanat", "painting", "paint", "دهان", "دهانات"],
+    value: "INTERNAL_DOORS",
+    patterns: ["internal doors", "doors", "ابواب", "أبواب", "الابواب الداخليه"],
   },
   {
-    value: "CERAMIC",
-    patterns: ["ceramic", "سيراميك", "سراميك", "سيراميك"],
+    value: "ELECTRICAL_FINISHES",
+    patterns: ["electrical finishes", "تشطيبات الكهرباء", "تشطيبات كهرباء"],
   },
   {
-    value: "GYPSUM_BOARD",
-    patterns: ["jipson", "gypsum", "جبس", "جبس بورد"],
+    value: "PAINTING_FINISHES",
+    patterns: ["painting finishes", "dehanat", "دهانات", "تشطيبات دهانات"],
   },
   {
-    value: "PLASTERING",
-    patterns: ["m7ara", "m7ara", "plaster", "plastering", "محار", "محارة"],
+    value: "CERAMIC_WORKS",
+    patterns: ["ceramic", "سيراميك", "سراميك", "أعمال سيراميك"],
   },
   {
-    value: "ELECTRICAL",
-    patterns: ["kahrba", "electrical", "electric", "كهرب", "كهرباء"],
+    value: "PLASTERING_FOUNDATION",
+    patterns: ["plastering foundation", "plaster", "محارة", "تأسيس محارة", "جبس"],
   },
   {
-    value: "PLUMBING",
-    patterns: ["sebaka", "plumbing", "plumber", "سباك", "سباكة"],
+    value: "ELECTRICAL_FOUNDATION",
+    patterns: ["electrical foundation", "كهرباء", "تأسيس كهرباء"],
+  },
+  {
+    value: "PLUMBING_FOUNDATION",
+    patterns: ["plumbing foundation", "plumbing", "سباكة", "تأسيس سباكة"],
   },
 ];
 

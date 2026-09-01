@@ -19,8 +19,10 @@ import { cn } from "@/lib/utils";
 
 export function ExecutiveResolvedPanel({
   data,
+  canUseManagementOverride = false,
 }: {
   data: ExecutiveDashboardData;
+  canUseManagementOverride?: boolean;
 }) {
   const t = useTranslations("executive");
   const tCases = useTranslations("cases");
@@ -130,6 +132,7 @@ export function ExecutiveResolvedPanel({
               rows={filteredTeamQueue}
               agents={data.agents}
               canAssign={false}
+              canUseManagementOverride={canUseManagementOverride}
               emptyLabel={
                 isSearching ? t("searchNoResults") : t("resolvedTeamQueueEmpty")
               }
@@ -144,6 +147,7 @@ export function ExecutiveResolvedPanel({
               rows={filteredMyQueue}
               agents={data.agents}
               canAssign={false}
+              canUseManagementOverride={canUseManagementOverride}
               emptyLabel={
                 isSearching ? t("searchNoResults") : t("resolvedMyQueueEmpty")
               }

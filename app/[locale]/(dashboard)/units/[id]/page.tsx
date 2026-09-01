@@ -18,6 +18,7 @@ import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banne
 import { isAwaitingResponseNote } from "@/lib/import/master-cases";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
 import { getWhatsAppTemplateSetting } from "@/lib/system/settings-store";
+import { canUseManagementOverride } from "@/lib/workflow/management-override";
 
 export default async function UnitProfilePage({
   params,
@@ -147,6 +148,7 @@ export default async function UnitProfilePage({
               executingCompany: unit.finishing?.executingCompany ?? null,
               contractDate: unit.finishing?.contractDate?.toISOString() ?? null,
               datedAt: unit.finishing?.datedAt?.toISOString() ?? null,
+              deliveryDate: unit.contractWorkflow?.deliveryDate?.toISOString() ?? null,
               emailDate: unit.finishing?.emailDate?.toISOString() ?? null,
               pricePerMeter: unit.finishing?.pricePerMeter ?? null,
               totalFinishingPrice: unit.finishing?.totalFinishingPrice ?? null,
@@ -184,16 +186,18 @@ export default async function UnitProfilePage({
               <p><strong>{t("deliveryDate")}:</strong> {unit.contractWorkflow?.deliveryDate?.toLocaleDateString(locale) ?? "-"}</p>
             </CardContent>
           </Card>
-          <HandoverChecklistForm
-            canEdit={canEditProfile}
-            defaults={{
-              unitId: unit.id,
-              hasSignedProtocol: unit.contractWorkflow?.hasSignedProtocol ?? false,
-              hasSignedExtension: unit.contractWorkflow?.hasSignedExtension ?? false,
-              hasPaidFees: unit.contractWorkflow?.hasPaidFees ?? false,
-              papersReceived: unit.contractWorkflow?.papersReceived ?? false,
-            }}
-          />
+          {canEditProfile ? (
+            <HandoverChecklistForm
+              canEdit={canEditProfile}
+              defaults={{
+                unitId: unit.id,
+                hasSignedProtocol: unit.contractWorkflow?.hasSignedProtocol ?? false,
+                hasSignedExtension: unit.contractWorkflow?.hasSignedExtension ?? false,
+                hasPaidFees: unit.contractWorkflow?.hasPaidFees ?? false,
+                papersReceived: unit.contractWorkflow?.papersReceived ?? false,
+              }}
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent value="timeline">
@@ -232,6 +236,11 @@ export default async function UnitProfilePage({
             noTicketsLabel={t("noTickets")}
             addFeedbackLabel={t("addFeedback")}
             notesPlaceholder={t("notesPlaceholder")}
+            canUseManagementOverride={
+              session?.user
+                ? canUseManagementOverride(session.user)
+                : false
+            }
           />
         </TabsContent>
       </Tabs>

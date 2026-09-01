@@ -5,6 +5,8 @@ export type CasesFilterParams = {
   project?: string;
   category?: string;
   agent?: string;
+  followUp?: "due";
+  pendingParty?: string;
 };
 
 export function buildCasesFilterUrl(params: CasesFilterParams): string {
@@ -13,6 +15,8 @@ export function buildCasesFilterUrl(params: CasesFilterParams): string {
   if (params.project) search.set("project", params.project);
   if (params.category) search.set("category", params.category);
   if (params.agent) search.set("agent", params.agent);
+  if (params.followUp) search.set("followUp", params.followUp);
+  if (params.pendingParty) search.set("pendingParty", params.pendingParty);
   const query = search.toString();
   return query ? `/cases?${query}` : "/cases";
 }
@@ -38,6 +42,8 @@ export type CasesPageFilters = {
   project: string;
   category: string;
   agent: string;
+  followUp: "all" | "due";
+  pendingParty: string;
 };
 
 export function parseCasesPageFilters(
@@ -53,10 +59,14 @@ export function parseCasesPageFilters(
       ? rawStatus
       : "all";
 
+  const rawFollowUp = String(searchParams.followUp ?? "all");
+
   return {
     status,
     project: String(searchParams.project ?? "all"),
     category: String(searchParams.category ?? "all"),
     agent: String(searchParams.agent ?? "all"),
+    followUp: rawFollowUp === "due" ? "due" : "all",
+    pendingParty: String(searchParams.pendingParty ?? "all"),
   };
 }

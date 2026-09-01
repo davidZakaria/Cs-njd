@@ -11,6 +11,7 @@ import {
 } from "@/components/executive/executive-kpi-grid";
 import { ExecutiveAgentWorkloadGrid } from "@/components/executive/executive-agent-workload-grid";
 import { ExecutiveQueueSection } from "@/components/executive/executive-queue-section";
+import { PendingPartiesChart } from "@/components/executive/pending-parties-chart";
 import { ProjectDistributionChart } from "@/components/executive/project-distribution-chart";
 import { StatusDonutChart } from "@/components/executive/status-donut-chart";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
@@ -33,11 +34,13 @@ export function ExecutiveOverviewPanel({
   financials,
   kpiLabels,
   workloadLabels,
+  canUseManagementOverride = false,
 }: {
   data: ExecutiveDashboardData;
   financials: ExecutiveFinancials | null;
   kpiLabels: Record<ExecutiveKpiKey, string>;
   workloadLabels: WorkloadLabels;
+  canUseManagementOverride?: boolean;
 }) {
   const t = useTranslations("executive");
   const tCases = useTranslations("cases");
@@ -109,6 +112,11 @@ export function ExecutiveOverviewPanel({
         />
       </div>
 
+      <PendingPartiesChart
+        breakdown={data.global.pendingPartyBreakdown}
+        className="shadow-sm"
+      />
+
       <ExecutiveAgentWorkloadGrid
         agents={data.global.agentWorkload}
         title={t("agentWorkload")}
@@ -139,6 +147,7 @@ export function ExecutiveOverviewPanel({
               rows={filteredTeamQueue}
               agents={data.agents}
               canAssign={true}
+              canUseManagementOverride={canUseManagementOverride}
               emptyLabel={
                 isSearching ? t("searchNoResults") : t("teamQueueEmpty")
               }
@@ -153,6 +162,7 @@ export function ExecutiveOverviewPanel({
               rows={filteredMyQueue}
               agents={data.agents}
               canAssign={false}
+              canUseManagementOverride={canUseManagementOverride}
               emptyLabel={
                 isSearching ? t("searchNoResults") : t("myQueueEmpty")
               }

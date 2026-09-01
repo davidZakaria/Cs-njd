@@ -1,5 +1,6 @@
 import { ExecutingCompany, FinishingPackage, FinishingPhase } from "@prisma/client";
 import { z } from "zod";
+import { FINISHING_PHASE_ORDER } from "@/lib/finishing/phases";
 
 const finishingPackageValues = Object.values(FinishingPackage) as [
   FinishingPackage,
@@ -81,6 +82,7 @@ export const finishingFormSchema = z.object({
   doorFees: optionalNumber(),
   aluminumFees: optionalNumber(),
   phases: optionalPhases(),
+  deliveryDate: optionalDate(),
   currentFinishingStatus: optionalString(),
 });
 
@@ -89,4 +91,6 @@ export type FinishingFormValues = z.output<typeof finishingFormSchema>;
 
 export const FINISHING_PACKAGE_OPTIONS = finishingPackageValues;
 export const EXECUTING_COMPANY_OPTIONS = executingCompanyValues;
-export const FINISHING_PHASE_OPTIONS = finishingPhaseValues;
+export const FINISHING_PHASE_OPTIONS = FINISHING_PHASE_ORDER.filter(
+  (phase) => phase !== "NOT_STARTED"
+) as FinishingPhase[];

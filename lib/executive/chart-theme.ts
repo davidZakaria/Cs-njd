@@ -96,3 +96,32 @@ export function projectBarFill(index: number): string {
   ];
   return palette[index % palette.length]!;
 }
+
+export const PENDING_PARTY_CHART_KEYS = [
+  "CLIENT",
+  "ENGINEERING",
+  "LEGAL",
+  "FINANCE",
+  "MANAGEMENT",
+  "LOGISTICS",
+] as const;
+
+export type PendingPartyChartKey = (typeof PENDING_PARTY_CHART_KEYS)[number];
+
+export type PendingPartyBreakdownSlice = {
+  key: PendingPartyChartKey;
+  party: PendingPartyChartKey;
+  value: number;
+  fill: string;
+};
+
+export function pendingPartyBreakdownToSlices(
+  breakdown: Record<PendingPartyChartKey, number>
+): PendingPartyBreakdownSlice[] {
+  return PENDING_PARTY_CHART_KEYS.map((key, index) => ({
+    key,
+    party: key,
+    value: breakdown[key],
+    fill: projectBarFill(index),
+  })).filter((slice) => slice.value > 0);
+}

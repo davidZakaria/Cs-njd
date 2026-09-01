@@ -22,6 +22,11 @@ import {
   UNASSIGNED_AGENT_FILTER,
 } from "@/lib/filters";
 import { projectNameToSlug } from "@/lib/cases/cases-filter-url";
+import { isFollowUpDue } from "@/lib/cases/follow-up-sprint";
+import {
+  confirmManagementOverride,
+  ManagementOverrideCheckbox,
+} from "@/components/workflow/management-override-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +54,7 @@ export type CaseRow = {
   category: string;
   status: string;
   pendingParty: string;
+  nextFollowUpDate: string;
   createdAt: string;
   unitId: string;
   unitCode: string;
@@ -77,68 +83,72 @@ function categoryFilterRank(category: string) {
   return index === -1 ? CATEGORY_FILTER_ORDER.length : index;
 }
 
-function TicketStatusSelect({
-  status,
-  statusItems,
-}: {
-  status: string;
-  statusItems: Record<string, string>;
-}) {
-  const [value, setValue] = useState(status);
-
-  return (
-    <>
-      <input type="hidden" name="status" value={value} />
-      <Select
-        value={value}
-        onValueChange={(next) => {
-          if (next != null) setValue(next);
-        }}
-        items={statusItems}
-      >
-        <SelectTrigger className="w-[9.5rem]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {TICKET_STATUSES.map((ticketStatus) => (
-            <SelectItem key={ticketStatus} value={ticketStatus}>
-              {statusItems[ticketStatus]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </>
-  );
-}
-
 function TicketStatusForm({
   ticketId,
   status,
   statusItems,
   saveLabel,
+  canUseManagementOverride,
 }: {
   ticketId: string;
   status: string;
   statusItems: Record<string, string>;
   saveLabel: string;
+  canUseManagementOverride: boolean;
 }) {
+  const tWorkflow = useTranslations("workflow");
   const { pending, notify } = useCrudToast();
+  const [value, setValue] = useState(status);
+  const [override, setOverride] = useState(false);
 
   async function handleUpdate(formData: FormData) {
+    if (
+      !confirmManagementOverride(
+        value,
+        override,
+        tWorkflow("override.confirm")
+      )
+    ) {
+      return;
+    }
     notify(await updateTicketStatus(formData), "saved");
   }
 
   return (
-    <form action={handleUpdate} className="flex flex-wrap gap-2">
+    <form action={handleUpdate} className="flex flex-col gap-2">
       <input type="hidden" name="id" value={ticketId} />
-      <TicketStatusSelect
-        key={`${ticketId}-${status}`}
-        status={status}
-        statusItems={statusItems}
+      <input type="hidden" name="status" value={value} />
+      <div className="flex flex-wrap gap-2">
+        <Select
+          value={value}
+          onValueChange={(next) => {
+            if (next != null) {
+              setValue(next);
+              if (next !== "RESOLVED") setOverride(false);
+            }
+          }}
+          items={statusItems}
+        >
+          <SelectTrigger className="w-[9.5rem]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TICKET_STATUSES.map((ticketStatus) => (
+              <SelectItem key={ticketStatus} value={ticketStatus}>
+                {statusItems[ticketStatus]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button type="submit" size="sm" disabled={pending}>
+          {saveLabel}
+        </Button>
+      </div>
+      <ManagementOverrideCheckbox
+        visible={canUseManagementOverride && value === "RESOLVED"}
+        checked={override}
+        onCheckedChange={setOverride}
       />
-      <Button type="submit" size="sm" disabled={pending}>
-        {saveLabel}
-      </Button>
     </form>
   );
 }
@@ -157,27 +167,34 @@ export function CasesTable({
   data,
   agents,
   canAssign,
+  canUseManagementOverride = false,
   sectionTitle,
   sectionDescription,
   defaultStatusFilter = "all",
   defaultProjectFilter = "all",
   defaultCategoryFilter = "all",
   defaultAgentFilter = "all",
+  defaultFollowUpFilter = "all",
+  defaultPendingPartyFilter = "all",
   defaultCollapsed = false,
 }: {
   data: CaseRow[];
   agents: Array<{ id: string; name: string }>;
   canAssign: boolean;
+  canUseManagementOverride?: boolean;
   sectionTitle?: string;
   sectionDescription?: string;
   defaultStatusFilter?: "all" | "open" | (typeof TICKET_STATUSES)[number];
   defaultProjectFilter?: string;
   defaultCategoryFilter?: string;
   defaultAgentFilter?: string;
+  defaultFollowUpFilter?: "all" | "due";
+  defaultPendingPartyFilter?: string;
   defaultCollapsed?: boolean;
 }) {
   const t = useTranslations("cases");
   const tCommon = useTranslations("common");
+  const tFilters = useTranslations("filters");
   const labels = useDomainLabels();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [query, setQuery] = useState("");
@@ -188,6 +205,10 @@ export function CasesTable({
     defaultAgentFilter === "unassigned"
       ? UNASSIGNED_AGENT_FILTER
       : defaultAgentFilter
+  );
+  const [followUpFilter, setFollowUpFilter] = useState(defaultFollowUpFilter);
+  const [pendingPartyFilter, setPendingPartyFilter] = useState(
+    defaultPendingPartyFilter
   );
 
   const statusItems = useMemo(() => {
@@ -285,6 +306,18 @@ export function CasesTable({
       } else if (agentFilter !== "all" && row.effectiveAgent !== agentFilter) {
         return false;
       }
+      if (
+        followUpFilter === "due" &&
+        !isFollowUpDue(row.nextFollowUpDate)
+      ) {
+        return false;
+      }
+      if (
+        pendingPartyFilter !== "all" &&
+        row.pendingParty !== pendingPartyFilter
+      ) {
+        return false;
+      }
       if (!query) return true;
       const q = query.toLowerCase();
       return (
@@ -300,7 +333,7 @@ export function CasesTable({
     return [...rows].sort(
       (a, b) => categoryFilterRank(a.category) - categoryFilterRank(b.category)
     );
-  }, [data, statusFilter, projectFilter, categoryFilter, agentFilter, query]);
+  }, [data, statusFilter, projectFilter, categoryFilter, agentFilter, followUpFilter, pendingPartyFilter, query]);
 
   const exportHeaders = useMemo(
     () => [
@@ -416,6 +449,11 @@ export function CasesTable({
                 {labels.pendingParty(row.original.pendingParty)}
               </Badge>
             ) : null}
+            {isFollowUpDue(row.original.nextFollowUpDate) ? (
+              <Badge variant="destructive" className="w-fit text-xs">
+                {tFilters("dueToday")}
+              </Badge>
+            ) : null}
           </div>
         ),
       },
@@ -429,6 +467,7 @@ export function CasesTable({
               status={row.original.status}
               statusItems={rowStatusItems}
               saveLabel={tCommon("save")}
+              canUseManagementOverride={canUseManagementOverride}
             />
           </div>
         ),
@@ -436,7 +475,7 @@ export function CasesTable({
     ];
 
     return cols;
-  }, [agents, canAssign, categoryLabels, labels, rowStatusItems, t, tCommon]);
+  }, [agents, canAssign, canUseManagementOverride, categoryLabels, labels, rowStatusItems, t, tCommon, tFilters]);
 
   const table = useReactTable({
     data: filtered,
@@ -480,7 +519,7 @@ export function CasesTable({
       )}
       {!collapsed ? (
         <>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
         <Input
           placeholder={tCommon("search")}
           value={query}
@@ -488,7 +527,7 @@ export function CasesTable({
             setQuery(e.target.value);
             table.setPageIndex(0);
           }}
-          className="xl:col-span-2"
+          className="xl:col-span-2 2xl:col-span-2"
         />
         <Select
           value={projectFilter}
@@ -571,6 +610,22 @@ export function CasesTable({
                 {item.label}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={followUpFilter}
+          onValueChange={(value) => {
+            setFollowUpFilter(value === "due" ? "due" : "all");
+            table.setPageIndex(0);
+          }}
+          items={{ all: t("allFollowUps"), due: tFilters("dueToday") }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={tFilters("dueToday")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("allFollowUps")}</SelectItem>
+            <SelectItem value="due">{tFilters("dueToday")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
