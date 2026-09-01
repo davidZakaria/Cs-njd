@@ -70,8 +70,6 @@ export function ExecutiveProjectPanel({
               status: "ENGINEERING",
               project: slice.slug,
             }),
-            myOpen: buildCasesFilterUrl({ status: "open", project: slice.slug }),
-            teamOpen: buildCasesFilterUrl({ status: "open", project: slice.slug }),
           })
         : [];
 

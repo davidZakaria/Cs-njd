@@ -6,8 +6,8 @@ import { useTranslations } from "next-intl";
 import { ExecutiveCaseSearchBar } from "@/components/executive/executive-case-search-bar";
 import { ExecutiveQuickActionsTable } from "@/components/executive/executive-quick-actions-table";
 import {
-  buildExecutiveKpiItems,
   ExecutiveKpiGrid,
+  type StatItem,
 } from "@/components/executive/executive-kpi-grid";
 import { ExecutiveAgentWorkloadGrid } from "@/components/executive/executive-agent-workload-grid";
 import { ExecutiveQueueSection } from "@/components/executive/executive-queue-section";
@@ -53,28 +53,11 @@ export function ExecutiveOverviewPanel({
   const labels = useDomainLabels();
   const [query, setQuery] = useState("");
 
-  const overviewKpis = useMemo(
-    () => [
-      ...buildExecutiveKpiItems(data.global.stats, kpiLabels, {
-        openTotal: buildCasesFilterUrl({ status: "open" }),
-        unassigned: buildCasesFilterUrl({ status: "open", agent: "unassigned" }),
-        legal: buildCasesFilterUrl({ status: "LEGAL" }),
-        engineering: buildCasesFilterUrl({ status: "ENGINEERING" }),
-        myOpen: buildCasesFilterUrl({ status: "open" }),
-        teamOpen: buildCasesFilterUrl({ status: "open" }),
-      }),
-      {
-        key: "pendingWithParty",
-        label: t("stats.pendingWithParty"),
-        value: data.global.stats.pendingWithParty,
-        href: buildCasesFilterUrl({ status: "open" }),
-      },
-    ],
-    [data.global.stats, kpiLabels, t]
-  );
+  const overviewKpis = useMemo((): StatItem[] => {
+    const signedProtocolMissing =
+      portfolio.signedProtocol.find((row) => row.key === "missing")?.count ?? 0;
 
-  const portfolioKpis = useMemo(
-    () => [
+    return [
       {
         key: "totalUnits",
         label: t("stats.totalUnits"),
@@ -82,15 +65,45 @@ export function ExecutiveOverviewPanel({
         href: "/units",
       },
       {
+        key: "openTotal",
+        label: kpiLabels.openTotal,
+        value: data.global.stats.openTotal,
+        href: buildCasesFilterUrl({ status: "open" }),
+      },
+      {
+        key: "unassigned",
+        label: kpiLabels.unassigned,
+        value: data.global.stats.unassigned,
+        href: buildCasesFilterUrl({ status: "open", agent: "unassigned" }),
+      },
+      {
+        key: "legal",
+        label: kpiLabels.legal,
+        value: data.global.stats.legal,
+        href: buildCasesFilterUrl({ status: "LEGAL" }),
+      },
+      {
+        key: "engineering",
+        label: kpiLabels.engineering,
+        value: data.global.stats.engineering,
+        href: buildCasesFilterUrl({ status: "ENGINEERING" }),
+      },
+      {
+        key: "pendingWithParty",
+        label: t("stats.pendingWithParty"),
+        value: data.global.stats.pendingWithParty,
+        href: buildCasesFilterUrl({ status: "open" }),
+      },
+      {
+        key: "followUpDue",
+        label: t("stats.followUpDue"),
+        value: portfolio.followUpDueToday + portfolio.followUpOverdue,
+        href: buildCasesFilterUrl({ status: "open", followUp: "due" }),
+      },
+      {
         key: "deliveredUnits",
         label: t("stats.deliveredUnits"),
         value: portfolio.deliveredUnits,
-        href: "/units",
-      },
-      {
-        key: "legalRiskUnits",
-        label: t("stats.legalRiskUnits"),
-        value: portfolio.legalRiskUnits,
         href: "/units",
       },
       {
@@ -100,22 +113,15 @@ export function ExecutiveOverviewPanel({
         href: "/units",
       },
       {
-        key: "followUpDue",
-        label: t("stats.followUpDue"),
-        value: portfolio.followUpDueToday + portfolio.followUpOverdue,
-        href: buildCasesFilterUrl({ status: "open", followUp: "due" }),
+        key: "legalRiskUnits",
+        label: t("stats.legalRiskUnits"),
+        value: portfolio.legalRiskUnits,
+        href: "/units",
       },
       {
         key: "signedProtocolMissing",
         label: t("stats.signedProtocolMissing"),
-        value: portfolio.signedProtocol.find((row) => row.key === "missing")
-          ?.count ?? 0,
-        href: "/units",
-      },
-      {
-        key: "finishingInProgress",
-        label: t("stats.finishingInProgress"),
-        value: portfolio.finishingInProgress,
+        value: signedProtocolMissing,
         href: "/units",
       },
       {
@@ -124,9 +130,8 @@ export function ExecutiveOverviewPanel({
         value: portfolio.feesOutstanding,
         href: "/units",
       },
-    ],
-    [portfolio, t]
-  );
+    ];
+  }, [data.global.stats, kpiLabels, portfolio, t]);
 
   const searchContext = useMemo(
     () => ({
@@ -156,18 +161,16 @@ export function ExecutiveOverviewPanel({
 
   return (
     <div className="space-y-8">
-      <ExecutiveKpiGrid items={overviewKpis} />
-
       <div className="space-y-3">
         <div>
           <h2 className="font-heading text-lg font-semibold tracking-tight">
-            {t("portfolioSectionTitle")}
+            {t("keyMetricsTitle")}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {t("portfolioSectionSubtitle")}
+            {t("keyMetricsSubtitle")}
           </p>
         </div>
-        <ExecutiveKpiGrid items={portfolioKpis} />
+        <ExecutiveKpiGrid items={overviewKpis} />
       </div>
 
       {financials ? <ExecutiveFinancialsPanel financials={financials} /> : null}

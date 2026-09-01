@@ -44,6 +44,7 @@ const PORTFOLIO_KPI_TONE_CLASS: Record<string, string> = {
   legalRiskUnits: "border-s-2 border-s-[var(--color-chart-3)]",
   deliveryOverdue: "border-s-2 border-s-[var(--color-chart-2)]",
   followUpDue: "border-s-2 border-s-[var(--color-chart-5)]",
+  pendingWithParty: "border-s-2 border-s-[var(--color-chart-5)]/70",
   signedProtocolMissing: "border-s-2 border-s-[var(--color-chart-2)]/80",
   finishingInProgress: "border-s-2 border-s-[var(--color-chart-4)]",
   feesOutstanding: "border-s-2 border-s-[var(--color-chart-3)]/70",
@@ -52,18 +53,18 @@ const PORTFOLIO_KPI_TONE_CLASS: Record<string, string> = {
 export function buildExecutiveKpiItems(
   stats: ExecutiveStats,
   labels: Record<ExecutiveKpiKey, string>,
-  hrefs?: Partial<Record<ExecutiveKpiKey, string>>
+  hrefs?: Partial<Record<ExecutiveKpiKey, string>>,
+  options?: { includeQueueSplit?: boolean }
 ): StatItem[] {
-  return (
-    [
-      "openTotal",
-      "unassigned",
-      "legal",
-      "engineering",
-      "myOpen",
-      "teamOpen",
-    ] as const
-  ).map((key) => ({
+  const keys = [
+    "openTotal",
+    "unassigned",
+    "legal",
+    "engineering",
+    ...(options?.includeQueueSplit ? (["myOpen", "teamOpen"] as const) : []),
+  ] as const;
+
+  return keys.map((key) => ({
     key,
     label: labels[key],
     value: stats[key],
