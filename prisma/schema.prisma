@@ -236,6 +236,12 @@ model ContractWorkflow {
   hasSignedExtension Boolean        @default(false)
   hasPaidFees        Boolean        @default(false)
   papersReceived     Boolean        @default(false)
+  signedProtocolStoredName     String?
+  signedProtocolOriginalName   String?
+  signedProtocolMimeType       String?
+  signedProtocolSizeBytes      Int?
+  signedProtocolUploadedAt     DateTime?
+  signedProtocolUploadedById   String?
   deletedAt          DateTime?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt

@@ -11,6 +11,9 @@ cd "$APP_DIR"
 echo "==> Pull latest code"
 git pull origin main
 
+echo "==> Ensure upload directory"
+mkdir -p uploads/signed-protocols
+
 echo "==> Install dependencies"
 npm ci
 

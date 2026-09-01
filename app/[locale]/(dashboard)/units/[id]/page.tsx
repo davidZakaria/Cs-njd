@@ -14,7 +14,9 @@ import { HandoverChecklistForm } from "@/components/units/handover-checklist-for
 import { UnitFinishingForm } from "@/components/units/unit-finishing-form";
 import { UnitClientForm } from "@/components/units/unit-client-form";
 import { PrintProtocolButton } from "@/components/units/print-protocol-button";
+import { SignedProtocolUpload } from "@/components/units/signed-protocol-upload";
 import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
+import { resolveSignedProtocolAccess } from "@/lib/auth/signed-protocol-access";
 import { isAwaitingResponseNote } from "@/lib/import/master-cases";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
 import { getWhatsAppTemplateSetting } from "@/lib/system/settings-store";
@@ -96,6 +98,33 @@ export default async function UnitProfilePage({
   const canManageTickets = session?.user
     ? canManageUnitTickets(session.user)
     : false;
+
+  const hasResolvedCase = unit.tickets.some((ticket) => ticket.status === "RESOLVED");
+  const signedProtocolAccess = session?.user
+    ? await resolveSignedProtocolAccess(session.user, unit.agentId)
+    : { canUpload: false, csScope: null };
+
+  const workflow = unit.contractWorkflow;
+  const signedProtocolUploader = workflow?.signedProtocolUploadedById
+    ? await prisma.user.findUnique({
+        where: { id: workflow.signedProtocolUploadedById },
+        select: { name: true },
+      })
+    : null;
+
+  const signedProtocolInfo = {
+    unitId: unit.id,
+    originalName: workflow?.signedProtocolOriginalName ?? null,
+    uploadedAtLabel: workflow?.signedProtocolUploadedAt
+      ? workflow.signedProtocolUploadedAt.toLocaleString(locale)
+      : null,
+    uploadedByLabel: signedProtocolUploader?.name ?? null,
+    sizeLabel:
+      workflow?.signedProtocolSizeBytes != null
+        ? `${(workflow.signedProtocolSizeBytes / 1024).toFixed(1)} KB`
+        : null,
+    hasFile: Boolean(workflow?.signedProtocolStoredName),
+  };
 
   return (
     <div className="space-y-6">
@@ -203,9 +232,21 @@ export default async function UnitProfilePage({
               }}
             />
           ) : null}
+          <SignedProtocolUpload
+            info={signedProtocolInfo}
+            canUpload={signedProtocolAccess.canUpload}
+            hasResolvedCase={hasResolvedCase}
+          />
         </TabsContent>
 
-        <TabsContent value="timeline">
+        <TabsContent value="timeline" className="space-y-4">
+          {hasResolvedCase ? (
+            <SignedProtocolUpload
+              info={signedProtocolInfo}
+              canUpload={signedProtocolAccess.canUpload}
+              hasResolvedCase={hasResolvedCase}
+            />
+          ) : null}
           <UnitTimelineCrud
             unitId={unit.id}
             tickets={(

@@ -102,6 +102,23 @@
       "paidFees": "Fees paid (door / aluminum)",
       "papersReceived": "All original papers received"
     },
+    "signedProtocol": {
+      "title": "Signed handover document",
+      "description": "After the case is resolved, upload the client-signed handover protocol (PDF or scan).",
+      "afterResolveHint": "Once a case on this unit is marked Resolved, you can upload the signed handover protocol here.",
+      "missingFile": "No signed document uploaded yet.",
+      "uploadLabel": "Upload signed protocol",
+      "replaceLabel": "Replace signed protocol",
+      "uploadButton": "Upload document",
+      "replaceButton": "Replace document",
+      "viewDownload": "View / download",
+      "uploadSuccess": "Signed document saved.",
+      "removeSuccess": "Signed document removed.",
+      "removeConfirm": "Remove the uploaded signed document from this unit?",
+      "uploadedAt": "Uploaded {date}",
+      "uploadedBy": "By {name}",
+      "fileHint": "PDF, JPG, PNG or WebP — max 15 MB."
+    },
     "errors": {
       "finishing_not_done": "Cannot close ticket: engineering finishing work is not complete.",
       "fees_unpaid": "Cannot close ticket: outstanding fees have not been paid.",
