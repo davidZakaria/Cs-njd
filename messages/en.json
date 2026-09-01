@@ -36,7 +36,13 @@
       "signatureClient": "Client signature",
       "signatureCompany": "Company representative",
       "signatureDate": "Date",
-      "footerNote": "NJD Development — Customer Service"
+      "footerNote": "NJD Development — Customer Service",
+      "variantStandard": "Standard (with insurance)",
+      "variantNoInsurance": "Without insurance deposit",
+      "variantDual": "Dual signature (with insurance)",
+      "variantDualNoInsurance": "Dual signature (no insurance)",
+      "variantJuraStandard": "Standard handover",
+      "variantJuraDual": "For two owners (dual signature)"
     }
   },
   "client": {

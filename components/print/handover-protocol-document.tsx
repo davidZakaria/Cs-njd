@@ -1,199 +1,358 @@
-import { formatCurrency } from "@/lib/format/currency";
+import type {
+  GreenAvenueTemplate,
+  HandoverFieldValues,
+  HandoverPrintPayload,
+  JuraTemplate,
+} from "@/lib/print/handover-templates/types";
+import {
+  fillEnglishPlaceholders,
+  getGreenAvenueEnglish,
+  getJuraEnglish,
+} from "@/lib/print/handover-templates/en-content";
+import {
+  formatGreenAvenueHeader,
+  interpolateHandoverText,
+  splitViolationItems,
+} from "@/lib/print/handover-templates/fields";
 
-export type HandoverProtocolData = {
-  locale: string;
-  unitCode: string;
-  projectName: string;
-  unitType: string;
-  areaLabel: string;
-  clientName: string;
-  clientNationalId: string | null;
-  clientPhone1: string | null;
-  clientPhone2: string | null;
-  clientEmail: string | null;
-  handoverStatus: string;
-  contractDate: string | null;
-  deliveryDate: string | null;
-  finishingPackage: string | null;
-  executingCompany: string | null;
-  totalFinishingPrice: number | null;
-  issuedAt: string;
-  companyOfficialName: string;
-  companyOfficialAddress: string;
-  labels: {
-    companyName: string;
-    documentTitle: string;
-    documentSubtitle: string;
-    issuedDate: string;
-    sectionClient: string;
-    sectionUnit: string;
-    sectionFinishing: string;
-    sectionLegal: string;
-    clientName: string;
-    nationalId: string;
-    phone: string;
-    email: string;
-    unitCode: string;
-    project: string;
-    unitType: string;
-    area: string;
-    handoverStatus: string;
-    contractDate: string;
-    deliveryDate: string;
-    finishingPackage: string;
-    executingCompany: string;
-    totalFinishing: string;
-    bodyIntro: string;
-    bodyClause1: string;
-    bodyClause2: string;
-    bodyClause3: string;
-    signatureClient: string;
-    signatureCompany: string;
-    signatureDate: string;
-    footerNote: string;
-  };
-};
+function fieldRow(labelAr: string, labelEn: string, value: string) {
+  return { labelAr, labelEn, value };
+}
 
-export function HandoverProtocolDocument({ data }: { data: HandoverProtocolData }) {
-  const isRtl = data.locale === "ar";
-  const dir = isRtl ? "rtl" : "ltr";
+function RecipientBlock({
+  fields,
+  dual,
+  labelsAr,
+  labelsEn,
+}: {
+  fields: HandoverFieldValues;
+  dual: boolean;
+  labelsAr: Record<string, string>;
+  labelsEn: Record<string, string>;
+}) {
+  const rows = (prefix: string) => [
+    fieldRow(`${prefix}${labelsAr.name}`, `${prefix}${labelsEn.name}`, fields.clientName),
+    fieldRow(labelsAr.nationality, labelsEn.nationality, fields.nationality),
+    fieldRow(labelsAr.nationalId, labelsEn.nationalId, fields.nationalId),
+    fieldRow(labelsAr.address, labelsEn.address, fields.address),
+    fieldRow(labelsAr.phone1, labelsEn.phone1, fields.phone1),
+    fieldRow(labelsAr.phone2, labelsEn.phone2, fields.phone2),
+    fieldRow(labelsAr.email, labelsEn.email, fields.email),
+  ];
 
   return (
-    <article
-      dir={dir}
-      className={`handover-print-sheet mx-auto w-[210mm] min-h-[297mm] bg-white px-[18mm] py-[14mm] text-[11pt] leading-relaxed text-black shadow-premium print:m-0 print:min-h-0 print:w-full print:max-w-none print:px-[15mm] print:py-[12mm] print:shadow-none ${
-        isRtl ? "font-[family-name:var(--font-cairo)]" : "font-[family-name:var(--font-jakarta)]"
-      }`}
-    >
-      <header className="mb-8 flex items-start justify-between gap-6 border-b border-black/15 pb-6">
-        <div className="flex min-h-16 w-28 flex-col items-center justify-center rounded-md border-2 border-black/20 bg-black/[0.03] px-2 text-center text-[10px] font-bold leading-tight">
-          {data.companyOfficialName}
+    <div className="space-y-3">
+      {!dual ? (
+        <FieldGrid rows={rows("")} />
+      ) : (
+        <>
+          <FieldGrid rows={rows("1- ")} />
+          <FieldGrid rows={rows("2- ")} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function FieldGrid({ rows }: { rows: { labelAr: string; labelEn: string; value: string }[] }) {
+  return (
+    <div className="grid grid-cols-1 gap-1.5 border border-black/10 bg-black/[0.015] p-2.5 text-[8pt]">
+      {rows.map((row) => (
+        <div key={row.labelEn} className="grid grid-cols-[1fr_1fr_minmax(0,1.2fr)] gap-2 border-b border-black/5 pb-1 last:border-0">
+          <span className="font-semibold text-black/80">{row.labelAr}</span>
+          <span className="text-black/55">{row.labelEn}</span>
+          <span className="border-b border-dotted border-black/35 font-medium">{row.value}</span>
         </div>
-        <div className="min-w-0 flex-1 text-center">
-          <h1 className="text-xl font-bold tracking-tight">{data.labels.documentTitle}</h1>
-          <p className="mt-1 text-sm text-black/70">{data.labels.documentSubtitle}</p>
-          <p className="mt-2 text-xs text-black/60">
-            {data.labels.issuedDate}: {data.issuedAt}
-          </p>
-        </div>
-        <div className="flex h-16 w-28 items-center justify-center rounded-md border-2 border-dashed border-black/20 bg-black/[0.02] text-[10px] text-black/50">
-          {data.labels.companyName}
+      ))}
+    </div>
+  );
+}
+
+function BilingualParagraph({ ar, en }: { ar: string; en: string }) {
+  return (
+    <div className="handover-bilingual-row grid grid-cols-2 gap-3 border-b border-black/5 py-2 text-[7.25pt] leading-[1.45]">
+      <p dir="rtl" className="text-justify font-[family-name:var(--font-cairo)]">
+        {ar}
+      </p>
+      <p dir="ltr" className="text-justify font-[family-name:var(--font-jakarta)] text-black/85">
+        {en}
+      </p>
+    </div>
+  );
+}
+
+function GreenAvenueDocument({
+  template,
+  fields,
+  companyName,
+  companyAddress,
+}: {
+  template: GreenAvenueTemplate;
+  fields: HandoverFieldValues;
+  companyName: string;
+  companyAddress: string;
+}) {
+  const header = formatGreenAvenueHeader(template.header);
+  const en = getGreenAvenueEnglish(template.withInsurance, template.dual);
+  const enFields = fields as Record<string, string>;
+  const declaration = interpolateHandoverText(template.declaration, fields);
+  const violations = splitViolationItems(interpolateHandoverText(template.violationsBody, fields));
+  const insurance = template.insurance
+    ? interpolateHandoverText(template.insurance, fields)
+    : null;
+
+  const labelsAr = {
+    name: "الاسم",
+    nationality: "الجنسية",
+    nationalId: "بطاقة الرقم القومى",
+    address: "المقيم في",
+    phone1: "تليفون 1",
+    phone2: "تليفون 2",
+    email: "البريد الالكتروني",
+  };
+
+  return (
+    <>
+      <header className="mb-4 border-b-2 border-[#1a3a2f] pb-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex h-14 w-24 items-center justify-center rounded border border-[#1a3a2f]/20 bg-[#1a3a2f]/5 px-2 text-center text-[7pt] font-bold leading-tight text-[#1a3a2f]">
+            {companyName}
+          </div>
+          <div className="min-w-0 flex-1 text-center">
+            <h1 className="text-[13pt] font-bold text-[#1a3a2f]">{header.title}</h1>
+            <p className="mt-0.5 text-[10pt] font-semibold">{header.project}</p>
+            <p className="text-[9pt] text-black/70">{header.location}</p>
+            <div className="mt-2 border-t border-black/10 pt-2">
+              <h2 className="text-[11pt] font-bold text-[#1a3a2f]/90">{en.headerTitle}</h2>
+              <p className="text-[8.5pt] text-black/65">{en.headerSubtitle}</p>
+            </div>
+          </div>
+          <div className="flex h-14 w-24 items-center justify-center rounded border border-dashed border-black/20 text-[7pt] text-black/45">
+            Logo
+          </div>
         </div>
       </header>
 
-      <section className="mb-6 space-y-2">
-        <h2 className="border-b border-black/10 pb-1 text-sm font-bold">
-          {data.labels.sectionClient}
-        </h2>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          <div>
-            <dt className="font-semibold">{data.labels.clientName}</dt>
-            <dd>{data.clientName}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold">{data.labels.nationalId}</dt>
-            <dd>{data.clientNationalId ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold">{data.labels.phone}</dt>
-            <dd>
-              {[data.clientPhone1, data.clientPhone2].filter(Boolean).join(" / ") || "—"}
-            </dd>
-          </div>
-          <div>
-            <dt className="font-semibold">{data.labels.email}</dt>
-            <dd>{data.clientEmail ?? "—"}</dd>
-          </div>
-        </dl>
+      <section className="mb-3">
+        <SectionHeading ar="أولاً: بيانات المستلم" en={en.section1Title} />
+        <RecipientBlock
+          fields={fields}
+          dual={template.dual}
+          labelsAr={labelsAr}
+          labelsEn={en.recipientLabels}
+        />
       </section>
 
-      <section className="mb-6 space-y-2">
-        <h2 className="border-b border-black/10 pb-1 text-sm font-bold">
-          {data.labels.sectionUnit}
-        </h2>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          <div>
-            <dt className="font-semibold">{data.labels.unitCode}</dt>
-            <dd>{data.unitCode}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold">{data.labels.project}</dt>
-            <dd>{data.projectName}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold">{data.labels.unitType}</dt>
-            <dd>{data.unitType}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold">{data.labels.area}</dt>
-            <dd>{data.areaLabel}</dd>
-          </div>
-        </dl>
+      <section className="mb-3">
+        <SectionHeading ar="ثانياً: بيانات الوحدة" en={en.section2Title} />
+        <BilingualParagraph
+          ar={interpolateHandoverText(template.section2, fields)}
+          en={fillEnglishPlaceholders(en.unitLine, enFields)}
+        />
       </section>
 
-      {(data.finishingPackage || data.executingCompany || data.totalFinishingPrice != null) && (
-        <section className="mb-6 space-y-2">
-          <h2 className="border-b border-black/10 pb-1 text-sm font-bold">
-            {data.labels.sectionFinishing}
-          </h2>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-            <div>
-              <dt className="font-semibold">{data.labels.finishingPackage}</dt>
-              <dd>{data.finishingPackage ?? "—"}</dd>
+      <section className="mb-3">
+        <SectionHeading ar="إقرار" en={en.declarationTitle} />
+        <BilingualParagraph ar={declaration} en={fillEnglishPlaceholders(en.declaration, enFields)} />
+      </section>
+
+      <section className="mb-3">
+        <SectionHeading ar={template.violationsIntro} en={en.violationsIntro} />
+        <BilingualParagraph ar={violations.join(" ")} en={en.violationsBody} />
+        {insurance ? (
+          <BilingualParagraph ar={insurance} en={en.insurance ?? ""} />
+        ) : null}
+      </section>
+
+      <SignatureFooter
+        dual={template.dual}
+        labelsAr={{
+          client: template.dual ? "توقيع المشتري الأول" : "توقيع المشتري",
+          client2: template.dual ? "توقيع المشتري الثاني" : undefined,
+          company: "توقيع الشركة",
+          date: "التاريخ",
+        }}
+        labelsEn={en.signatures}
+        companyAddress={companyAddress}
+      />
+    </>
+  );
+}
+
+function JuraDocument({
+  template,
+  fields,
+  companyName,
+  companyAddress,
+}: {
+  template: JuraTemplate;
+  fields: HandoverFieldValues;
+  companyName: string;
+  companyAddress: string;
+}) {
+  const en = getJuraEnglish(template.dual);
+  const enFields = fields as Record<string, string>;
+  const headerAr = interpolateHandoverText(template.header, fields);
+
+  const labelsAr = {
+    name: "الاسم",
+    nationality: "الجنسية",
+    nationalId: "بطاقة / جواز",
+    address: "المقيم في",
+    phone1: "رقم التليفون",
+    phone2: "تليفون 2",
+    email: "البريد الالكتروني",
+  };
+
+  return (
+    <>
+      <header className="mb-4 border-b-2 border-[#0d4a6b] pb-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex h-14 w-24 items-center justify-center rounded border border-[#0d4a6b]/20 bg-[#0d4a6b]/5 px-2 text-center text-[7pt] font-bold leading-tight text-[#0d4a6b]">
+            {companyName}
+          </div>
+          <div className="min-w-0 flex-1 text-center">
+            <h1 className="text-[13pt] font-bold text-[#0d4a6b]">محضر استلام وحدة سياحية</h1>
+            <p className="mt-0.5 text-[10pt] font-semibold">بمشروع قرية (جورا)</p>
+            <p className="text-[9pt] text-black/70">بمنطقة (الجلالة – العين السخنة)</p>
+            <p className="mt-1 text-[8pt] text-black/65">{headerAr.split("إنه").slice(1).join("إنه").trim()}</p>
+            <div className="mt-2 border-t border-black/10 pt-2">
+              <h2 className="text-[11pt] font-bold text-[#0d4a6b]/90">{en.headerTitle}</h2>
+              <p className="text-[8.5pt] text-black/65">{en.headerSubtitle}</p>
+              <p className="text-[8pt] text-black/55">
+                {fillEnglishPlaceholders(en.headerDateLine, enFields)}
+              </p>
             </div>
-            <div>
-              <dt className="font-semibold">{data.labels.executingCompany}</dt>
-              <dd>{data.executingCompany ?? "—"}</dd>
-            </div>
-            <div className="col-span-2">
-              <dt className="font-semibold">{data.labels.totalFinishing}</dt>
-              <dd>{formatCurrency(data.totalFinishingPrice, data.locale)}</dd>
-            </div>
-          </dl>
-        </section>
+          </div>
+          <div className="flex h-14 w-24 items-center justify-center rounded border border-dashed border-black/20 text-[7pt] text-black/45">
+            Logo
+          </div>
+        </div>
+      </header>
+
+      <section className="mb-3">
+        <RecipientBlock
+          fields={fields}
+          dual={template.dual}
+          labelsAr={labelsAr}
+          labelsEn={en.recipientLabels}
+        />
+      </section>
+
+      {template.parts.map((part, index) => {
+        const enPart = en.parts[index];
+        if (!enPart) return null;
+        const titleAr = part.text.split(/(?<=:)/)[0] ?? part.key;
+        return (
+          <section key={part.key} className="mb-2">
+            <SectionHeading ar={titleAr.trim()} en={enPart.title} />
+            <BilingualParagraph
+              ar={interpolateHandoverText(part.text, fields)}
+              en={fillEnglishPlaceholders(enPart.text, enFields)}
+            />
+          </section>
+        );
+      })}
+
+      <SignatureFooter
+        dual={template.dual}
+        labelsAr={{
+          client: template.dual ? "توقيع المالك الأول" : "توقيع المالك",
+          client2: template.dual ? "توقيع المالك الثاني" : undefined,
+          company: "توقيع الشركة",
+          date: "التاريخ",
+        }}
+        labelsEn={en.signatures}
+        companyAddress={companyAddress}
+      />
+    </>
+  );
+}
+
+function SectionHeading({ ar, en }: { ar: string; en: string }) {
+  return (
+    <div className="mb-1.5 grid grid-cols-2 gap-3 border-b border-black/15 pb-1">
+      <h3 dir="rtl" className="text-[8.5pt] font-bold text-[#1a3a2f]">
+        {ar}
+      </h3>
+      <h3 dir="ltr" className="text-[8.5pt] font-bold text-[#1a3a2f]/80">
+        {en}
+      </h3>
+    </div>
+  );
+}
+
+function SignatureFooter({
+  dual,
+  labelsAr,
+  labelsEn,
+  companyAddress,
+}: {
+  dual: boolean;
+  labelsAr: { client: string; client2?: string; company: string; date: string };
+  labelsEn: { client: string; client2?: string; company: string; date: string };
+  companyAddress: string;
+}) {
+  return (
+    <footer
+      className={`mt-4 grid gap-4 border-t border-black/15 pt-4 text-[8pt] ${dual ? "grid-cols-3" : "grid-cols-2"}`}
+    >
+      <SignatureCell labelAr={labelsAr.client} labelEn={labelsEn.client} />
+      {dual && labelsAr.client2 ? (
+        <SignatureCell labelAr={labelsAr.client2} labelEn={labelsEn.client2 ?? ""} />
+      ) : null}
+      <SignatureCell
+        labelAr={labelsAr.company}
+        labelEn={labelsEn.company}
+        footer={companyAddress}
+      />
+    </footer>
+  );
+}
+
+function SignatureCell({
+  labelAr,
+  labelEn,
+  footer,
+}: {
+  labelAr: string;
+  labelEn: string;
+  footer?: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <p dir="rtl" className="font-semibold">
+        {labelAr}
+      </p>
+      <p dir="ltr" className="text-black/55">
+        {labelEn}
+      </p>
+      <div className="mt-6 border-b border-black/50" />
+      <p className="text-[7pt] text-black/45">{footer}</p>
+    </div>
+  );
+}
+
+export function HandoverProtocolDocument({ data }: { data: HandoverPrintPayload }) {
+  return (
+    <article className="handover-print-sheet mx-auto w-[210mm] bg-white px-[12mm] py-[10mm] text-black shadow-premium print:m-0 print:w-full print:max-w-none print:px-[10mm] print:py-[8mm] print:shadow-none">
+      {data.template.kind === "green-avenue" ? (
+        <GreenAvenueDocument
+          template={data.template}
+          fields={data.fields}
+          companyName={data.companyName}
+          companyAddress={data.companyAddress}
+        />
+      ) : (
+        <JuraDocument
+          template={data.template}
+          fields={data.fields}
+          companyName={data.companyName}
+          companyAddress={data.companyAddress}
+        />
       )}
-
-      <section className="mb-8 space-y-2">
-        <h2 className="border-b border-black/10 pb-1 text-sm font-bold">
-          {data.labels.sectionLegal}
-        </h2>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          <div>
-            <dt className="font-semibold">{data.labels.handoverStatus}</dt>
-            <dd>{data.handoverStatus}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold">{data.labels.contractDate}</dt>
-            <dd>{data.contractDate ?? "—"}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold">{data.labels.deliveryDate}</dt>
-            <dd>{data.deliveryDate ?? "—"}</dd>
-          </div>
-        </dl>
-      </section>
-
-      <section className="mb-10 space-y-3 text-sm leading-8">
-        <p>{data.labels.bodyIntro}</p>
-        <p>{data.labels.bodyClause1}</p>
-        <p>{data.labels.bodyClause2}</p>
-        <p>{data.labels.bodyClause3}</p>
-      </section>
-
-      <footer className="mt-auto grid grid-cols-2 gap-10 pt-8 text-sm">
-        <div className="space-y-8">
-          <p className="font-semibold">{data.labels.signatureClient}</p>
-          <div className="border-b border-black/40 pt-10" />
-          <p className="text-xs text-black/60">{data.labels.signatureDate}</p>
-        </div>
-        <div className="space-y-8">
-          <p className="font-semibold">{data.labels.signatureCompany}</p>
-          <div className="border-b border-black/40 pt-10" />
-          <p className="text-xs text-black/60">
-            {data.companyOfficialAddress || data.labels.footerNote}
-          </p>
-        </div>
-      </footer>
     </article>
   );
 }
+
+export type { HandoverPrintPayload, HandoverFieldValues };

@@ -109,7 +109,7 @@ export default async function UnitProfilePage({
             {projectLabel} · {unit.unitCode}
           </p>
         </div>
-        <PrintProtocolButton unitId={unit.id} locale={locale} />
+        <PrintProtocolButton unitId={unit.id} locale={locale} projectName={unit.project.name} />
       </div>
 
       <Tabs defaultValue={tab === "timeline" ? "timeline" : "client"}>

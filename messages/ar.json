@@ -36,7 +36,13 @@
       "signatureClient": "توقيع العميل / العميلة",
       "signatureCompany": "توقيع ممثل الشركة",
       "signatureDate": "التاريخ",
-      "footerNote": "شركة نيوجيرسي للتطوير العقاري — خدمة العملاء"
+      "footerNote": "شركة نيوجيرسي للتطوير العقاري — خدمة العملاء",
+      "variantStandard": "محضر عادي (مع تأمين)",
+      "variantNoInsurance": "بدون تأمين أعمال",
+      "variantDual": "توقيع فردين (مع تأمين)",
+      "variantDualNoInsurance": "توقيع فردين (بدون تأمين)",
+      "variantJuraStandard": "محضر استلام عادي",
+      "variantJuraDual": "محضر استلام (لفردين)"
     }
   },
   "client": {

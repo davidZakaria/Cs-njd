@@ -278,4 +278,13 @@
   .handover-print-sheet {
     box-shadow: none !important;
   }
+
+  .handover-bilingual-row {
+    break-inside: avoid;
+  }
+
+  .handover-print-sheet p {
+    orphans: 3;
+    widows: 3;
+  }
 }
