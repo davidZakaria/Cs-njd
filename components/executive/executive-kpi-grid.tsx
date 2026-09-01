@@ -38,6 +38,17 @@ const RESOLVED_KPI_TONE_CLASS: Record<string, string> = {
   teamResolved: "border-s-2 border-s-emerald-500/50",
 };
 
+const PORTFOLIO_KPI_TONE_CLASS: Record<string, string> = {
+  totalUnits: "border-s-2 border-s-[var(--color-chart-1)]",
+  deliveredUnits: "border-s-2 border-s-emerald-500",
+  legalRiskUnits: "border-s-2 border-s-[var(--color-chart-3)]",
+  deliveryOverdue: "border-s-2 border-s-[var(--color-chart-2)]",
+  followUpDue: "border-s-2 border-s-[var(--color-chart-5)]",
+  signedProtocolMissing: "border-s-2 border-s-[var(--color-chart-2)]/80",
+  finishingInProgress: "border-s-2 border-s-[var(--color-chart-4)]",
+  feesOutstanding: "border-s-2 border-s-[var(--color-chart-3)]/70",
+};
+
 export function buildExecutiveKpiItems(
   stats: ExecutiveStats,
   labels: Record<ExecutiveKpiKey, string>,
@@ -67,9 +78,11 @@ export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
         const toneClass =
           stat.key in KPI_TONE_CLASS
             ? KPI_TONE_CLASS[stat.key as ExecutiveKpiKey]
-            : stat.key in RESOLVED_KPI_TONE_CLASS
-              ? RESOLVED_KPI_TONE_CLASS[stat.key]
-              : "border-s-2 border-s-muted-foreground/30";
+            : stat.key in PORTFOLIO_KPI_TONE_CLASS
+              ? PORTFOLIO_KPI_TONE_CLASS[stat.key]
+              : stat.key in RESOLVED_KPI_TONE_CLASS
+                ? RESOLVED_KPI_TONE_CLASS[stat.key]
+                : "border-s-2 border-s-muted-foreground/30";
 
         const card = (
           <Card

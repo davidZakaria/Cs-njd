@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/navigation";
 import { Cell, Label, Pie, PieChart } from "recharts";
 
 import {
@@ -20,90 +19,70 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import type { CategoryBreakdown } from "@/lib/cases/executive-dashboard";
-import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { premiumCardHoverClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
 import {
-  categoryBreakdownToSlices,
-  categoryChartKeyToFilter,
-  type CategoryChartKey,
+  SIGNED_PROTOCOL_KEYS,
+  signedProtocolFill,
+  type SignedProtocolChartKey,
 } from "@/lib/executive/chart-theme";
+import type { SignedProtocolSlice } from "@/lib/executive/portfolio-analytics";
 
-type StatusDonutChartProps = {
-  breakdown: CategoryBreakdown;
+type SignedProtocolChartProps = {
+  slices: SignedProtocolSlice[];
   title?: string;
   description?: string;
   className?: string;
-  statusScope?: "open" | "RESOLVED";
-  projectSlug?: string;
 };
 
-export function StatusDonutChart({
-  breakdown,
+export function SignedProtocolChart({
+  slices,
   title,
   description,
   className,
-  statusScope = "open",
-  projectSlug,
-}: StatusDonutChartProps) {
+}: SignedProtocolChartProps) {
   const locale = useLocale();
   const isRtl = locale === "ar";
-  const router = useRouter();
+  const tExecutive = useTranslations("executive");
   const tCharts = useTranslations("executive.charts");
-  const tStats = useTranslations("executive.stats");
 
-  const categoryLabels = useMemo(
+  const chartData = useMemo(
     () =>
-      ({
-        legal: tStats("legal"),
-        engineering: tStats("engineering"),
-        customerService: tStats("customerService"),
-        feedbackHistory: tCharts("feedbackHistory"),
-        general: tCharts("general"),
-      }) satisfies Record<CategoryChartKey, string>,
-    [tCharts, tStats]
-  );
-
-  const slices = useMemo(
-    () => categoryBreakdownToSlices(breakdown, categoryLabels),
-    [breakdown, categoryLabels]
+      SIGNED_PROTOCOL_KEYS.map((key) => {
+        const slice = slices.find((row) => row.key === key);
+        return {
+          key,
+          label: tCharts(`signedProtocol.${key}`),
+          value: slice?.count ?? 0,
+          fill: signedProtocolFill(key),
+        };
+      }).filter((row) => row.value > 0),
+    [slices, tCharts]
   );
 
   const chartConfig = useMemo<ChartConfig>(
     () =>
       Object.fromEntries(
-        slices.map((slice) => [
-          slice.key,
-          { label: slice.label, color: slice.fill },
+        chartData.map((item) => [
+          item.key,
+          { label: item.label, color: item.fill },
         ])
       ),
-    [slices]
+    [chartData]
   );
 
-  const total = slices.reduce((sum, slice) => sum + slice.value, 0);
-
-  function handleSliceClick(key: CategoryChartKey) {
-    router.push(
-      buildCasesFilterUrl(
-        categoryChartKeyToFilter(key, {
-          statusScope,
-          project: projectSlug,
-        })
-      )
-    );
-  }
+  const total = chartData.reduce((sum, slice) => sum + slice.value, 0);
 
   return (
     <Card className={cn(premiumCardHoverClass, className)}>
       <CardHeader>
-        <CardTitle>{title ?? tCharts("categoryShare")}</CardTitle>
+        <CardTitle>{title ?? tExecutive("signedProtocolChart")}</CardTitle>
         {description ? <CardDescription>{description}</CardDescription> : null}
       </CardHeader>
       <CardContent>
         {total === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">
-            {tCharts("noData")}
+            {tCharts("noPortfolioData")}
           </p>
         ) : (
           <ChartContainer
@@ -131,7 +110,7 @@ export function StatusDonutChart({
                 }
               />
               <Pie
-                data={slices}
+                data={chartData}
                 dataKey="value"
                 nameKey="key"
                 innerRadius={68}
@@ -140,12 +119,10 @@ export function StatusDonutChart({
                 strokeWidth={2}
                 stroke="var(--color-background)"
               >
-                {slices.map((slice) => (
+                {chartData.map((slice) => (
                   <Cell
-                    key={slice.key}
+                    key={slice.key as SignedProtocolChartKey}
                     fill={slice.fill}
-                    className="cursor-pointer"
-                    onClick={() => handleSliceClick(slice.key)}
                   />
                 ))}
                 <Label
@@ -153,6 +130,8 @@ export function StatusDonutChart({
                     if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) {
                       return null;
                     }
+                    const missing =
+                      slices.find((row) => row.key === "missing")?.count ?? 0;
                     return (
                       <text
                         x={viewBox.cx}
@@ -165,16 +144,14 @@ export function StatusDonutChart({
                           y={(viewBox.cy ?? 0) - 6}
                           className="fill-foreground text-2xl font-semibold"
                         >
-                          {total.toLocaleString(locale)}
+                          {missing.toLocaleString(locale)}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
                           y={(viewBox.cy ?? 0) + 16}
                           className="fill-muted-foreground text-xs"
                         >
-                          {statusScope === "RESOLVED"
-                            ? tCharts("resolvedCases")
-                            : tCharts("openCases")}
+                          {tCharts("signedProtocol.missingCenter")}
                         </tspan>
                       </text>
                     );

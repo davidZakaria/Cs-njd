@@ -125,3 +125,36 @@ export function pendingPartyBreakdownToSlices(
     fill: projectBarFill(index),
   })).filter((slice) => slice.value > 0);
 }
+
+export const HANDOVER_PIPELINE_KEYS = [
+  "pending",
+  "inProgress",
+  "delivered",
+  "atRisk",
+] as const;
+
+export type HandoverPipelineChartKey = (typeof HANDOVER_PIPELINE_KEYS)[number];
+
+const HANDOVER_FILL: Record<HandoverPipelineChartKey, string> = {
+  pending: EXECUTIVE_CHART_COLORS.warning,
+  inProgress: EXECUTIVE_CHART_COLORS.primary,
+  delivered: "var(--color-emerald-500)",
+  atRisk: EXECUTIVE_CHART_COLORS.legal,
+};
+
+export function handoverPipelineFill(key: HandoverPipelineChartKey): string {
+  return HANDOVER_FILL[key];
+}
+
+export const SIGNED_PROTOCOL_KEYS = ["uploaded", "missing"] as const;
+
+export type SignedProtocolChartKey = (typeof SIGNED_PROTOCOL_KEYS)[number];
+
+const SIGNED_PROTOCOL_FILL: Record<SignedProtocolChartKey, string> = {
+  uploaded: "var(--color-emerald-500)",
+  missing: EXECUTIVE_CHART_COLORS.warning,
+};
+
+export function signedProtocolFill(key: SignedProtocolChartKey): string {
+  return SIGNED_PROTOCOL_FILL[key];
+}

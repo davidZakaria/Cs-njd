@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
 import { canUseManagementOverride } from "@/lib/workflow/management-override";
+import { getExecutivePortfolioMetrics } from "@/lib/executive/portfolio-analytics";
 import {
   EXECUTIVE_FINANCIALS_ENABLED,
   getExecutiveFinancials,
@@ -25,10 +26,11 @@ export default async function ExecutiveDashboardPage() {
     redirect(`/${locale}/dashboard`);
   }
 
-  const data = await getExecutiveDashboardData(session.user.id);
-  const financials = EXECUTIVE_FINANCIALS_ENABLED
-    ? await getExecutiveFinancials()
-    : null;
+  const [data, portfolio, financials] = await Promise.all([
+    getExecutiveDashboardData(session.user.id),
+    getExecutivePortfolioMetrics(),
+    EXECUTIVE_FINANCIALS_ENABLED ? getExecutiveFinancials() : Promise.resolve(null),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -60,6 +62,7 @@ export default async function ExecutiveDashboardPage() {
       <div className={cn(entranceAnimationClass, "animate-delay-150")}>
         <ExecutiveCommandCenter
           data={data}
+          portfolio={portfolio}
           financials={financials}
           canUseManagementOverride={canUseManagementOverride(session.user)}
         />

@@ -340,6 +340,11 @@
     "openCasesByProject": "الوحدات ذات العمل المفتوح حسب المشروع",
     "casesByCategory": "البلاغات حسب التصنيف",
     "pendingPartiesChart": "جهات العطلة (اختناقات)",
+    "handoverPipelineChart": "مسار التسليم",
+    "finishingPipelineChart": "تقدم التشطيب حسب المرحلة",
+    "signedProtocolChart": "امتثال محضر التسليم الموقّع",
+    "portfolioSectionTitle": "المحفظة والتسليم",
+    "portfolioSectionSubtitle": "تسليم الوحدات، التشطيب، مواعيد التسليم، والامتثال عبر المحفظة.",
     "agentWorkload": "عبء العمل حسب الموظف",
     "projectWorkload": "عبء العمل حسب المشروع",
     "teamQueueTitle": "بلاغات الفريق — تعيين وإجراء",
@@ -377,15 +382,37 @@
       "customerService": "خدمة العملاء",
       "resolvedTotal": "بلاغات مغلقة",
       "myResolved": "مغلقة لدي",
-      "teamResolved": "مغلقة للفريق"
+      "teamResolved": "مغلقة للفريق",
+      "totalUnits": "إجمالي الوحدات",
+      "deliveredUnits": "وحدات مُسلّمة",
+      "legalRiskUnits": "قانونية / عالية المخاطر",
+      "deliveryOverdue": "تسليمات متأخرة",
+      "followUpDue": "متابعات مستحقة",
+      "signedProtocolMissing": "محضر موقّع مفقود",
+      "finishingInProgress": "تشطيب قيد التنفيذ",
+      "feesOutstanding": "رسوم غير مسدّدة"
     },
     "charts": {
       "openCases": "وحدات بعمل مفتوح",
+      "resolvedCases": "بلاغات مغلقة",
       "categoryShare": "حصة التصنيف",
       "count": "العدد",
+      "units": "وحدات",
       "noData": "لا توجد بلاغات مفتوحة للعرض",
+      "noPortfolioData": "لا توجد بيانات محفظة للعرض",
       "feedbackHistory": "سجل الملاحظات",
-      "general": "عام"
+      "general": "عام",
+      "handover": {
+        "pending": "تسليم معلّق",
+        "inProgress": "قيد التنفيذ",
+        "delivered": "مُسلّم",
+        "atRisk": "عالي المخاطر / قانوني"
+      },
+      "signedProtocol": {
+        "uploaded": "مرفوع",
+        "missing": "غير مرفوع",
+        "missingCenter": "غير مرفوع"
+      }
     },
     "financials": {
       "title": "الماليات",

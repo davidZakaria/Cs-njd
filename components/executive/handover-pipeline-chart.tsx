@@ -1,0 +1,142 @@
+"use client";
+
+import { useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import { premiumCardHoverClass } from "@/lib/ui/premium-motion";
+import { cn } from "@/lib/utils";
+import {
+  HANDOVER_PIPELINE_KEYS,
+  handoverPipelineFill,
+  type HandoverPipelineChartKey,
+} from "@/lib/executive/chart-theme";
+import type { HandoverPipelineSlice } from "@/lib/executive/portfolio-analytics";
+
+type HandoverPipelineChartProps = {
+  pipeline: HandoverPipelineSlice[];
+  title?: string;
+  description?: string;
+  className?: string;
+};
+
+export function HandoverPipelineChart({
+  pipeline,
+  title,
+  description,
+  className,
+}: HandoverPipelineChartProps) {
+  const locale = useLocale();
+  const isRtl = locale === "ar";
+  const tExecutive = useTranslations("executive");
+  const tCharts = useTranslations("executive.charts");
+
+  const chartData = useMemo(
+    () =>
+      HANDOVER_PIPELINE_KEYS.map((key) => {
+        const slice = pipeline.find((row) => row.key === key);
+        return {
+          key,
+          label: tCharts(`handover.${key}`),
+          count: slice?.count ?? 0,
+          fill: handoverPipelineFill(key),
+        };
+      }).filter((row) => row.count > 0),
+    [pipeline, tCharts]
+  );
+
+  const chartConfig = useMemo<ChartConfig>(
+    () =>
+      Object.fromEntries(
+        chartData.map((item) => [
+          item.key,
+          { label: item.label, color: item.fill },
+        ])
+      ),
+    [chartData]
+  );
+
+  const total = chartData.reduce((sum, item) => sum + item.count, 0);
+
+  return (
+    <Card className={cn(premiumCardHoverClass, className)}>
+      <CardHeader>
+        <CardTitle>{title ?? tExecutive("handoverPipelineChart")}</CardTitle>
+        {description ? <CardDescription>{description}</CardDescription> : null}
+      </CardHeader>
+      <CardContent>
+        {total === 0 ? (
+          <p className="py-10 text-center text-sm text-muted-foreground">
+            {tCharts("noPortfolioData")}
+          </p>
+        ) : (
+          <ChartContainer
+            config={chartConfig}
+            className="aspect-auto h-[280px] w-full"
+            dir={isRtl ? "rtl" : "ltr"}
+          >
+            <BarChart
+              accessibilityLayer
+              data={chartData}
+              margin={{ top: 8, right: isRtl ? 4 : 12, left: isRtl ? 12 : 4 }}
+            >
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={10}
+                reversed={isRtl}
+                interval={0}
+                className="text-[11px]"
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                allowDecimals={false}
+                orientation={isRtl ? "right" : "left"}
+                width={36}
+              />
+              <ChartTooltip
+                cursor={{ fill: "var(--color-muted)", opacity: 0.35 }}
+                content={
+                  <ChartTooltipContent
+                    labelKey="label"
+                    nameKey="count"
+                    formatter={(value) => (
+                      <span className="font-mono font-medium tabular-nums">
+                        {value} {tCharts("count")}
+                      </span>
+                    )}
+                  />
+                }
+              />
+              <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={56}>
+                {chartData.map((entry) => (
+                  <Cell
+                    key={entry.key as HandoverPipelineChartKey}
+                    fill={entry.fill}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

@@ -13,6 +13,7 @@ import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
+import type { ExecutivePortfolioMetrics } from "@/lib/executive/portfolio-analytics";
 import type { ExecutiveFinancials } from "@/lib/executive/financial-analytics";
 
 function TabCountBadge({
@@ -38,10 +39,12 @@ function TabCountBadge({
 
 export function ExecutiveCommandCenter({
   data,
+  portfolio,
   financials,
   canUseManagementOverride = false,
 }: {
   data: ExecutiveDashboardData;
+  portfolio: ExecutivePortfolioMetrics;
   financials: ExecutiveFinancials | null;
   canUseManagementOverride?: boolean;
 }) {
@@ -178,6 +181,7 @@ export function ExecutiveCommandCenter({
       <TabsContent value="overview" className="animate-fade-up animate-delay-100 opacity-0 animate-fill-backwards">
         <ExecutiveOverviewPanel
           data={data}
+          portfolio={portfolio}
           financials={financials}
           kpiLabels={kpiLabels}
           workloadLabels={workloadLabels}

@@ -11,6 +11,9 @@ import {
 } from "@/components/executive/executive-kpi-grid";
 import { ExecutiveAgentWorkloadGrid } from "@/components/executive/executive-agent-workload-grid";
 import { ExecutiveQueueSection } from "@/components/executive/executive-queue-section";
+import { HandoverPipelineChart } from "@/components/executive/handover-pipeline-chart";
+import { FinishingPipelineChart } from "@/components/executive/finishing-pipeline-chart";
+import { SignedProtocolChart } from "@/components/executive/signed-protocol-chart";
 import { PendingPartiesChart } from "@/components/executive/pending-parties-chart";
 import { ProjectDistributionChart } from "@/components/executive/project-distribution-chart";
 import { StatusDonutChart } from "@/components/executive/status-donut-chart";
@@ -19,6 +22,7 @@ import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { filterExecutiveCaseRows } from "@/lib/executive/filter-case-rows";
 import { ExecutiveFinancialsPanel } from "@/components/executive/executive-financials-panel";
 import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
+import type { ExecutivePortfolioMetrics } from "@/lib/executive/portfolio-analytics";
 import type { ExecutiveFinancials } from "@/lib/executive/financial-analytics";
 import type { ExecutiveKpiKey } from "@/components/executive/executive-kpi-grid";
 
@@ -31,12 +35,14 @@ type WorkloadLabels = {
 
 export function ExecutiveOverviewPanel({
   data,
+  portfolio,
   financials,
   kpiLabels,
   workloadLabels,
   canUseManagementOverride = false,
 }: {
   data: ExecutiveDashboardData;
+  portfolio: ExecutivePortfolioMetrics;
   financials: ExecutiveFinancials | null;
   kpiLabels: Record<ExecutiveKpiKey, string>;
   workloadLabels: WorkloadLabels;
@@ -65,6 +71,61 @@ export function ExecutiveOverviewPanel({
       },
     ],
     [data.global.stats, kpiLabels, t]
+  );
+
+  const portfolioKpis = useMemo(
+    () => [
+      {
+        key: "totalUnits",
+        label: t("stats.totalUnits"),
+        value: portfolio.totalUnits,
+        href: "/units",
+      },
+      {
+        key: "deliveredUnits",
+        label: t("stats.deliveredUnits"),
+        value: portfolio.deliveredUnits,
+        href: "/units",
+      },
+      {
+        key: "legalRiskUnits",
+        label: t("stats.legalRiskUnits"),
+        value: portfolio.legalRiskUnits,
+        href: "/units",
+      },
+      {
+        key: "deliveryOverdue",
+        label: t("stats.deliveryOverdue"),
+        value: portfolio.deliveryOverdue,
+        href: "/units",
+      },
+      {
+        key: "followUpDue",
+        label: t("stats.followUpDue"),
+        value: portfolio.followUpDueToday + portfolio.followUpOverdue,
+        href: buildCasesFilterUrl({ status: "open", followUp: "due" }),
+      },
+      {
+        key: "signedProtocolMissing",
+        label: t("stats.signedProtocolMissing"),
+        value: portfolio.signedProtocol.find((row) => row.key === "missing")
+          ?.count ?? 0,
+        href: "/units",
+      },
+      {
+        key: "finishingInProgress",
+        label: t("stats.finishingInProgress"),
+        value: portfolio.finishingInProgress,
+        href: "/units",
+      },
+      {
+        key: "feesOutstanding",
+        label: t("stats.feesOutstanding"),
+        value: portfolio.feesOutstanding,
+        href: "/units",
+      },
+    ],
+    [portfolio, t]
   );
 
   const searchContext = useMemo(
@@ -97,7 +158,30 @@ export function ExecutiveOverviewPanel({
     <div className="space-y-8">
       <ExecutiveKpiGrid items={overviewKpis} />
 
+      <div className="space-y-3">
+        <div>
+          <h2 className="font-heading text-lg font-semibold tracking-tight">
+            {t("portfolioSectionTitle")}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t("portfolioSectionSubtitle")}
+          </p>
+        </div>
+        <ExecutiveKpiGrid items={portfolioKpis} />
+      </div>
+
       {financials ? <ExecutiveFinancialsPanel financials={financials} /> : null}
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <HandoverPipelineChart
+          pipeline={portfolio.handoverPipeline}
+          className="shadow-sm"
+        />
+        <FinishingPipelineChart
+          phases={portfolio.finishingPhases}
+          className="shadow-sm"
+        />
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <ProjectDistributionChart
@@ -112,10 +196,16 @@ export function ExecutiveOverviewPanel({
         />
       </div>
 
-      <PendingPartiesChart
-        breakdown={data.global.pendingPartyBreakdown}
-        className="shadow-sm"
-      />
+      <div className="grid gap-6 xl:grid-cols-2">
+        <PendingPartiesChart
+          breakdown={data.global.pendingPartyBreakdown}
+          className="shadow-sm"
+        />
+        <SignedProtocolChart
+          slices={portfolio.signedProtocol}
+          className="shadow-sm"
+        />
+      </div>
 
       <ExecutiveAgentWorkloadGrid
         agents={data.global.agentWorkload}

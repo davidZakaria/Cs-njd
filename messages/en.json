@@ -340,6 +340,11 @@
     "openCasesByProject": "Units with open work by project",
     "casesByCategory": "Cases by category",
     "pendingPartiesChart": "Pending parties (bottlenecks)",
+    "handoverPipelineChart": "Handover pipeline",
+    "finishingPipelineChart": "Finishing progress by phase",
+    "signedProtocolChart": "Signed protocol compliance",
+    "portfolioSectionTitle": "Portfolio & delivery",
+    "portfolioSectionSubtitle": "Unit handover, finishing, delivery dates, and compliance across the portfolio.",
     "agentWorkload": "Agent workload",
     "projectWorkload": "Project workload",
     "teamQueueTitle": "Team cases — assign & act",
@@ -377,15 +382,37 @@
       "customerService": "Customer service",
       "resolvedTotal": "Resolved cases",
       "myResolved": "My resolved",
-      "teamResolved": "Team resolved"
+      "teamResolved": "Team resolved",
+      "totalUnits": "Total units",
+      "deliveredUnits": "Delivered units",
+      "legalRiskUnits": "Legal / at-risk",
+      "deliveryOverdue": "Overdue deliveries",
+      "followUpDue": "Follow-ups due",
+      "signedProtocolMissing": "Missing signed protocol",
+      "finishingInProgress": "Finishing in progress",
+      "feesOutstanding": "Outstanding fees"
     },
     "charts": {
       "openCases": "Units with open work",
+      "resolvedCases": "Resolved cases",
       "categoryShare": "Category share",
       "count": "Count",
+      "units": "Units",
       "noData": "No open cases to chart",
+      "noPortfolioData": "No portfolio data to chart",
       "feedbackHistory": "Feedback history",
-      "general": "General"
+      "general": "General",
+      "handover": {
+        "pending": "Pending handover",
+        "inProgress": "In progress",
+        "delivered": "Delivered",
+        "atRisk": "At risk / legal"
+      },
+      "signedProtocol": {
+        "uploaded": "Uploaded",
+        "missing": "Missing upload",
+        "missingCenter": "Missing upload"
+      }
     },
     "financials": {
       "title": "Financials",
