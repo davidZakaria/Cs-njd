@@ -287,4 +287,9 @@
     orphans: 3;
     widows: 3;
   }
+
+  .handover-print-sheet img {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }

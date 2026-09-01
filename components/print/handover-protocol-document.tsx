@@ -14,6 +14,7 @@ import {
   interpolateHandoverText,
   splitViolationItems,
 } from "@/lib/print/handover-templates/fields";
+import { HandoverProtocolHeader } from "@/components/print/handover-brand-logo";
 
 function fieldRow(labelAr: string, labelEn: string, value: string) {
   return { labelAr, labelEn, value };
@@ -84,12 +85,10 @@ function BilingualParagraph({ ar, en }: { ar: string; en: string }) {
 function GreenAvenueDocument({
   template,
   fields,
-  companyName,
   companyAddress,
 }: {
   template: GreenAvenueTemplate;
   fields: HandoverFieldValues;
-  companyName: string;
   companyAddress: string;
 }) {
   const header = formatGreenAvenueHeader(template.header);
@@ -113,25 +112,15 @@ function GreenAvenueDocument({
 
   return (
     <>
-      <header className="mb-4 border-b-2 border-[#1a3a2f] pb-3">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex h-14 w-24 items-center justify-center rounded border border-[#1a3a2f]/20 bg-[#1a3a2f]/5 px-2 text-center text-[7pt] font-bold leading-tight text-[#1a3a2f]">
-            {companyName}
-          </div>
-          <div className="min-w-0 flex-1 text-center">
-            <h1 className="text-[13pt] font-bold text-[#1a3a2f]">{header.title}</h1>
-            <p className="mt-0.5 text-[10pt] font-semibold">{header.project}</p>
-            <p className="text-[9pt] text-black/70">{header.location}</p>
-            <div className="mt-2 border-t border-black/10 pt-2">
-              <h2 className="text-[11pt] font-bold text-[#1a3a2f]/90">{en.headerTitle}</h2>
-              <p className="text-[8.5pt] text-black/65">{en.headerSubtitle}</p>
-            </div>
-          </div>
-          <div className="flex h-14 w-24 items-center justify-center rounded border border-dashed border-black/20 text-[7pt] text-black/45">
-            Logo
-          </div>
+      <HandoverProtocolHeader accentClass="border-[#1a3a2f]">
+        <h1 className="text-[13pt] font-bold text-[#1a3a2f]">{header.title}</h1>
+        <p className="mt-0.5 text-[10pt] font-semibold">{header.project}</p>
+        <p className="text-[9pt] text-black/70">{header.location}</p>
+        <div className="mt-2 border-t border-black/10 pt-2">
+          <h2 className="text-[11pt] font-bold text-[#1a3a2f]/90">{en.headerTitle}</h2>
+          <p className="text-[8.5pt] text-black/65">{en.headerSubtitle}</p>
         </div>
-      </header>
+      </HandoverProtocolHeader>
 
       <section className="mb-3">
         <SectionHeading ar="أولاً: بيانات المستلم" en={en.section1Title} />
@@ -182,12 +171,10 @@ function GreenAvenueDocument({
 function JuraDocument({
   template,
   fields,
-  companyName,
   companyAddress,
 }: {
   template: JuraTemplate;
   fields: HandoverFieldValues;
-  companyName: string;
   companyAddress: string;
 }) {
   const en = getJuraEnglish(template.dual);
@@ -206,29 +193,19 @@ function JuraDocument({
 
   return (
     <>
-      <header className="mb-4 border-b-2 border-[#0d4a6b] pb-3">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex h-14 w-24 items-center justify-center rounded border border-[#0d4a6b]/20 bg-[#0d4a6b]/5 px-2 text-center text-[7pt] font-bold leading-tight text-[#0d4a6b]">
-            {companyName}
-          </div>
-          <div className="min-w-0 flex-1 text-center">
-            <h1 className="text-[13pt] font-bold text-[#0d4a6b]">محضر استلام وحدة سياحية</h1>
-            <p className="mt-0.5 text-[10pt] font-semibold">بمشروع قرية (جورا)</p>
-            <p className="text-[9pt] text-black/70">بمنطقة (الجلالة – العين السخنة)</p>
-            <p className="mt-1 text-[8pt] text-black/65">{headerAr.split("إنه").slice(1).join("إنه").trim()}</p>
-            <div className="mt-2 border-t border-black/10 pt-2">
-              <h2 className="text-[11pt] font-bold text-[#0d4a6b]/90">{en.headerTitle}</h2>
-              <p className="text-[8.5pt] text-black/65">{en.headerSubtitle}</p>
-              <p className="text-[8pt] text-black/55">
-                {fillEnglishPlaceholders(en.headerDateLine, enFields)}
-              </p>
-            </div>
-          </div>
-          <div className="flex h-14 w-24 items-center justify-center rounded border border-dashed border-black/20 text-[7pt] text-black/45">
-            Logo
-          </div>
+      <HandoverProtocolHeader accentClass="border-[#0d4a6b]">
+        <h1 className="text-[13pt] font-bold text-[#0d4a6b]">محضر استلام وحدة سياحية</h1>
+        <p className="mt-0.5 text-[10pt] font-semibold">بمشروع قرية (جورا)</p>
+        <p className="text-[9pt] text-black/70">بمنطقة (الجلالة – العين السخنة)</p>
+        <p className="mt-1 text-[8pt] text-black/65">{headerAr.split("إنه").slice(1).join("إنه").trim()}</p>
+        <div className="mt-2 border-t border-black/10 pt-2">
+          <h2 className="text-[11pt] font-bold text-[#0d4a6b]/90">{en.headerTitle}</h2>
+          <p className="text-[8.5pt] text-black/65">{en.headerSubtitle}</p>
+          <p className="text-[8pt] text-black/55">
+            {fillEnglishPlaceholders(en.headerDateLine, enFields)}
+          </p>
         </div>
-      </header>
+      </HandoverProtocolHeader>
 
       <section className="mb-3">
         <RecipientBlock
@@ -340,14 +317,12 @@ export function HandoverProtocolDocument({ data }: { data: HandoverPrintPayload 
         <GreenAvenueDocument
           template={data.template}
           fields={data.fields}
-          companyName={data.companyName}
           companyAddress={data.companyAddress}
         />
       ) : (
         <JuraDocument
           template={data.template}
           fields={data.fields}
-          companyName={data.companyName}
           companyAddress={data.companyAddress}
         />
       )}
