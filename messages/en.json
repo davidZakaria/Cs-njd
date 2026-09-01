@@ -442,6 +442,7 @@
     "contractDate": "Contract date",
     "deliveryDate": "Delivery date",
     "addFeedback": "Add Feedback",
+    "deleteTicketConfirm": "Remove this timeline entry? This cannot be undone.",
     "notesPlaceholder": "Notes",
     "noTickets": "No tickets yet"
   },

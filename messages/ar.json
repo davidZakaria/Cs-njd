@@ -442,6 +442,7 @@
     "contractDate": "تاريخ العقد",
     "deliveryDate": "تاريخ التسليم",
     "addFeedback": "إضافة ملاحظة",
+    "deleteTicketConfirm": "حذف هذا السجل من الخط الزمني؟ لا يمكن التراجع عن ذلك.",
     "notesPlaceholder": "اكتب الملاحظة هنا...",
     "noTickets": "لا توجد بلاغات بعد"
   },

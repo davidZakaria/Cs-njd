@@ -2,13 +2,20 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { createTicket, logCallQuickAction, updateTicketStatus } from "@/lib/actions/crm";
+import {
+  createTicket,
+  deleteTicket,
+  logCallQuickAction,
+  updateTicketDetails,
+  updateTicketStatus,
+} from "@/lib/actions/crm";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import {
   confirmManagementOverride,
   ManagementOverrideCheckbox,
 } from "@/components/workflow/management-override-field";
+import { TICKET_CATEGORIES } from "@/lib/validations/ticket";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +52,7 @@ const PENDING_PARTIES = [
 type TicketRow = {
   id: string;
   notes: string;
+  category: string;
   categoryLabel: string;
   statusLabel: string;
   status: string;
@@ -68,17 +76,25 @@ function TicketUpdateForm({
   ticket,
   statusItems,
   partyItems,
+  categoryItems,
   pending,
+  canManageTickets,
   canUseManagementOverride,
   onSubmit,
+  onDelete,
 }: {
   ticket: TicketRow;
   statusItems: Record<string, string>;
   partyItems: Record<string, string>;
+  categoryItems: Record<string, string>;
   pending: boolean;
+  canManageTickets: boolean;
   canUseManagementOverride: boolean;
   onSubmit: (formData: FormData) => void | Promise<void>;
+  onDelete: (ticketId: string) => void | Promise<void>;
 }) {
+  const t = useTranslations("units");
+  const tCases = useTranslations("cases");
   const tCommon = useTranslations("common");
   const tWorkflow = useTranslations("workflow");
   const [status, setStatus] = useState(ticket.status);
@@ -97,10 +113,49 @@ function TicketUpdateForm({
     await onSubmit(formData);
   }
 
+  async function handleDelete() {
+    if (!window.confirm(t("deleteTicketConfirm"))) return;
+    await onDelete(ticket.id);
+  }
+
   return (
     <form action={handleSubmit} className="mt-3 space-y-3">
       <input type="hidden" name="id" value={ticket.id} />
       <input type="hidden" name="status" value={status} />
+      {canManageTickets ? (
+        <>
+          <div className="space-y-1">
+            <Label htmlFor={`notes-${ticket.id}`} className="text-xs">
+              {tCases("caseNotes")}
+            </Label>
+            <Textarea
+              id={`notes-${ticket.id}`}
+              name="notes"
+              defaultValue={ticket.notes}
+              rows={3}
+              disabled={pending}
+              required
+            />
+          </div>
+          <Select
+            name="category"
+            defaultValue={ticket.category}
+            items={categoryItems}
+            disabled={pending}
+          >
+            <SelectTrigger className="w-full sm:w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TICKET_CATEGORIES.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {categoryItems[category]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <Select
           value={status}
@@ -160,9 +215,22 @@ function TicketUpdateForm({
         checked={override}
         onCheckedChange={setOverride}
       />
-      <Button type="submit" size="sm" disabled={pending}>
-        {tCommon("update")}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" size="sm" disabled={pending}>
+          {tCommon("update")}
+        </Button>
+        {canManageTickets ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            disabled={pending}
+            onClick={handleDelete}
+          >
+            {tCommon("delete")}
+          </Button>
+        ) : null}
+      </div>
     </form>
   );
 }
@@ -175,6 +243,7 @@ export function UnitTimelineCrud({
   noTicketsLabel,
   addFeedbackLabel,
   notesPlaceholder,
+  canManageTickets = false,
   canUseManagementOverride = false,
 }: {
   unitId: string;
@@ -184,10 +253,12 @@ export function UnitTimelineCrud({
   noTicketsLabel: string;
   addFeedbackLabel: string;
   notesPlaceholder: string;
+  canManageTickets?: boolean;
   canUseManagementOverride?: boolean;
 }) {
-  const tCommon = useTranslations("common");
+  const t = useTranslations("units");
   const tCases = useTranslations("cases");
+  const tCommon = useTranslations("common");
   const tActions = useTranslations("actions");
   const tWorkflow = useTranslations("workflow");
   const labels = useDomainLabels();
@@ -203,12 +274,27 @@ export function UnitTimelineCrud({
     return items;
   }, [labels]);
 
+  const categoryItems = useMemo(() => {
+    const items: Record<string, string> = {};
+    for (const category of TICKET_CATEGORIES) {
+      items[category] = labels.ticketCategory(category);
+    }
+    return items;
+  }, [labels]);
+
   async function handleCreate(formData: FormData) {
     notify(await createTicket(formData), "created");
   }
 
   async function handleUpdate(formData: FormData) {
-    notify(await updateTicketStatus(formData), "saved");
+    const result = canManageTickets
+      ? await updateTicketDetails(formData)
+      : await updateTicketStatus(formData);
+    notify(result, "saved");
+  }
+
+  async function handleDelete(ticketId: string) {
+    notify(await deleteTicket(ticketId), "deleted");
   }
 
   function handleLogCall() {
@@ -296,9 +382,12 @@ export function UnitTimelineCrud({
                   ticket={ticket}
                   statusItems={statusItems}
                   partyItems={partyItems}
+                  categoryItems={categoryItems}
                   pending={pending}
+                  canManageTickets={canManageTickets}
                   canUseManagementOverride={canUseManagementOverride}
                   onSubmit={handleUpdate}
+                  onDelete={handleDelete}
                 />
               ) : null}
             </div>
@@ -319,6 +408,25 @@ export function UnitTimelineCrud({
               required
               disabled={pending}
             />
+            {canManageTickets ? (
+              <Select
+                name="category"
+                defaultValue="GENERAL"
+                items={categoryItems}
+                disabled={pending}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TICKET_CATEGORIES.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {categoryItems[category]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
             <Select
               name="status"
               defaultValue="PENDING"

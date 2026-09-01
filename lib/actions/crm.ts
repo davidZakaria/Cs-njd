@@ -44,7 +44,12 @@ import {
 } from "@/lib/workflow/resolution-gates";
 import { formatResolutionGateErrors } from "@/lib/workflow/resolution-gate-messages";
 import { canUseManagementOverride } from "@/lib/workflow/management-override";
-import type { PendingParty, Role } from "@prisma/client";
+import { canManageUnitTickets } from "@/lib/auth/unit-ticket-access";
+import {
+  TICKET_CATEGORIES,
+  ticketManageSchema,
+} from "@/lib/validations/ticket";
+import type { PendingParty, Role, TicketCategory } from "@prisma/client";
 
 async function withAudit<T>(fn: () => Promise<T>) {
   const session = await auth();
@@ -200,6 +205,32 @@ export async function deleteUser(id: string): Promise<ActionResult> {
   return actionOk();
 }
 
+function parseTicketCategory(value: FormDataEntryValue | null): TicketCategory {
+  const raw = String(value ?? "GENERAL");
+  if (
+    (TICKET_CATEGORIES as readonly string[]).includes(raw)
+  ) {
+    return raw as TicketCategory;
+  }
+  return "GENERAL";
+}
+
+function revalidateTicketPaths(unitId: string) {
+  revalidatePath(`/units/${unitId}`);
+  revalidatePath("/cases");
+  revalidatePath("/dashboard");
+  revalidatePath("/executive");
+}
+
+async function assertCanManageUnitTickets(
+  user: { role: Role }
+): Promise<ActionResult | null> {
+  if (!canManageUnitTickets(user)) {
+    return actionFail("Unauthorized");
+  }
+  return null;
+}
+
 async function loadUnitGateContext(unitId: string) {
   return prisma.unit.findUnique({
     where: { id: unitId },
@@ -277,6 +308,9 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
   const managementOverride = parseManagementOverride(
     formData.get("managementOverride")
   );
+  const category = canManageUnitTickets(session.user)
+    ? parseTicketCategory(formData.get("category"))
+    : "GENERAL";
 
   if (!notes.trim()) return actionFail("Notes are required");
 
@@ -306,7 +340,7 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
         unitId,
         notes: noteBody,
         status,
-        category: "GENERAL",
+        category,
         agentId: session.user.id,
         pendingParty: pendingParty ?? "NONE",
         nextFollowUpDate,
@@ -323,10 +357,7 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
     });
   }
 
-  revalidatePath(`/units/${unitId}`);
-  revalidatePath("/cases");
-  revalidatePath("/dashboard");
-  revalidatePath("/executive");
+  revalidateTicketPaths(unitId);
   return actionOk();
 }
 
@@ -407,10 +438,124 @@ export async function updateTicketStatus(formData: FormData): Promise<ActionResu
     });
   }
 
-  revalidatePath(`/units/${ticket.unitId}`);
-  revalidatePath("/cases");
-  revalidatePath("/dashboard");
-  revalidatePath("/executive");
+  revalidateTicketPaths(ticket.unitId);
+  return actionOk();
+}
+
+export async function updateTicketDetails(
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const authError = await assertCanManageUnitTickets(session.user);
+  if (authError) return authError;
+
+  const parsed = ticketManageSchema.safeParse({
+    id: String(formData.get("id")),
+    notes: String(formData.get("notes") ?? ""),
+    status: String(formData.get("status")),
+    category: String(formData.get("category")),
+    pendingParty: formData.has("pendingParty")
+      ? String(formData.get("pendingParty"))
+      : undefined,
+    nextFollowUpDate: formData.has("nextFollowUpDate")
+      ? String(formData.get("nextFollowUpDate"))
+      : undefined,
+    managementOverride: parseManagementOverride(
+      formData.get("managementOverride")
+    ),
+  });
+
+  if (!parsed.success) {
+    return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
+  }
+
+  const {
+    id,
+    notes,
+    status,
+    category,
+    pendingParty,
+    nextFollowUpDate,
+    managementOverride,
+  } = parsed.data;
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id },
+    include: { unit: true },
+  });
+  if (!ticket) return actionFail("Ticket not found");
+
+  const mergedWorkflow = mergeTicketWorkflowFields(ticket, {
+    pendingParty: pendingParty ?? ticket.pendingParty,
+    nextFollowUpDate,
+  });
+
+  const gateError = await assertCanResolveTicket(
+    session.user,
+    status,
+    mergedWorkflow,
+    ticket.unitId,
+    { managementOverride }
+  );
+  if (gateError) return gateError;
+
+  const previousStatus = ticket.status;
+  let nextNotes = notes.trim();
+  if (
+    managementOverride &&
+    status === "RESOLVED" &&
+    !nextNotes.includes("[Management override")
+  ) {
+    nextNotes = `${nextNotes}\n${managementOverrideNote(session.user.name ?? session.user.email ?? "Manager")}`;
+  }
+
+  await withAudit(() =>
+    prisma.ticket.update({
+      where: { id },
+      data: {
+        notes: nextNotes,
+        status,
+        category,
+        pendingParty: mergedWorkflow.pendingParty,
+        nextFollowUpDate: mergedWorkflow.nextFollowUpDate,
+      },
+    })
+  );
+
+  if (
+    previousStatus !== status &&
+    (status === "LEGAL" || status === "RESOLVED")
+  ) {
+    await notifyCaseStatusUpdated({
+      unitCode: ticket.unit.unitCode,
+      unitId: ticket.unitId,
+      status,
+      agentName: session.user.name ?? session.user.email ?? "Manager",
+    });
+  }
+
+  revalidateTicketPaths(ticket.unitId);
+  return actionOk();
+}
+
+export async function deleteTicket(ticketId: string): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const authError = await assertCanManageUnitTickets(session.user);
+  if (authError) return authError;
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    include: { unit: true },
+  });
+  if (!ticket) return actionFail("Ticket not found");
+
+  await withAudit(() => prisma.ticket.delete({ where: { id: ticketId } }));
+
+  revalidateTicketPaths(ticket.unitId);
   return actionOk();
 }
 

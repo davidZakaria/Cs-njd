@@ -19,6 +19,7 @@ import { isAwaitingResponseNote } from "@/lib/import/master-cases";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
 import { getWhatsAppTemplateSetting } from "@/lib/system/settings-store";
 import { canUseManagementOverride } from "@/lib/workflow/management-override";
+import { canManageUnitTickets } from "@/lib/auth/unit-ticket-access";
 
 export default async function UnitProfilePage({
   params,
@@ -91,6 +92,10 @@ export default async function UnitProfilePage({
     session?.user.role === "SUPER_ADMIN" ||
     session?.user.role === "MANAGEMENT";
   const hideClientContact = session?.user.role === "CS_AGENT";
+
+  const canManageTickets = session?.user
+    ? canManageUnitTickets(session.user)
+    : false;
 
   return (
     <div className="space-y-6">
@@ -208,13 +213,14 @@ export default async function UnitProfilePage({
                 unit.tickets.map(async (ticket) => ({
                   id: ticket.id,
                   notes: ticket.notes,
+                  category: ticket.category,
+                  categoryLabel: await labels.ticketCategory(ticket.category),
                   status: ticket.status,
                   pendingParty: ticket.pendingParty ?? "NONE",
                   pendingPartyLabel: await labels.pendingParty(
                     ticket.pendingParty ?? "NONE"
                   ),
                   nextFollowUpDate: ticket.nextFollowUpDate?.toISOString() ?? "",
-                  categoryLabel: await labels.ticketCategory(ticket.category),
                   statusLabel: await labels.ticketStatus(ticket.status),
                   agentLabel: ticket.agent
                     ? await labels.staffName(ticket.agent.name)
@@ -236,6 +242,7 @@ export default async function UnitProfilePage({
             noTicketsLabel={t("noTickets")}
             addFeedbackLabel={t("addFeedback")}
             notesPlaceholder={t("notesPlaceholder")}
+            canManageTickets={canManageTickets}
             canUseManagementOverride={
               session?.user
                 ? canUseManagementOverride(session.user)
