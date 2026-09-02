@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UnitTimelineCrud } from "@/components/units/unit-timeline-crud";
-import { HandoverChecklistForm } from "@/components/units/handover-checklist-form";
+import { UnitLegalHandoverForm } from "@/components/units/unit-legal-handover-form";
 import { UnitFinishingForm } from "@/components/units/unit-finishing-form";
 import { UnitClientForm } from "@/components/units/unit-client-form";
 import { PrintProtocolButton } from "@/components/units/print-protocol-button";
@@ -165,6 +165,7 @@ export default async function UnitProfilePage({
               phone1: unit.client?.phone1 ?? null,
               phone2: unit.client?.phone2 ?? null,
               email: unit.client?.email ?? null,
+              nationalId: unit.client?.nationalId ?? null,
               address1: unit.client?.address1 ?? null,
               address2: unit.client?.address2 ?? null,
               deliveryYear: unit.deliveryYear ?? null,
@@ -214,35 +215,17 @@ export default async function UnitProfilePage({
         </TabsContent>
 
         <TabsContent value="legal" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("legalStatus")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p>
-                <strong>{t("handoverStatus")}:</strong>{" "}
-                <Badge>{handoverLabel}</Badge>
-              </p>
-              <p><strong>{t("actionLabel")}:</strong> {unit.contractWorkflow?.actionLabel ?? "-"}</p>
-              <p><strong>{t("contractDate")}:</strong> {unit.contractWorkflow?.contractDate?.toLocaleDateString(locale) ?? "-"}</p>
-              <p><strong>{t("deliveryDate")}:</strong> {unit.contractWorkflow?.deliveryDate?.toLocaleDateString(locale) ?? "-"}</p>
-              <p>
-                <strong>{tWorkflowEdge("powerOfAttorneyReceived")}:</strong>{" "}
-                {poaStatusLabel}
-              </p>
-              <p>
-                <strong>{tWorkflowEdge("inspectionDate")}:</strong>{" "}
-                {inspectionDateLabel
-                  ? tWorkflowEdge("inspectionScheduled", { date: inspectionDateLabel })
-                  : tWorkflowEdge("inspectionNotSet")}
-              </p>
-            </CardContent>
-          </Card>
           {canEditProfile ? (
-            <HandoverChecklistForm
+            <UnitLegalHandoverForm
               canEdit={canEditProfile}
               defaults={{
                 unitId: unit.id,
+                handoverStatus: unit.contractWorkflow?.handoverStatus ?? "PENDING",
+                actionLabel: unit.contractWorkflow?.actionLabel ?? null,
+                contractDate:
+                  unit.contractWorkflow?.contractDate?.toISOString() ?? null,
+                deliveryDate:
+                  unit.contractWorkflow?.deliveryDate?.toISOString() ?? null,
                 hasSignedProtocol: unit.contractWorkflow?.hasSignedProtocol ?? false,
                 hasSignedExtension: unit.contractWorkflow?.hasSignedExtension ?? false,
                 hasPaidFees: unit.contractWorkflow?.hasPaidFees ?? false,
@@ -254,7 +237,41 @@ export default async function UnitProfilePage({
                   unit.contractWorkflow?.inspectionDate?.toISOString() ?? null,
               }}
             />
-          ) : null}
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("legalStatus")}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p>
+                  <strong>{t("handoverStatus")}:</strong>{" "}
+                  <Badge>{handoverLabel}</Badge>
+                </p>
+                <p>
+                  <strong>{t("actionLabel")}:</strong>{" "}
+                  {unit.contractWorkflow?.actionLabel ?? "-"}
+                </p>
+                <p>
+                  <strong>{t("contractDate")}:</strong>{" "}
+                  {unit.contractWorkflow?.contractDate?.toLocaleDateString(locale) ?? "-"}
+                </p>
+                <p>
+                  <strong>{t("deliveryDate")}:</strong>{" "}
+                  {unit.contractWorkflow?.deliveryDate?.toLocaleDateString(locale) ?? "-"}
+                </p>
+                <p>
+                  <strong>{tWorkflowEdge("powerOfAttorneyReceived")}:</strong>{" "}
+                  {poaStatusLabel}
+                </p>
+                <p>
+                  <strong>{tWorkflowEdge("inspectionDate")}:</strong>{" "}
+                  {inspectionDateLabel
+                    ? tWorkflowEdge("inspectionScheduled", { date: inspectionDateLabel })
+                    : tWorkflowEdge("inspectionNotSet")}
+                </p>
+              </CardContent>
+            </Card>
+          )}
           <SignedProtocolUpload
             info={signedProtocolInfo}
             canUpload={signedProtocolAccess.canUpload}

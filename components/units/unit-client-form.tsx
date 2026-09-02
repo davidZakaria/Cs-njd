@@ -34,6 +34,7 @@ export type UnitClientFormDefaults = {
   phone1: string | null;
   phone2: string | null;
   email: string | null;
+  nationalId: string | null;
   address1: string | null;
   address2: string | null;
   deliveryYear: string | null;
@@ -63,6 +64,7 @@ export function UnitClientForm({
   const t = useTranslations("units");
   const tClient = useTranslations("client");
   const tUnit = useTranslations("unit");
+  const tFields = useTranslations("fields");
   const tCommon = useTranslations("common");
   const labels = useDomainLabels();
   const { pending, runAction } = useCrudToast();
@@ -70,6 +72,11 @@ export function UnitClientForm({
   const formDefaults = useMemo(
     (): UnitProfileFormInput => ({
       unitId: defaults.unitId,
+      clientName: defaults.clientName === "—" ? "" : defaults.clientName,
+      phone1: defaults.phone1 ?? "",
+      phone2: defaults.phone2 ?? "",
+      email: defaults.email ?? "",
+      nationalId: defaults.nationalId ?? "",
       address1: defaults.address1 ?? "",
       address2: defaults.address2 ?? "",
       deliveryYear: defaults.deliveryYear ?? "",
@@ -104,32 +111,61 @@ export function UnitClientForm({
   }
 
   return (
-    <div className="space-y-6" dir={isRtl ? "rtl" : "ltr"}>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" dir={isRtl ? "rtl" : "ltr"}>
+      <input type="hidden" {...register("unitId")} />
+
       <Card>
         <CardHeader>
           <CardTitle>{t("clientInfo")}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <p>
-            <strong>{t("client")}:</strong> {defaults.clientName}
-          </p>
+        <CardContent className="space-y-4">
           {hideClientContact ? (
-            <>
+            <div className="space-y-2 text-sm">
               <p>
-                <strong>{t("phone1")}:</strong> {t("contactRestricted")}
-              </p>
-              <p>
-                <strong>{t("phone2")}:</strong> {t("contactRestricted")}
-              </p>
-              <p>
-                <strong>{tCommon("email")}:</strong> {t("contactRestricted")}
+                <strong>{t("client")}:</strong> {t("contactRestricted")}
               </p>
               <p className="text-xs text-muted-foreground">
                 {t("contactRestrictedHint")}
               </p>
-            </>
+            </div>
+          ) : canEdit ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="clientName">{t("client")}</Label>
+                <Input
+                  id="clientName"
+                  disabled={pending}
+                  required
+                  {...register("clientName")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone1">{t("phone1")}</Label>
+                <Input id="phone1" disabled={pending} {...register("phone1")} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone2">{t("phone2")}</Label>
+                <Input id="phone2" disabled={pending} {...register("phone2")} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">{tCommon("email")}</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  disabled={pending}
+                  {...register("email")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nationalId">{tFields("nationalId")}</Label>
+                <Input id="nationalId" disabled={pending} {...register("nationalId")} />
+              </div>
+            </div>
           ) : (
-            <>
+            <div className="space-y-3 text-sm">
+              <p>
+                <strong>{t("client")}:</strong> {defaults.clientName}
+              </p>
               <ClientPhoneRow
                 label={t("phone1")}
                 phone={defaults.phone1}
@@ -151,129 +187,134 @@ export function UnitClientForm({
               <p>
                 <strong>{tCommon("email")}:</strong> {defaults.email ?? "—"}
               </p>
-            </>
+              <p>
+                <strong>{tFields("nationalId")}:</strong>{" "}
+                {defaults.nationalId ?? "—"}
+              </p>
+            </div>
           )}
-          <p>
-            <strong>{t("area")}:</strong> {defaults.areaLabel}
-          </p>
-          <p>
-            <strong>{t("agent")}:</strong> {defaults.agentLabel}
-          </p>
+
+          <div className="grid gap-2 text-sm sm:grid-cols-2">
+            <p>
+              <strong>{t("area")}:</strong> {defaults.areaLabel}
+            </p>
+            <p>
+              <strong>{t("agent")}:</strong> {defaults.agentLabel}
+            </p>
+          </div>
         </CardContent>
       </Card>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <input type="hidden" {...register("unitId")} />
-
-        {!hideClientContact ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>{tClient("address1")} / {tClient("address2")}</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="address1">{tClient("address1")}</Label>
-                <Input
-                  id="address1"
-                  disabled={!canEdit || pending}
-                  {...register("address1")}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address2">{tClient("address2")}</Label>
-                <Input
-                  id="address2"
-                  disabled={!canEdit || pending}
-                  {...register("address2")}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
-
+      {!hideClientContact ? (
         <Card>
           <CardHeader>
-            <CardTitle>{t("type")}</CardTitle>
+            <CardTitle>
+              {tClient("address1")} / {tClient("address2")}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>{t("type")}</Label>
-              <Controller
-                control={control}
-                name="type"
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    items={typeItems}
-                    disabled={!canEdit || pending}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {UNIT_TYPE_OPTIONS.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {labels.unitType(value)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="deliveryYear">{tUnit("deliveryYear")}</Label>
+              <Label htmlFor="address1">{tClient("address1")}</Label>
               <Input
-                id="deliveryYear"
+                id="address1"
                 disabled={!canEdit || pending}
-                placeholder="2028"
-                {...register("deliveryYear")}
+                {...register("address1")}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="gracePeriod">{tUnit("gracePeriod")}</Label>
+              <Label htmlFor="address2">{tClient("address2")}</Label>
               <Input
-                id="gracePeriod"
+                id="address2"
                 disabled={!canEdit || pending}
-                {...register("gracePeriod")}
+                {...register("address2")}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contractPricePerMeter">
-                {tUnit("contractPricePerMeter")}
-              </Label>
-              <div className="relative">
-                <Input
-                  id="contractPricePerMeter"
-                  type="number"
-                  step="any"
-                  min="0"
-                  disabled={!canEdit || pending}
-                  className={cn(isRtl ? "pl-14" : "pr-14")}
-                  {...register("contractPricePerMeter")}
-                />
-                <span
-                  className={cn(
-                    "pointer-events-none absolute inset-y-0 flex items-center text-xs font-medium text-muted-foreground",
-                    isRtl ? "left-3" : "right-3"
-                  )}
-                >
-                  {currencyLabel}
-                </span>
-              </div>
             </div>
           </CardContent>
         </Card>
+      ) : null}
 
-        {canEdit ? (
-          <div className="flex justify-end">
-            <Button type="submit" disabled={pending}>
-              {tCommon("save")}
-            </Button>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("type")}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-2">
+            <Label>{t("type")}</Label>
+            <Controller
+              control={control}
+              name="type"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  items={typeItems}
+                  disabled={!canEdit || pending}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {UNIT_TYPE_OPTIONS.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {labels.unitType(value)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
-        ) : null}
-      </form>
-    </div>
+          <div className="space-y-2">
+            <Label htmlFor="deliveryYear">{tUnit("deliveryYear")}</Label>
+            <Input
+              id="deliveryYear"
+              disabled={!canEdit || pending}
+              placeholder="2028"
+              {...register("deliveryYear")}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="gracePeriod">{tUnit("gracePeriod")}</Label>
+            <Input
+              id="gracePeriod"
+              disabled={!canEdit || pending}
+              {...register("gracePeriod")}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="contractPricePerMeter">
+              {tUnit("contractPricePerMeter")}
+            </Label>
+            <div className="relative">
+              <Input
+                id="contractPricePerMeter"
+                type="number"
+                step="any"
+                min="0"
+                disabled={!canEdit || pending}
+                className={cn(isRtl ? "pl-14" : "pr-14")}
+                {...register("contractPricePerMeter")}
+              />
+              <span
+                className={cn(
+                  "pointer-events-none absolute inset-y-0 flex items-center text-xs font-medium text-muted-foreground",
+                  isRtl ? "left-3" : "right-3"
+                )}
+              >
+                {currencyLabel}
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {canEdit ? (
+        <div className="flex justify-end">
+          <Button type="submit" disabled={pending}>
+            {tCommon("save")}
+          </Button>
+        </div>
+      ) : null}
+    </form>
   );
 }

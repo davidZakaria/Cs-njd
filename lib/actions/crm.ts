@@ -49,7 +49,7 @@ import {
   TICKET_CATEGORIES,
   ticketManageSchema,
 } from "@/lib/validations/ticket";
-import type { PendingParty, Role, TicketCategory } from "@prisma/client";
+import { Prisma, type PendingParty, type Role, type TicketCategory } from "@prisma/client";
 
 async function withAudit<T>(fn: () => Promise<T>) {
   const session = await auth();
@@ -624,7 +624,7 @@ export async function updateHandoverChecklist(
     return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  const { unitId, ...checklist } = parsed.data;
+  const { unitId, ...workflowData } = parsed.data;
 
   const unit = await prisma.unit.findUnique({ where: { id: unitId } });
   if (!unit) return actionFail("Unit not found");
@@ -632,10 +632,10 @@ export async function updateHandoverChecklist(
   await withAudit(() =>
     prisma.contractWorkflow.upsert({
       where: { unitId },
-      update: checklist,
+      update: workflowData,
       create: {
         unitId,
-        ...checklist,
+        ...workflowData,
       },
     })
   );
@@ -834,8 +834,20 @@ export async function updateUnitProfile(
     return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  const { unitId, address1, address2, deliveryYear, gracePeriod, contractPricePerMeter, type } =
-    parsed.data;
+  const {
+    unitId,
+    clientName,
+    phone1,
+    phone2,
+    email,
+    nationalId,
+    address1,
+    address2,
+    deliveryYear,
+    gracePeriod,
+    contractPricePerMeter,
+    type,
+  } = parsed.data;
 
   const unit = await prisma.unit.findUnique({
     where: { id: unitId },
@@ -843,19 +855,47 @@ export async function updateUnitProfile(
   });
   if (!unit) return actionFail("Unit not found");
 
-  await withAudit(async () => {
-    await prisma.unit.update({
-      where: { id: unitId },
-      data: { deliveryYear, gracePeriod, contractPricePerMeter, type },
-    });
-
-    if (unit.clientId) {
-      await prisma.client.update({
-        where: { id: unit.clientId },
-        data: { address1, address2 },
+  try {
+    await withAudit(async () => {
+      await prisma.unit.update({
+        where: { id: unitId },
+        data: { deliveryYear, gracePeriod, contractPricePerMeter, type },
       });
+
+      const clientData = {
+        name: clientName,
+        phone1,
+        phone2,
+        email,
+        nationalId,
+        address1,
+        address2,
+      };
+
+      if (unit.clientId) {
+        await prisma.client.update({
+          where: { id: unit.clientId },
+          data: clientData,
+        });
+      } else {
+        const client = await prisma.client.create({ data: clientData });
+        await prisma.unit.update({
+          where: { id: unitId },
+          data: { clientId: client.id },
+        });
+      }
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002" &&
+      Array.isArray(error.meta?.target) &&
+      error.meta.target.includes("nationalId")
+    ) {
+      return actionFail("A client with this national ID already exists");
     }
-  });
+    throw error;
+  }
 
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/units");

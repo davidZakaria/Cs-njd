@@ -163,7 +163,8 @@
   },
   "fields": {
     "contractPricePerMeter": "Contract price per m²",
-    "deliveryDate": "Delivery date"
+    "deliveryDate": "Delivery date",
+    "nationalId": "National ID"
   },
   "filters": {
     "dueToday": "Due today / past due"

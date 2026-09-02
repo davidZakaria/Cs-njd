@@ -163,7 +163,8 @@
   },
   "fields": {
     "contractPricePerMeter": "سعر المتر وقت التعاقد",
-    "deliveryDate": "تاريخ التسليم"
+    "deliveryDate": "تاريخ التسليم",
+    "nationalId": "الرقم القومي"
   },
   "filters": {
     "dueToday": "مستحق اليوم / متأخر"
