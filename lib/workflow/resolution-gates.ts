@@ -16,6 +16,8 @@ export const RESOLUTION_GATE_CODES = [
   "fees_unpaid",
   "missing_papers",
   "party_not_none",
+  "active_lawsuit",
+  "modifications_pending",
 ] as const;
 
 export type ResolutionGateCode = (typeof RESOLUTION_GATE_CODES)[number];
@@ -28,6 +30,8 @@ type GateContext = {
     packageType?: FinishingPackage | null;
     doorFees: number | null;
     aluminumFees: number | null;
+    customModifications?: string | null;
+    modificationsCompleted?: boolean | null;
   } | null;
   contractWorkflow: Pick<
     ContractWorkflow,
@@ -36,6 +40,7 @@ type GateContext = {
     | "hasPaidFees"
     | "papersReceived"
     | "handoverStatus"
+    | "isLegallyBlocked"
   > | null;
 };
 
@@ -78,6 +83,15 @@ export function evaluateResolutionGates(ctx: GateContext): ResolutionGateCode[] 
     if (!papersComplete) {
       failures.push("missing_papers");
     }
+  }
+
+  if (ctx.contractWorkflow?.isLegallyBlocked === true) {
+    failures.push("active_lawsuit");
+  }
+
+  const customMods = ctx.finishing?.customModifications?.trim();
+  if (customMods && ctx.finishing?.modificationsCompleted === false) {
+    failures.push("modifications_pending");
   }
 
   return failures;

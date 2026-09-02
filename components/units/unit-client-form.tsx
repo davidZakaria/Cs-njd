@@ -51,10 +51,12 @@ export function UnitClientForm({
   defaults,
   canEdit,
   hideClientContact = false,
+  contactDisabled = false,
 }: {
   defaults: UnitClientFormDefaults;
   canEdit: boolean;
   hideClientContact?: boolean;
+  contactDisabled?: boolean;
 }) {
   const locale = useLocale();
   const isRtl = locale === "ar";
@@ -135,6 +137,7 @@ export function UnitClientForm({
                 unitCode={defaults.unitCode}
                 projectName={defaults.projectName}
                 messageTemplate={defaults.waMessageTemplate}
+                contactDisabled={contactDisabled}
               />
               <ClientPhoneRow
                 label={t("phone2")}
@@ -143,6 +146,7 @@ export function UnitClientForm({
                 unitCode={defaults.unitCode}
                 projectName={defaults.projectName}
                 messageTemplate={defaults.waMessageTemplate}
+                contactDisabled={contactDisabled}
               />
               <p>
                 <strong>{tCommon("email")}:</strong> {defaults.email ?? "—"}

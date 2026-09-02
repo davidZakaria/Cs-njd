@@ -9,6 +9,7 @@ export function ClientPhoneRow({
   unitCode,
   projectName,
   messageTemplate,
+  contactDisabled = false,
 }: {
   label: string;
   phone: string | null | undefined;
@@ -16,6 +17,7 @@ export function ClientPhoneRow({
   unitCode: string;
   projectName: string;
   messageTemplate: string;
+  contactDisabled?: boolean;
 }) {
   const display = phone?.trim() || "-";
 
@@ -24,7 +26,7 @@ export function ClientPhoneRow({
       <p className="min-w-0 flex-1">
         <strong>{label}:</strong> {display}
       </p>
-      {phone?.trim() ? (
+      {phone?.trim() && !contactDisabled ? (
         <WhatsAppButton
           phone={phone}
           clientName={clientName}

@@ -15,6 +15,7 @@ import { UnitFinishingForm } from "@/components/units/unit-finishing-form";
 import { UnitClientForm } from "@/components/units/unit-client-form";
 import { PrintProtocolButton } from "@/components/units/print-protocol-button";
 import { SignedProtocolUpload } from "@/components/units/signed-protocol-upload";
+import { LegalBlockBanner } from "@/components/units/legal-block-banner";
 import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
 import { resolveSignedProtocolAccess } from "@/lib/auth/signed-protocol-access";
 import { isAwaitingResponseNote } from "@/lib/import/master-cases";
@@ -35,6 +36,7 @@ export default async function UnitProfilePage({
   const session = await auth();
   const t = await getTranslations("units");
   const tCases = await getTranslations("cases");
+  const tWorkflowEdge = await getTranslations("workflow.edgeCases");
   const labels = await getDomainLabels(locale);
   const waMessageTemplate = await getWhatsAppTemplateSetting();
 
@@ -121,8 +123,17 @@ export default async function UnitProfilePage({
     hasFile: Boolean(workflow?.signedProtocolStoredName),
   };
 
+  const isLegallyBlocked = workflow?.isLegallyBlocked ?? false;
+  const inspectionDateLabel = workflow?.inspectionDate
+    ? workflow.inspectionDate.toLocaleDateString(locale)
+    : null;
+  const poaStatusLabel = workflow?.powerOfAttorneyReceived
+    ? tWorkflowEdge("poaReceived")
+    : tWorkflowEdge("poaPending");
+
   return (
     <div className="space-y-6">
+      {isLegallyBlocked ? <LegalBlockBanner /> : null}
       {csScope?.isPreview && csScope.previewSourceEmail ? (
         <CsAgentPreviewBanner previewSourceEmail={csScope.previewSourceEmail} />
       ) : null}
@@ -147,6 +158,7 @@ export default async function UnitProfilePage({
         <TabsContent value="client">
           <UnitClientForm
             canEdit={canEditProfile}
+            contactDisabled={isLegallyBlocked}
             defaults={{
               unitId: unit.id,
               clientName: unit.client?.name ?? "—",
@@ -189,6 +201,8 @@ export default async function UnitProfilePage({
                     ? [unit.finishing.phase]
                     : [],
               currentFinishingStatus: unit.finishing?.currentFinishingStatus ?? null,
+              customModifications: unit.finishing?.customModifications ?? null,
+              modificationsCompleted: unit.finishing?.modificationsCompleted ?? true,
               packageLabel: unit.finishing?.packageLabel ?? null,
               companyName: unit.finishing?.companyName ?? null,
               finishingType: unit.finishing?.finishingType ?? null,
@@ -212,6 +226,16 @@ export default async function UnitProfilePage({
               <p><strong>{t("actionLabel")}:</strong> {unit.contractWorkflow?.actionLabel ?? "-"}</p>
               <p><strong>{t("contractDate")}:</strong> {unit.contractWorkflow?.contractDate?.toLocaleDateString(locale) ?? "-"}</p>
               <p><strong>{t("deliveryDate")}:</strong> {unit.contractWorkflow?.deliveryDate?.toLocaleDateString(locale) ?? "-"}</p>
+              <p>
+                <strong>{tWorkflowEdge("powerOfAttorneyReceived")}:</strong>{" "}
+                {poaStatusLabel}
+              </p>
+              <p>
+                <strong>{tWorkflowEdge("inspectionDate")}:</strong>{" "}
+                {inspectionDateLabel
+                  ? tWorkflowEdge("inspectionScheduled", { date: inspectionDateLabel })
+                  : tWorkflowEdge("inspectionNotSet")}
+              </p>
             </CardContent>
           </Card>
           {canEditProfile ? (
@@ -223,6 +247,11 @@ export default async function UnitProfilePage({
                 hasSignedExtension: unit.contractWorkflow?.hasSignedExtension ?? false,
                 hasPaidFees: unit.contractWorkflow?.hasPaidFees ?? false,
                 papersReceived: unit.contractWorkflow?.papersReceived ?? false,
+                powerOfAttorneyReceived:
+                  unit.contractWorkflow?.powerOfAttorneyReceived ?? false,
+                isLegallyBlocked: unit.contractWorkflow?.isLegallyBlocked ?? false,
+                inspectionDate:
+                  unit.contractWorkflow?.inspectionDate?.toISOString() ?? null,
               }}
             />
           ) : null}
@@ -283,6 +312,7 @@ export default async function UnitProfilePage({
                 ? canUseManagementOverride(session.user)
                 : false
             }
+            contactDisabled={isLegallyBlocked}
           />
         </TabsContent>
       </Tabs>

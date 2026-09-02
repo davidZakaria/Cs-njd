@@ -734,6 +734,10 @@ export async function updateFinishing(
         phases,
         phase: legacyPhase,
         currentFinishingStatus: data.currentFinishingStatus,
+        customModifications: data.customModifications,
+        modificationsCompleted: data.customModifications
+          ? data.modificationsCompleted
+          : true,
       },
       create: {
         unitId,
@@ -749,6 +753,10 @@ export async function updateFinishing(
         phases,
         phase: legacyPhase,
         currentFinishingStatus: data.currentFinishingStatus,
+        customModifications: data.customModifications,
+        modificationsCompleted: data.customModifications
+          ? data.modificationsCompleted
+          : true,
       },
     });
 
@@ -778,9 +786,13 @@ export async function logCallQuickAction(input: {
 
   const unit = await prisma.unit.findUnique({
     where: { id: input.unitId },
-    include: { agent: true },
+    include: { agent: true, contractWorkflow: true },
   });
   if (!unit) return actionFail("Unit not found");
+
+  if (unit.contractWorkflow?.isLegallyBlocked) {
+    return actionFail(await formatResolutionGateErrors(["active_lawsuit"]));
+  }
 
   const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
   if (accessError) return accessError;

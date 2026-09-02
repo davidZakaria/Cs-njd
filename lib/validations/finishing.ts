@@ -84,6 +84,8 @@ export const finishingFormSchema = z.object({
   phases: optionalPhases(),
   deliveryDate: optionalDate(),
   currentFinishingStatus: optionalString(),
+  customModifications: optionalString(),
+  modificationsCompleted: z.boolean().optional().default(true),
 });
 
 export type FinishingFormInput = z.input<typeof finishingFormSchema>;

@@ -32,6 +32,10 @@ export const handoverChecklistSchema = z.object({
   hasSignedExtension: z.boolean(),
   hasPaidFees: z.boolean(),
   papersReceived: z.boolean(),
+  powerOfAttorneyReceived: z.boolean(),
+  isLegallyBlocked: z.boolean(),
+  inspectionDate: optionalDate(),
 });
 
 export type HandoverChecklistInput = z.infer<typeof handoverChecklistSchema>;
+export type HandoverChecklistFormInput = z.input<typeof handoverChecklistSchema>;

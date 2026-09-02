@@ -28,6 +28,7 @@ import {
   type ImportGateContext,
   reconcileImportCaseStatus,
 } from "@/lib/import/workflow-sync";
+import { deriveEdgeCasesFromLegacyText } from "@/lib/import/edge-case-sync";
 import type { FinishingPhase, HandoverStatus, PendingParty } from "@prisma/client";
 import { syncAssignmentsFromWorkbook } from "@/lib/import/sync-assignments";
 
@@ -44,6 +45,7 @@ export type ImportResult = {
   unitsAssigned: number;
   ticketsAssigned: number;
   unmatchedAgentNames: string[];
+  edgeCasesFlagged: number;
   errors: { row: number; sheet: string; message: string }[];
 };
 
@@ -389,6 +391,7 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
     unitsAssigned: 0,
     ticketsAssigned: 0,
     unmatchedAgentNames: [],
+    edgeCasesFlagged: 0,
     errors: [],
   };
   const ticketCounters: TicketCounters = { created: 0, updated: 0, skipped: 0 };
@@ -501,6 +504,36 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
       actionLabel: input.actionLabel,
     });
 
+    const caseNotes =
+      input.cases
+        ?.map((entry) => entry.notes)
+        .filter(Boolean)
+        .join("\n") ?? "";
+    const edgeCaseText = [
+      input.notes,
+      input.actionLabel,
+      String(input.handoverRaw ?? ""),
+      caseNotes,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    const edgeCases = deriveEdgeCasesFromLegacyText(edgeCaseText);
+    const hasEdgeCases = Object.keys(edgeCases).length > 0;
+    if (hasEdgeCases) {
+      result.edgeCasesFlagged += 1;
+    }
+
+    const workflowEdgePatch: {
+      isLegallyBlocked?: boolean;
+      powerOfAttorneyReceived?: boolean;
+    } = {};
+    if (edgeCases.isLegallyBlocked !== undefined) {
+      workflowEdgePatch.isLegallyBlocked = edgeCases.isLegallyBlocked;
+    }
+    if (edgeCases.powerOfAttorneyReceived !== undefined) {
+      workflowEdgePatch.powerOfAttorneyReceived = edgeCases.powerOfAttorneyReceived;
+    }
+
     await prisma.contractWorkflow.upsert({
       where: { unitId: unit.id },
       update: {
@@ -509,6 +542,7 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         handoverStatus,
         actionLabel: input.actionLabel,
         ...checklist,
+        ...workflowEdgePatch,
       },
       create: {
         unitId: unit.id,
@@ -517,6 +551,7 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
         handoverStatus,
         actionLabel: input.actionLabel,
         ...checklist,
+        ...workflowEdgePatch,
       },
     });
 
@@ -536,13 +571,45 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
     });
 
     if (finishingFields) {
+      const finishingEdgePatch: {
+        customModifications?: string | null;
+        modificationsCompleted?: boolean;
+      } = {};
+      if (edgeCases.customModifications !== undefined) {
+        finishingEdgePatch.customModifications = edgeCases.customModifications;
+      }
+      if (edgeCases.modificationsCompleted !== undefined) {
+        finishingEdgePatch.modificationsCompleted = edgeCases.modificationsCompleted;
+      }
+
       await prisma.finishing.upsert({
         where: { unitId: unit.id },
-        update: finishingFields,
+        update: {
+          ...finishingFields,
+          ...finishingEdgePatch,
+        },
         create: {
           unitId: unit.id,
           finishingType: finishingFields.finishingType ?? "CUSTOM",
           ...finishingFields,
+          ...finishingEdgePatch,
+        },
+      });
+    } else if (
+      edgeCases.customModifications !== undefined ||
+      edgeCases.modificationsCompleted !== undefined
+    ) {
+      await prisma.finishing.upsert({
+        where: { unitId: unit.id },
+        update: {
+          customModifications: edgeCases.customModifications ?? null,
+          modificationsCompleted: edgeCases.modificationsCompleted ?? true,
+        },
+        create: {
+          unitId: unit.id,
+          finishingType: "CUSTOM",
+          customModifications: edgeCases.customModifications ?? null,
+          modificationsCompleted: edgeCases.modificationsCompleted ?? true,
         },
       });
     }
@@ -559,17 +626,33 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
             phases: resolvedPhases,
             doorFees: doorFeesAmount,
             aluminumFees: aluminumFeesAmount,
+            customModifications:
+              edgeCases.customModifications ?? null,
+            modificationsCompleted:
+              edgeCases.modificationsCompleted ?? true,
           }
         : doorFeesAmount != null || aluminumFeesAmount != null
           ? {
               phases: [],
               doorFees: doorFeesAmount,
               aluminumFees: aluminumFeesAmount,
+              customModifications: edgeCases.customModifications,
+              modificationsCompleted: edgeCases.modificationsCompleted,
             }
-          : null,
+          : edgeCases.customModifications !== undefined ||
+              edgeCases.modificationsCompleted !== undefined
+            ? {
+                phases: [],
+                doorFees: null,
+                aluminumFees: null,
+                customModifications: edgeCases.customModifications,
+                modificationsCompleted: edgeCases.modificationsCompleted,
+              }
+            : null,
       contractWorkflow: {
         ...checklist,
         handoverStatus,
+        isLegallyBlocked: edgeCases.isLegallyBlocked,
       },
     };
 

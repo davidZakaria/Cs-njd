@@ -236,6 +236,9 @@ model ContractWorkflow {
   hasSignedExtension Boolean        @default(false)
   hasPaidFees        Boolean        @default(false)
   papersReceived     Boolean        @default(false)
+  isLegallyBlocked   Boolean        @default(false)
+  powerOfAttorneyReceived Boolean   @default(false)
+  inspectionDate     DateTime?
   signedProtocolStoredName     String?
   signedProtocolOriginalName   String?
   signedProtocolMimeType       String?
@@ -250,6 +253,7 @@ model ContractWorkflow {
 
   @@index([handoverStatus])
   @@index([deletedAt])
+  @@index([isLegallyBlocked])
 }
 
 model Finishing {
@@ -270,6 +274,8 @@ model Finishing {
   totalFinishingPrice     Float?
   doorFees                Float?
   aluminumFees            Float?
+  customModifications     String?
+  modificationsCompleted  Boolean           @default(true)
   deletedAt               DateTime?
   createdAt               DateTime          @default(now())
   updatedAt               DateTime          @updatedAt

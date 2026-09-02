@@ -88,11 +88,14 @@ export function inferPendingPartyFromText(
 function pendingPartyFromGate(code: ResolutionGateCode): PendingParty {
   switch (code) {
     case "finishing_not_done":
+    case "modifications_pending":
       return "ENGINEERING";
     case "fees_unpaid":
       return "FINANCE";
     case "missing_papers":
       return "LOGISTICS";
+    case "active_lawsuit":
+      return "LEGAL";
     default:
       return "NONE";
   }
@@ -103,6 +106,8 @@ export type ImportGateContext = {
     phases: FinishingPhase[];
     doorFees: number | null;
     aluminumFees: number | null;
+    customModifications?: string | null;
+    modificationsCompleted?: boolean | null;
   } | null;
   contractWorkflow: {
     hasSignedProtocol: boolean;
@@ -110,6 +115,7 @@ export type ImportGateContext = {
     hasPaidFees: boolean;
     papersReceived: boolean;
     handoverStatus: HandoverStatus;
+    isLegallyBlocked?: boolean;
   } | null;
 };
 
@@ -137,8 +143,21 @@ export function reconcileImportCaseStatus(
 
   const failures = evaluateResolutionGates({
     ticket: { pendingParty },
-    finishing: ctx.finishing,
-    contractWorkflow: ctx.contractWorkflow,
+    finishing: ctx.finishing
+      ? {
+          phases: ctx.finishing.phases,
+          doorFees: ctx.finishing.doorFees,
+          aluminumFees: ctx.finishing.aluminumFees,
+          customModifications: ctx.finishing.customModifications,
+          modificationsCompleted: ctx.finishing.modificationsCompleted,
+        }
+      : null,
+    contractWorkflow: ctx.contractWorkflow
+      ? {
+          ...ctx.contractWorkflow,
+          isLegallyBlocked: ctx.contractWorkflow.isLegallyBlocked ?? false,
+        }
+      : null,
   });
 
   if (failures.length === 0) {

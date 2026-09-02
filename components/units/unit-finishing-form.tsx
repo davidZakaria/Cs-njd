@@ -59,6 +59,8 @@ export type FinishingFormDefaults = {
   doorFees: number | null;
   aluminumFees: number | null;
   currentFinishingStatus: string | null;
+  customModifications: string | null;
+  modificationsCompleted: boolean;
   packageLabel: string | null;
   companyName: string | null;
   finishingType: string | null;
@@ -163,6 +165,7 @@ export function UnitFinishingForm({
   const isRtl = locale === "ar";
   const t = useTranslations("units");
   const tFinishing = useTranslations("finishing");
+  const tEdge = useTranslations("workflow.edgeCases");
   const tFields = useTranslations("fields");
   const tFinishingPhases = useTranslations("finishingPhases");
   const tCommon = useTranslations("common");
@@ -186,6 +189,8 @@ export function UnitFinishingForm({
         ? defaults.phases
         : ["NOT_STARTED"]) as FinishingFormInput["phases"],
       currentFinishingStatus: defaults.currentFinishingStatus ?? "",
+      customModifications: defaults.customModifications ?? "",
+      modificationsCompleted: defaults.modificationsCompleted,
     }),
     [defaults]
   );
@@ -231,8 +236,17 @@ export function UnitFinishingForm({
         : ["NOT_STARTED"]
   );
 
+  const customModsText = String(watched.customModifications ?? "").trim();
+  const hasCustomMods = customModsText.length > 0;
+
   function onSubmit(values: FinishingFormInput) {
-    runAction(() => updateFinishing(values), "saved");
+    const trimmedMods = String(values.customModifications ?? "").trim();
+    const payload: FinishingFormInput = {
+      ...values,
+      customModifications: trimmedMods || null,
+      modificationsCompleted: trimmedMods ? values.modificationsCompleted ?? false : true,
+    };
+    runAction(() => updateFinishing(payload), "saved");
   }
 
   return (
@@ -381,6 +395,30 @@ export function UnitFinishingForm({
                 {...register("currentFinishingStatus")}
               />
             </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="customModifications">{tEdge("customModifications")}</Label>
+              <Textarea
+                id="customModifications"
+                rows={3}
+                disabled={!canEdit || pending}
+                className="min-h-20 resize-y text-start"
+                {...register("customModifications")}
+              />
+            </div>
+            {hasCustomMods ? (
+              <div className="flex items-start gap-3 md:col-span-2">
+                <input
+                  id="modificationsCompleted"
+                  type="checkbox"
+                  className="mt-1 size-4 rounded border"
+                  disabled={!canEdit || pending}
+                  {...register("modificationsCompleted")}
+                />
+                <Label htmlFor="modificationsCompleted" className="font-normal leading-snug">
+                  {tEdge("modificationsCompleted")}
+                </Label>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 

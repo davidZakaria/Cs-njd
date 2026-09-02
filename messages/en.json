@@ -102,6 +102,18 @@
       "paidFees": "Fees paid (door / aluminum)",
       "papersReceived": "All original papers received"
     },
+    "edgeCases": {
+      "isLegallyBlocked": "Active legal block (blocks handover)",
+      "powerOfAttorneyReceived": "Power of attorney / DHL papers received",
+      "inspectionDate": "Next site inspection date",
+      "customModifications": "Custom engineering modifications (e.g. partition wall, kitchen removal)",
+      "modificationsCompleted": "Custom modifications completed",
+      "lawsuitWarning": "Important: This unit is legally blocked due to an active dispute or lawsuit. Do not take any action without management approval.",
+      "poaReceived": "Received",
+      "poaPending": "Pending",
+      "inspectionScheduled": "Scheduled: {date}",
+      "inspectionNotSet": "Not scheduled"
+    },
     "signedProtocol": {
       "title": "Signed handover document",
       "description": "After the case is resolved, upload the client-signed handover protocol (PDF or scan).",
@@ -123,7 +135,9 @@
       "finishing_not_done": "Cannot close ticket: engineering finishing work is not complete.",
       "fees_unpaid": "Cannot close ticket: outstanding fees have not been paid.",
       "missing_papers": "Cannot close ticket: papers / signatures are still missing.",
-      "party_not_none": "Cannot close ticket: still pending with another party."
+      "party_not_none": "Cannot close ticket: still pending with another party.",
+      "active_lawsuit": "Cannot close ticket: unit is under an active legal block.",
+      "modifications_pending": "Cannot close ticket: custom engineering modifications are not complete."
     }
   },
   "notifications": {
