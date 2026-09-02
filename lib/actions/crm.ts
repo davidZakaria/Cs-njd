@@ -790,9 +790,6 @@ export async function logCallQuickAction(input: {
   });
   if (!unit) return actionFail("Unit not found");
 
-  const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
-  if (accessError) return accessError;
-
   await withAudit(() =>
     prisma.ticket.create({
       data: {
