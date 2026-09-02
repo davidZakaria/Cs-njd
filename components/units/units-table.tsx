@@ -64,11 +64,13 @@ export function UnitsTable({
   projects,
   agents,
   statuses,
+  canExport = true,
 }: {
   data: UnitRow[];
   projects: string[];
   agents: string[];
   statuses: string[];
+  canExport?: boolean;
 }) {
   const t = useTranslations("units");
   const tCommon = useTranslations("common");
@@ -293,13 +295,15 @@ export function UnitsTable({
             ))}
           </SelectContent>
         </Select>
-        <ExportCsvButton
-          label={t("exportCsv")}
-          filenamePrefix="units"
-          headers={exportHeaders}
-          rows={exportRows}
-          className="w-full lg:ms-auto lg:w-auto"
-        />
+        {canExport ? (
+          <ExportCsvButton
+            label={t("exportCsv")}
+            filenamePrefix="units"
+            headers={exportHeaders}
+            rows={exportRows}
+            className="w-full lg:ms-auto lg:w-auto"
+          />
+        ) : null}
       </div>
 
       <div className="min-w-0 rounded-md border">

@@ -58,15 +58,7 @@ export default async function HandoverPrintPage({
   const templateKey = resolveHandoverTemplateKey(unit.project.name, templateOptions);
   const template = loadHandoverTemplate(templateKey);
 
-  const hideClientContact = session.user.role === "CS_AGENT";
-  const fields = buildHandoverFields(
-    {
-      ...unit,
-      client: hideClientContact ? null : unit.client,
-    },
-    locale,
-    issuedAt
-  );
+  const fields = buildHandoverFields(unit, locale, issuedAt);
 
   const documentData = {
     templateKey,

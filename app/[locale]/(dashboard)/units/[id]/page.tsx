@@ -4,7 +4,7 @@ import {
   resolveCsAgentScope,
 } from "@/lib/auth/cs-agent-scope";
 import { prisma, notDeleted } from "@/lib/prisma";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,10 +68,6 @@ export default async function UnitProfilePage({
       ? await resolveCsAgentScope(session.user)
       : null;
 
-  if (csScope && !canAccessUnitAsCsAgent(csScope, unit.agentId)) {
-    redirect("/units");
-  }
-
   const projectLabel = await labels.project(unit.project.name);
   const areaLabel = await labels.areaWithUnit(unit.area);
   const agentLabel = unit.agent
@@ -93,7 +89,6 @@ export default async function UnitProfilePage({
   const canEditProfile =
     session?.user.role === "SUPER_ADMIN" ||
     session?.user.role === "MANAGEMENT";
-  const hideClientContact = session?.user.role === "CS_AGENT";
 
   const canManageTickets = session?.user
     ? canManageUnitTickets(session.user)
@@ -152,15 +147,14 @@ export default async function UnitProfilePage({
         <TabsContent value="client">
           <UnitClientForm
             canEdit={canEditProfile}
-            hideClientContact={hideClientContact}
             defaults={{
               unitId: unit.id,
               clientName: unit.client?.name ?? "—",
-              phone1: hideClientContact ? null : unit.client?.phone1 ?? null,
-              phone2: hideClientContact ? null : unit.client?.phone2 ?? null,
-              email: hideClientContact ? null : unit.client?.email ?? null,
-              address1: hideClientContact ? null : unit.client?.address1 ?? null,
-              address2: hideClientContact ? null : unit.client?.address2 ?? null,
+              phone1: unit.client?.phone1 ?? null,
+              phone2: unit.client?.phone2 ?? null,
+              email: unit.client?.email ?? null,
+              address1: unit.client?.address1 ?? null,
+              address2: unit.client?.address2 ?? null,
               deliveryYear: unit.deliveryYear ?? null,
               gracePeriod: unit.gracePeriod ?? null,
               contractPricePerMeter: unit.contractPricePerMeter ?? null,

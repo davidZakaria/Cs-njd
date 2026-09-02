@@ -59,7 +59,13 @@ export default async function UnitsPage() {
         <CsAgentPreviewBanner previewSourceEmail={csScope.previewSourceEmail} />
       ) : null}
       <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
-      <UnitsTable data={rows} projects={projects} agents={agents} statuses={statuses} />
+      <UnitsTable
+        data={rows}
+        projects={projects}
+        agents={agents}
+        statuses={statuses}
+        canExport={session?.user.role !== "CS_AGENT"}
+      />
     </div>
   );
 }

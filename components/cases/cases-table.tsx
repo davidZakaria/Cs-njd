@@ -177,6 +177,7 @@ export function CasesTable({
   defaultFollowUpFilter = "all",
   defaultPendingPartyFilter = "all",
   defaultCollapsed = false,
+  canExport = true,
 }: {
   data: CaseRow[];
   agents: Array<{ id: string; name: string }>;
@@ -191,6 +192,7 @@ export function CasesTable({
   defaultFollowUpFilter?: "all" | "due";
   defaultPendingPartyFilter?: string;
   defaultCollapsed?: boolean;
+  canExport?: boolean;
 }) {
   const t = useTranslations("cases");
   const tCommon = useTranslations("common");
@@ -630,14 +632,16 @@ export function CasesTable({
         </Select>
       </div>
 
-      <div className="flex justify-end">
-        <ExportCsvButton
-          label={t("exportCsv")}
-          filenamePrefix="cases"
-          headers={exportHeaders}
-          rows={exportRows}
-        />
-      </div>
+      {canExport ? (
+        <div className="flex justify-end">
+          <ExportCsvButton
+            label={t("exportCsv")}
+            filenamePrefix="cases"
+            headers={exportHeaders}
+            rows={exportRows}
+          />
+        </div>
+      ) : null}
 
       <p className="text-sm text-muted-foreground">
         {t("showingResults", { from, to, total })}

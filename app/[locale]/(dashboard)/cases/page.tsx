@@ -134,6 +134,7 @@ export default async function CasesPage({
   }
 
   const isCsAgent = session?.user.role === "CS_AGENT";
+  const canExport = !isCsAgent;
 
   return (
     <div className="space-y-8">
@@ -150,6 +151,7 @@ export default async function CasesPage({
         agents={agents}
         canAssign={canAssign}
         canUseManagementOverride={canOverride}
+        canExport={canExport}
         defaultStatusFilter={filters.status}
         defaultProjectFilter={filters.project}
         defaultCategoryFilter={filters.category}

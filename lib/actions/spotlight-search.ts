@@ -1,7 +1,6 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { prisma } from "@/lib/prisma";
 import { activeUnitWhere } from "@/lib/prisma";
 
@@ -21,18 +20,8 @@ export async function searchUnitsSpotlight(
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
 
-  const csScope =
-    session.user.role === "CS_AGENT"
-      ? await resolveCsAgentScope(session.user)
-      : null;
-
-  const agentScope = csScope
-    ? { agentId: csScope.effectiveAgentId }
-    : undefined;
-
   const units = await prisma.unit.findMany({
     where: activeUnitWhere({
-      ...(agentScope ?? {}),
       OR: [
         { unitCode: { contains: trimmed, mode: "insensitive" } },
         {

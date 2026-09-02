@@ -86,11 +86,6 @@ export default async function DashboardPage() {
     { label: t("legalDisputes"), value: legalDisputes },
   ];
 
-  const isCsAgent = session?.user.role === "CS_AGENT";
-  const pendingWorkForDisplay = isCsAgent
-    ? pendingWork.map((item) => ({ ...item, clientPhone: null }))
-    : pendingWork;
-
   return (
     <div className="space-y-8">
       {csScope?.isPreview && csScope.previewSourceEmail ? (
@@ -125,8 +120,8 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {isCsAgent ? (
-        <PendingWorkQueue items={pendingWorkForDisplay} groupByProject />
+      {session?.user.role === "CS_AGENT" ? (
+        <PendingWorkQueue items={pendingWork} groupByProject />
       ) : null}
     </div>
   );
