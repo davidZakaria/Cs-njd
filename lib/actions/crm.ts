@@ -786,13 +786,9 @@ export async function logCallQuickAction(input: {
 
   const unit = await prisma.unit.findUnique({
     where: { id: input.unitId },
-    include: { agent: true, contractWorkflow: true },
+    include: { agent: true },
   });
   if (!unit) return actionFail("Unit not found");
-
-  if (unit.contractWorkflow?.isLegallyBlocked) {
-    return actionFail(await formatResolutionGateErrors(["active_lawsuit"]));
-  }
 
   const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
   if (accessError) return accessError;

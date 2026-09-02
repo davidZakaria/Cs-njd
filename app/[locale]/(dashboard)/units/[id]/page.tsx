@@ -312,7 +312,6 @@ export default async function UnitProfilePage({
                 ? canUseManagementOverride(session.user)
                 : false
             }
-            contactDisabled={isLegallyBlocked}
           />
         </TabsContent>
       </Tabs>

@@ -504,7 +504,6 @@ export function UnitTimelineCrud({
   notesPlaceholder,
   canManageTickets = false,
   canUseManagementOverride = false,
-  contactDisabled = false,
 }: {
   unitId: string;
   tickets: TicketRow[];
@@ -515,13 +514,11 @@ export function UnitTimelineCrud({
   notesPlaceholder: string;
   canManageTickets?: boolean;
   canUseManagementOverride?: boolean;
-  contactDisabled?: boolean;
 }) {
   const tCases = useTranslations("cases");
   const tCommon = useTranslations("common");
   const tActions = useTranslations("actions");
   const tWorkflow = useTranslations("workflow");
-  const tEdge = useTranslations("workflow.edgeCases");
   const labels = useDomainLabels();
   const { pending, notify, runAction } = useCrudToast();
   const [logCallOpen, setLogCallOpen] = useState(false);
@@ -588,14 +585,7 @@ export function UnitTimelineCrud({
           <Dialog open={logCallOpen} onOpenChange={setLogCallOpen}>
             <DialogTrigger
               render={
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-8"
-                  disabled={contactDisabled}
-                  title={contactDisabled ? tEdge("lawsuitWarning") : undefined}
-                />
+                <Button type="button" size="sm" variant="outline" className="h-8" />
               }
             >
               {tWorkflow("logCall")}
