@@ -1,7 +1,8 @@
 import * as XLSX from "xlsx";
 import { basePrisma as prisma } from "@/lib/prisma";
 import { createAgentResolver, type AgentResolver } from "@/lib/import/agents";
-import { normalizeProjectName, normalizeUnitCode } from "@/lib/import/sanitize";
+import { normalizeUnitCode } from "@/lib/import/sanitize";
+import { resolveImportProjectName } from "@/lib/import/project-names";
 
 type Row = Record<string, unknown>;
 type AssignmentRow = {
@@ -47,7 +48,7 @@ async function assignUnitAgent(
   }
 
   const project = await prisma.project.findUnique({
-    where: { name: normalizeProjectName(input.projectName) },
+    where: { name: resolveImportProjectName(input.projectName) },
   });
   if (!project) return;
 

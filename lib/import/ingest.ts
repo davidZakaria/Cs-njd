@@ -16,6 +16,7 @@ import { parseLegacyNumber } from "@/lib/import/numbers";
 import {
   normalizeProjectName,
   normalizeUnitCode,
+  normalizeHeader,
   splitPhones,
 } from "@/lib/import/sanitize";
 import {
@@ -29,6 +30,7 @@ import {
   reconcileImportCaseStatus,
 } from "@/lib/import/workflow-sync";
 import { deriveEdgeCasesFromLegacyText } from "@/lib/import/edge-case-sync";
+import { resolveImportProjectName } from "@/lib/import/project-names";
 import type { FinishingPhase, HandoverStatus, PendingParty } from "@prisma/client";
 import { syncAssignmentsFromWorkbook } from "@/lib/import/sync-assignments";
 
@@ -48,6 +50,51 @@ export type ImportResult = {
   edgeCasesFlagged: number;
   errors: { row: number; sheet: string; message: string }[];
 };
+
+export type IngestWorkbookOptions = {
+  runAssignmentSync?: boolean;
+};
+
+export function mergeImportResults(
+  base: ImportResult,
+  partial: ImportResult
+): ImportResult {
+  const unmatched = new Set([
+    ...base.unmatchedAgentNames,
+    ...partial.unmatchedAgentNames,
+  ]);
+  return {
+    created: base.created + partial.created,
+    updated: base.updated + partial.updated,
+    skipped: base.skipped + partial.skipped,
+    ticketsCreated: base.ticketsCreated + partial.ticketsCreated,
+    ticketsUpdated: base.ticketsUpdated + partial.ticketsUpdated,
+    ticketsSkipped: base.ticketsSkipped + partial.ticketsSkipped,
+    agentsUnresolved: base.agentsUnresolved + partial.agentsUnresolved,
+    unitsAssigned: base.unitsAssigned + partial.unitsAssigned,
+    ticketsAssigned: base.ticketsAssigned + partial.ticketsAssigned,
+    unmatchedAgentNames: [...unmatched],
+    edgeCasesFlagged: base.edgeCasesFlagged + partial.edgeCasesFlagged,
+    errors: [...base.errors, ...partial.errors],
+  };
+}
+
+function emptyImportResult(): ImportResult {
+  return {
+    created: 0,
+    updated: 0,
+    skipped: 0,
+    ticketsCreated: 0,
+    ticketsUpdated: 0,
+    ticketsSkipped: 0,
+    agentsUnresolved: 0,
+    unitsAssigned: 0,
+    ticketsAssigned: 0,
+    unmatchedAgentNames: [],
+    edgeCasesFlagged: 0,
+    errors: [],
+  };
+}
 
 function sheetRows(workbook: XLSX.WorkBook, name: string): Row[] {
   const sheet = workbook.Sheets[name];
@@ -237,7 +284,7 @@ async function upsertCaseTickets(
 }
 
 async function ensureProject(name: string) {
-  const normalized = normalizeProjectName(name);
+  const normalized = resolveImportProjectName(name);
   return prisma.project.upsert({
     where: { name: normalized },
     update: {},
@@ -283,7 +330,34 @@ async function ensureClient(
 type UnitKey = `${string}::${string}`;
 
 function unitKey(project: string, unitCode: string): UnitKey {
-  return `${normalizeProjectName(project)}::${normalizeUnitCode(unitCode)}`;
+  return `${resolveImportProjectName(project)}::${normalizeUnitCode(unitCode)}`;
+}
+
+function formatGracePeriod(value: unknown): string | undefined {
+  if (value == null || String(value).trim() === "") return undefined;
+  const raw = String(value).trim();
+  if (/^\d+(\.0)?$/.test(raw)) return raw.replace(/\.0$/, "");
+  return raw;
+}
+
+function deliveryYearFromValue(
+  deliveryDate: unknown,
+  yearColumn?: unknown
+): string | undefined {
+  const yearRaw = yearColumn != null ? String(yearColumn).trim() : "";
+  if (yearRaw && /^\d{4}$/.test(yearRaw.replace(/\.0$/, ""))) {
+    return yearRaw.replace(/\.0$/, "");
+  }
+  const parsed = parseLegacyDate(deliveryDate);
+  return parsed ? String(parsed.getFullYear()) : undefined;
+}
+
+function findDeliveryDataHeaderRow(rows: unknown[][]) {
+  return rows.findIndex((row) =>
+    row.some((cell) =>
+      normalizeHeader(String(cell ?? "")).includes("unit code")
+    )
+  );
 }
 
 type FinishingImportPatch = {
@@ -378,7 +452,11 @@ function buildFinishingFields(input: {
   return Object.keys(patch).length > 0 ? patch : null;
 }
 
-export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
+export async function ingestWorkbook(
+  buffer: Buffer,
+  options: IngestWorkbookOptions = {}
+): Promise<ImportResult> {
+  const runAssignmentSync = options.runAssignmentSync ?? true;
   const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
   const result: ImportResult = {
     created: 0,
@@ -404,6 +482,8 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
   const juraReadyName = findSheet(workbook, (n) => n.includes("جاهزيه وحدات JURA"));
   const greenReadyName = findSheet(workbook, (n) => n.includes("جاهزيه وحدات GREEN"));
   const warningsName = findSheet(workbook, (n) => n.includes("اعذارات"));
+  const jamilaName = findSheet(workbook, (n) => n.trim().toLowerCase() === "jamila");
+  const deliveryDataName = findSheet(workbook, (n) => n.trim().toLowerCase() === "data");
 
   const unitIdMap = new Map<UnitKey, string>();
 
@@ -1000,6 +1080,149 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
     }
   }
 
+  if (jamilaName) {
+    const jamilaRows = sheetRows(workbook, jamilaName);
+    for (let i = 0; i < jamilaRows.length; i++) {
+      const row = jamilaRows[i];
+      try {
+        const projectName = String(getCell(row, "Project", "project") ?? "Jamila").trim();
+        const clientName = String(getCell(row, "Name", "name") ?? "").trim();
+        const unitCode = getCell(row, "Unit Code", "unit code");
+        if (!clientName || !unitCode) continue;
+
+        const deliveryDate = getCell(row, "Delivery Date Updated", "delivery date updated");
+        const gracePeriod = formatGracePeriod(
+          getCell(row, "Grace Period", "grace period")
+        );
+        const finishingRaw = String(getCell(row, "Finishing", "finishing") ?? "");
+
+        await upsertUnitRecord({
+          projectName,
+          unitCode: String(unitCode),
+          clientName,
+          phones: String(getCell(row, "mobile", "Mobile", "Mobile Number") ?? ""),
+          type: String(getCell(row, "Type", "type") ?? ""),
+          area: getCell(row, "Contract area", "contract area"),
+          contractDate: getCell(row, "Contract Date", "contract date"),
+          deliveryDate,
+          gracePeriod,
+          deliveryYear: deliveryYearFromValue(
+            deliveryDate,
+            getCell(row, "YEAR", "Year")
+          ),
+          finishingType: finishingRaw || undefined,
+          packageLabel: finishingRaw || undefined,
+          notes: String(getCell(row, "NOTE", "Note", "note") ?? "") || undefined,
+          handoverStatus: mapHandoverStatus(finishingRaw),
+        });
+      } catch (error) {
+        result.errors.push({
+          row: i + 2,
+          sheet: jamilaName,
+          message: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+  }
+
+  if (deliveryDataName) {
+    const arrayRows = sheetArrayRows(workbook, deliveryDataName);
+    const headerRowIndex = findDeliveryDataHeaderRow(arrayRows);
+    if (headerRowIndex >= 0) {
+      const header = arrayRows[headerRowIndex] ?? [];
+      const deliveryCols = buildHeaderIndex(header);
+      for (let i = headerRowIndex + 1; i < arrayRows.length; i++) {
+        const row = arrayRows[i] ?? [];
+        try {
+          const projectName = String(
+            colByHeader(row, deliveryCols, "project", "project name") ?? ""
+          ).trim();
+          const clientName = String(colByHeader(row, deliveryCols, "name") ?? "").trim();
+          const unitCode = colByHeader(row, deliveryCols, "unit code");
+          if (!projectName || !clientName || !unitCode) continue;
+
+          const deliveryDate = colByHeader(
+            row,
+            deliveryCols,
+            "delivery date updated",
+            "delivery date"
+          );
+          const gracePeriod = formatGracePeriod(
+            colByHeader(row, deliveryCols, "grace period")
+          );
+          const finishingRaw = String(
+            colByHeader(row, deliveryCols, "finishing (requested)", "finishing") ?? ""
+          );
+          const handoverHint = colByHeader(
+            row,
+            deliveryCols,
+            "التوصيات المطلوبة",
+            "note"
+          );
+          const extensionHint = colByHeader(row, deliveryCols, "2", "3", "4", "5");
+
+          await upsertUnitRecord({
+            projectName,
+            unitCode: String(unitCode),
+            clientName,
+            type: String(colByHeader(row, deliveryCols, "type") ?? ""),
+            area:
+              colByHeader(row, deliveryCols, "contract area", "area") ?? undefined,
+            contractDate: colByHeader(row, deliveryCols, "contract date"),
+            deliveryDate,
+            gracePeriod,
+            deliveryYear: deliveryYearFromValue(
+              deliveryDate,
+              colByHeader(row, deliveryCols, "year")
+            ),
+            finishingType: finishingRaw || undefined,
+            packageLabel: finishingRaw || undefined,
+            agentName:
+              String(
+                colByHeader(
+                  row,
+                  deliveryCols,
+                  "responsible",
+                  "cs",
+                  "eng responsible"
+                ) ?? ""
+              ).trim() || undefined,
+            handoverRaw: handoverHint ?? extensionHint,
+            handoverStatus: mapHandoverStatus(
+              String(handoverHint ?? ""),
+              String(extensionHint ?? ""),
+              finishingRaw
+            ),
+            actionLabel:
+              String(colByHeader(row, deliveryCols, "action taken") ?? "").trim() ||
+              undefined,
+            notes:
+              String(colByHeader(row, deliveryCols, "note", "note") ?? "").trim() ||
+              undefined,
+            cases: buildMasterSheetCases({
+              engineeringRaw: colByHeader(
+                row,
+                deliveryCols,
+                "current situation (eng)"
+              ),
+              actionRaw: colByHeader(row, deliveryCols, "action taken"),
+              customerServiceRaw: colByHeader(row, deliveryCols, "خدمة العملاء"),
+              legalRaw: colByHeader(row, deliveryCols, "الموقف القانوني"),
+              warningsRaw: colByHeader(row, deliveryCols, "اخطار استلام"),
+              handoverRaw: handoverHint ?? extensionHint,
+            }),
+          });
+        } catch (error) {
+          result.errors.push({
+            row: i + 1,
+            sheet: deliveryDataName,
+            message: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      }
+    }
+  }
+
   if (warningsName) {
     const rows = sheetRows(workbook, warningsName);
     for (let i = 0; i < rows.length; i++) {
@@ -1046,11 +1269,39 @@ export async function ingestWorkbook(buffer: Buffer): Promise<ImportResult> {
   result.ticketsUpdated = ticketCounters.updated;
   result.ticketsSkipped = ticketCounters.skipped;
 
-  const assignmentSync = await syncAssignmentsFromWorkbook(buffer);
-  result.unitsAssigned = assignmentSync.unitsAssigned;
-  result.ticketsAssigned = assignmentSync.ticketsAssigned;
-  result.agentsUnresolved = assignmentSync.agentsUnresolved;
-  result.unmatchedAgentNames = assignmentSync.unmatchedAgentNames;
+  if (runAssignmentSync) {
+    const assignmentSync = await syncAssignmentsFromWorkbook(buffer);
+    result.unitsAssigned = assignmentSync.unitsAssigned;
+    result.ticketsAssigned = assignmentSync.ticketsAssigned;
+    result.agentsUnresolved = assignmentSync.agentsUnresolved;
+    result.unmatchedAgentNames = assignmentSync.unmatchedAgentNames;
+  }
 
   return result;
+}
+
+/** Import multiple workbooks in order (later files upsert / enrich earlier rows). */
+export async function ingestWorkbooks(buffers: Buffer[]): Promise<ImportResult> {
+  if (buffers.length === 0) return emptyImportResult();
+
+  let merged = await ingestWorkbook(buffers[0]!, {
+    runAssignmentSync: buffers.length === 1,
+  });
+
+  for (let i = 1; i < buffers.length; i++) {
+    merged = mergeImportResults(
+      merged,
+      await ingestWorkbook(buffers[i]!, { runAssignmentSync: false })
+    );
+  }
+
+  if (buffers.length > 1) {
+    const assignmentSync = await syncAssignmentsFromWorkbook(buffers[0]!);
+    merged.unitsAssigned = assignmentSync.unitsAssigned;
+    merged.ticketsAssigned = assignmentSync.ticketsAssigned;
+    merged.agentsUnresolved = assignmentSync.agentsUnresolved;
+    merged.unmatchedAgentNames = assignmentSync.unmatchedAgentNames;
+  }
+
+  return merged;
 }
