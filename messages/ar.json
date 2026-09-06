@@ -171,7 +171,32 @@
     "unassignedEngineer": "غير مسند",
     "customModifications": "تعديلات مخصصة",
     "modificationsCompleted": "اكتملت التعديلات",
-    "saveProgress": "حفظ التقدم"
+    "saveProgress": "حفظ التقدم",
+    "filters": {
+      "title": "البحث عن مهمة",
+      "searchPlaceholder": "ابحث برقم الوحدة أو المشروع…",
+      "progressLabel": "الحالة",
+      "projectLabel": "المشروع",
+      "sortLabel": "ترتيب حسب",
+      "clear": "مسح الفلاتر",
+      "show": "إظهار الفلاتر",
+      "hide": "إخفاء الفلاتر",
+      "showing": "{count} من {total}",
+      "noMatches": "لا توجد مهام مطابقة لهذه الفلاتر.",
+      "modBadge": "تعديلات",
+      "progress": {
+        "all": "الكل",
+        "customMods": "تعديلات مخصصة",
+        "notStarted": "لم يبدأ",
+        "inProgress": "قيد التنفيذ",
+        "checklistComplete": "اكتملت القائمة"
+      },
+      "sort": {
+        "unitCodeAsc": "رقم الوحدة (تصاعدي)",
+        "unitCodeDesc": "رقم الوحدة (تنازلي)",
+        "projectAsc": "اسم المشروع"
+      }
+    }
   },
   "actions": {
     "logCall": "📞 تسجيل مكالمة",

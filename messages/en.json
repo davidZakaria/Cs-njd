@@ -171,7 +171,32 @@
     "unassignedEngineer": "Not assigned",
     "customModifications": "Custom modifications",
     "modificationsCompleted": "Modifications completed",
-    "saveProgress": "Save progress"
+    "saveProgress": "Save progress",
+    "filters": {
+      "title": "Find a task",
+      "searchPlaceholder": "Search unit code or project…",
+      "progressLabel": "Status",
+      "projectLabel": "Project",
+      "sortLabel": "Sort by",
+      "clear": "Clear filters",
+      "show": "Show filters",
+      "hide": "Hide filters",
+      "showing": "{count} of {total}",
+      "noMatches": "No tasks match these filters.",
+      "modBadge": "Custom mods",
+      "progress": {
+        "all": "All",
+        "customMods": "Custom mods",
+        "notStarted": "Not started",
+        "inProgress": "In progress",
+        "checklistComplete": "Checklist done"
+      },
+      "sort": {
+        "unitCodeAsc": "Unit code (A → Z)",
+        "unitCodeDesc": "Unit code (Z → A)",
+        "projectAsc": "Project name"
+      }
+    }
   },
   "actions": {
     "logCall": "📞 Log call",
