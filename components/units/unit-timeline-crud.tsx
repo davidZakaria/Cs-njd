@@ -13,6 +13,7 @@ import {
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { ResolveCaseModal } from "@/components/cases/resolve-case-modal";
+import { ReopenCaseModal } from "@/components/cases/reopen-case-modal";
 import type { SerializedResolutionContext } from "@/lib/workflow/resolution-checklist";
 import { TICKET_CATEGORIES } from "@/lib/validations/ticket";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -256,9 +257,14 @@ function ManagementEditForm({
         </Field>
         <Field label={tCases("status")}>
           {ticket.status === "RESOLVED" ? (
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-              {statusItems.RESOLVED}
-            </p>
+            <>
+              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                {statusItems.RESOLVED}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Use ↩ Reopen Case above to reverse closure.
+              </p>
+            </>
           ) : (
             <Select
               value={status}
@@ -468,6 +474,7 @@ export function UnitTimelineCrud({
   canBypassGates = false,
   hasResolvedCase = false,
   activeTicketId = null,
+  resolvedTicketId = null,
   gateContext,
   hideAddFeedback = false,
 }: {
@@ -483,6 +490,7 @@ export function UnitTimelineCrud({
   canBypassGates?: boolean;
   hasResolvedCase?: boolean;
   activeTicketId?: string | null;
+  resolvedTicketId?: string | null;
   gateContext: SerializedResolutionContext;
   hideAddFeedback?: boolean;
 }) {
@@ -561,6 +569,12 @@ export function UnitTimelineCrud({
                 gateContext={gateContext}
                 canUseManagementOverride={canUseManagementOverride}
                 canBypassGates={canBypassGates}
+                disabled={pending}
+              />
+            ) : canManageTickets ? (
+              <ReopenCaseModal
+                ticketId={resolvedTicketId}
+                statusItems={statusItems}
                 disabled={pending}
               />
             ) : null}

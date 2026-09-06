@@ -163,6 +163,18 @@
     "success": "Unit case resolved successfully.",
     "resolveFailed": "Could not resolve the case. Please review the checklist."
   },
+  "reopenModal": {
+    "triggerBtn": "↩ Reopen Case",
+    "title": "Reopen resolved case",
+    "description": "This reverses handover closure and puts the unit back in active workflow. Use only when closure was mistaken or the client reopened an issue.",
+    "reasonLabel": "Reason for reopening (required)",
+    "reasonPlaceholder": "e.g. Client reported new snagging after handover…",
+    "statusLabel": "Reopen as status",
+    "confirmBtn": "Confirm reopen",
+    "success": "Case reopened successfully.",
+    "reopenFailed": "Could not reopen the case.",
+    "notResolved": "This case is not resolved."
+  },
   "notifications": {
     "title": "Notifications",
     "bellLabel": "Open notifications",

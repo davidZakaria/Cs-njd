@@ -100,6 +100,8 @@ export default async function UnitProfilePage({
   const hasResolvedCase = unit.tickets.some((ticket) => ticket.status === "RESOLVED");
   const activeTicket =
     unit.tickets.find((ticket) => ticket.status !== "RESOLVED") ?? null;
+  const resolvedTicket =
+    unit.tickets.find((ticket) => ticket.status === "RESOLVED") ?? null;
 
   const gateContext: SerializedResolutionContext = {
     ticketPendingParty: activeTicket?.pendingParty ?? "NONE",
@@ -362,6 +364,7 @@ export default async function UnitProfilePage({
             }
             hasResolvedCase={hasResolvedCase}
             activeTicketId={activeTicket?.id ?? null}
+            resolvedTicketId={resolvedTicket?.id ?? null}
             gateContext={gateContext}
             hideAddFeedback={hideAddFeedback}
             canBypassGates={session?.user?.role === "SUPER_ADMIN"}

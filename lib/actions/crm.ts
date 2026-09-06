@@ -645,6 +645,56 @@ export async function resolveUnitTicket(input: {
   return actionOk();
 }
 
+function reopenCaseNote(actorName: string, reason: string): string {
+  return `[Case reopened by ${actorName}]\n${reason.trim()}`;
+}
+
+export async function reopenUnitTicket(input: {
+  ticketId: string;
+  reason: string;
+  targetStatus?: "PENDING" | "ENGINEERING" | "LEGAL";
+}): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const authError = await assertCanManageUnitTickets(session.user);
+  if (authError) return authError;
+
+  const reason = input.reason.trim();
+  if (!reason) return actionFail("Reason is required");
+
+  const targetStatus = input.targetStatus ?? "PENDING";
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: input.ticketId },
+    include: { unit: true },
+  });
+  if (!ticket) return actionFail("Ticket not found");
+  if (ticket.status !== "RESOLVED") {
+    return actionFail("Case is not resolved");
+  }
+
+  const actorName =
+    session.user.name ?? session.user.email ?? "Management";
+  const nextNotes = `${ticket.notes}\n${reopenCaseNote(actorName, reason)}`;
+  const nextResolvedAt = resolvedAtForStatusChange(ticket.status, targetStatus);
+
+  await withAudit(() =>
+    prisma.ticket.update({
+      where: { id: ticket.id },
+      data: {
+        status: targetStatus,
+        notes: nextNotes,
+        pendingParty: targetStatus === "ENGINEERING" ? "ENGINEERING" : "NONE",
+        ...(nextResolvedAt !== undefined ? { resolvedAt: nextResolvedAt } : {}),
+      },
+    })
+  );
+
+  revalidateTicketPaths(ticket.unitId);
+  return actionOk();
+}
+
 export async function deleteTicket(ticketId: string): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
