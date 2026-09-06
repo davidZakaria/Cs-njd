@@ -159,6 +159,25 @@
       "engineeringReturnedMessage": "Eng. {engineerName} updated finishes for Unit {unitCode}. It is back in your queue!"
     }
   },
+  "notificationsLog": {
+    "title": "Notifications Log",
+    "subtitle": "Audit system notifications — verify triggers fire and reach the right users.",
+    "searchPlaceholder": "Search recipient, unit code, or message…",
+    "empty": "No notifications recorded yet.",
+    "read": "Read",
+    "unread": "Unread",
+    "total": "{count} notifications",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {current} of {total}",
+    "columns": {
+      "timestamp": "Timestamp",
+      "recipient": "Recipient",
+      "title": "Title",
+      "message": "Message",
+      "readStatus": "Read status"
+    }
+  },
   "engineering": {
     "portalTitle": "Engineering Portal",
     "myTasks": "Finishing tasks",
@@ -239,6 +258,7 @@
     "system": "System",
     "loginHistory": "Login History",
     "systemHealth": "System Health",
+    "notificationsLog": "Notifications Log",
     "systemSettings": "General Settings",
     "administration": "Administration",
     "groups": {

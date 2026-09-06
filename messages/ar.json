@@ -159,6 +159,25 @@
       "engineeringReturnedMessage": "قام المهندس {engineerName} بتحديث تشطيبات الوحدة {unitCode}. عادت إلى قائمتك!"
     }
   },
+  "notificationsLog": {
+    "title": "سجل الإشعارات",
+    "subtitle": "مراجعة إشعارات النظام — التحقق من التفعيل ووصولها للمستخدمين الصحيحين.",
+    "searchPlaceholder": "بحث بالمستلم أو رمز الوحدة أو نص الرسالة…",
+    "empty": "لا توجد إشعارات مسجّلة بعد.",
+    "read": "مقروء",
+    "unread": "غير مقروء",
+    "total": "{count} إشعار",
+    "previous": "السابق",
+    "next": "التالي",
+    "page": "صفحة {current} من {total}",
+    "columns": {
+      "timestamp": "الوقت",
+      "recipient": "المستلم",
+      "title": "العنوان",
+      "message": "الرسالة",
+      "readStatus": "حالة القراءة"
+    }
+  },
   "engineering": {
     "portalTitle": "بوابة الإدارة الهندسية",
     "myTasks": "مهام التشطيب المطلوبة",
@@ -239,6 +258,7 @@
     "system": "النظام",
     "loginHistory": "سجل تسجيل الدخول",
     "systemHealth": "صحة النظام",
+    "notificationsLog": "سجل الإشعارات",
     "systemSettings": "الإعدادات العامة",
     "administration": "الإدارة",
     "groups": {

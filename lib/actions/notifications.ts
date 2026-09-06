@@ -1,8 +1,10 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { pickBilingual } from "@/lib/notifications/bilingual";
 import { basePrisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getLocale } from "next-intl/server";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 
 export type NotificationItem = {
@@ -19,6 +21,8 @@ export async function getMyNotifications(): Promise<
 > {
   const session = await auth();
   if (!session?.user?.id) return actionFail("Unauthorized");
+
+  const locale = await getLocale();
 
   const items = await basePrisma.notification.findMany({
     where: { userId: session.user.id },
@@ -37,7 +41,11 @@ export async function getMyNotifications(): Promise<
   return {
     success: true,
     items: items.map((item) => ({
-      ...item,
+      id: item.id,
+      title: pickBilingual(item.title, locale),
+      message: pickBilingual(item.message, locale),
+      isRead: item.isRead,
+      link: item.link,
       createdAt: item.createdAt.toISOString(),
     })),
   };

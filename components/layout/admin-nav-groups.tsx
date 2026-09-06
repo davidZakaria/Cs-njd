@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  Bell,
   ChevronDown,
   Database,
   FileUp,
@@ -43,6 +44,7 @@ const itemIconMap: Partial<Record<NavItemKey, typeof Users>> = {
   backups: Database,
   auditLogs: ScrollText,
   systemHealth: Gauge,
+  notificationsLog: Bell,
   systemSettings: Settings,
   system: Settings,
 };

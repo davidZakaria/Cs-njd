@@ -72,7 +72,8 @@ export type NavItemKey =
   | "system"
   | "loginHistory"
   | "systemHealth"
-  | "systemSettings";
+  | "systemSettings"
+  | "notificationsLog";
 
 export type NavGroupKey =
   | "usersSecurity"
@@ -117,7 +118,10 @@ export function getSuperAdminNavGroups(): Array<{
     },
     {
       key: "monitoring",
-      items: [{ href: "/system/monitoring", key: "systemHealth" }],
+      items: [
+        { href: "/system/monitoring", key: "systemHealth" },
+        { href: "/system/notifications-log", key: "notificationsLog" },
+      ],
     },
     {
       key: "systemAdmin",

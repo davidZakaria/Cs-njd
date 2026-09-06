@@ -12,7 +12,7 @@ import {
   normalizeFinishingPhases,
   sortPhases,
 } from "@/lib/finishing/phases";
-import { notifyEngineeringReturned } from "@/lib/notifications/triggers";
+import { notifySiteUpdate } from "@/lib/notifications/triggers";
 import { auditContext, prisma } from "@/lib/prisma";
 import { activeTicketWhere } from "@/lib/prisma";
 
@@ -117,7 +117,7 @@ export async function returnToCsAction(
   });
 
   if (unit.agentId) {
-    await notifyEngineeringReturned({
+    await notifySiteUpdate({
       agentUserId: unit.agentId,
       unitCode: unit.unitCode,
       unitId: unit.id,

@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  Bell,
   Building2,
   ClipboardList,
   Database,
@@ -56,6 +57,7 @@ const iconMap = {
   backups: Database,
   loginHistory: Shield,
   systemHealth: Gauge,
+  notificationsLog: Bell,
   systemSettings: Settings,
   system: Settings,
 } as const;

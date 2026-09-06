@@ -107,12 +107,18 @@ export function NotificationBell({ locale }: { locale: string }) {
       >
         <Bell className="size-4" />
         {unreadCount > 0 ? (
-          <Badge
-            variant="destructive"
-            className="absolute -top-0.5 -end-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none"
-          >
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </Badge>
+          <>
+            <span
+              className="absolute end-1 top-1 size-2 rounded-full bg-red-500 ring-2 ring-background"
+              aria-hidden
+            />
+            <Badge
+              variant="destructive"
+              className="absolute -top-0.5 -end-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none"
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </Badge>
+          </>
         ) : null}
       </PopoverTrigger>
       <PopoverContent align="end" side="bottom" className="w-80 p-0">

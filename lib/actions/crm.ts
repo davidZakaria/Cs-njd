@@ -19,10 +19,10 @@ import {
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { archivedUserEmail } from "@/lib/prisma/soft-delete";
 import {
-  notifyCaseAssigned,
-  notifyCaseStatusUpdated,
-  notifyCallLogged,
+  notifyInboundCall,
+  notifyUnitAssigned,
 } from "@/lib/notifications/triggers";
+import { dispatchTicketWorkflowNotifications } from "@/lib/notifications/dispatch-ticket-notifications";
 import {
   finishingFormSchema,
   type FinishingFormInput,
@@ -383,14 +383,15 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
     })
   );
 
-  if (status === "LEGAL" || status === "RESOLVED") {
-    await notifyCaseStatusUpdated({
-      unitCode: unit.unitCode,
-      unitId,
-      status,
-      agentName: session.user.name ?? session.user.email ?? "Agent",
-    });
-  }
+  await dispatchTicketWorkflowNotifications({
+    unit,
+    previousStatus: "PENDING",
+    previousPendingParty: "NONE",
+    nextStatus: status,
+    nextPendingParty: pendingParty ?? "NONE",
+    managementOverride: managementOverride ?? false,
+    actorName: session.user.name ?? session.user.email ?? "Agent",
+  });
 
   revalidateTicketPaths(unitId);
   return actionOk();
@@ -460,17 +461,15 @@ export async function updateTicketStatus(formData: FormData): Promise<ActionResu
     })
   );
 
-  if (
-    previousStatus !== status &&
-    (status === "LEGAL" || status === "RESOLVED")
-  ) {
-    await notifyCaseStatusUpdated({
-      unitCode: ticket.unit.unitCode,
-      unitId: ticket.unitId,
-      status,
-      agentName: session.user.name ?? session.user.email ?? "Agent",
-    });
-  }
+  await dispatchTicketWorkflowNotifications({
+    unit: ticket.unit,
+    previousStatus: ticket.status,
+    previousPendingParty: ticket.pendingParty,
+    nextStatus: status,
+    nextPendingParty: mergedWorkflow.pendingParty,
+    managementOverride: managementOverride ?? false,
+    actorName: session.user.name ?? session.user.email ?? "Agent",
+  });
 
   revalidateTicketPaths(ticket.unitId);
   return actionOk();
@@ -560,17 +559,15 @@ export async function updateTicketDetails(
     })
   );
 
-  if (
-    previousStatus !== status &&
-    (status === "LEGAL" || status === "RESOLVED")
-  ) {
-    await notifyCaseStatusUpdated({
-      unitCode: ticket.unit.unitCode,
-      unitId: ticket.unitId,
-      status,
-      agentName: session.user.name ?? session.user.email ?? "Manager",
-    });
-  }
+  await dispatchTicketWorkflowNotifications({
+    unit: ticket.unit,
+    previousStatus: ticket.status,
+    previousPendingParty: ticket.pendingParty,
+    nextStatus: status,
+    nextPendingParty: mergedWorkflow.pendingParty,
+    managementOverride: managementOverride ?? false,
+    actorName: session.user.name ?? session.user.email ?? "Manager",
+  });
 
   revalidateTicketPaths(ticket.unitId);
   return actionOk();
@@ -634,6 +631,16 @@ export async function updateTicketWorkflow(
     })
   );
 
+  await dispatchTicketWorkflowNotifications({
+    unit: ticket.unit,
+    previousStatus: ticket.status,
+    previousPendingParty: ticket.pendingParty,
+    nextStatus: ticket.status,
+    nextPendingParty: pendingParty,
+    managementOverride: false,
+    actorName: session.user.name ?? session.user.email ?? "Agent",
+  });
+
   revalidatePath(`/units/${ticket.unitId}`);
   revalidatePath("/cases");
   revalidatePath("/dashboard");
@@ -693,7 +700,7 @@ export async function assignTicketAgent(formData: FormData): Promise<ActionResul
   });
   if (!ticket) return actionFail("Ticket not found");
 
-  const previousAgentId = ticket.agentId;
+  const previousUnitAgentId = ticket.unit.agentId;
 
   await withAudit(async () => {
     await prisma.ticket.update({
@@ -711,10 +718,9 @@ export async function assignTicketAgent(formData: FormData): Promise<ActionResul
 
   if (
     agentId !== "unassigned" &&
-    agentId !== previousAgentId &&
-    ["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)
+    agentId !== previousUnitAgentId
   ) {
-    await notifyCaseAssigned({
+    await notifyUnitAssigned({
       agentUserId: agentId,
       unitCode: ticket.unit.unitCode,
       unitId: ticket.unitId,
@@ -837,7 +843,7 @@ export async function logCallQuickAction(input: {
   );
 
   if (unit.agentId && unit.agentId !== session.user.id) {
-    await notifyCallLogged({
+    await notifyInboundCall({
       agentUserId: unit.agentId,
       unitCode: unit.unitCode,
       unitId: unit.id,
