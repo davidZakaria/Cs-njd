@@ -74,6 +74,15 @@
     "phaseChecklistDisabled": "قائمة التشطيب متاحة فقط لباقات التشطيب الكامل (وليس العظم أو أقل من باقة الشركة).",
     "finishingNotes": "ملاحظات التشطيب",
     "finishingNotesPlaceholder": "ملاحظات الموقع، التأخيرات، تعليقات المقاول…",
+    "csAgentHint": "يمكنك إضافة ملاحظات تشطيب وتعديلات مخصصة على الوحدات المسندة إليك. لا يمكن حذف النص الحالي. الباقة والرسوم والمراحل للإدارة فقط.",
+    "managementOnly": "للإدارة فقط",
+    "addFinishingNote": "إضافة ملاحظة تشطيب",
+    "addFinishingNotePlaceholder": "ملاحظة جديدة من مكالمة العميل أو الموقع…",
+    "addCustomModification": "إضافة تعديل مخصص",
+    "addCustomModificationPlaceholder": "وصف طلب تعديل جديد…",
+    "addNotes": "إضافة ملاحظات",
+    "noNotesYet": "لا توجد ملاحظات تشطيب بعد.",
+    "noModificationsYet": "لا توجد تعديلات مخصصة مسجلة.",
     "currentStatus": "موقف الوحده الحالي من التشطيب"
   },
   "workflow": {

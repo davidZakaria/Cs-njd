@@ -37,7 +37,7 @@ The CRM supports five canonical NJD projects:
 |------|-----|-------------|
 | **Super Admin** | IT / system owner | Full system: imports, audit logs, backups, users, system monitoring, security, maintenance mode, all modules |
 | **Management (Executive)** | Directors / managers | Executive Command Center, cases, units, users (CS agents & site engineers) |
-| **CS Agent** | Customer service staff | Dashboard, assigned units & cases, **global unit lookup** (Cmd+K by phone/name/code), client contact on Unit 360, **Log Call on any unit** answered on the phone, ticket updates on assigned units |
+| **CS Agent** | Customer service staff | Dashboard, assigned units & cases, **global unit lookup** (Cmd+K by phone/name/code), client contact on Unit 360, **Log Call on any unit** answered on the phone, ticket updates on assigned units, **partial handover checklist** on assigned units (site-verified fields only) |
 | **Site Engineer** | On-site finishing team (shared login) | **Engineering Portal** only — mobile task queue, finishing checklist, site notes; **no 2FA**, no client PII or financials |
 
 Each role sees only the navigation and data appropriate to their responsibilities.
@@ -111,6 +111,9 @@ Project-first command center for leadership:
 - Assign cases to CS agents
 - Update status inline (Pending, Engineering, Legal, Resolved)
 - **Resolution gates** — cannot resolve while finishing incomplete, fees unpaid, papers missing, pending with another party, **active legal block**, or **custom modifications pending** *(Management override available)*
+- **Resolution Center modal** — CS agents resolve via a pre-flight **Smart Gate checklist** on Unit 360; all gates must pass before **Resolve Case** is enabled *(Management / named executives may override)*
+- **Reopen Case** *(Management & Super Admin only)* — reopen a resolved unit ticket; clears `resolvedAt` and restores active workflow
+- **Resolved-case UX for CS** — once resolved, CS agents see a green “already resolved” banner; **Add Feedback** and quick status-to-Resolved are hidden (Management retains full timeline CRUD)
 - **Legal block banner** on Unit 360 when unit is under lawsuit/dispute — WhatsApp and handover actions disabled for CS
 - **Pending party** workflow field (Client, Engineering, Legal, Finance, Management, Logistics, **Customer Service** for CS handback)
 - **Next follow-up date** with “Due today” filter
@@ -119,7 +122,9 @@ Project-first command center for leadership:
 
 ### 5. Units (Unit 360)
 - Unit profile: client, project, handover, finishing financials
-- **Management / Super Admin CRUD** — edit client info (name, phones, email, national ID, addresses), handover status, delivery dates, and legal/handover checklist fields inline on Unit 360
+- **Management / Super Admin CRUD** — edit client info (name, phones, email, national ID, addresses), handover status, delivery dates, and full legal/handover checklist inline on Unit 360
+- **CS handover checklist (assigned units)** — CS agents may update **site-verified** Legal tab fields only: protocol signed, extension annex, papers received, POA/DHL, inspection date; **fees paid**, **legal block**, and handover status/dates remain **Management only**
+- **Management alerts on CS handover edits** — when a CS agent saves checklist changes or uploads a signed protocol, **Management** and **Super Admin** receive a bilingual in-app notification linking to the Legal tab
 - **CS inbound-call access** — any CS agent can open **any unit profile** via spotlight search to view client contact; list/cases remain scoped to assigned work
 - **Log Call** — CS agents can log a call on **any unit** they handled on the phone (not restricted to assigned units or legal-block state)
 - **Client phones & email visible** to CS agents (WhatsApp one-click contact)
@@ -140,10 +145,11 @@ Project-first command center for leadership:
   - With/without insurance, single/dual signature options
   - Arabic left · English right; auto-filled client, unit, contract dates
   - **NJD logo** centered in print header; template picker on Unit 360
-- **Signed protocol upload** — after ≥1 resolved case, upload client-signed PDF/scan (Legal tab + Timeline when resolved):
+- **Signed protocol upload** — upload client-signed PDF/scan on the Legal tab (and Timeline when resolved); **no longer requires a resolved case first** (helps unlock resolution gates):
   - Stored on server under `uploads/signed-protocols/`
   - Auto-sets `hasSignedProtocol` and `papersReceived`
   - CS agents: upload on **assigned units only**; Management: any unit
+  - CS upload notifies **Management** and **Super Admin**
 
 ### 5b. Engineering Portal *(Site Engineer)*
 Mobile-first portal for on-site finishing updates — isolated from the main CRM (no Unit 360, Cases, or Executive access).
@@ -225,10 +231,11 @@ Collapsible sidebar groups organize super-admin tools:
   - `AUTH_SESSION_BROWSER_ONLY` (default `true` — re-login after browser restart)
 
 ### 11. In-app notifications
-- **Notification bell** in the top navbar for all authenticated roles
+- **Notification bell** in the top navbar for all authenticated roles (bilingual EN / AR, unread badge)
 - Real-time-style inbox (mark read, mark all read)
-- Automatic triggers when cases are assigned or move to Legal / Resolved (notifies Management & Super Admin)
-- Bilingual notification messages (EN / AR)
+- **Operational triggers** — case assignment, inbound call logged, engineering site return, ticket status changes (Legal / Resolved), manager override resolve, **CS handover checklist updates**, signed protocol upload by CS
+- Role-targeted delivery — e.g. CS agent notified on assignment; **Management & Super Admin** notified on escalations and CS handover edits
+- **Notifications log** *(Super Admin)* — `/system/notifications-log` audit table of all system-generated notifications
 
 ### 12. Data lifecycle (soft delete)
 - Records are **soft-deleted** instead of permanently removed (users, clients, units, cases, finishing, contract workflow)
@@ -265,6 +272,31 @@ Collapsible sidebar groups organize super-admin tools:
 ---
 
 ## Release history (recent updates)
+
+### September 2026 — CS handover checklist & management alerts
+- **Partial CS Legal tab access** — assigned CS agents edit site-verified checklist fields (protocol, extension, papers, POA/DHL, inspection date); fees, legal block, and handover dates stay Management-only
+- **`updateCsHandoverChecklist` server action** — ABAC via assigned-unit scope; change detection via `lib/workflow/cs-handover-fields.ts`
+- **Management notifications** — `notifyHandoverChecklistUpdatedByAgent()` alerts Management & Super Admin on each CS checklist save or signed-protocol upload
+- **Signed protocol pre-resolve** — upload allowed before case resolution to satisfy resolution gates; updated bilingual UI copy
+- **Legal tab deep link** — notification links use `/units/{id}?tab=legal`
+- Commit: `1a59d8b`
+
+### September 2026 — Reopen Case (Management)
+- **Reopen Case modal** on Unit 360 for resolved units — Management & Super Admin only
+- Clears ticket `resolvedAt`, restores active case workflow
+- Commit: `e2efad1`
+
+### September 2026 — Resolution Center modal
+- **Resolve Case** button opens pre-flight checklist (shared with server-side `evaluateResolutionGates`)
+- CS agents resolve only when all Smart Gates pass; Management override for named executives + Super Admin
+- CS timeline: removed quick **Resolved** status and post-resolve feedback add; green resolved banner for CS
+- Commit: `513118f`
+
+### September 2026 — Operational notifications & audit log
+- Central notification service (`lib/services/notifications.ts`) with bilingual DB storage
+- Wired triggers across CRM and engineering actions (assign, call log, legal/resolved, engineering return, manager override)
+- **Notifications log** page for Super Admin (`/system/notifications-log`)
+- Commit: `72cf2e0`
 
 ### September 2026 — Session security & custom domain
 - **Session expiry** — 8-hour max session lifetime; idle refresh every 30 minutes while active
@@ -333,7 +365,7 @@ Collapsible sidebar groups organize super-admin tools:
 ### September 2026 — Handover print & signed documents
 - **Official bilingual handover templates** — 6 variants (Green Avenue / JURA; insurance; dual signature) from legal Word docs
 - **NJD logo** on print header (single centered logo)
-- **Signed protocol upload** after case resolution — PDF/image storage, download API, Legal + Timeline UI
+- **Signed protocol upload** after case resolution — PDF/image storage, download API, Legal + Timeline UI *(later: upload also allowed pre-resolve — see Sep 2026 CS handover release)*
 - Migration: `20260902120000_signed_protocol_upload`
 - `UPLOADS_DIR` env (default `./uploads`) for on-disk document storage
 

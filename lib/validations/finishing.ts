@@ -91,6 +91,14 @@ export const finishingFormSchema = z.object({
 export type FinishingFormInput = z.input<typeof finishingFormSchema>;
 export type FinishingFormValues = z.output<typeof finishingFormSchema>;
 
+export const csFinishingAdditionsSchema = z.object({
+  unitId: z.string().min(1),
+  addFinishingNote: optionalString(),
+  addCustomModification: optionalString(),
+});
+
+export type CsFinishingAdditionsInput = z.infer<typeof csFinishingAdditionsSchema>;
+
 export const FINISHING_PACKAGE_OPTIONS = finishingPackageValues;
 export const EXECUTING_COMPANY_OPTIONS = executingCompanyValues;
 export const FINISHING_PHASE_OPTIONS = FINISHING_PHASE_ORDER.filter(

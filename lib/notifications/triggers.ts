@@ -140,6 +140,27 @@ export async function notifyManagerOverride({
   );
 }
 
+export async function notifyFinishingUpdatedByAgent({
+  unitCode,
+  unitId,
+  agentName,
+  changesSummary,
+}: {
+  unitCode: string;
+  unitId: string;
+  agentName: string;
+  changesSummary: string;
+}) {
+  await notifyRoles(
+    ["MANAGEMENT", "SUPER_ADMIN"],
+    "Finishing notes updated",
+    "تحديث ملاحظات التشطيب",
+    `${agentName} added finishing notes for Unit ${unitCode}: ${changesSummary}`,
+    `قام ${agentName} بإضافة ملاحظات تشطيب للوحدة ${unitCode}: ${changesSummary}`,
+    `/units/${unitId}?tab=financials`
+  );
+}
+
 export async function notifyHandoverChecklistUpdatedByAgent({
   unitCode,
   unitId,

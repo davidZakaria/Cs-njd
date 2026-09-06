@@ -222,6 +222,8 @@ export default async function UnitProfilePage({
 
         <TabsContent value="financials">
           <UnitFinishingForm
+            canEditManagement={canEditProfile}
+            canEditCsFinishing={canEditCsChecklist}
             defaults={{
               unitId: unit.id,
               packageType: unit.finishing?.packageType ?? null,
@@ -247,7 +249,6 @@ export default async function UnitProfilePage({
               companyName: unit.finishing?.companyName ?? null,
               finishingType: unit.finishing?.finishingType ?? null,
             }}
-            canEdit={canEditProfile}
             packageDisplayLabel={finishingLabel}
             companyDisplayLabel={companyLabel}
           />

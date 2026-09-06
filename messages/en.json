@@ -74,6 +74,15 @@
     "phaseChecklistDisabled": "Finishing checklist is only available for fully-finished packages (not Core & Shell or below company package).",
     "finishingNotes": "Finishing notes",
     "finishingNotesPlaceholder": "Site notes, delays, contractor comments…",
+    "csAgentHint": "You can add finishing notes and custom modifications on assigned units. Existing text cannot be removed. Package, fees, and phases require management.",
+    "managementOnly": "Management only",
+    "addFinishingNote": "Add finishing note",
+    "addFinishingNotePlaceholder": "New note from client call or site update…",
+    "addCustomModification": "Add custom modification",
+    "addCustomModificationPlaceholder": "Describe a new modification request…",
+    "addNotes": "Add notes",
+    "noNotesYet": "No finishing notes yet.",
+    "noModificationsYet": "No custom modifications recorded.",
     "currentStatus": "Current unit finishing status"
   },
   "workflow": {

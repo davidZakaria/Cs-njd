@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { FinishingPackage } from "@prisma/client";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { CalendarIcon, HardHat } from "lucide-react";
 
-import { updateFinishing } from "@/lib/actions/crm";
+import { updateCsFinishingAdditions, updateFinishing } from "@/lib/actions/crm";
 import { formatCurrency } from "@/lib/format/currency";
 import {
   EXECUTING_COMPANY_OPTIONS,
@@ -152,16 +153,24 @@ function SummaryCard({
 
 export function UnitFinishingForm({
   defaults,
+  canEditManagement = false,
+  canEditCsFinishing = false,
   canEdit,
   packageDisplayLabel,
   companyDisplayLabel,
 }: {
   defaults: FinishingFormDefaults;
-  canEdit: boolean;
+  canEditManagement?: boolean;
+  canEditCsFinishing?: boolean;
+  /** @deprecated Use canEditManagement */
+  canEdit?: boolean;
   packageDisplayLabel: string;
   companyDisplayLabel: string;
 }) {
+  const managementEdit = canEditManagement || Boolean(canEdit);
+  const canSubmitCs = canEditCsFinishing && !managementEdit;
   const locale = useLocale();
+  const router = useRouter();
   const isRtl = locale === "ar";
   const t = useTranslations("units");
   const tFinishing = useTranslations("finishing");
@@ -171,6 +180,10 @@ export function UnitFinishingForm({
   const tCommon = useTranslations("common");
   const labels = useDomainLabels();
   const { pending, runAction } = useCrudToast();
+  const [addFinishingNote, setAddFinishingNote] = useState("");
+  const [addCustomModification, setAddCustomModification] = useState("");
+
+  const canSubmit = managementEdit || canSubmitCs;
 
   const formDefaults = useMemo(
     (): FinishingFormInput => ({
@@ -240,13 +253,32 @@ export function UnitFinishingForm({
   const hasCustomMods = customModsText.length > 0;
 
   function onSubmit(values: FinishingFormInput) {
-    const trimmedMods = String(values.customModifications ?? "").trim();
-    const payload: FinishingFormInput = {
-      ...values,
-      customModifications: trimmedMods || null,
-      modificationsCompleted: trimmedMods ? values.modificationsCompleted ?? false : true,
-    };
-    runAction(() => updateFinishing(payload), "saved");
+    if (managementEdit) {
+      const trimmedMods = String(values.customModifications ?? "").trim();
+      const payload: FinishingFormInput = {
+        ...values,
+        customModifications: trimmedMods || null,
+        modificationsCompleted: trimmedMods ? values.modificationsCompleted ?? false : true,
+      };
+      runAction(() => updateFinishing(payload), "saved");
+      return;
+    }
+
+    if (canSubmitCs) {
+      runAction(async () => {
+        const result = await updateCsFinishingAdditions({
+          unitId: values.unitId,
+          addFinishingNote: addFinishingNote.trim() || null,
+          addCustomModification: addCustomModification.trim() || null,
+        });
+        if (result.success) {
+          setAddFinishingNote("");
+          setAddCustomModification("");
+          router.refresh();
+        }
+        return result;
+      }, "saved");
+    }
   }
 
   return (
@@ -281,7 +313,7 @@ export function UnitFinishingForm({
                 <FinishingPhasePicker
                   value={normalizeFinishingPhases(field.value ?? [])}
                   onChange={field.onChange}
-                  disabled={!canEdit || pending}
+                  disabled={!managementEdit || pending}
                   packageType={checklistPackageType}
                   label={tFinishing("phaseBannerLabel")}
                   hint={tFinishing("phaseMultiHint")}
@@ -325,6 +357,11 @@ export function UnitFinishingForm({
         <Card>
           <CardHeader>
             <CardTitle>{t("sectionGeneral")}</CardTitle>
+            {canSubmitCs ? (
+              <p className="text-sm text-muted-foreground">
+                {tFinishing("csAgentHint")}
+              </p>
+            ) : null}
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -337,7 +374,7 @@ export function UnitFinishingForm({
                     value={field.value ?? ""}
                     onValueChange={(value) => field.onChange(value ?? "")}
                     items={packageItems}
-                    disabled={!canEdit || pending}
+                    disabled={!managementEdit || pending}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder={tCommon("all")} />
@@ -353,6 +390,11 @@ export function UnitFinishingForm({
                   </Select>
                 )}
               />
+              {canSubmitCs ? (
+                <span className="text-xs text-muted-foreground">
+                  ({tFinishing("managementOnly")})
+                </span>
+              ) : null}
             </div>
 
             <div className="space-y-2">
@@ -365,7 +407,7 @@ export function UnitFinishingForm({
                     value={field.value ?? ""}
                     onValueChange={(value) => field.onChange(value ?? "")}
                     items={companyItems}
-                    disabled={!canEdit || pending}
+                    disabled={!managementEdit || pending}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder={tCommon("all")} />
@@ -381,41 +423,101 @@ export function UnitFinishingForm({
                   </Select>
                 )}
               />
+              {canSubmitCs ? (
+                <span className="text-xs text-muted-foreground">
+                  ({tFinishing("managementOnly")})
+                </span>
+              ) : null}
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="currentFinishingStatus">
                 {tFinishing("finishingNotes")}
               </Label>
-              <Textarea
-                id="currentFinishingStatus"
-                rows={4}
-                disabled={!canEdit || pending}
-                placeholder={tFinishing("finishingNotesPlaceholder")}
-                className="min-h-24 resize-y text-start"
-                {...register("currentFinishingStatus")}
-              />
+              {canSubmitCs ? (
+                <>
+                  {defaults.currentFinishingStatus ? (
+                    <div className="rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap">
+                      {defaults.currentFinishingStatus}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {tFinishing("noNotesYet")}
+                    </p>
+                  )}
+                  <Label htmlFor="addFinishingNote">{tFinishing("addFinishingNote")}</Label>
+                  <Textarea
+                    id="addFinishingNote"
+                    rows={3}
+                    disabled={pending}
+                    placeholder={tFinishing("addFinishingNotePlaceholder")}
+                    className="min-h-20 resize-y text-start"
+                    value={addFinishingNote}
+                    onChange={(event) => setAddFinishingNote(event.target.value)}
+                  />
+                </>
+              ) : (
+                <Textarea
+                  id="currentFinishingStatus"
+                  rows={4}
+                  disabled={!managementEdit || pending}
+                  placeholder={tFinishing("finishingNotesPlaceholder")}
+                  className="min-h-24 resize-y text-start"
+                  {...register("currentFinishingStatus")}
+                />
+              )}
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="customModifications">{tEdge("customModifications")}</Label>
-              <Textarea
-                id="customModifications"
-                rows={3}
-                disabled={!canEdit || pending}
-                className="min-h-20 resize-y text-start"
-                {...register("customModifications")}
-              />
+              {canSubmitCs ? (
+                <>
+                  {defaults.customModifications ? (
+                    <div className="rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap">
+                      {defaults.customModifications}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {tFinishing("noModificationsYet")}
+                    </p>
+                  )}
+                  <Label htmlFor="addCustomModification">
+                    {tFinishing("addCustomModification")}
+                  </Label>
+                  <Textarea
+                    id="addCustomModification"
+                    rows={3}
+                    disabled={pending}
+                    placeholder={tFinishing("addCustomModificationPlaceholder")}
+                    className="min-h-20 resize-y text-start"
+                    value={addCustomModification}
+                    onChange={(event) => setAddCustomModification(event.target.value)}
+                  />
+                </>
+              ) : (
+                <Textarea
+                  id="customModifications"
+                  rows={3}
+                  disabled={!managementEdit || pending}
+                  className="min-h-20 resize-y text-start"
+                  {...register("customModifications")}
+                />
+              )}
             </div>
-            {hasCustomMods ? (
+            {hasCustomMods || defaults.customModifications ? (
               <div className="flex items-start gap-3 md:col-span-2">
                 <input
                   id="modificationsCompleted"
                   type="checkbox"
                   className="mt-1 size-4 rounded border"
-                  disabled={!canEdit || pending}
+                  disabled={!managementEdit || pending}
                   {...register("modificationsCompleted")}
                 />
                 <Label htmlFor="modificationsCompleted" className="font-normal leading-snug">
                   {tEdge("modificationsCompleted")}
+                  {canSubmitCs ? (
+                    <span className="ms-1 text-xs text-muted-foreground">
+                      ({tFinishing("managementOnly")})
+                    </span>
+                  ) : null}
                 </Label>
               </div>
             ) : null}
@@ -433,7 +535,7 @@ export function UnitFinishingForm({
                 id="pricePerMeter"
                 type="number"
                 step="any"
-                disabled={!canEdit || pending}
+                disabled={!managementEdit || pending}
                 {...register("pricePerMeter")}
               />
             </div>
@@ -443,7 +545,7 @@ export function UnitFinishingForm({
                 id="totalFinishingPrice"
                 type="number"
                 step="any"
-                disabled={!canEdit || pending}
+                disabled={!managementEdit || pending}
                 {...register("totalFinishingPrice")}
               />
             </div>
@@ -453,7 +555,7 @@ export function UnitFinishingForm({
                 id="doorFees"
                 type="number"
                 step="any"
-                disabled={!canEdit || pending}
+                disabled={!managementEdit || pending}
                 {...register("doorFees")}
               />
             </div>
@@ -463,7 +565,7 @@ export function UnitFinishingForm({
                 id="aluminumFees"
                 type="number"
                 step="any"
-                disabled={!canEdit || pending}
+                disabled={!managementEdit || pending}
                 {...register("aluminumFees")}
               />
             </div>
@@ -484,7 +586,7 @@ export function UnitFinishingForm({
                   label={tFinishing("contractDate")}
                   value={String(field.value ?? "")}
                   onChange={field.onChange}
-                  disabled={!canEdit || pending}
+                  disabled={!managementEdit || pending}
                   locale={locale}
                 />
               )}
@@ -498,7 +600,7 @@ export function UnitFinishingForm({
                   label={t("datedAt")}
                   value={String(field.value ?? "")}
                   onChange={field.onChange}
-                  disabled={!canEdit || pending}
+                  disabled={!managementEdit || pending}
                   locale={locale}
                 />
               )}
@@ -512,7 +614,7 @@ export function UnitFinishingForm({
                   label={tFields("deliveryDate")}
                   value={String(field.value ?? "")}
                   onChange={field.onChange}
-                  disabled={!canEdit || pending}
+                  disabled={!managementEdit || pending}
                   locale={locale}
                 />
               )}
@@ -520,10 +622,18 @@ export function UnitFinishingForm({
           </CardContent>
         </Card>
 
-        {canEdit ? (
+        {canSubmit ? (
           <div className="flex justify-end">
-            <Button type="submit" disabled={pending}>
-              {tCommon("save")}
+            <Button
+              type="submit"
+              disabled={
+                pending ||
+                (canSubmitCs &&
+                  !addFinishingNote.trim() &&
+                  !addCustomModification.trim())
+              }
+            >
+              {canSubmitCs ? tFinishing("addNotes") : tCommon("save")}
             </Button>
           </div>
         ) : null}

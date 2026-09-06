@@ -21,7 +21,9 @@ import { archivedUserEmail } from "@/lib/prisma/soft-delete";
 import { dispatchTicketWorkflowNotifications } from "@/lib/notifications/dispatch-ticket-notifications";
 import {
   finishingFormSchema,
+  csFinishingAdditionsSchema,
   type FinishingFormInput,
+  type CsFinishingAdditionsInput,
 } from "@/lib/validations/finishing";
 import {
   unitProfileFormSchema,
@@ -36,7 +38,9 @@ import {
   type TicketWorkflowInput,
 } from "@/lib/validations/workflow";
 import { collectCsHandoverChanges } from "@/lib/workflow/cs-handover-fields";
+import { applyCsFinishingAdditions } from "@/lib/workflow/cs-finishing-fields";
 import {
+  notifyFinishingUpdatedByAgent,
   notifyHandoverChecklistUpdatedByAgent,
   notifyInboundCall,
   notifyUnitAssigned,
@@ -998,6 +1002,78 @@ export async function updateFinishing(
 
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/units");
+  return actionOk();
+}
+
+export async function updateCsFinishingAdditions(
+  input: CsFinishingAdditionsInput
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const parsed = csFinishingAdditionsSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
+  }
+
+  const hasAddition =
+    Boolean(parsed.data.addFinishingNote?.trim()) ||
+    Boolean(parsed.data.addCustomModification?.trim());
+  if (!hasAddition) {
+    return actionFail("Nothing to add");
+  }
+
+  const unit = await prisma.unit.findUnique({
+    where: { id: parsed.data.unitId },
+    include: { finishing: true },
+  });
+  if (!unit) return actionFail("Unit not found");
+
+  const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
+  if (accessError) return accessError;
+
+  const previous = {
+    currentFinishingStatus: unit.finishing?.currentFinishingStatus ?? null,
+    customModifications: unit.finishing?.customModifications ?? null,
+  };
+
+  const { next, changes } = applyCsFinishingAdditions(previous, parsed.data);
+  if (changes.length === 0) {
+    return actionOk();
+  }
+
+  await withAudit(() =>
+    prisma.finishing.upsert({
+      where: { unitId: unit.id },
+      update: {
+        currentFinishingStatus: next.currentFinishingStatus,
+        customModifications: next.customModifications,
+        modificationsCompleted:
+          next.customModifications != null
+            ? unit.finishing?.modificationsCompleted ?? false
+            : true,
+      },
+      create: {
+        unitId: unit.id,
+        currentFinishingStatus: next.currentFinishingStatus,
+        customModifications: next.customModifications,
+        modificationsCompleted: next.customModifications != null ? false : true,
+        phases: ["NOT_STARTED"],
+        phase: "NOT_STARTED",
+      },
+    })
+  );
+
+  await notifyFinishingUpdatedByAgent({
+    unitCode: unit.unitCode,
+    unitId: unit.id,
+    agentName: session.user.name ?? session.user.email ?? "CS Agent",
+    changesSummary: changes.join("; "),
+  });
+
+  revalidatePath(`/units/${unit.id}`);
+  revalidatePath("/units");
+  revalidatePath("/dashboard");
   return actionOk();
 }
 
