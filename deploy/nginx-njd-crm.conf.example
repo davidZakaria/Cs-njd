@@ -1,14 +1,14 @@
 # Production nginx for njd-crm.com.
 # Use app.njd-crm.com when GoDaddy locks the root @ A records (parking).
 #
-# Phase 2 hardening (apply on VPS — not automated by deploy):
-# 1. In /etc/nginx/nginx.conf inside `http {`:
-#      limit_req_zone $binary_remote_addr zone=crm_limit:10m rate=10r/s;
-#      server_tokens off;
-# 2. In this site's `location / {` block (below):
-#      limit_req zone=crm_limit burst=20 nodelay;
-# 3. UFW: allow ssh/http/https only; enable firewall after ssh rule.
-# 4. Cloudflare: proxied DNS + WAF (recommended).
+# Phase 2 (applied on VPS 2026-09-06):
+# - /etc/nginx/nginx.conf: limit_req_zone crm_limit + server_tokens off
+# - This file + cs-njd.duckdns.org: limit_req in location /
+# - UFW: already active (ssh, 80/443)
+# - Cloudflare: see deploy/CLOUDFLARE.md (manual — GoDaddy nameservers)
+#
+# Re-apply nginx hardening after a fresh VPS:
+#   bash deploy/scripts/apply-nginx-rate-limit.sh
 
 server {
     listen 80;
@@ -17,7 +17,7 @@ server {
     client_max_body_size 12M;
 
     location / {
-        # limit_req zone=crm_limit burst=20 nodelay;
+        limit_req zone=crm_limit burst=20 nodelay;
         proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
