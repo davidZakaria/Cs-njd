@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "10mb",
       allowedOrigins: [
+        "njd-crm.com",
+        "www.njd-crm.com",
+        "https://njd-crm.com",
+        "https://www.njd-crm.com",
         "cs-njd.duckdns.org",
         "https://cs-njd.duckdns.org",
         "localhost:3000",
