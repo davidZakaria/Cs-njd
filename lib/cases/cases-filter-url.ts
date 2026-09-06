@@ -46,6 +46,19 @@ export type CasesPageFilters = {
   pendingParty: string;
 };
 
+/** Map `?agent=` URL param (id, name, or sentinel) to the Cases table filter value. */
+export function resolveAgentFilterParam(
+  param: string,
+  agents: Array<{ id: string; name: string }>
+): string {
+  if (param === "all") return "all";
+  if (param === "unassigned") return "unassigned";
+  const byId = agents.find((agent) => agent.id === param);
+  if (byId) return byId.name;
+  if (agents.some((agent) => agent.name === param)) return param;
+  return param;
+}
+
 export function parseCasesPageFilters(
   searchParams: Record<string, string | string[] | undefined>
 ): CasesPageFilters {

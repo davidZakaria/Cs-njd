@@ -21,7 +21,10 @@ import {
   isUnassignedAgentName,
   UNASSIGNED_AGENT_FILTER,
 } from "@/lib/filters";
-import { projectNameToSlug } from "@/lib/cases/cases-filter-url";
+import {
+  projectNameToSlug,
+  resolveAgentFilterParam,
+} from "@/lib/cases/cases-filter-url";
 import { isFollowUpDue } from "@/lib/cases/follow-up-sprint";
 import {
   confirmManagementOverride,
@@ -203,11 +206,10 @@ export function CasesTable({
   const [statusFilter, setStatusFilter] = useState(defaultStatusFilter);
   const [projectFilter, setProjectFilter] = useState(defaultProjectFilter);
   const [categoryFilter, setCategoryFilter] = useState(defaultCategoryFilter);
-  const [agentFilter, setAgentFilter] = useState(
-    defaultAgentFilter === "unassigned"
-      ? UNASSIGNED_AGENT_FILTER
-      : defaultAgentFilter
-  );
+  const [agentFilter, setAgentFilter] = useState(() => {
+    const resolved = resolveAgentFilterParam(defaultAgentFilter, agents);
+    return resolved === "unassigned" ? UNASSIGNED_AGENT_FILTER : resolved;
+  });
   const [followUpFilter, setFollowUpFilter] = useState(defaultFollowUpFilter);
   const [pendingPartyFilter, setPendingPartyFilter] = useState(
     defaultPendingPartyFilter
@@ -305,8 +307,13 @@ export function CasesTable({
       }
       if (agentFilter === UNASSIGNED_AGENT_FILTER) {
         if (!isUnassignedAgentName(row.effectiveAgent)) return false;
-      } else if (agentFilter !== "all" && row.effectiveAgent !== agentFilter) {
-        return false;
+      } else if (agentFilter !== "all") {
+        const filterAgent = agents.find((agent) => agent.name === agentFilter);
+        if (filterAgent) {
+          if (row.effectiveAgentId !== filterAgent.id) return false;
+        } else if (row.effectiveAgent !== agentFilter) {
+          return false;
+        }
       }
       if (
         followUpFilter === "due" &&
@@ -335,7 +342,7 @@ export function CasesTable({
     return [...rows].sort(
       (a, b) => categoryFilterRank(a.category) - categoryFilterRank(b.category)
     );
-  }, [data, statusFilter, projectFilter, categoryFilter, agentFilter, followUpFilter, pendingPartyFilter, query]);
+  }, [data, statusFilter, projectFilter, categoryFilter, agentFilter, followUpFilter, pendingPartyFilter, query, agents]);
 
   const exportHeaders = useMemo(
     () => [
