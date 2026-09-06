@@ -141,6 +141,28 @@
       "modifications_pending": "لا يمكن إغلاق التذكرة: التعديلات الهندسية الإضافية لم تكتمل."
     }
   },
+  "resolutionModal": {
+    "triggerBtn": "✅ إتمام التسليم (Resolve Case)",
+    "title": "مراجعة شروط الاستلام النهائي (Pre-Flight Check)",
+    "description": "يجب استيفاء جميع الشروط التالية قبل إغلاق ملف الوحدة نهائياً.",
+    "checks": {
+      "finishing_not_done": "اكتمال أعمال التشطيبات الهندسية",
+      "fees_unpaid": "الماليات والمصاريف مسددة",
+      "missing_papers": "محضر الاستلام والأوراق موقعة",
+      "party_not_none": "لا توجد جهة معطلة (Pending Party)",
+      "active_lawsuit": "خلو الوحدة من النزاعات القانونية (Legal Block)",
+      "modifications_pending": "اكتمال التعديلات الهندسية المخصصة"
+    },
+    "noteLabel": "ملاحظة الإغلاق الختامية (اختياري)",
+    "notePlaceholder": "أضف أي ملاحظات للجدول الزمني…",
+    "managerOverride": "🛡️ تجاوز الشروط (صلاحيات الإدارة)",
+    "confirmBtn": "تأكيد التسليم والإغلاق",
+    "alreadyResolved": "🎉 تم تسليم هذه الوحدة وإغلاق الحالة بنجاح.",
+    "noOpenTicket": "لا توجد حالة مفتوحة لإغلاقها على هذه الوحدة.",
+    "overrideConfirm": "إغلاق الحالة رغم وجود بنود لم تستوفَ بعد؟",
+    "success": "تم إغلاق حالة الوحدة بنجاح.",
+    "resolveFailed": "تعذر إغلاق الحالة. راجع قائمة الشروط."
+  },
   "notifications": {
     "title": "الإشعارات",
     "bellLabel": "فتح الإشعارات",

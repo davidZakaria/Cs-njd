@@ -23,6 +23,7 @@ import { getDomainLabels } from "@/lib/i18n/domain-labels";
 import { getWhatsAppTemplateSetting } from "@/lib/system/settings-store";
 import { canUseManagementOverride } from "@/lib/workflow/management-override";
 import { canManageUnitTickets } from "@/lib/auth/unit-ticket-access";
+import type { SerializedResolutionContext } from "@/lib/workflow/resolution-checklist";
 
 export default async function UnitProfilePage({
   params,
@@ -97,6 +98,36 @@ export default async function UnitProfilePage({
     : false;
 
   const hasResolvedCase = unit.tickets.some((ticket) => ticket.status === "RESOLVED");
+  const activeTicket =
+    unit.tickets.find((ticket) => ticket.status !== "RESOLVED") ?? null;
+
+  const gateContext: SerializedResolutionContext = {
+    ticketPendingParty: activeTicket?.pendingParty ?? "NONE",
+    finishing: unit.finishing
+      ? {
+          phases: unit.finishing.phases,
+          phase: unit.finishing.phase,
+          packageType: unit.finishing.packageType,
+          doorFees: unit.finishing.doorFees,
+          aluminumFees: unit.finishing.aluminumFees,
+          customModifications: unit.finishing.customModifications,
+          modificationsCompleted: unit.finishing.modificationsCompleted,
+        }
+      : null,
+    contractWorkflow: unit.contractWorkflow
+      ? {
+          hasSignedProtocol: unit.contractWorkflow.hasSignedProtocol,
+          hasSignedExtension: unit.contractWorkflow.hasSignedExtension,
+          hasPaidFees: unit.contractWorkflow.hasPaidFees,
+          papersReceived: unit.contractWorkflow.papersReceived,
+          handoverStatus: unit.contractWorkflow.handoverStatus,
+          isLegallyBlocked: unit.contractWorkflow.isLegallyBlocked,
+        }
+      : null,
+  };
+
+  const hideAddFeedback =
+    hasResolvedCase && session?.user.role === "CS_AGENT";
   const signedProtocolAccess = session?.user
     ? await resolveSignedProtocolAccess(session.user, unit.agentId)
     : { canUpload: false, csScope: null };
@@ -329,6 +360,11 @@ export default async function UnitProfilePage({
                 ? canUseManagementOverride(session.user)
                 : false
             }
+            hasResolvedCase={hasResolvedCase}
+            activeTicketId={activeTicket?.id ?? null}
+            gateContext={gateContext}
+            hideAddFeedback={hideAddFeedback}
+            canBypassGates={session?.user?.role === "SUPER_ADMIN"}
           />
         </TabsContent>
       </Tabs>

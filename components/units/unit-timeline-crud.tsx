@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, PartyPopper } from "lucide-react";
 import {
   createTicket,
   deleteTicket,
@@ -12,11 +12,10 @@ import {
 } from "@/lib/actions/crm";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
-import {
-  confirmManagementOverride,
-  ManagementOverrideCheckbox,
-} from "@/components/workflow/management-override-field";
+import { ResolveCaseModal } from "@/components/cases/resolve-case-modal";
+import type { SerializedResolutionContext } from "@/lib/workflow/resolution-checklist";
 import { TICKET_CATEGORIES } from "@/lib/validations/ticket";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,7 +39,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-const TICKET_STATUSES = ["PENDING", "ENGINEERING", "LEGAL", "RESOLVED"] as const;
+const WORKFLOW_STATUSES = ["PENDING", "ENGINEERING", "LEGAL"] as const;
 const PENDING_PARTIES = [
   "NONE",
   "CLIENT",
@@ -104,38 +103,22 @@ function CsQuickUpdateForm({
   statusItems,
   partyItems,
   pending,
-  canUseManagementOverride,
   onSubmit,
 }: {
   ticket: TicketRow;
   statusItems: Record<string, string>;
   partyItems: Record<string, string>;
   pending: boolean;
-  canUseManagementOverride: boolean;
   onSubmit: (formData: FormData) => void | Promise<void>;
 }) {
   const tCommon = useTranslations("common");
   const tCases = useTranslations("cases");
   const tWorkflow = useTranslations("workflow");
   const [status, setStatus] = useState(ticket.status);
-  const [override, setOverride] = useState(false);
-
-  async function handleSubmit(formData: FormData) {
-    if (
-      !confirmManagementOverride(
-        status,
-        override,
-        tWorkflow("override.confirm")
-      )
-    ) {
-      return;
-    }
-    await onSubmit(formData);
-  }
 
   return (
     <form
-      action={handleSubmit}
+      action={onSubmit}
       className="mt-3 flex flex-wrap items-end gap-2 border-t border-border/60 pt-3"
     >
       <input type="hidden" name="id" value={ticket.id} />
@@ -165,7 +148,6 @@ function CsQuickUpdateForm({
           onValueChange={(next) => {
             if (next != null) {
               setStatus(next);
-              if (next !== "RESOLVED") setOverride(false);
             }
           }}
           items={statusItems}
@@ -175,7 +157,7 @@ function CsQuickUpdateForm({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {TICKET_STATUSES.map((item) => (
+            {WORKFLOW_STATUSES.map((item) => (
               <SelectItem key={item} value={item}>
                 {statusItems[item]}
               </SelectItem>
@@ -195,11 +177,6 @@ function CsQuickUpdateForm({
       <Button type="submit" size="sm" className="h-9" disabled={pending}>
         {tCommon("save")}
       </Button>
-      <ManagementOverrideCheckbox
-        visible={canUseManagementOverride && status === "RESOLVED"}
-        checked={override}
-        onCheckedChange={setOverride}
-      />
     </form>
   );
 }
@@ -210,7 +187,6 @@ function ManagementEditForm({
   partyItems,
   categoryItems,
   pending,
-  canUseManagementOverride,
   onSubmit,
   onDelete,
   onCancel,
@@ -220,7 +196,6 @@ function ManagementEditForm({
   partyItems: Record<string, string>;
   categoryItems: Record<string, string>;
   pending: boolean;
-  canUseManagementOverride: boolean;
   onSubmit: (formData: FormData) => void | Promise<void>;
   onDelete: (ticketId: string) => void | Promise<void>;
   onCancel: () => void;
@@ -230,20 +205,6 @@ function ManagementEditForm({
   const tCommon = useTranslations("common");
   const tWorkflow = useTranslations("workflow");
   const [status, setStatus] = useState(ticket.status);
-  const [override, setOverride] = useState(false);
-
-  async function handleSubmit(formData: FormData) {
-    if (
-      !confirmManagementOverride(
-        status,
-        override,
-        tWorkflow("override.confirm")
-      )
-    ) {
-      return;
-    }
-    await onSubmit(formData);
-  }
 
   async function handleDelete() {
     if (!window.confirm(t("deleteTicketConfirm"))) return;
@@ -252,11 +213,15 @@ function ManagementEditForm({
 
   return (
     <form
-      action={handleSubmit}
+      action={onSubmit}
       className="mt-3 space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3"
     >
       <input type="hidden" name="id" value={ticket.id} />
-      <input type="hidden" name="status" value={status} />
+      <input
+        type="hidden"
+        name="status"
+        value={ticket.status === "RESOLVED" ? ticket.status : status}
+      />
 
       <Field label={tCases("caseNotes")}>
         <Textarea
@@ -290,28 +255,33 @@ function ManagementEditForm({
           </Select>
         </Field>
         <Field label={tCases("status")}>
-          <Select
-            value={status}
-            onValueChange={(next) => {
-              if (next != null) {
-                setStatus(next);
-                if (next !== "RESOLVED") setOverride(false);
-              }
-            }}
-            items={statusItems}
-            disabled={pending}
-          >
-            <SelectTrigger className="h-9 bg-background">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TICKET_STATUSES.map((item) => (
-                <SelectItem key={item} value={item}>
-                  {statusItems[item]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {ticket.status === "RESOLVED" ? (
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+              {statusItems.RESOLVED}
+            </p>
+          ) : (
+            <Select
+              value={status}
+              onValueChange={(next) => {
+                if (next != null) {
+                  setStatus(next);
+                }
+              }}
+              items={statusItems}
+              disabled={pending}
+            >
+              <SelectTrigger className="h-9 bg-background">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {WORKFLOW_STATUSES.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {statusItems[item]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </Field>
         <Field label={tWorkflow("pendingParty")}>
           <Select
@@ -342,12 +312,6 @@ function ManagementEditForm({
           />
         </Field>
       </div>
-
-      <ManagementOverrideCheckbox
-        visible={canUseManagementOverride && status === "RESOLVED"}
-        checked={override}
-        onCheckedChange={setOverride}
-      />
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/40 pt-3">
         <Button
@@ -385,7 +349,6 @@ function TicketCard({
   categoryItems,
   pending,
   canManageTickets,
-  canUseManagementOverride,
   isEditing,
   onEdit,
   onCancelEdit,
@@ -398,7 +361,6 @@ function TicketCard({
   categoryItems: Record<string, string>;
   pending: boolean;
   canManageTickets: boolean;
-  canUseManagementOverride: boolean;
   isEditing: boolean;
   onEdit: () => void;
   onCancelEdit: () => void;
@@ -474,20 +436,18 @@ function TicketCard({
           partyItems={partyItems}
           categoryItems={categoryItems}
           pending={pending}
-          canUseManagementOverride={canUseManagementOverride}
           onSubmit={onSubmit}
           onDelete={onDelete}
           onCancel={onCancelEdit}
         />
       ) : null}
 
-      {ticket.canEdit && !canManageTickets ? (
+      {ticket.canEdit && !canManageTickets && ticket.status !== "RESOLVED" ? (
         <CsQuickUpdateForm
           ticket={ticket}
           statusItems={statusItems}
           partyItems={partyItems}
           pending={pending}
-          canUseManagementOverride={canUseManagementOverride}
           onSubmit={onSubmit}
         />
       ) : null}
@@ -505,6 +465,11 @@ export function UnitTimelineCrud({
   notesPlaceholder,
   canManageTickets = false,
   canUseManagementOverride = false,
+  canBypassGates = false,
+  hasResolvedCase = false,
+  activeTicketId = null,
+  gateContext,
+  hideAddFeedback = false,
 }: {
   unitId: string;
   tickets: TicketRow[];
@@ -515,11 +480,17 @@ export function UnitTimelineCrud({
   notesPlaceholder: string;
   canManageTickets?: boolean;
   canUseManagementOverride?: boolean;
+  canBypassGates?: boolean;
+  hasResolvedCase?: boolean;
+  activeTicketId?: string | null;
+  gateContext: SerializedResolutionContext;
+  hideAddFeedback?: boolean;
 }) {
   const tCases = useTranslations("cases");
   const tCommon = useTranslations("common");
   const tActions = useTranslations("actions");
   const tWorkflow = useTranslations("workflow");
+  const tResolution = useTranslations("resolutionModal");
   const labels = useDomainLabels();
   const { pending, notify, runAction } = useCrudToast();
   const [logCallOpen, setLogCallOpen] = useState(false);
@@ -581,9 +552,19 @@ export function UnitTimelineCrud({
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
       <Card className="shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-3">
           <CardTitle className="text-lg">{timelineLabel}</CardTitle>
-          <Dialog open={logCallOpen} onOpenChange={setLogCallOpen}>
+          <div className="flex flex-wrap items-center gap-2">
+            {!hasResolvedCase ? (
+              <ResolveCaseModal
+                ticketId={activeTicketId}
+                gateContext={gateContext}
+                canUseManagementOverride={canUseManagementOverride}
+                canBypassGates={canBypassGates}
+                disabled={pending}
+              />
+            ) : null}
+            <Dialog open={logCallOpen} onOpenChange={setLogCallOpen}>
             <DialogTrigger
               render={
                 <Button type="button" size="sm" variant="outline" className="h-8" />
@@ -622,6 +603,7 @@ export function UnitTimelineCrud({
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {tickets.length === 0 && (
@@ -638,7 +620,6 @@ export function UnitTimelineCrud({
               categoryItems={categoryItems}
               pending={pending}
               canManageTickets={canManageTickets}
-              canUseManagementOverride={canUseManagementOverride}
               isEditing={editingTicketId === ticket.id}
               onEdit={() => setEditingTicketId(ticket.id)}
               onCancelEdit={() => setEditingTicketId(null)}
@@ -654,6 +635,14 @@ export function UnitTimelineCrud({
           <CardTitle className="text-base">{addFeedbackLabel}</CardTitle>
         </CardHeader>
         <CardContent>
+          {hideAddFeedback ? (
+            <Alert className="border-emerald-600/40 bg-emerald-50 text-emerald-950 dark:bg-emerald-950/30 dark:text-emerald-50">
+              <PartyPopper className="text-emerald-600" />
+              <AlertDescription className="col-start-2 text-sm leading-relaxed text-emerald-900 dark:text-emerald-50">
+                {tResolution("alreadyResolved")}
+              </AlertDescription>
+            </Alert>
+          ) : (
           <form action={handleCreate} className="space-y-3">
             <input type="hidden" name="unitId" value={unitId} />
             <Field label={tCases("caseNotes")}>
@@ -700,7 +689,7 @@ export function UnitTimelineCrud({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {TICKET_STATUSES.map((status) => (
+                      {WORKFLOW_STATUSES.map((status) => (
                         <SelectItem key={status} value={status}>
                           {statusItems[status]}
                         </SelectItem>
@@ -741,6 +730,7 @@ export function UnitTimelineCrud({
               {tCommon("save")}
             </Button>
           </form>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -573,6 +573,78 @@ export async function updateTicketDetails(
   return actionOk();
 }
 
+export async function resolveUnitTicket(input: {
+  ticketId: string;
+  finalNote?: string;
+  managementOverride?: boolean;
+}): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: input.ticketId },
+    include: { unit: true },
+  });
+  if (!ticket) return actionFail("Ticket not found");
+  if (ticket.status === "RESOLVED") {
+    return actionFail("Case is already resolved");
+  }
+
+  const accessError = await assertCsAgentCanMutateTicket(session.user, ticket);
+  if (accessError) return accessError;
+
+  const managementOverride = input.managementOverride ?? false;
+  const mergedWorkflow = mergeTicketWorkflowFields(ticket, {});
+
+  const gateError = await assertCanResolveTicket(
+    session.user,
+    "RESOLVED",
+    mergedWorkflow,
+    ticket.unitId,
+    { managementOverride }
+  );
+  if (gateError) return gateError;
+
+  const actorName =
+    session.user.name ?? session.user.email ?? "Agent";
+  const noteParts: string[] = [ticket.notes];
+
+  if (input.finalNote?.trim()) {
+    noteParts.push(input.finalNote.trim());
+  }
+  if (managementOverride) {
+    noteParts.push(managementOverrideNote(actorName));
+  }
+
+  const nextNotes = noteParts.join("\n");
+  const nextResolvedAt = resolvedAtForStatusChange(ticket.status, "RESOLVED");
+
+  await withAudit(() =>
+    prisma.ticket.update({
+      where: { id: ticket.id },
+      data: {
+        status: "RESOLVED",
+        notes: nextNotes,
+        pendingParty: "NONE",
+        ...(nextResolvedAt !== undefined ? { resolvedAt: nextResolvedAt } : {}),
+      },
+    })
+  );
+
+  await dispatchTicketWorkflowNotifications({
+    unit: ticket.unit,
+    previousStatus: ticket.status,
+    previousPendingParty: ticket.pendingParty,
+    nextStatus: "RESOLVED",
+    nextPendingParty: "NONE",
+    managementOverride,
+    actorName,
+  });
+
+  revalidateTicketPaths(ticket.unitId);
+  return actionOk();
+}
+
 export async function deleteTicket(ticketId: string): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");

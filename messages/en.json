@@ -141,6 +141,28 @@
       "modifications_pending": "Cannot close ticket: custom engineering modifications are not complete."
     }
   },
+  "resolutionModal": {
+    "triggerBtn": "✅ Resolve Case",
+    "title": "Pre-Flight Handover Check",
+    "description": "All conditions below must be satisfied before this unit file can be closed permanently.",
+    "checks": {
+      "finishing_not_done": "Engineering finishing work complete",
+      "fees_unpaid": "Financials and fees settled",
+      "missing_papers": "Handover protocol and papers signed",
+      "party_not_none": "No blocking pending party",
+      "active_lawsuit": "No active legal block on unit",
+      "modifications_pending": "Custom engineering modifications complete"
+    },
+    "noteLabel": "Final closing note (optional)",
+    "notePlaceholder": "Add any handover remarks for the timeline…",
+    "managerOverride": "🛡️ Bypass gates (management override)",
+    "confirmBtn": "Confirm handover & close",
+    "alreadyResolved": "🎉 This unit has been successfully handed over and the case is closed.",
+    "noOpenTicket": "No open case to resolve on this unit.",
+    "overrideConfirm": "Force resolve despite failed checklist items?",
+    "success": "Unit case resolved successfully.",
+    "resolveFailed": "Could not resolve the case. Please review the checklist."
+  },
   "notifications": {
     "title": "Notifications",
     "bellLabel": "Open notifications",
