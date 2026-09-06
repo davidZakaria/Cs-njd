@@ -21,6 +21,7 @@ const VERIFY_ERROR_CODES = [
   "CODE_LENGTH",
   "NOT_CONFIGURED",
   "INVALID_CODE",
+  "RATE_LIMITED",
   "Unauthorized",
 ] as const;
 

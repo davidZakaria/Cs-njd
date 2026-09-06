@@ -5,6 +5,8 @@ import { requireSuperAdmin } from "@/lib/auth/require-super-admin";
 import { parseBrowserLabel } from "@/lib/system/parse-user-agent";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function SystemSecurityPage() {
   const [session, locale] = await Promise.all([
     requireSuperAdmin(),

@@ -29,6 +29,8 @@ function statusVariant(status: string) {
   return "outline" as const;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function BackupsPage() {
   await requireSuperAdmin();
   const t = await getTranslations("backups");

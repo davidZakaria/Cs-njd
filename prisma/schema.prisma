@@ -193,6 +193,7 @@ model Client {
 
   @@index([name])
   @@index([phone1])
+  @@index([phone2])
   @@index([deletedAt])
 }
 

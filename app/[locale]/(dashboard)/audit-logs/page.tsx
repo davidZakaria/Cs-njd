@@ -3,6 +3,8 @@ import { getTranslations } from "next-intl/server";
 import { AuditLogsTable } from "@/components/audit/audit-logs-table";
 import { requireSuperAdmin } from "@/lib/auth/require-super-admin";
 
+export const dynamic = "force-dynamic";
+
 export default async function AuditLogsPage() {
   await requireSuperAdmin();
   const t = await getTranslations("audit");

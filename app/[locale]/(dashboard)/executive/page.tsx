@@ -15,6 +15,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 export default async function ExecutiveDashboardPage() {
   const session = await auth();
   const t = await getTranslations("executive");

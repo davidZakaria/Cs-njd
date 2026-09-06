@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NjdMark } from "@/components/brand/njd-mark";
+import { AUTH_RATE_LIMIT_ERROR } from "@/lib/security/rate-limit";
 
 async function waitForSession(maxAttempts = 15) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -82,7 +83,15 @@ export default function LoginForm() {
       });
 
       if (!result || result.error || result.ok === false) {
-        setError(t("loginInvalidCredentials"));
+        const rateLimited =
+          result?.error === AUTH_RATE_LIMIT_ERROR ||
+          result?.code === AUTH_RATE_LIMIT_ERROR ||
+          String(result?.error ?? "").includes(AUTH_RATE_LIMIT_ERROR);
+        if (rateLimited) {
+          setError(t("tooManyAttempts"));
+        } else {
+          setError(t("loginInvalidCredentials"));
+        }
         return;
       }
 

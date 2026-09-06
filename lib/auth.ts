@@ -3,6 +3,8 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import type { Role } from "@prisma/client";
 
+import { CredentialsSignin } from "@auth/core/errors";
+
 import { authConfig } from "@/lib/auth.config";
 import { recordLoginAttempt } from "@/lib/auth/login-history";
 import {
@@ -19,6 +21,17 @@ import {
 } from "@/lib/auth/session-version";
 import { engineerSessionFlags } from "@/lib/auth/two-factor-policy";
 import { prisma } from "@/lib/prisma";
+import {
+  AUTH_RATE_LIMIT_ERROR,
+  authRateLimitKey,
+  checkRateLimit,
+  clearFailures,
+  recordFailure,
+} from "@/lib/security/rate-limit";
+
+class AuthRateLimitedError extends CredentialsSignin {
+  code = AUTH_RATE_LIMIT_ERROR;
+}
 
 declare module "next-auth" {
   interface User {
@@ -69,8 +82,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = String(credentials?.password ?? "");
         const ipAddress = getIpFromRequest(request);
         const userAgent = getUserAgentFromRequest(request);
+        const rateLimitKey = authRateLimitKey("login", ipAddress);
+
+        const rateCheck = checkRateLimit(rateLimitKey);
+        if (!rateCheck.allowed) {
+          throw new AuthRateLimitedError();
+        }
 
         if (!email || !password) {
+          recordFailure(rateLimitKey);
           await recordLoginAttempt({
             email: email || "unknown",
             status: "FAILED",
@@ -85,6 +105,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (!user || user.deletedAt) {
+          recordFailure(rateLimitKey);
           await recordLoginAttempt({
             email,
             status: "FAILED",
@@ -96,6 +117,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) {
+          recordFailure(rateLimitKey);
           await recordLoginAttempt({
             email,
             status: "FAILED",
@@ -105,6 +127,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
           return null;
         }
+
+        clearFailures(rateLimitKey);
+        clearFailures(authRateLimitKey("2fa", ipAddress));
 
         await prisma.user.update({
           where: { id: user.id },

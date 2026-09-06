@@ -308,6 +308,15 @@ Collapsible sidebar groups organize super-admin tools:
 - **Phone redaction removed** — client phones, email, and WhatsApp visible on Unit 360 and dashboard pending-work queue
 - **Export restricted** — CSV/Excel export hidden on Cases and Units for CS agents
 
+### September 2026 — Security & performance hardening
+- **DB index:** `Client.phone2` for Cmd+K spotlight search (other spec indexes already present)
+- **HTTP headers:** HSTS, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy; `X-Powered-By` removed; production source maps disabled
+- **Auth rate limiting:** 5 failures / 15 min per IP on login + 2FA (in-memory, single VPS)
+- **ABAC:** CS agents may mutate tickets only when effective owner (`ticket.agentId ?? unit.agentId`); Log Call exempt
+- **Caching:** `force-dynamic` on dashboard layout and sensitive admin pages
+- **VPS Phase 2 (manual):** nginx `limit_req`, UFW, Cloudflare — see [`deploy/nginx-njd-crm.conf.example`](deploy/nginx-njd-crm.conf.example)
+- Migration: `20260906160000_security_and_indexing`
+
 ### September 2026 — Performance KPI dashboard
 - **Team Performance (KPIs) tab** on Executive Command Center — leaderboard, activity chart, needs-attention board
 - **Metrics (current month):** cases closed, interactions & calls, avg. time to close, overdue follow-ups, stale cases (7+ days)

@@ -2,9 +2,9 @@
 
 import { auth } from "@/lib/auth";
 import {
-  canAccessUnitAsCsAgent,
-  resolveCsAgentScope,
-} from "@/lib/auth/cs-agent-scope";
+  assertCsAgentCanMutateTicket,
+  assertCsAgentUnitAccess,
+} from "@/lib/auth/abac";
 import { prisma } from "@/lib/prisma";
 import { auditContext } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -60,18 +60,6 @@ async function withAudit<T>(fn: () => Promise<T>) {
     { userId: session?.user?.id, ipAddress: ip },
     fn
   );
-}
-
-async function assertCsAgentUnitAccess(
-  user: { id: string; email?: string | null; role: Role },
-  unitAgentId: string | null | undefined
-): Promise<ActionResult | null> {
-  if (user.role !== "CS_AGENT") return null;
-  const scope = await resolveCsAgentScope(user);
-  if (!canAccessUnitAsCsAgent(scope, unitAgentId)) {
-    return actionFail("Not assigned to this unit");
-  }
-  return null;
 }
 
 async function assertSingleEngineerAccount(
@@ -434,10 +422,7 @@ export async function updateTicketStatus(formData: FormData): Promise<ActionResu
   });
   if (!ticket) return actionFail("Ticket not found");
 
-  const accessError = await assertCsAgentUnitAccess(
-    session.user,
-    ticket.unit.agentId
-  );
+  const accessError = await assertCsAgentCanMutateTicket(session.user, ticket);
   if (accessError) return accessError;
 
   const mergedWorkflow = mergeTicketWorkflowFields(ticket, {
@@ -629,10 +614,7 @@ export async function updateTicketWorkflow(
   });
   if (!ticket) return actionFail("Ticket not found");
 
-  const accessError = await assertCsAgentUnitAccess(
-    session.user,
-    ticket.unit.agentId
-  );
+  const accessError = await assertCsAgentCanMutateTicket(session.user, ticket);
   if (accessError) return accessError;
 
   if (ticket.status === "RESOLVED" && pendingParty !== "NONE") {

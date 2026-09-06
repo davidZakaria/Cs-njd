@@ -5,6 +5,8 @@ import DashboardProviders from "./providers";
 import { getAnnouncementConfig } from "@/lib/system/settings-store";
 import { resolveLocale } from "@/lib/auth-redirect";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
   params,
