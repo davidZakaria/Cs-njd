@@ -1,15 +1,9 @@
-# Production nginx for njd-crm.com (+ legacy cs-njd.duckdns.org redirect).
-# Install:
-#   sudo cp deploy/nginx-njd-crm.conf.example /etc/nginx/sites-available/njd-crm.com
-#   sudo ln -sf /etc/nginx/sites-available/njd-crm.com /etc/nginx/sites-enabled/njd-crm.com
-#   sudo nginx -t && sudo systemctl reload nginx
-# After DNS A record → 72.61.192.84:
-#   sudo certbot --nginx -d njd-crm.com -d www.njd-crm.com
-# Then run: bash deploy/setup-domain.sh
+# Production nginx for njd-crm.com.
+# Use app.njd-crm.com when GoDaddy locks the root @ A records (parking).
 
 server {
     listen 80;
-    server_name njd-crm.com www.njd-crm.com;
+    server_name njd-crm.com www.njd-crm.com app.njd-crm.com;
 
     client_max_body_size 12M;
 
