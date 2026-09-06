@@ -3,6 +3,7 @@ import type { JWT } from "@auth/core/jwt";
 import { prisma } from "@/lib/prisma";
 
 import { SESSION_REVOKED_ERROR } from "@/lib/auth/session-constants";
+import { engineerSessionFlags, isTwoFactorRequired } from "@/lib/auth/two-factor-policy";
 
 export { SESSION_REVOKED_ERROR };
 
@@ -32,10 +33,11 @@ export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
     return { ...token, error: SESSION_REVOKED_ERROR };
   }
 
-  const needs2FASetup = deriveNeeds2FASetup(
-    dbUser.is2FAEnabled,
-    dbUser.twoFactorSecret
-  );
+  const needs2FASetup = isTwoFactorRequired(dbUser.role)
+    ? deriveNeeds2FASetup(dbUser.is2FAEnabled, dbUser.twoFactorSecret)
+    : false;
+
+  const engineerFlags = engineerSessionFlags(dbUser.role);
 
   const tokenVersion =
     typeof token.sessionVersion === "number" ? token.sessionVersion : null;
@@ -43,9 +45,9 @@ export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
   const synced = {
     sessionVersion: dbUser.sessionVersion,
     role: dbUser.role,
-    is2FAEnabled: dbUser.is2FAEnabled,
+    is2FAEnabled: engineerFlags?.is2FAEnabled ?? dbUser.is2FAEnabled,
     requiresPasswordChange: dbUser.requiresPasswordChange,
-    needs2FASetup,
+    needs2FASetup: engineerFlags?.needs2FASetup ?? needs2FASetup,
     error: undefined as string | undefined,
   };
 
@@ -53,7 +55,11 @@ export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
     return {
       ...token,
       ...synced,
-      twoFactorVerified: needs2FASetup ? false : token.twoFactorVerified,
+      twoFactorVerified: engineerFlags
+        ? true
+        : needs2FASetup
+          ? false
+          : token.twoFactorVerified,
     };
   }
 
@@ -64,8 +70,10 @@ export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
   return {
     ...token,
     ...synced,
-    twoFactorVerified: needs2FASetup
-      ? false
-      : token.twoFactorVerified,
+    twoFactorVerified: engineerFlags
+      ? true
+      : needs2FASetup
+        ? false
+        : token.twoFactorVerified,
   };
 }

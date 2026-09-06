@@ -5,12 +5,26 @@ import {
   applyJwtUserFields,
   buildSessionFromToken,
 } from "@/lib/auth/jwt-session-callbacks";
-import { SESSION_REVOKED_ERROR } from "@/lib/auth/session-constants";
+import {
+  SESSION_REVOKED_ERROR,
+  SESSION_MAX_AGE_SECONDS,
+  SESSION_UPDATE_AGE_SECONDS,
+  buildSessionCookieOptions,
+} from "@/lib/auth/session-constants";
 
 export { SESSION_REVOKED_ERROR };
 
 export const authConfig = {
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    maxAge: SESSION_MAX_AGE_SECONDS,
+    updateAge: SESSION_UPDATE_AGE_SECONDS,
+  },
+  cookies: {
+    sessionToken: {
+      options: buildSessionCookieOptions(),
+    },
+  },
   pages: {
     signIn: "/en/login",
   },

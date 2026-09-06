@@ -43,10 +43,13 @@ const roleRoutes: Record<Role, string[]> = {
   ],
   MANAGEMENT: ["/executive", "/dashboard", "/cases", "/units", "/users", "/print"],
   CS_AGENT: ["/dashboard", "/cases", "/units", "/print"],
+  ENGINEER: ["/engineering"],
 };
 
 export function getHomeRoute(role: Role): string {
-  return role === "MANAGEMENT" ? "/executive" : "/dashboard";
+  if (role === "MANAGEMENT") return "/executive";
+  if (role === "ENGINEER") return "/engineering";
+  return "/dashboard";
 }
 
 export function canAccessRoute(role: Role, path: string): boolean {
@@ -61,6 +64,7 @@ export type NavItemKey =
   | "executive"
   | "cases"
   | "units"
+  | "engineering"
   | "users"
   | "imports"
   | "auditLogs"
@@ -77,6 +81,10 @@ export type NavGroupKey =
   | "systemAdmin";
 
 export function getCoreNavItems(role: Role) {
+  if (role === "ENGINEER") {
+    return [{ href: "/engineering", key: "engineering" as const, roles: ["ENGINEER" as Role] }];
+  }
+
   const items: Array<{ href: string; key: NavItemKey; roles: Role[] }> = [
     { href: "/executive", key: "executive", roles: ["SUPER_ADMIN", "MANAGEMENT"] },
     { href: "/dashboard", key: "dashboard", roles: ["SUPER_ADMIN", "CS_AGENT"] },
@@ -122,6 +130,10 @@ export function getSuperAdminNavGroups(): Array<{
 }
 
 export function getNavItems(role: Role) {
+  if (role === "ENGINEER") {
+    return [{ href: "/engineering", key: "engineering" as const, roles: ["ENGINEER" as Role] }];
+  }
+
   const all: Array<{
     href: string;
     key: NavItemKey;

@@ -49,6 +49,7 @@ const PENDING_PARTIES = [
   "FINANCE",
   "MANAGEMENT",
   "LOGISTICS",
+  "CUSTOMER_SERVICE",
 ] as const;
 
 type TicketRow = {

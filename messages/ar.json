@@ -93,6 +93,7 @@
       "FINANCE": "الحسابات",
       "MANAGEMENT": "الإدارة العليا",
       "LOGISTICS": "شحن / لوجستيات",
+      "CUSTOMER_SERVICE": "خدمة العملاء",
       "NONE": "لا يوجد"
     },
     "checklist": {
@@ -151,8 +152,26 @@
       "caseStatusUpdatedTitle": "تحديث حالة البلاغ",
       "caseStatusUpdatedMessage": "تم تحديث حالة البلاغ {unitCode} إلى {status} بواسطة {agentName}",
       "callLoggedTitle": "تم تسجيل مكالمة لوحدتك",
-      "callLoggedMessage": "تولى {callerName} مكالمة للوحدة {unitCode}."
+      "callLoggedMessage": "تولى {callerName} مكالمة للوحدة {unitCode}.",
+      "engineeringAssignedTitle": "مهمة تشطيب جديدة",
+      "engineeringAssignedMessage": "تم إسناد الوحدة {unitCode} إليك لتحديث التشطيبات.",
+      "engineeringReturnedTitle": "تحديث هندسي مكتمل",
+      "engineeringReturnedMessage": "قام المهندس {engineerName} بتحديث تشطيبات الوحدة {unitCode}. عادت إلى قائمتك!"
     }
+  },
+  "engineering": {
+    "portalTitle": "بوابة الإدارة الهندسية",
+    "myTasks": "مهام التشطيب المطلوبة",
+    "noTasks": "لا توجد مهام هندسية حالياً",
+    "updateFinishes": "تحديث حالة التشطيب",
+    "engineeringNotes": "ملاحظات الموقع / التنفيذ",
+    "returnToCS": "✅ تم الإنجاز - إعادة لخدمة العملاء",
+    "returnSuccess": "تم تحويل الوحدة لخدمة العملاء بنجاح",
+    "assignEngineer": "إسناد إلى مهندس الموقع",
+    "unassignedEngineer": "غير مسند",
+    "customModifications": "تعديلات مخصصة",
+    "modificationsCompleted": "اكتملت التعديلات",
+    "saveProgress": "حفظ التقدم"
   },
   "actions": {
     "logCall": "📞 تسجيل مكالمة",
@@ -186,6 +205,7 @@
     "executive": "لوحة الإدارة",
     "cases": "بلاغات العملاء",
     "units": "الوحدات",
+    "engineering": "بوابة الهندسة",
     "users": "المستخدمون",
     "imports": "استيراد البيانات",
     "auditLogs": "سجل التدقيق",
@@ -243,7 +263,7 @@
     "loginSigningIn": "جاري تسجيل الدخول…",
     "loginInvalidCredentials": "البريد أو كلمة المرور غير صحيحة. تحقق من بياناتك وحاول مرة أخرى.",
     "loginSessionFailed": "تم التحقق من الحساب لكن تعذّر بدء الجلسة. يرجى المحاولة مرة أخرى.",
-    "loginSessionExpired": "انتهت جلستك قبل إكمال المصادقة الثنائية. سجّل الدخول مرة أخرى للمتابعة.",
+    "loginSessionExpired": "انتهت جلستك. يرجى تسجيل الدخول مرة أخرى للمتابعة.",
     "loginRequiredForSetup": "يجب تسجيل الدخول قبل إعداد المصادقة الثنائية.",
     "returnToSignIn": "العودة لتسجيل الدخول",
     "email": "البريد الإلكتروني",
@@ -528,7 +548,8 @@
     "roles": {
       "superAdmin": "مدير النظام",
       "management": "إدارة",
-      "csAgent": "موظف خدمة العملاء"
+      "csAgent": "موظف خدمة العملاء",
+      "engineer": "مهندس موقع"
     },
     "twoFactor": "المصادقة الثنائية",
     "twoFactorSecured": "مؤمّن",
@@ -998,7 +1019,8 @@
     "role": {
       "CS_AGENT": "موظف خدمة العملاء",
       "MANAGEMENT": "إدارة",
-      "SUPER_ADMIN": "مدير النظام"
+      "SUPER_ADMIN": "مدير النظام",
+      "ENGINEER": "مهندس موقع"
     },
     "finishingType": {
       "CORE_AND_SHELL": "على العظم",
@@ -1051,6 +1073,7 @@
       "FINANCE": "الحسابات",
       "MANAGEMENT": "الإدارة العليا",
       "LOGISTICS": "شحن / لوجستيات",
+      "CUSTOMER_SERVICE": "خدمة العملاء",
       "NONE": "لا يوجد"
     }
   }

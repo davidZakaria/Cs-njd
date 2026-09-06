@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Database,
   FileUp,
+  HardHat,
   LayoutDashboard,
   ScrollText,
   Settings,
@@ -48,6 +49,7 @@ const iconMap = {
   executive: BarChart3,
   cases: ClipboardList,
   units: Building2,
+  engineering: HardHat,
   users: Users,
   imports: FileUp,
   auditLogs: ScrollText,
@@ -159,7 +161,7 @@ export function DashboardShell({
 }) {
   return (
     <SidebarProvider>
-      <GlobalSpotlight />
+      {role !== "ENGINEER" ? <GlobalSpotlight /> : null}
       <AppSidebar role={role} />
       <SidebarInset className="min-h-svh min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div className="flex min-h-full flex-col p-4 md:p-6">

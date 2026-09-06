@@ -11,6 +11,7 @@ enum Role {
   SUPER_ADMIN
   MANAGEMENT
   CS_AGENT
+  ENGINEER
 }
 
 enum UnitType {
@@ -107,6 +108,7 @@ enum PendingParty {
   FINANCE
   MANAGEMENT
   LOGISTICS
+  CUSTOMER_SERVICE
   NONE
 }
 
@@ -154,8 +156,9 @@ model User {
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
-  assignedUnits Unit[]          @relation("AssignedAgent")
-  tickets       Ticket[]
+  assignedUnits         Unit[]          @relation("AssignedAgent")
+  assignedEngineerUnits Unit[]          @relation("AssignedEngineer")
+  tickets               Ticket[]
   auditLogs     AuditLog[]
   notifications Notification[]
   loginHistory  LoginHistory[]
@@ -203,8 +206,9 @@ model Unit {
   gracePeriod          String?
   contractPricePerMeter Float?
   clientId             String?
-  agentId      String?
-  category     String?
+  agentId              String?
+  assignedEngineerId   String?
+  category             String?
   deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -212,6 +216,7 @@ model Unit {
   project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   client           Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
   agent            User?             @relation("AssignedAgent", fields: [agentId], references: [id], onDelete: SetNull)
+  assignedEngineer User?             @relation("AssignedEngineer", fields: [assignedEngineerId], references: [id], onDelete: SetNull)
   contractWorkflow ContractWorkflow?
   finishing        Finishing?
   tickets          Ticket[]
@@ -220,6 +225,7 @@ model Unit {
   @@index([projectId])
   @@index([unitCode])
   @@index([agentId])
+  @@index([assignedEngineerId])
   @@index([type])
   @@index([clientId])
   @@index([deletedAt])
@@ -295,6 +301,7 @@ model Ticket {
   status           TicketStatus   @default(PENDING)
   pendingParty     PendingParty?  @default(NONE)
   nextFollowUpDate DateTime?
+  engineeringNotes String?
   deletedAt        DateTime?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt

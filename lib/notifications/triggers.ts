@@ -58,6 +58,46 @@ export async function notifyCaseStatusUpdated({
   );
 }
 
+export async function notifyEngineeringAssigned({
+  engineerUserId,
+  unitCode,
+  unitId,
+}: {
+  engineerUserId: string;
+  unitCode: string;
+  unitId: string;
+}) {
+  const t = await getTranslations("notifications.messages");
+
+  await createNotification({
+    userId: engineerUserId,
+    title: t("engineeringAssignedTitle"),
+    message: t("engineeringAssignedMessage", { unitCode }),
+    link: `/engineering/units/${unitId}`,
+  });
+}
+
+export async function notifyEngineeringReturned({
+  agentUserId,
+  unitCode,
+  unitId,
+  engineerName,
+}: {
+  agentUserId: string;
+  unitCode: string;
+  unitId: string;
+  engineerName: string;
+}) {
+  const t = await getTranslations("notifications.messages");
+
+  await createNotification({
+    userId: agentUserId,
+    title: t("engineeringReturnedTitle"),
+    message: t("engineeringReturnedMessage", { unitCode, engineerName }),
+    link: `/units/${unitId}?tab=timeline`,
+  });
+}
+
 export async function notifyCallLogged({
   agentUserId,
   unitCode,

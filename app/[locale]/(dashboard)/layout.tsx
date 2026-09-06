@@ -3,15 +3,20 @@ import { DashboardShell } from "@/components/layout/app-sidebar";
 import { redirect } from "next/navigation";
 import DashboardProviders from "./providers";
 import { getAnnouncementConfig } from "@/lib/system/settings-store";
+import { resolveLocale } from "@/lib/auth-redirect";
 
 export default async function DashboardLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
+  const safeLocale = resolveLocale(locale);
   const session = await auth();
-  if (!session?.user) {
-    redirect("/en/login");
+  if (!session?.user || session.error) {
+    redirect(`/${safeLocale}/login?reason=session_expired`);
   }
 
   const announcement = await getAnnouncementConfig();

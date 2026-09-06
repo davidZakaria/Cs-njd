@@ -75,6 +75,7 @@ export function UsersDataTable({
       items.MANAGEMENT = t("roles.management");
     }
     items.CS_AGENT = t("roles.csAgent");
+    items.ENGINEER = t("roles.engineer");
     return items;
   }, [isSuperAdmin, t]);
 

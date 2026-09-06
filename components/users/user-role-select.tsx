@@ -37,6 +37,7 @@ export function UserRoleSelect({
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="CS_AGENT">{t("roles.csAgent")}</SelectItem>
+        <SelectItem value="ENGINEER">{t("roles.engineer")}</SelectItem>
         {isSuperAdmin ? (
           <>
             <SelectItem value="MANAGEMENT">{t("roles.management")}</SelectItem>

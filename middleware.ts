@@ -18,6 +18,8 @@ import {
   parseMaintenanceCookie,
 } from "@/lib/system/maintenance-cookie";
 import { resolveMaintenanceActive } from "@/lib/system/maintenance-request";
+import { SESSION_REVOKED_ERROR } from "@/lib/auth/session-constants";
+import { isTwoFactorRequired } from "@/lib/auth/two-factor-policy";
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -70,11 +72,13 @@ export default middlewareAuth(async (req) => {
     return intlMiddleware(req);
   }
 
-  if (!req.auth?.user) {
+  if (!req.auth?.user || req.auth.error === SESSION_REVOKED_ERROR) {
     if (isLoginRoute(normalizedPath) || isTwoFactorFlowRoute(normalizedPath)) {
       return intlMiddleware(req);
     }
-    return NextResponse.redirect(new URL(`/${locale}/login`, req.url));
+    return NextResponse.redirect(
+      new URL(`/${locale}/login?reason=session_expired`, req.url)
+    );
   }
 
   const user = req.auth.user;
@@ -94,6 +98,7 @@ export default middlewareAuth(async (req) => {
   }
 
   if (
+    isTwoFactorRequired(user.role) &&
     !user.twoFactorVerified &&
     !normalizedPath.startsWith("/setup-2fa") &&
     !normalizedPath.startsWith("/verify-2fa")

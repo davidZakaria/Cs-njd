@@ -93,6 +93,7 @@
       "FINANCE": "Finance",
       "MANAGEMENT": "Management",
       "LOGISTICS": "Shipping / Logistics",
+      "CUSTOMER_SERVICE": "Customer Service",
       "NONE": "None"
     },
     "checklist": {
@@ -151,8 +152,26 @@
       "caseStatusUpdatedTitle": "Case status updated",
       "caseStatusUpdatedMessage": "Case {unitCode} status updated to {status} by {agentName}",
       "callLoggedTitle": "Call logged for your unit",
-      "callLoggedMessage": "{callerName} handled a call for your unit {unitCode}."
+      "callLoggedMessage": "{callerName} handled a call for your unit {unitCode}.",
+      "engineeringAssignedTitle": "Finishing task assigned",
+      "engineeringAssignedMessage": "Unit {unitCode} was assigned to you for finishing updates.",
+      "engineeringReturnedTitle": "Engineering update complete",
+      "engineeringReturnedMessage": "Eng. {engineerName} updated finishes for Unit {unitCode}. It is back in your queue!"
     }
+  },
+  "engineering": {
+    "portalTitle": "Engineering Portal",
+    "myTasks": "Finishing tasks",
+    "noTasks": "No engineering tasks right now",
+    "updateFinishes": "Update finishing status",
+    "engineeringNotes": "Site / execution notes",
+    "returnToCS": "Done — return to Customer Service",
+    "returnSuccess": "Unit returned to Customer Service successfully",
+    "assignEngineer": "Assign site engineer",
+    "unassignedEngineer": "Not assigned",
+    "customModifications": "Custom modifications",
+    "modificationsCompleted": "Modifications completed",
+    "saveProgress": "Save progress"
   },
   "actions": {
     "logCall": "📞 Log call",
@@ -186,6 +205,7 @@
     "executive": "Executive",
     "cases": "Cases",
     "units": "Units",
+    "engineering": "Engineering Portal",
     "users": "Users",
     "imports": "Data Import",
     "auditLogs": "Audit Logs",
@@ -243,7 +263,7 @@
     "loginSigningIn": "Signing in…",
     "loginInvalidCredentials": "Invalid email or password. Check your credentials and try again.",
     "loginSessionFailed": "Sign-in succeeded but the session could not be started. Please try again.",
-    "loginSessionExpired": "Your session expired before two-factor verification finished. Sign in again to continue.",
+    "loginSessionExpired": "Your session has ended. Please sign in again to continue.",
     "loginRequiredForSetup": "You must sign in before setting up two-factor authentication.",
     "returnToSignIn": "Return to sign in",
     "email": "Email",
@@ -528,7 +548,8 @@
     "roles": {
       "superAdmin": "Super Admin",
       "management": "Management",
-      "csAgent": "CS Agent"
+      "csAgent": "CS Agent",
+      "engineer": "Site Engineer"
     },
     "twoFactor": "2FA",
     "twoFactorSecured": "Secured",
@@ -998,7 +1019,8 @@
     "role": {
       "CS_AGENT": "CS Agent",
       "MANAGEMENT": "Management",
-      "SUPER_ADMIN": "Super Admin"
+      "SUPER_ADMIN": "Super Admin",
+      "ENGINEER": "Site Engineer"
     },
     "finishingType": {
       "CORE_AND_SHELL": "Core & Shell",
@@ -1051,6 +1073,7 @@
       "FINANCE": "Finance",
       "MANAGEMENT": "Management",
       "LOGISTICS": "Shipping / Logistics",
+      "CUSTOMER_SERVICE": "Customer Service",
       "NONE": "None"
     }
   }

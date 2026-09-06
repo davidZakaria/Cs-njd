@@ -86,8 +86,8 @@ export async function createUser(input: CreateUserInput): Promise<ActionResult> 
 
   const { name, email, password, role } = parsed.data;
 
-  if (session.user.role === "MANAGEMENT" && role !== "CS_AGENT") {
-    return actionFail("Management can only create CS agents");
+  if (session.user.role === "MANAGEMENT" && role !== "CS_AGENT" && role !== "ENGINEER") {
+    return actionFail("Management can only create CS agents or site engineers");
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -97,7 +97,15 @@ export async function createUser(input: CreateUserInput): Promise<ActionResult> 
 
   await withAudit(() =>
     prisma.user.create({
-      data: { name, email, password: hashed, role },
+      data: {
+        name,
+        email,
+        password: hashed,
+        role,
+        ...(role === "ENGINEER"
+          ? { is2FAEnabled: false, twoFactorSecret: null }
+          : {}),
+      },
     })
   );
 
@@ -124,8 +132,8 @@ export async function updateUser(input: UpdateUserInput): Promise<ActionResult> 
     return actionFail("Cannot modify super admin");
   }
 
-  if (session.user.role === "MANAGEMENT" && role !== "CS_AGENT") {
-    return actionFail("Management can only assign CS agent role");
+  if (session.user.role === "MANAGEMENT" && role !== "CS_AGENT" && role !== "ENGINEER") {
+    return actionFail("Management can only assign CS agent or site engineer role");
   }
 
   if (email !== existing.email) {
@@ -136,7 +144,14 @@ export async function updateUser(input: UpdateUserInput): Promise<ActionResult> 
   await withAudit(() =>
     prisma.user.update({
       where: { id },
-      data: { name, email, role },
+      data: {
+        name,
+        email,
+        role,
+        ...(role === "ENGINEER"
+          ? { is2FAEnabled: false, twoFactorSecret: null }
+          : {}),
+      },
     })
   );
 

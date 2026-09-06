@@ -34,6 +34,7 @@ export const PENDING_PARTIES = [
   "FINANCE",
   "MANAGEMENT",
   "LOGISTICS",
+  "CUSTOMER_SERVICE",
 ] as const;
 
 export const ticketManageSchema = z.object({

@@ -2,9 +2,10 @@
 
 **Product:** NJD Post-Sales Customer Service CRM  
 **Organization:** New Jersey Developments (NJD)  
-**Live URL:** https://cs-njd.duckdns.org  
+**Live URL:** https://njd-crm.com · https://www.njd-crm.com  
+**Legacy URL:** https://cs-njd.duckdns.org (still works)  
 **Languages:** English (LTR) · Arabic (RTL)  
-**Last updated:** August 2026  
+**Last updated:** 6 September 2026  
 
 ---
 
@@ -12,7 +13,7 @@
 
 NJD Post-Sales CRM is a bilingual web application for managing post-sales customer service across NJD’s real estate portfolio. It centralizes units, clients, cases (tickets), staff assignments, and management reporting — with enterprise security (role-based access, mandatory two-factor authentication), audit trails, and automated backups.
 
-The system is deployed on a dedicated VPS, isolated from other NJD applications, and is actively maintained with regular feature releases.
+The system is deployed on a dedicated VPS (`72.61.192.84`), isolated from other NJD applications, with a custom GoDaddy domain and SSL, and is actively maintained with regular feature releases.
 
 ---
 
@@ -35,8 +36,9 @@ The CRM supports five canonical NJD projects:
 | Role | Who | Main access |
 |------|-----|-------------|
 | **Super Admin** | IT / system owner | Full system: imports, audit logs, backups, users, system monitoring, security, maintenance mode, all modules |
-| **Management (Executive)** | Directors / managers | Executive Command Center, cases, units, users (CS agents only) |
-| **CS Agent** | Customer service staff | Dashboard, assigned units, cases, ticket updates |
+| **Management (Executive)** | Directors / managers | Executive Command Center, cases, units, users (CS agents & site engineers) |
+| **CS Agent** | Customer service staff | Dashboard, assigned units & cases, **global unit lookup** (Cmd+K by phone/name/code), client contact on Unit 360, **Log Call on any unit** answered on the phone, ticket updates on assigned units |
+| **Site Engineer** | On-site finishing team (shared login) | **Engineering Portal** only — mobile task queue, finishing checklist, site notes; **no 2FA**, no client PII or financials |
 
 Each role sees only the navigation and data appropriate to their responsibilities.
 
@@ -46,26 +48,42 @@ Each role sees only the navigation and data appropriate to their responsibilitie
 
 ### 1. Authentication & security
 - Secure login with email and password
-- **Mandatory two-factor authentication (2FA)** via authenticator app (Google Authenticator, Authy, etc.)
+- **Mandatory two-factor authentication (2FA)** via authenticator app (Google Authenticator, Authy, etc.) — **required for Super Admin, Management, and CS Agent; not required for Site Engineer** (password-only shared on-site account)
 - QR code setup + manual secret key (Copy / Start over) for reliable enrollment
+- **Session lifetime controls** — sessions expire after **8 hours** (configurable); users must sign in again when the session ends
+- **Browser-close logout** — session cookie is not persisted across browser restarts (default); reopening the browser requires login
+- **Session guard** — expired or revoked sessions redirect to login with a clear message; session rechecked when returning to a tab
 - Session protection on all dashboard routes
 - Forced password change flow for imported staff accounts
 - Admin tools to reset 2FA when a user is locked out
 
 ### 2. Dashboard (CS agents)
-- Personal overview of open work
-- Quick access to assigned units and cases
+- Personal overview of open work (assigned units and cases)
+- **Pending work queue** grouped by project with **client phone numbers** visible for call handling
+- Stats scoped to the agent’s assigned portfolio
+
+### 2b. Global spotlight search *(Super Admin, Management, CS Agent)*
+- **Cmd+K / Ctrl+K** quick search from anywhere in the app
+- Search by **unit code**, **client name**, or **phone number**
+- **CS agents search the full portfolio** (all units) — essential for inbound calls even when the unit is assigned to another agent
+- Results link directly to Unit 360 profile
 
 ### 3. Executive Command Center *(Management & Super Admin)*
 Project-first command center for leadership:
 
 **Overview tab**
-- Portfolio-wide KPIs (open cases, unassigned, legal, engineering, my/team queues)
+- **Key metrics row** — single consolidated KPI strip (no duplicate team/my counts):
+  - Portfolio: total units, delivered, overdue deliveries, handover at-risk, missing signed protocol, outstanding fees
+  - Operations: open work, unassigned, legal cases, engineering, pending with party, follow-ups due
+- **Handover pipeline chart** — pending → in progress → delivered → at-risk / legal
+- **Finishing progress chart** — units by current engineering finishing phase
+- **Signed protocol compliance chart** — uploaded vs missing among resolved units
 - Bar chart: open cases by project
-- Donut chart: cases by category
-- Agent workload cards
-- **Financial analytics panel** — finishing revenue by project, package mix, and portfolio totals
+- Donut chart: cases by category (resolved tab uses “Resolved cases” center label)
+- **Pending parties chart** — bottleneck breakdown (Client, Engineering, Legal, Finance, etc.)
+- **Financial analytics panel** — finishing revenue by project and portfolio totals *(enabled)*
 - **Quick search** across all open cases (client, unit, notes, agent, status)
+- Agent workload cards
 - Team queue & my queue with inline assign + status actions
 - KPI cards and chart segments **link to the Cases page** with matching filters
 
@@ -87,39 +105,75 @@ Project-first command center for leadership:
 - Premium UI: scrollable tabs, count badges, RTL-aware layout
 
 ### 4. Cases (tickets)
-- Full cases list with filters (status, category, agent, project)
+- Full cases list with filters (status, category, agent, project, **follow-up due**, **pending party**)
 - **Deep linking from Executive dashboard** — KPI cards, tab badges, and charts open Cases with pre-applied URL filters
-- **CSV export** of the currently filtered case list (UTF-8 with BOM for Excel)
+- **CSV export** of the currently filtered case list *(Management & Super Admin only; hidden for CS agents)*
 - Assign cases to CS agents
 - Update status inline (Pending, Engineering, Legal, Resolved)
+- **Resolution gates** — cannot resolve while finishing incomplete, fees unpaid, papers missing, pending with another party, **active legal block**, or **custom modifications pending** *(Management override available)*
+- **Legal block banner** on Unit 360 when unit is under lawsuit/dispute — WhatsApp and handover actions disabled for CS
+- **Pending party** workflow field (Client, Engineering, Legal, Finance, Management, Logistics, **Customer Service** for CS handback)
+- **Next follow-up date** with “Due today” filter
 - Categories: Customer Service, Feedback History, Legal, General
 - Success toasts on save / assign / delete
 
 ### 5. Units (Unit 360)
 - Unit profile: client, project, handover, finishing financials
+- **Management / Super Admin CRUD** — edit client info (name, phones, email, national ID, addresses), handover status, delivery dates, and legal/handover checklist fields inline on Unit 360
+- **CS inbound-call access** — any CS agent can open **any unit profile** via spotlight search to view client contact; list/cases remain scoped to assigned work
+- **Log Call** — CS agents can log a call on **any unit** they handled on the phone (not restricted to assigned units or legal-block state)
+- **Client phones & email visible** to CS agents (WhatsApp one-click contact)
 - **Client addresses** — عنوان 1 / عنوان 2 editable on Client Info tab
 - **Delivery year & grace period** — السنه للتسليم, فترة سماح (editable)
 - **Unit type ROOF** (رووف) plus apartment, duplex, penthouse
+- **Engineering finishing phases** — 9-step checklist (plumbing foundation → final paint) with dates; drives resolution gates and executive finishing chart
+- **Edge-case workflow fields** — legal block, power of attorney / DHL received, inspection date, custom modifications + completion flag (Legal & Finishing tabs)
 - **Current finishing status** — موقف الوحده الحالي من التشطيب on Finishing tab
-- **CSV export** of the filtered units list from the Units page
+- **CSV export** of the filtered units list *(Management & Super Admin only; hidden for CS agents)*
 - **Expanded finishing details** — package type, executing company, contract/dated/email dates (General · Financials · Dates sections)
 - Editable finishing form with validation (Management / Super Admin)
-- CS feedback timeline per unit
+- **Assign site engineer** on Finishing tab (Management / Super Admin); optional dispatch when ticket is pending with Engineering
+- **CS feedback timeline** per unit with **view/edit modes**; Management can add/edit/delete timeline entries
 - Link from cases directly to unit timeline
 - **WhatsApp quick contact** — one-click message to client phone with localized template
-- **Print handover protocol** — A4 bilingual document (محضر استلام) opens in a dedicated print view with auto print dialog
+- **Print handover protocol** — official bilingual **محضر استلام** from Word templates:
+  - **Green Avenue** and **JURA** variants
+  - With/without insurance, single/dual signature options
+  - Arabic left · English right; auto-filled client, unit, contract dates
+  - **NJD logo** centered in print header; template picker on Unit 360
+- **Signed protocol upload** — after ≥1 resolved case, upload client-signed PDF/scan (Legal tab + Timeline when resolved):
+  - Stored on server under `uploads/signed-protocols/`
+  - Auto-sets `hasSignedProtocol` and `papersReceived`
+  - CS agents: upload on **assigned units only**; Management: any unit
+
+### 5b. Engineering Portal *(Site Engineer)*
+Mobile-first portal for on-site finishing updates — isolated from the main CRM (no Unit 360, Cases, or Executive access).
+
+- **Task queue** (`/engineering`) — card list of units with open tickets where **Pending with = Engineering**
+- **Optional engineer assignment** — Management can set `assignedEngineerId` on Unit 360; queue shows unassigned units plus units assigned to the logged-in engineer (shared account sees all engineering-pending units)
+- **Task view** (`/engineering/units/[id]`) — unit code, project, **9-step finishing checklist**, custom modifications + completion flag, **site / execution notes**
+- **Return to Customer Service** — saves progress, sets ticket **Pending with → Customer Service**, adds timeline note (`🏗️ [Site Update]`), notifies the unit’s CS agent
+- **Data isolation** — no client phones, email, addresses, or financial fields; **Cmd+K spotlight disabled**
+- **Password-only login** — no 2FA enrollment for `ENGINEER` role (suited for shared on-site mobile device)
+- Bilingual UI (EN / AR)
 
 ### 6. Users
 - Create and manage staff accounts
-- Role assignment (Super Admin, Management, CS Agent)
+- Role assignment (Super Admin, Management, CS Agent, **Site Engineer**)
 - Management can create CS agents only
 
 ### 7. Data import *(Super Admin)*
-- Bulk import from official Excel workbook
+- Bulk import from official Excel workbooks
+- **Multi-workbook sync** — `npm run sync:excel:all` ingests three files:
+  - `docs/updated final.xlsx` (NJD 2026 master + FINAL finishing)
+  - `docs/Greenavenue & Genesis Delivery .xlsx` (delivery / legal / engineering columns)
+  - `docs/Jamila Clients Data.xlsx` (Jamila North Coast units — **188 units**; cases created only where **NOTE** column has text)
+- **Project name normalization** — e.g. “Jamila” → `JAMILA NORTH COAST`
 - Legacy customer service / feedback rows map to **tickets**, not bogus user accounts
 - **Handwritten-spec column mapping** — Arabic headers from CS/Engineering sheets (addresses, delivery year, grace period, finishing status, رسوم الباب, الالوميتال, سعر المتر, etc.)
 - **Finishing field mapping** — package type, executing company, contract/dated/email dates from Excel columns
-- Excel sync script for ongoing updates (`npm run sync:excel`)
+- **Edge-case text parsing** — lawsuit, POA/DHL, custom mod keywords synced from legacy Excel notes into workflow fields
+- Excel sync script for ongoing updates (`npm run sync:excel` / `sync:excel:all`)
 - Cleanup tools for bad imported data
 
 ### 8. Audit logs *(Super Admin)*
@@ -166,6 +220,10 @@ Collapsible sidebar groups organize super-admin tools:
 **Session security (all roles)**
 - Login attempts recorded (success and failure) with IP and user agent
 - Per-user `sessionVersion` on JWT — admin session kill invalidates existing tokens immediately
+- **Configurable session policy** via `.env`:
+  - `AUTH_SESSION_MAX_AGE_SECONDS` (default `28800` = 8 hours)
+  - `AUTH_SESSION_UPDATE_AGE_SECONDS` (default `1800` = 30 min activity refresh)
+  - `AUTH_SESSION_BROWSER_ONLY` (default `true` — re-login after browser restart)
 
 ### 11. In-app notifications
 - **Notification bell** in the top navbar for all authenticated roles
@@ -200,13 +258,78 @@ Collapsible sidebar groups organize super-admin tools:
 | ORM | Prisma 6 |
 | Auth | NextAuth.js v5 + TOTP 2FA |
 | Charts | Recharts (executive dashboard) |
-| Hosting | Hostinger VPS, PM2, Nginx, DuckDNS |
+| Hosting | Hostinger VPS (`72.61.192.84`), PM2, Nginx, Let's Encrypt SSL |
+| Domain | **njd-crm.com** (GoDaddy DNS) · legacy DuckDNS |
 
 **Production isolation:** Runs as `cs-njd-crm` on port 3001 — does not interfere with other NJD apps (e.g. eng-njd, sales-arena).
 
 ---
 
 ## Release history (recent updates)
+
+### September 2026 — Session security & custom domain
+- **Session expiry** — 8-hour max session lifetime; idle refresh every 30 minutes while active
+- **Re-login after browser close** — session cookie not persisted across browser restarts (default)
+- **Session guard** — client-side check on dashboard; redirects to login with `?reason=session_expired` when session ends or is revoked
+- **Custom domain live** — `https://njd-crm.com` and `https://www.njd-crm.com` with Let's Encrypt SSL
+- **GoDaddy DNS guide** — `deploy/GODADDY-DNS.md` (A record → VPS, forwarding/parking troubleshooting)
+- **Domain setup script** — `deploy/setup-domain.sh` (certbot + `AUTH_URL` + rebuild)
+- Nginx config: `deploy/nginx-njd-crm.conf.example`
+
+### September 2026 — Excel multi-workbook import & Jamila North Coast
+- **`npm run sync:excel:all`** — sync master + Green Avenue/Genesis delivery + Jamila workbooks in one run
+- **Jamila North Coast** — 188 units imported from `Jamila Clients Data.xlsx`; cases created only for rows with **NOTE** filled (e.g. delivery extension notes)
+- **Project alias mapping** — `lib/import/project-names.ts` normalizes sheet project names to canonical DB names
+- **Delivery Data sheet parser** — engineering / legal / CS columns from Green Avenue & Genesis workbook
+- Production seed result (Sep 2026): ~232 units created, ~1756 updated, 0 errors
+
+### September 2026 — Airtight edge-case gates & Management CRUD
+- **Schema:** `isLegallyBlocked`, `powerOfAttorneyReceived`, `inspectionDate` on contract workflow; `customModifications`, `modificationsCompleted` on finishing
+- **Gates:** `active_lawsuit`, `modifications_pending` block case resolution (Management override retained)
+- **UI:** legal block banner, disabled WhatsApp when blocked, handover/finishing edge-case fields, bilingual labels
+- **Import:** `lib/import/edge-case-sync.ts` parses legacy Arabic/English keywords from Excel notes
+- **Management Unit 360 CRUD** — edit client profile + legal/handover checklist (Super Admin + Management)
+- Migration: `20260902130000_airtight_edge_cases`
+
+### September 2026 — Engineering Portal (Phase 4)
+- **`ENGINEER` role** — password-only login (no 2FA); route lock to `/engineering` only
+- **Engineering Portal** — mobile task queue, finishing checklist, site notes, sticky **Return to CS** handoff
+- **CS ↔ Engineering workflow** — `pendingParty` **CUSTOMER_SERVICE** for handback; `engineeringNotes` on tickets
+- **Assign site engineer** on Unit 360 Finishing tab; notifications on assign and on return to CS
+- **Schema:** `assignedEngineerId` on Unit, `engineeringNotes` on Ticket; migration `20260906120000_add_engineer_role`
+- Management can create **CS Agent** or **Site Engineer** users
+
+### September 2026 — CS Log Call & preview account
+- **Log Call** — CS agents can log calls on **any unit** they answered (removed assignment and legal-block restrictions on quick action)
+- **CS preview login** — `davidsamii3@gmail.com` views Islam Tharwat’s assigned portfolio (`npm run db:bootstrap-cs-preview`)
+
+### September 2026 — CS call-center access
+- **Global spotlight search** — CS agents search **all units** by phone, name, or unit code (not limited to assigned portfolio)
+- **Unit 360 read access** — CS can open any unit profile from search to view client contact for inbound calls
+- **Phone redaction removed** — client phones, email, and WhatsApp visible on Unit 360 and dashboard pending-work queue
+- **Export restricted** — CSV/Excel export hidden on Cases and Units for CS agents
+
+### September 2026 — Executive portfolio upgrade
+- **Portfolio analytics** — handover pipeline, finishing phases, signed-protocol compliance, delivery overdue, follow-ups due
+- **Consolidated key metrics** — single KPI row; removed duplicate “Team units” / “My units” counts on overview
+- **Financial analytics panel** re-enabled on executive overview
+- **Pending parties bottleneck chart** on overview
+- Bilingual labels: “Legal cases” vs “Handover at-risk” to avoid confusion
+
+### September 2026 — Handover print & signed documents
+- **Official bilingual handover templates** — 6 variants (Green Avenue / JURA; insurance; dual signature) from legal Word docs
+- **NJD logo** on print header (single centered logo)
+- **Signed protocol upload** after case resolution — PDF/image storage, download API, Legal + Timeline UI
+- Migration: `20260902120000_signed_protocol_upload`
+- `UPLOADS_DIR` env (default `./uploads`) for on-disk document storage
+
+### September 2026 — Ops excellence workflow
+- **9-step engineering finishing phases** (replaces legacy phase enum); multi-select checklist on Unit 360
+- **Resolution gates** — block resolve until finishing, fees, papers, and pending-party rules pass
+- **Management override** checkbox for gated resolves
+- **Pending party** + **next follow-up date** on tickets; Due Today filter on Cases
+- **Timeline CRUD** for Management on Unit 360 (cleaner view/edit UI)
+- Migration: `20260902100000_ops_excellence_workflow`, `20260823230000_workflow_enforcement_gates`, `20260823220000_finishing_phase_tracker`
 
 ### August 2026 — Super Admin expansion
 - **Schema:** `LoginHistory`, `SystemSetting`, user `lastLoginAt` + `sessionVersion`; migration `20260823140000_super_admin_expansion`
@@ -288,7 +411,7 @@ Collapsible sidebar groups organize super-admin tools:
 - One-command deploy script (`deploy/update.sh`)
 - PM2 auto-start on reboot
 - Environment validation, error pages, migration baseline
-- Live at **https://cs-njd.duckdns.org**
+- Live at **https://njd-crm.com** (Sep 2026) and **https://cs-njd.duckdns.org**
 
 ### June 2026 — Initial release
 - Core CRM: units, clients, tickets, users, roles
@@ -302,10 +425,17 @@ Collapsible sidebar groups organize super-admin tools:
 
 | Item | Detail |
 |------|--------|
+| **Primary URL** | https://njd-crm.com |
 | **Super Admin bootstrap** | `npm run db:bootstrap-admin` (see `.env` for credentials) |
 | **Executive account** | `npm run db:bootstrap-management` |
+| **CS preview account** | `npm run db:bootstrap-cs-preview` at `/var/www/cs-njd` (maps to Islam Tharwat portfolio) |
 | **Deploy on VPS** | `cd /var/www/cs-njd && bash deploy/update.sh` |
-| **Apply migrations (VPS)** | `npx prisma migrate deploy` (includes `20260823140000_super_admin_expansion` if not yet applied) |
+| **Custom domain + SSL** | `bash deploy/setup-domain.sh njd-crm.com` (after DNS A record → `72.61.192.84`) |
+| **GoDaddy DNS help** | `deploy/GODADDY-DNS.md` — remove forwarding/parking, set A record, optional `app.` subdomain |
+| **Excel full sync** | `npm run sync:excel:all` (three workbooks under `docs/`) |
+| **Session env (VPS)** | `AUTH_SESSION_MAX_AGE_SECONDS`, `AUTH_SESSION_BROWSER_ONLY` — see `.env.example` |
+| **Apply migrations (VPS)** | `npx prisma migrate deploy` (includes edge-case and ops workflow migrations if not yet applied) |
+| **Signed protocol uploads** | Files stored under `{UPLOADS_DIR}/signed-protocols/` (default `./uploads`); ensure directory exists on VPS |
 | **Maintenance mode** | Super Admin → System → General Settings; blocks CS Agent & Management only |
 | **Kill user sessions** | Super Admin → Users & Security → Security & Sessions → Active sessions tab |
 | **Backup env (VPS)** | `BACKUP_DOCKER_CONTAINER=njd-crm-postgres-prod` |
@@ -322,9 +452,9 @@ These are natural next steps, not current features:
 - Email / SMS notifications on case assignment (in-app notifications are live)
 - Customer-facing portal
 - Mobile-optimized executive views
-- PDF export from Cases list (CSV export is available; handover protocol prints to PDF via browser)
 - Per-project email digests for management
 - Scheduled maintenance windows with advance user notice (maintenance mode toggle is live)
+- Filter Units list by “missing signed protocol” from executive KPI link
 
 ---
 
@@ -335,4 +465,4 @@ These are natural next steps, not current features:
 
 ---
 
-*This document reflects the application state as of August 2026. For the latest code-level changes, see the git commit history on the `main` branch.*
+*This document reflects the application state as of 6 September 2026. For the latest code-level changes, see the git commit history on the `main` branch.*
