@@ -58,25 +58,6 @@ export async function notifyCaseStatusUpdated({
   );
 }
 
-export async function notifyEngineeringAssigned({
-  engineerUserId,
-  unitCode,
-  unitId,
-}: {
-  engineerUserId: string;
-  unitCode: string;
-  unitId: string;
-}) {
-  const t = await getTranslations("notifications.messages");
-
-  await createNotification({
-    userId: engineerUserId,
-    title: t("engineeringAssignedTitle"),
-    message: t("engineeringAssignedMessage", { unitCode }),
-    link: `/engineering/units/${unitId}`,
-  });
-}
-
 export async function notifyEngineeringReturned({
   agentUserId,
   unitCode,

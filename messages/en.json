@@ -162,6 +162,7 @@
   "engineering": {
     "portalTitle": "Engineering Portal",
     "myTasks": "Finishing tasks",
+    "sharedAccountHint": "Shared site account — all units pending with Engineering appear here.",
     "noTasks": "No engineering tasks right now",
     "updateFinishes": "Update finishing status",
     "engineeringNotes": "Site / execution notes",

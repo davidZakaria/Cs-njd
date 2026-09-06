@@ -23,7 +23,7 @@ export default async function EngineeringPortalPage({
   }
 
   const t = await getTranslations("engineering");
-  const tasks = await getEngineeringQueueUnits(session.user.id);
+  const tasks = await getEngineeringQueueUnits();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -36,6 +36,9 @@ export default async function EngineeringPortalPage({
             {t("portalTitle")}
           </h1>
           <p className="text-muted-foreground">{t("myTasks")}</p>
+          <p className="mt-1 text-sm text-muted-foreground/90">
+            {t("sharedAccountHint")}
+          </p>
         </div>
       </div>
 

@@ -46,7 +46,7 @@ export default async function EngineeringUnitTaskPage({
 
   if (!unit) notFound();
 
-  if (!isUnitInEngineeringQueue(unit, session.user.id)) {
+  if (!isUnitInEngineeringQueue(unit)) {
     redirect(`/${locale}/engineering`);
   }
 

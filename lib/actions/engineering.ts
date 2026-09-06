@@ -12,10 +12,7 @@ import {
   normalizeFinishingPhases,
   sortPhases,
 } from "@/lib/finishing/phases";
-import {
-  notifyEngineeringAssigned,
-  notifyEngineeringReturned,
-} from "@/lib/notifications/triggers";
+import { notifyEngineeringReturned } from "@/lib/notifications/triggers";
 import { auditContext, prisma } from "@/lib/prisma";
 import { activeTicketWhere } from "@/lib/prisma";
 
@@ -29,88 +26,12 @@ async function withAudit<T>(fn: () => Promise<T>) {
   );
 }
 
-const assignEngineerSchema = z.object({
-  unitId: z.string().min(1),
-  engineerId: z.string().min(1),
-});
-
 const returnToCsSchema = z.object({
   unitId: z.string().min(1),
   phases: z.array(z.nativeEnum(FinishingPhase)).min(1),
   modificationsCompleted: z.boolean(),
   engineeringNotes: z.string().optional(),
 });
-
-export async function assignEngineerAction(
-  formData: FormData
-): Promise<ActionResult> {
-  const session = await auth();
-  if (
-    !session?.user ||
-    !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)
-  ) {
-    return actionFail("Unauthorized");
-  }
-
-  const parsed = assignEngineerSchema.safeParse({
-    unitId: String(formData.get("unitId") ?? ""),
-    engineerId: String(formData.get("engineerId") ?? ""),
-  });
-  if (!parsed.success) {
-    return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
-  }
-
-  const { unitId, engineerId } = parsed.data;
-  const nextEngineerId = engineerId === "unassigned" ? null : engineerId;
-
-  const unit = await prisma.unit.findUnique({
-    where: { id: unitId },
-    include: {
-      tickets: {
-        where: activeTicketWhere({
-          pendingParty: "ENGINEERING",
-          status: { not: "RESOLVED" },
-        }),
-        orderBy: { createdAt: "desc" },
-        take: 1,
-      },
-    },
-  });
-  if (!unit) return actionFail("Unit not found");
-
-  if (nextEngineerId) {
-    const engineer = await prisma.user.findFirst({
-      where: { id: nextEngineerId, role: "ENGINEER", deletedAt: null },
-    });
-    if (!engineer) return actionFail("Engineer not found");
-  }
-
-  const previousEngineerId = unit.assignedEngineerId;
-
-  await withAudit(() =>
-    prisma.unit.update({
-      where: { id: unitId },
-      data: { assignedEngineerId: nextEngineerId },
-    })
-  );
-
-  if (
-    nextEngineerId &&
-    nextEngineerId !== previousEngineerId &&
-    unit.tickets.length > 0
-  ) {
-    await notifyEngineeringAssigned({
-      engineerUserId: nextEngineerId,
-      unitCode: unit.unitCode,
-      unitId: unit.id,
-    });
-  }
-
-  revalidatePath(`/units/${unitId}`);
-  revalidatePath("/units");
-  revalidatePath("/engineering");
-  return actionOk();
-}
 
 export async function returnToCsAction(
   input: z.infer<typeof returnToCsSchema>
@@ -147,8 +68,8 @@ export async function returnToCsAction(
   });
   if (!unit) return actionFail("Unit not found");
 
-  if (!isUnitInEngineeringQueue(unit, session.user.id)) {
-    return actionFail("Unit is not in your engineering queue");
+  if (!isUnitInEngineeringQueue(unit)) {
+    return actionFail("Unit is not in the engineering queue");
   }
 
   const activeTicket = unit.tickets[0];

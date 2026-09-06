@@ -132,7 +132,6 @@ Project-first command center for leadership:
 - **CSV export** of the filtered units list *(Management & Super Admin only; hidden for CS agents)*
 - **Expanded finishing details** — package type, executing company, contract/dated/email dates (General · Financials · Dates sections)
 - Editable finishing form with validation (Management / Super Admin)
-- **Assign site engineer** on Finishing tab (Management / Super Admin); optional dispatch when ticket is pending with Engineering
 - **CS feedback timeline** per unit with **view/edit modes**; Management can add/edit/delete timeline entries
 - Link from cases directly to unit timeline
 - **WhatsApp quick contact** — one-click message to client phone with localized template
@@ -149,18 +148,18 @@ Project-first command center for leadership:
 ### 5b. Engineering Portal *(Site Engineer)*
 Mobile-first portal for on-site finishing updates — isolated from the main CRM (no Unit 360, Cases, or Executive access).
 
-- **Task queue** (`/engineering`) — card list of units with open tickets where **Pending with = Engineering**
-- **Optional engineer assignment** — Management can set `assignedEngineerId` on Unit 360; queue shows unassigned units plus units assigned to the logged-in engineer (shared account sees all engineering-pending units)
+- **Task queue** (`/engineering`) — card list of all units with open tickets where **Pending with = Engineering** (one shared login sees the full site queue)
 - **Task view** (`/engineering/units/[id]`) — unit code, project, **9-step finishing checklist**, custom modifications + completion flag, **site / execution notes**
 - **Return to Customer Service** — saves progress, sets ticket **Pending with → Customer Service**, adds timeline note (`🏗️ [Site Update]`), notifies the unit’s CS agent
 - **Data isolation** — no client phones, email, addresses, or financial fields; **Cmd+K spotlight disabled**
 - **Password-only login** — no 2FA enrollment for `ENGINEER` role (suited for shared on-site mobile device)
+- **Single shared account** — only one Site Engineer user may exist in the system
 - Bilingual UI (EN / AR)
 
 ### 6. Users
 - Create and manage staff accounts
-- Role assignment (Super Admin, Management, CS Agent, **Site Engineer**)
-- Management can create CS agents only
+- Role assignment (Super Admin, Management, CS Agent, **Site Engineer** — max **one** shared engineer account)
+- Management can create CS agents and the single site engineer account
 
 ### 7. Data import *(Super Admin)*
 - Bulk import from official Excel workbooks
@@ -295,8 +294,8 @@ Collapsible sidebar groups organize super-admin tools:
 - **`ENGINEER` role** — password-only login (no 2FA); route lock to `/engineering` only
 - **Engineering Portal** — mobile task queue, finishing checklist, site notes, sticky **Return to CS** handoff
 - **CS ↔ Engineering workflow** — `pendingParty` **CUSTOMER_SERVICE** for handback; `engineeringNotes` on tickets
-- **Assign site engineer** on Unit 360 Finishing tab; notifications on assign and on return to CS
-- **Schema:** `assignedEngineerId` on Unit, `engineeringNotes` on Ticket; migration `20260906120000_add_engineer_role`
+- **Single shared site engineer account** — one `ENGINEER` user; no per-unit engineer assignment UI
+- **Schema:** `assignedEngineerId` on Unit (reserved), `engineeringNotes` on Ticket; migration `20260906120000_add_engineer_role`
 - Management can create **CS Agent** or **Site Engineer** users
 
 ### September 2026 — CS Log Call & preview account

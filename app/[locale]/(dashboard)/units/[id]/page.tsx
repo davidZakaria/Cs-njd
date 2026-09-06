@@ -15,7 +15,6 @@ import { UnitFinishingForm } from "@/components/units/unit-finishing-form";
 import { UnitClientForm } from "@/components/units/unit-client-form";
 import { PrintProtocolButton } from "@/components/units/print-protocol-button";
 import { SignedProtocolUpload } from "@/components/units/signed-protocol-upload";
-import { AssignEngineerSelect } from "@/components/units/assign-engineer-select";
 import { LegalBlockBanner } from "@/components/units/legal-block-banner";
 import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
 import { resolveSignedProtocolAccess } from "@/lib/auth/signed-protocol-access";
@@ -54,7 +53,6 @@ export default async function UnitProfilePage({
       project: true,
       client: true,
       agent: true,
-      assignedEngineer: true,
       contractWorkflow: true,
       finishing: true,
       tickets: {
@@ -93,14 +91,6 @@ export default async function UnitProfilePage({
   const canEditProfile =
     session?.user.role === "SUPER_ADMIN" ||
     session?.user.role === "MANAGEMENT";
-
-  const engineers = canEditProfile
-    ? await prisma.user.findMany({
-        where: { role: "ENGINEER", deletedAt: null },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      })
-    : [];
 
   const canManageTickets = session?.user
     ? canManageUnitTickets(session.user)
@@ -191,18 +181,7 @@ export default async function UnitProfilePage({
           />
         </TabsContent>
 
-        <TabsContent value="financials" className="space-y-4">
-          <Card>
-            <CardContent className="pt-6">
-              <AssignEngineerSelect
-                unitId={unit.id}
-                engineerId={unit.assignedEngineerId}
-                engineerName={unit.assignedEngineer?.name ?? null}
-                engineers={engineers}
-                canEdit={canEditProfile}
-              />
-            </CardContent>
-          </Card>
+        <TabsContent value="financials">
           <UnitFinishingForm
             defaults={{
               unitId: unit.id,

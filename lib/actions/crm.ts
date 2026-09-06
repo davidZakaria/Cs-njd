@@ -73,6 +73,26 @@ async function assertCsAgentUnitAccess(
   return null;
 }
 
+async function assertSingleEngineerAccount(
+  excludeUserId?: string
+): Promise<ActionResult | null> {
+  const engineerCount = await prisma.user.count({
+    where: {
+      role: "ENGINEER",
+      deletedAt: null,
+      ...(excludeUserId ? { NOT: { id: excludeUserId } } : {}),
+    },
+  });
+
+  if (engineerCount > 0) {
+    return actionFail(
+      "Only one shared site engineer account is allowed. Edit or remove the existing engineer first."
+    );
+  }
+
+  return null;
+}
+
 export async function createUser(input: CreateUserInput): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user || !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)) {
@@ -92,6 +112,11 @@ export async function createUser(input: CreateUserInput): Promise<ActionResult> 
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return actionFail("A user with this email already exists");
+
+  if (role === "ENGINEER") {
+    const engineerLimit = await assertSingleEngineerAccount();
+    if (engineerLimit) return engineerLimit;
+  }
 
   const hashed = await bcrypt.hash(password, 12);
 
@@ -139,6 +164,11 @@ export async function updateUser(input: UpdateUserInput): Promise<ActionResult> 
   if (email !== existing.email) {
     const duplicate = await prisma.user.findUnique({ where: { email } });
     if (duplicate) return actionFail("A user with this email already exists");
+  }
+
+  if (role === "ENGINEER" && existing.role !== "ENGINEER") {
+    const engineerLimit = await assertSingleEngineerAccount(existing.id);
+    if (engineerLimit) return engineerLimit;
   }
 
   await withAudit(() =>

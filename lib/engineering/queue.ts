@@ -12,14 +12,7 @@ export type EngineeringQueueUnit = {
   engineeringTicketId: string | null;
 };
 
-function engineerUnitScope(engineerUserId: string) {
-  return {
-    OR: [{ assignedEngineerId: null }, { assignedEngineerId: engineerUserId }],
-  };
-}
-export async function getEngineeringQueueUnits(
-  engineerUserId: string
-): Promise<EngineeringQueueUnit[]> {
+export async function getEngineeringQueueUnits(): Promise<EngineeringQueueUnit[]> {
   const engineeringTicketFilter = activeTicketWhere({
     pendingParty: "ENGINEERING",
     status: { not: "RESOLVED" },
@@ -27,7 +20,6 @@ export async function getEngineeringQueueUnits(
 
   const units = await prisma.unit.findMany({
     where: activeUnitWhere({
-      ...engineerUnitScope(engineerUserId),
       tickets: { some: engineeringTicketFilter },
     }),
     select: {
@@ -68,20 +60,13 @@ export async function getEngineeringQueueUnits(
   }));
 }
 
-export function isUnitInEngineeringQueue(
-  unit: {
-    assignedEngineerId: string | null;
-    tickets: Array<{ pendingParty: string | null; status: string; deletedAt: Date | null }>;
-  },
-  engineerUserId: string
-): boolean {
-  if (
-    unit.assignedEngineerId &&
-    unit.assignedEngineerId !== engineerUserId
-  ) {
-    return false;
-  }
-
+export function isUnitInEngineeringQueue(unit: {
+  tickets: Array<{
+    pendingParty: string | null;
+    status: string;
+    deletedAt: Date | null;
+  }>;
+}): boolean {
   return unit.tickets.some(
     (ticket) =>
       !ticket.deletedAt &&
