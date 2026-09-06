@@ -13,6 +13,8 @@ import {
 } from "@/lib/uploads/signed-protocol-storage";
 import { revalidatePath } from "next/cache";
 
+import { notifyHandoverChecklistUpdatedByAgent } from "@/lib/notifications/triggers";
+
 async function loadUnitForUpload(unitId: string) {
   return prisma.unit.findUnique({
     where: { id: unitId },
@@ -48,13 +50,6 @@ export async function uploadSignedProtocol(
   );
   if (!canUpload) return actionFail("Unauthorized");
 
-  const hasResolvedTicket = await prisma.ticket.count({
-    where: { unitId, status: "RESOLVED", deletedAt: null },
-  });
-  if (hasResolvedTicket === 0) {
-    return actionFail("Upload is available after at least one case is resolved");
-  }
-
   const buffer = Buffer.from(await file.arrayBuffer());
   const storedName = buildStoredFilename(file.name);
   const previousStoredName = unit.contractWorkflow?.signedProtocolStoredName;
@@ -86,6 +81,15 @@ export async function uploadSignedProtocol(
       papersReceived: true,
     },
   });
+
+  if (session.user.role === "CS_AGENT") {
+    await notifyHandoverChecklistUpdatedByAgent({
+      unitCode: unit.unitCode,
+      unitId: unit.id,
+      agentName: session.user.name ?? session.user.email ?? "CS Agent",
+      changesSummary: "Signed handover protocol uploaded",
+    });
+  }
 
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/units");

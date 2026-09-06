@@ -140,6 +140,27 @@ export async function notifyManagerOverride({
   );
 }
 
+export async function notifyHandoverChecklistUpdatedByAgent({
+  unitCode,
+  unitId,
+  agentName,
+  changesSummary,
+}: {
+  unitCode: string;
+  unitId: string;
+  agentName: string;
+  changesSummary: string;
+}) {
+  await notifyRoles(
+    ["MANAGEMENT", "SUPER_ADMIN"],
+    "Handover checklist updated",
+    "تحديث قائمة الاستلام",
+    `${agentName} updated handover checklist for Unit ${unitCode}: ${changesSummary}`,
+    `قام ${agentName} بتحديث قائمة الاستلام للوحدة ${unitCode}: ${changesSummary}`,
+    `/units/${unitId}?tab=legal`
+  );
+}
+
 /** @deprecated Use lib/services/notifications.ts directly */
 export {
   notifyInboundCall as notifyCallLogged,

@@ -25,11 +25,11 @@ export type SignedProtocolInfo = {
 export function SignedProtocolUpload({
   info,
   canUpload,
-  hasResolvedCase,
+  hasResolvedCase = false,
 }: {
   info: SignedProtocolInfo;
   canUpload: boolean;
-  hasResolvedCase: boolean;
+  hasResolvedCase?: boolean;
 }) {
   const t = useTranslations("workflow.signedProtocol");
   const tCommon = useTranslations("common");
@@ -38,6 +38,7 @@ export function SignedProtocolUpload({
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
   const downloadHref = `/api/units/${info.unitId}/signed-protocol`;
+  const showUploadControls = canUpload;
 
   function handleFileChange() {
     const file = inputRef.current?.files?.[0];
@@ -67,14 +68,16 @@ export function SignedProtocolUpload({
     runAction(() => removeSignedProtocol(info.unitId), "deleted", t("removeSuccess"));
   }
 
-  if (!hasResolvedCase && !info.hasFile) {
+  if (!info.hasFile && !showUploadControls) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>{t("title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">{t("afterResolveHint")}</p>
+          <p className="text-sm text-muted-foreground">
+            {hasResolvedCase ? t("afterResolveHint") : t("beforeResolveHint")}
+          </p>
         </CardContent>
       </Card>
     );
@@ -139,7 +142,7 @@ export function SignedProtocolUpload({
           </p>
         )}
 
-        {canUpload && hasResolvedCase ? (
+        {showUploadControls ? (
           <div className="space-y-2 border-t border-border/50 pt-4">
             <p className="text-sm font-medium">
               {info.hasFile ? t("replaceLabel") : t("uploadLabel")}

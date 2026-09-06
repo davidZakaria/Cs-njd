@@ -101,7 +101,9 @@
       "signedProtocol": "Delivery protocol signed",
       "signedExtension": "Extension annex signed",
       "paidFees": "Fees paid (door / aluminum)",
-      "papersReceived": "All original papers received"
+      "papersReceived": "All original papers received",
+      "csAgentHint": "You can update handover items you verified on site. Fees and legal block require management.",
+      "managementOnly": "Management only"
     },
     "edgeCases": {
       "isLegallyBlocked": "Active legal block (blocks handover)",
@@ -117,8 +119,9 @@
     },
     "signedProtocol": {
       "title": "Signed handover document",
-      "description": "After the case is resolved, upload the client-signed handover protocol (PDF or scan).",
-      "afterResolveHint": "Once a case on this unit is marked Resolved, you can upload the signed handover protocol here.",
+      "description": "Upload the client-signed handover protocol (PDF or scan). Sets protocol signed and papers received.",
+      "beforeResolveHint": "Upload the signed protocol when the client completes handover — this unlocks resolution gates.",
+      "afterResolveHint": "You can also upload or replace the signed handover document here.",
       "missingFile": "No signed document uploaded yet.",
       "uploadLabel": "Upload signed protocol",
       "replaceLabel": "Replace signed protocol",

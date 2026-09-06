@@ -130,6 +130,12 @@ export default async function UnitProfilePage({
 
   const hideAddFeedback =
     hasResolvedCase && session?.user.role === "CS_AGENT";
+  const canEditCsChecklist =
+    csScope != null && canAccessUnitAsCsAgent(csScope, unit.agentId);
+  const defaultTab =
+    tab === "timeline" || tab === "legal" || tab === "financials"
+      ? tab
+      : "client";
   const signedProtocolAccess = session?.user
     ? await resolveSignedProtocolAccess(session.user, unit.agentId)
     : { canUpload: false, csScope: null };
@@ -180,7 +186,7 @@ export default async function UnitProfilePage({
         <PrintProtocolButton unitId={unit.id} locale={locale} projectName={unit.project.name} />
       </div>
 
-      <Tabs defaultValue={tab === "timeline" ? "timeline" : "client"}>
+      <Tabs defaultValue={defaultTab}>
         <TabsList>
           <TabsTrigger value="client">{t("clientInfo")}</TabsTrigger>
           <TabsTrigger value="financials">{t("financials")}</TabsTrigger>
@@ -248,9 +254,10 @@ export default async function UnitProfilePage({
         </TabsContent>
 
         <TabsContent value="legal" className="space-y-4">
-          {canEditProfile ? (
+          {canEditProfile || canEditCsChecklist ? (
             <UnitLegalHandoverForm
-              canEdit={canEditProfile}
+              canEditManagement={canEditProfile}
+              canEditCsChecklist={canEditCsChecklist}
               defaults={{
                 unitId: unit.id,
                 handoverStatus: unit.contractWorkflow?.handoverStatus ?? "PENDING",

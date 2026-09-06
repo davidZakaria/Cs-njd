@@ -18,10 +18,6 @@ import {
 } from "@/lib/validations/user";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { archivedUserEmail } from "@/lib/prisma/soft-delete";
-import {
-  notifyInboundCall,
-  notifyUnitAssigned,
-} from "@/lib/notifications/triggers";
 import { dispatchTicketWorkflowNotifications } from "@/lib/notifications/dispatch-ticket-notifications";
 import {
   finishingFormSchema,
@@ -33,10 +29,18 @@ import {
 } from "@/lib/validations/unit-profile";
 import {
   handoverChecklistSchema,
+  csHandoverChecklistSchema,
   ticketWorkflowSchema,
   type HandoverChecklistInput,
+  type CsHandoverChecklistInput,
   type TicketWorkflowInput,
 } from "@/lib/validations/workflow";
+import { collectCsHandoverChanges } from "@/lib/workflow/cs-handover-fields";
+import {
+  notifyHandoverChecklistUpdatedByAgent,
+  notifyInboundCall,
+  notifyUnitAssigned,
+} from "@/lib/notifications/triggers";
 import { sortPhases, normalizeFinishingPhases } from "@/lib/finishing/phases";
 import {
   evaluateResolutionGates,
@@ -801,6 +805,68 @@ export async function updateHandoverChecklist(
       },
     })
   );
+
+  revalidatePath(`/units/${unitId}`);
+  revalidatePath("/units");
+  revalidatePath("/dashboard");
+  return actionOk();
+}
+
+export async function updateCsHandoverChecklist(
+  input: CsHandoverChecklistInput
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const parsed = csHandoverChecklistSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
+  }
+
+  const unit = await prisma.unit.findUnique({
+    where: { id: parsed.data.unitId },
+    include: { contractWorkflow: true },
+  });
+  if (!unit) return actionFail("Unit not found");
+
+  const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
+  if (accessError) return accessError;
+
+  const existing = unit.contractWorkflow;
+  const previousSnapshot = {
+    hasSignedProtocol: existing?.hasSignedProtocol ?? false,
+    hasSignedExtension: existing?.hasSignedExtension ?? false,
+    papersReceived: existing?.papersReceived ?? false,
+    powerOfAttorneyReceived: existing?.powerOfAttorneyReceived ?? false,
+    inspectionDate: existing?.inspectionDate ?? null,
+  };
+
+  const { unitId, ...workflowData } = parsed.data;
+  const changes = collectCsHandoverChanges(previousSnapshot, workflowData);
+  if (changes.length === 0) {
+    return actionOk();
+  }
+
+  await withAudit(() =>
+    prisma.contractWorkflow.upsert({
+      where: { unitId },
+      update: workflowData,
+      create: {
+        unitId,
+        handoverStatus: "PENDING",
+        hasPaidFees: false,
+        isLegallyBlocked: false,
+        ...workflowData,
+      },
+    })
+  );
+
+  await notifyHandoverChecklistUpdatedByAgent({
+    unitCode: unit.unitCode,
+    unitId: unit.id,
+    agentName: session.user.name ?? session.user.email ?? "CS Agent",
+    changesSummary: changes.join("; "),
+  });
 
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/units");

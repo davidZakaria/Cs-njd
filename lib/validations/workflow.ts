@@ -60,4 +60,15 @@ export const handoverChecklistSchema = z.object({
 export type HandoverChecklistInput = z.infer<typeof handoverChecklistSchema>;
 export type HandoverChecklistFormInput = z.input<typeof handoverChecklistSchema>;
 
+export const csHandoverChecklistSchema = z.object({
+  unitId: z.string().min(1),
+  hasSignedProtocol: z.boolean(),
+  hasSignedExtension: z.boolean(),
+  papersReceived: z.boolean(),
+  powerOfAttorneyReceived: z.boolean(),
+  inspectionDate: optionalDate(),
+});
+
+export type CsHandoverChecklistInput = z.infer<typeof csHandoverChecklistSchema>;
+
 export const HANDOVER_STATUS_OPTIONS = handoverStatusValues;
