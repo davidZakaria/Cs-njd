@@ -374,6 +374,24 @@
       "returnDashboard": "العودة إلى لوحة التحكم"
     }
   },
+  "performance": {
+    "tabTitle": "أداء الفريق (KPIs)",
+    "leaderboard": "لوحة الشرف (أفضل أداء) 🏆",
+    "slacking": "تحتاج تدخل / تقصير ⚠️",
+    "periodThisMonth": "هذا الشهر",
+    "noAgents": "لا يوجد موظفو خدمة عملاء للترتيب",
+    "score": "نقاط الأداء",
+    "activityChartTitle": "حجم النشاط حسب الموظف",
+    "activityChartDescription": "ملاحظات الخط الزمني والمكالمات المسجلة في هذه الفترة",
+    "daysUnit": "أيام",
+    "metrics": {
+      "resolvedThisMonth": "الحالات المغلقة",
+      "activityVolume": "التفاعلات والمكالمات",
+      "avgResolutionTime": "متوسط وقت الإغلاق (أيام)",
+      "overdueFollowUps": "متابعات متأخرة",
+      "staleCases": "حالات راكدة (+7 أيام)"
+    }
+  },
   "executive": {
     "title": "مركز قيادة الإدارة",
     "subtitle": "نظرة على محفظة المشاريع وإجراءات سريعة — {name}",

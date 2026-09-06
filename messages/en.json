@@ -374,6 +374,24 @@
       "returnDashboard": "Return to Dashboard"
     }
   },
+  "performance": {
+    "tabTitle": "Team Performance (KPIs)",
+    "leaderboard": "Leaderboard — Top performers",
+    "slacking": "Needs attention",
+    "periodThisMonth": "This month",
+    "noAgents": "No CS agents to rank",
+    "score": "Performance score",
+    "activityChartTitle": "Activity volume by agent",
+    "activityChartDescription": "Timeline notes and calls logged this period",
+    "daysUnit": "days",
+    "metrics": {
+      "resolvedThisMonth": "Cases closed",
+      "activityVolume": "Interactions & calls",
+      "avgResolutionTime": "Avg. time to close (days)",
+      "overdueFollowUps": "Overdue follow-ups",
+      "staleCases": "Stale cases (7+ days)"
+    }
+  },
   "executive": {
     "title": "Executive Command Center",
     "subtitle": "Project portfolio overview and quick actions — {name}",

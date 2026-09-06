@@ -308,6 +308,12 @@ Collapsible sidebar groups organize super-admin tools:
 - **Phone redaction removed** — client phones, email, and WhatsApp visible on Unit 360 and dashboard pending-work queue
 - **Export restricted** — CSV/Excel export hidden on Cases and Units for CS agents
 
+### September 2026 — Performance KPI dashboard
+- **Team Performance (KPIs) tab** on Executive Command Center — leaderboard, activity chart, needs-attention board
+- **Metrics (current month):** cases closed, interactions & calls, avg. time to close, overdue follow-ups, stale cases (7+ days)
+- **Effective ownership** — attribution uses ticket agent or unit agent (`resolvedAt` on tickets for accurate close timing)
+- Migration: `20260906150000_add_resolved_at_kpi`
+
 ### September 2026 — Executive portfolio upgrade
 - **Portfolio analytics** — handover pipeline, finishing phases, signed-protocol compliance, delivery overdue, follow-ups due
 - **Consolidated key metrics** — single KPI row; removed duplicate “Team units” / “My units” counts on overview

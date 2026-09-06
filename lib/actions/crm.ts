@@ -50,6 +50,7 @@ import {
   ticketManageSchema,
 } from "@/lib/validations/ticket";
 import { Prisma, type PendingParty, type Role, type TicketCategory } from "@prisma/client";
+import { resolvedAtForStatusChange } from "@/lib/tickets/resolved-at";
 
 async function withAudit<T>(fn: () => Promise<T>) {
   const session = await auth();
@@ -389,6 +390,7 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
         agentId: session.user.id,
         pendingParty: pendingParty ?? "NONE",
         nextFollowUpDate,
+        ...(status === "RESOLVED" ? { resolvedAt: new Date() } : {}),
       },
     })
   );
@@ -458,6 +460,7 @@ export async function updateTicketStatus(formData: FormData): Promise<ActionResu
       ? `\n${managementOverrideNote(session.user.name ?? session.user.email ?? "Manager")}`
       : "";
   const nextNotes = noteSuffix ? `${ticket.notes}${noteSuffix}` : ticket.notes;
+  const nextResolvedAt = resolvedAtForStatusChange(previousStatus, status);
 
   await withAudit(() =>
     prisma.ticket.update({
@@ -467,6 +470,7 @@ export async function updateTicketStatus(formData: FormData): Promise<ActionResu
         notes: nextNotes,
         pendingParty: mergedWorkflow.pendingParty,
         nextFollowUpDate: mergedWorkflow.nextFollowUpDate,
+        ...(nextResolvedAt !== undefined ? { resolvedAt: nextResolvedAt } : {}),
       },
     })
   );
@@ -555,6 +559,7 @@ export async function updateTicketDetails(
   ) {
     nextNotes = `${nextNotes}\n${managementOverrideNote(session.user.name ?? session.user.email ?? "Manager")}`;
   }
+  const nextResolvedAt = resolvedAtForStatusChange(previousStatus, status);
 
   await withAudit(() =>
     prisma.ticket.update({
@@ -565,6 +570,7 @@ export async function updateTicketDetails(
         category,
         pendingParty: mergedWorkflow.pendingParty,
         nextFollowUpDate: mergedWorkflow.nextFollowUpDate,
+        ...(nextResolvedAt !== undefined ? { resolvedAt: nextResolvedAt } : {}),
       },
     })
   );

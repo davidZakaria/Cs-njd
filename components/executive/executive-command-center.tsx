@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { ExecutiveOverviewPanel } from "@/components/executive/executive-overview-panel";
+import { ExecutivePerformancePanel } from "@/components/executive/executive-performance-panel";
 import { ExecutiveProjectPanel } from "@/components/executive/executive-project-panel";
 import { ExecutiveResolvedPanel } from "@/components/executive/executive-resolved-panel";
 import type { ExecutiveKpiKey } from "@/components/executive/executive-kpi-grid";
@@ -12,6 +13,7 @@ import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+import type { AgentKPIRow } from "@/lib/cases/kpi-types";
 import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
 import type { ExecutivePortfolioMetrics } from "@/lib/executive/portfolio-analytics";
 import type { ExecutiveFinancials } from "@/lib/executive/financial-analytics";
@@ -41,16 +43,19 @@ export function ExecutiveCommandCenter({
   data,
   portfolio,
   financials,
+  kpis,
   canUseManagementOverride = false,
 }: {
   data: ExecutiveDashboardData;
   portfolio: ExecutivePortfolioMetrics;
   financials: ExecutiveFinancials | null;
+  kpis: AgentKPIRow[];
   canUseManagementOverride?: boolean;
 }) {
   const locale = useLocale();
   const isRtl = locale === "ar";
   const t = useTranslations("executive");
+  const tPerformance = useTranslations("performance");
   const { project: projectLabel } = useDomainLabels();
 
   const kpiLabels = useMemo(
@@ -130,6 +135,18 @@ export function ExecutiveCommandCenter({
                 <TabCountBadge count={data.resolved.stats.resolvedTotal} />
               </span>
             </TabsTrigger>
+            <TabsTrigger
+              value="performance"
+              className={cn(
+                "group/tabs-trigger snap-start rounded-md px-4 py-2.5 text-sm font-medium",
+                "text-muted-foreground transition-colors",
+                "hover:bg-muted/60 hover:text-foreground",
+                "data-active:bg-background data-active:text-foreground data-active:shadow-sm",
+                "data-active:ring-1 data-active:ring-foreground/10"
+              )}
+            >
+              {tPerformance("tabTitle")}
+            </TabsTrigger>
             {data.byProject.map((slice) => (
               <TabsTrigger
                 key={slice.slug}
@@ -194,6 +211,13 @@ export function ExecutiveCommandCenter({
           data={data}
           canUseManagementOverride={canUseManagementOverride}
         />
+      </TabsContent>
+
+      <TabsContent
+        value="performance"
+        className="animate-fade-up animate-delay-100 opacity-0 animate-fill-backwards"
+      >
+        <ExecutivePerformancePanel kpis={kpis} />
       </TabsContent>
 
       {data.byProject.map((slice) => (

@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
+import { getAgentKPIs, getDefaultKpiPeriod } from "@/lib/cases/kpis";
 import { canUseManagementOverride } from "@/lib/workflow/management-override";
 import { getExecutivePortfolioMetrics } from "@/lib/executive/portfolio-analytics";
 import {
@@ -26,10 +27,13 @@ export default async function ExecutiveDashboardPage() {
     redirect(`/${locale}/dashboard`);
   }
 
-  const [data, portfolio, financials] = await Promise.all([
+  const { startDate, endDate } = getDefaultKpiPeriod();
+
+  const [data, portfolio, financials, kpis] = await Promise.all([
     getExecutiveDashboardData(session.user.id),
     getExecutivePortfolioMetrics(),
     EXECUTIVE_FINANCIALS_ENABLED ? getExecutiveFinancials() : Promise.resolve(null),
+    getAgentKPIs(startDate, endDate),
   ]);
 
   return (
@@ -64,6 +68,7 @@ export default async function ExecutiveDashboardPage() {
           data={data}
           portfolio={portfolio}
           financials={financials}
+          kpis={kpis}
           canUseManagementOverride={canUseManagementOverride(session.user)}
         />
       </div>
