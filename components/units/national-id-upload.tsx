@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ExternalLink, Trash2, Upload } from "lucide-react";
+import { ExternalLink, Loader2, Trash2, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { removeNationalId, uploadNationalId } from "@/lib/actions/national-id";
 import { useCrudToast } from "@/hooks/use-crud-toast";
@@ -15,43 +16,64 @@ export function NationalIdUpload({
   clientId,
   hasFile,
   canUpload,
+  onExtractedId,
 }: {
   unitId: string;
   clientId: string | null;
   hasFile: boolean;
   canUpload: boolean;
+  onExtractedId?: (nationalId: string) => void;
 }) {
   const t = useTranslations("client");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const { pending, runAction } = useCrudToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
 
   const viewHref = `/api/units/${unitId}/national-id`;
-  const uploadDisabled = !canUpload || !clientId || pending;
+  const uploadDisabled = !canUpload || !clientId || pending || scanning;
 
   function handleFileChange() {
     const file = inputRef.current?.files?.[0];
     setSelectedName(file?.name ?? null);
   }
 
-  function handleUpload() {
+  async function handleUpload() {
     const file = inputRef.current?.files?.[0];
     if (!file || !clientId) return;
 
     const formData = new FormData();
     formData.append("unitId", unitId);
     formData.append("file", file);
+    const isImage = file.type.startsWith("image/");
 
-    runAction(async () => {
+    setScanning(true);
+    try {
       const result = await uploadNationalId(formData);
-      if (result.success && inputRef.current) {
-        inputRef.current.value = "";
-        setSelectedName(null);
-        router.refresh();
+      if (!result.success) {
+        toast.error(result.error || tCommon("actionFailed"));
+        return;
       }
-      return result;
-    }, "saved");
+
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+      setSelectedName(null);
+      router.refresh();
+
+      if (result.extractedId) {
+        onExtractedId?.(result.extractedId);
+        toast.success(t("ocr.success"));
+      } else if (isImage) {
+        toast.warning(t("ocr.failed"));
+      } else {
+        toast.success(tCommon("savedSuccess"));
+      }
+    } finally {
+      setScanning(false);
+    }
   }
 
   function handleRemove() {
@@ -64,6 +86,12 @@ export function NationalIdUpload({
       return result;
     }, "deleted", t("removeSuccess"));
   }
+
+  const uploadButtonLabel = scanning
+    ? t("ocr.scanning")
+    : pending
+      ? t("uploading")
+      : t("uploadId");
 
   if (!canUpload && !hasFile) {
     return null;
@@ -111,7 +139,12 @@ export function NationalIdUpload({
                   disabled={uploadDisabled}
                   onClick={handleUpload}
                 >
-                  {pending ? t("uploading") : t("uploadId")}
+                  {scanning ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Upload className="size-4" />
+                  )}
+                  {uploadButtonLabel}
                 </Button>
               ) : null}
               <Button
@@ -147,8 +180,18 @@ export function NationalIdUpload({
             {selectedName ?? t("uploadId")}
           </Button>
           {selectedName ? (
-            <Button type="button" size="sm" disabled={uploadDisabled} onClick={handleUpload}>
-              {pending ? t("uploading") : t("uploadId")}
+            <Button
+              type="button"
+              size="sm"
+              disabled={uploadDisabled}
+              onClick={handleUpload}
+            >
+              {scanning ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Upload className="size-4" />
+              )}
+              {uploadButtonLabel}
             </Button>
           ) : null}
           {!clientId ? (

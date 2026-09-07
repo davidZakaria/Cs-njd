@@ -96,6 +96,7 @@ export function UnitClientForm({
     register,
     control,
     handleSubmit,
+    setValue,
   } = useForm<UnitProfileFormInput>({
     resolver: zodResolver(unitProfileFormSchema),
     defaultValues: formDefaults,
@@ -170,6 +171,9 @@ export function UnitClientForm({
                 clientId={defaults.clientId}
                 hasFile={Boolean(defaults.nationalIdFile)}
                 canUpload={defaults.canUploadNationalId}
+                onExtractedId={(nationalId) =>
+                  setValue("nationalId", nationalId, { shouldDirty: true })
+                }
               />
             </div>
           ) : (

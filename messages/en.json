@@ -56,7 +56,12 @@
     "removeConfirm": "Remove the uploaded ID scan from this client?",
     "removeSuccess": "ID scan removed.",
     "uploading": "Uploading…",
-    "uploadRequiresClient": "Save the client profile first, then upload the ID scan."
+    "uploadRequiresClient": "Save the client profile first, then upload the ID scan.",
+    "ocr": {
+      "scanning": "Scanning ID card and extracting number…",
+      "success": "National ID extracted successfully",
+      "failed": "Could not extract the ID clearly — please review or enter it manually"
+    }
   },
   "unit": {
     "deliveryYear": "Delivery year",
