@@ -14,6 +14,7 @@ import {
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { ClientPhoneRow } from "@/components/units/client-phone-row";
+import { NationalIdUpload } from "@/components/units/national-id-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -44,7 +45,10 @@ export type UnitClientFormDefaults = {
   unitCode: string;
   projectName: string;
   agentLabel: string;
-  areaLabel: string;
+  area: number | null;
+  clientId: string | null;
+  nationalIdFile: string | null;
+  canUploadNationalId: boolean;
   waMessageTemplate: string;
 };
 
@@ -82,6 +86,7 @@ export function UnitClientForm({
       deliveryYear: defaults.deliveryYear ?? "",
       gracePeriod: defaults.gracePeriod ?? "",
       contractPricePerMeter: defaults.contractPricePerMeter ?? "",
+      area: defaults.area ?? "",
       type: defaults.type as UnitProfileFormInput["type"],
     }),
     [defaults]
@@ -160,6 +165,12 @@ export function UnitClientForm({
                 <Label htmlFor="nationalId">{tFields("nationalId")}</Label>
                 <Input id="nationalId" disabled={pending} {...register("nationalId")} />
               </div>
+              <NationalIdUpload
+                unitId={defaults.unitId}
+                clientId={defaults.clientId}
+                hasFile={Boolean(defaults.nationalIdFile)}
+                canUpload={defaults.canUploadNationalId}
+              />
             </div>
           ) : (
             <div className="space-y-3 text-sm">
@@ -191,14 +202,45 @@ export function UnitClientForm({
                 <strong>{tFields("nationalId")}:</strong>{" "}
                 {defaults.nationalId ?? "—"}
               </p>
+              <NationalIdUpload
+                unitId={defaults.unitId}
+                clientId={defaults.clientId}
+                hasFile={Boolean(defaults.nationalIdFile)}
+                canUpload={defaults.canUploadNationalId}
+              />
             </div>
           )}
 
-          <div className="grid gap-2 text-sm sm:grid-cols-2">
-            <p>
-              <strong>{t("area")}:</strong> {defaults.areaLabel}
-            </p>
-            <p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="area">{t("area")}</Label>
+              {canEdit ? (
+                <div className="relative">
+                  <Input
+                    id="area"
+                    type="number"
+                    step="any"
+                    min="0"
+                    disabled={pending}
+                    className={cn(isRtl ? "pl-12" : "pr-12")}
+                    {...register("area")}
+                  />
+                  <span
+                    className={cn(
+                      "pointer-events-none absolute inset-y-0 flex items-center text-xs font-medium text-muted-foreground",
+                      isRtl ? "left-3" : "right-3"
+                    )}
+                  >
+                    m²
+                  </span>
+                </div>
+              ) : (
+                <p className="text-sm">
+                  {defaults.area != null ? `${defaults.area} m²` : "—"}
+                </p>
+              )}
+            </div>
+            <p className="text-sm sm:pt-7">
               <strong>{t("agent")}:</strong> {defaults.agentLabel}
             </p>
           </div>

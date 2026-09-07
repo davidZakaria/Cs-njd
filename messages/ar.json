@@ -47,7 +47,13 @@
   },
   "client": {
     "address1": "عنوان 1",
-    "address2": "عنوان 2"
+    "address2": "عنوان 2",
+    "nationalIdFile": "صورة البطاقة المرفقة",
+    "uploadId": "رفع صورة البطاقة",
+    "viewId": "عرض البطاقة",
+    "replaceId": "استبدال البطاقة",
+    "uploading": "جاري الرفع...",
+    "uploadRequiresClient": "احفظ بيانات العميل أولاً، ثم ارفع صورة البطاقة."
   },
   "unit": {
     "deliveryYear": "السنه للتسليم",

@@ -1,0 +1,74 @@
+import fs from "fs/promises";
+import path from "path";
+
+import { getUploadsRoot } from "@/lib/uploads/signed-protocol-storage";
+
+export const NATIONAL_ID_MAX_BYTES = 10 * 1024 * 1024;
+
+export const NATIONAL_ID_MIME_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
+export type NationalIdMimeType = (typeof NATIONAL_ID_MIME_TYPES)[number];
+
+export function getNationalIdDirectory(): string {
+  return path.join(getUploadsRoot(), "national-ids");
+}
+
+export function getNationalIdFilePath(storedName: string): string {
+  return path.join(getNationalIdDirectory(), storedName);
+}
+
+function safeExtension(originalName: string): string {
+  const ext = path.extname(originalName).toLowerCase();
+  if ([".pdf", ".jpg", ".jpeg", ".png", ".webp"].includes(ext)) {
+    return ext === ".jpeg" ? ".jpg" : ext;
+  }
+  return ".jpg";
+}
+
+export function buildNationalIdStoredFilename(
+  clientId: string,
+  originalName: string
+): string {
+  return `${clientId}_${Date.now()}${safeExtension(originalName)}`;
+}
+
+export async function ensureNationalIdDirectory(): Promise<void> {
+  await fs.mkdir(getNationalIdDirectory(), { recursive: true });
+}
+
+export async function writeNationalIdFile(
+  storedName: string,
+  buffer: Buffer
+): Promise<void> {
+  await ensureNationalIdDirectory();
+  await fs.writeFile(getNationalIdFilePath(storedName), buffer);
+}
+
+export async function deleteNationalIdFile(
+  storedName: string | null | undefined
+): Promise<void> {
+  if (!storedName) return;
+  try {
+    await fs.unlink(getNationalIdFilePath(storedName));
+  } catch {
+    // Missing file on disk is acceptable when replacing.
+  }
+}
+
+export function isAllowedNationalIdMime(mime: string): mime is NationalIdMimeType {
+  return (NATIONAL_ID_MIME_TYPES as readonly string[]).includes(mime);
+}
+
+export function contentTypeForNationalId(storedName: string): string {
+  const ext = path.extname(storedName).toLowerCase();
+  if (ext === ".pdf") return "application/pdf";
+  if (ext === ".png") return "image/png";
+  if (ext === ".webp") return "image/webp";
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  return "application/octet-stream";
+}

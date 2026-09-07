@@ -1150,6 +1150,7 @@ export async function updateUnitProfile(
     gracePeriod,
     contractPricePerMeter,
     type,
+    area,
   } = parsed.data;
 
   const unit = await prisma.unit.findUnique({
@@ -1162,7 +1163,7 @@ export async function updateUnitProfile(
     await withAudit(async () => {
       await prisma.unit.update({
         where: { id: unitId },
-        data: { deliveryYear, gracePeriod, contractPricePerMeter, type },
+        data: { deliveryYear, gracePeriod, contractPricePerMeter, type, area },
       });
 
       const clientData = {

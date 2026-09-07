@@ -47,7 +47,13 @@
   },
   "client": {
     "address1": "Address 1",
-    "address2": "Address 2"
+    "address2": "Address 2",
+    "nationalIdFile": "Attached ID scan",
+    "uploadId": "Upload ID scan",
+    "viewId": "View ID",
+    "replaceId": "Replace ID",
+    "uploading": "Uploading…",
+    "uploadRequiresClient": "Save the client profile first, then upload the ID scan."
   },
   "unit": {
     "deliveryYear": "Delivery year",

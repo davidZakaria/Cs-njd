@@ -46,6 +46,7 @@ export const unitProfileFormSchema = z.object({
   deliveryYear: optionalString(),
   gracePeriod: optionalString(),
   contractPricePerMeter: optionalNumber(),
+  area: optionalNumber(),
   type: z.enum(unitTypeValues),
 });
 

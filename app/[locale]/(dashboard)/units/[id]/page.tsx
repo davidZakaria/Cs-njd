@@ -72,7 +72,6 @@ export default async function UnitProfilePage({
       : null;
 
   const projectLabel = await labels.project(unit.project.name);
-  const areaLabel = await labels.areaWithUnit(unit.area);
   const agentLabel = unit.agent
     ? await labels.staffName(unit.agent.name)
     : labels.unassigned;
@@ -214,7 +213,10 @@ export default async function UnitProfilePage({
               unitCode: unit.unitCode,
               projectName: projectLabel,
               agentLabel,
-              areaLabel,
+              area: unit.area ?? null,
+              clientId: unit.clientId ?? null,
+              nationalIdFile: unit.client?.nationalIdFile ?? null,
+              canUploadNationalId: signedProtocolAccess.canUpload,
               waMessageTemplate,
             }}
           />
