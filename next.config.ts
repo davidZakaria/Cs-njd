@@ -7,6 +7,7 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+  serverExternalPackages: ["tesseract.js", "tesseract.js-core"],
   async headers() {
     return [
       {

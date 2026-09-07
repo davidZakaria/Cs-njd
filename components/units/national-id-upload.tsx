@@ -61,7 +61,6 @@ export function NationalIdUpload({
         inputRef.current.value = "";
       }
       setSelectedName(null);
-      router.refresh();
 
       if (result.extractedId) {
         onExtractedId?.(result.extractedId);
@@ -71,6 +70,8 @@ export function NationalIdUpload({
       } else {
         toast.success(tCommon("savedSuccess"));
       }
+
+      router.refresh();
     } finally {
       setScanning(false);
     }
