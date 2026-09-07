@@ -1,11 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ExternalLink, Upload } from "lucide-react";
+import { ExternalLink, Trash2, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 
-import { uploadNationalId } from "@/lib/actions/national-id";
+import { removeNationalId, uploadNationalId } from "@/lib/actions/national-id";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -52,6 +52,17 @@ export function NationalIdUpload({
       }
       return result;
     }, "saved");
+  }
+
+  function handleRemove() {
+    if (!confirm(t("removeConfirm"))) return;
+    runAction(async () => {
+      const result = await removeNationalId(unitId);
+      if (result.success) {
+        router.refresh();
+      }
+      return result;
+    }, "deleted", t("removeSuccess"));
   }
 
   if (!canUpload && !hasFile) {
@@ -103,6 +114,16 @@ export function NationalIdUpload({
                   {pending ? t("uploading") : t("uploadId")}
                 </Button>
               ) : null}
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={uploadDisabled}
+                onClick={handleRemove}
+              >
+                <Trash2 className="size-4" />
+                {t("removeId")}
+              </Button>
             </>
           ) : null}
         </div>

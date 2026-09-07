@@ -52,6 +52,9 @@
     "uploadId": "Upload ID scan",
     "viewId": "View ID",
     "replaceId": "Replace ID",
+    "removeId": "Remove ID",
+    "removeConfirm": "Remove the uploaded ID scan from this client?",
+    "removeSuccess": "ID scan removed.",
     "uploading": "Uploading…",
     "uploadRequiresClient": "Save the client profile first, then upload the ID scan."
   },

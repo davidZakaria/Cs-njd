@@ -65,3 +65,32 @@ export async function uploadNationalId(formData: FormData): Promise<ActionResult
   revalidatePath("/units");
   return actionOk();
 }
+
+export async function removeNationalId(unitId: string): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const unit = await loadUnitWithClient(unitId);
+  if (!unit) return actionFail("Unit not found");
+  if (!unit.clientId || !unit.client) return actionFail("Client not found");
+
+  const { canUpload } = await resolveSignedProtocolAccess(
+    session.user,
+    unit.agentId
+  );
+  if (!canUpload) return actionFail("Unauthorized");
+
+  const storedName = unit.client.nationalIdFile;
+  if (!storedName) return actionFail("No ID scan on file");
+
+  await deleteNationalIdFile(storedName);
+
+  await prisma.client.update({
+    where: { id: unit.clientId },
+    data: { nationalIdFile: null },
+  });
+
+  revalidatePath(`/units/${unitId}`);
+  revalidatePath("/units");
+  return actionOk();
+}
