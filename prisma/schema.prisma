@@ -148,6 +148,7 @@ model User {
   password               String
   role                   Role      @default(CS_AGENT)
   is2FAEnabled           Boolean   @default(false)
+  isActive               Boolean   @default(true)
   twoFactorSecret        String?
   requiresPasswordChange Boolean   @default(true)
   lastLoginAt            DateTime?

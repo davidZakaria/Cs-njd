@@ -22,6 +22,7 @@ export default async function UsersPage() {
       name: true,
       email: true,
       role: true,
+      isActive: true,
       is2FAEnabled: true,
       twoFactorSecret: true,
     },
@@ -32,6 +33,7 @@ export default async function UsersPage() {
     name: user.name,
     email: user.email,
     role: user.role,
+    isActive: user.isActive,
     is2FAEnabled: user.is2FAEnabled,
     hasTwoFactorSecret: Boolean(user.twoFactorSecret),
   }));

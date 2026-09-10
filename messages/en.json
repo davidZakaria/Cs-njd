@@ -368,6 +368,7 @@
     "login": "Sign in",
     "loginSigningIn": "Signing in…",
     "loginInvalidCredentials": "Invalid email or password. Check your credentials and try again.",
+    "accountDisabled": "Account disabled. Please contact your administrator.",
     "tooManyAttempts": "Too many login attempts. Please try again later.",
     "loginSessionFailed": "Sign-in succeeded but the session could not be started. Please try again.",
     "loginSessionExpired": "Your session has ended. Please sign in again to continue.",
@@ -697,6 +698,33 @@
     "twoFactorDisableAction": "Disable 2FA",
     "twoFactorSetupRequired": "This user has not completed 2FA setup yet. They must enroll on their next login.",
     "passwordHint": "Minimum 8 characters. Required for new accounts only.",
+    "actions": {
+      "changePassword": "Change password",
+      "disableAccount": "Disable account",
+      "enableAccount": "Enable account"
+    },
+    "statusColumn": "Status",
+    "status": {
+      "active": "Active",
+      "disabled": "Disabled"
+    },
+    "disableAccountTitle": "Disable account",
+    "disableAccountConfirm": "Are you sure you want to suspend {name}? They will be logged out immediately and will not be able to sign in.",
+    "disableAccountAction": "Disable account",
+    "enableAccountTitle": "Enable account",
+    "enableAccountConfirm": "Re-enable access for {name}? They will be able to sign in again.",
+    "enableAccountAction": "Enable account",
+    "messages": {
+      "passwordChanged": "Password changed successfully",
+      "accountDisabled": "Account disabled successfully. The user will no longer be able to sign in.",
+      "accountEnabled": "Account enabled."
+    },
+    "changePasswordTitle": "Change password",
+    "changePasswordDescription": "Set a new password for {name}. All active sessions for this user will be ended immediately.",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "passwordMismatch": "Passwords do not match",
+    "changePasswordAction": "Save password",
     "validation": {
       "nameRequired": "Name is required",
       "emailRequired": "Email is required",

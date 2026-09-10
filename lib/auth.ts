@@ -6,6 +6,7 @@ import type { Role } from "@prisma/client";
 import { CredentialsSignin } from "@auth/core/errors";
 
 import { authConfig } from "@/lib/auth.config";
+import { ACCOUNT_DISABLED_ERROR } from "@/lib/auth/error-codes";
 import { recordLoginAttempt } from "@/lib/auth/login-history";
 import {
   applyJwtClientUpdate,
@@ -31,6 +32,10 @@ import {
 
 class AuthRateLimitedError extends CredentialsSignin {
   code = AUTH_RATE_LIMIT_ERROR;
+}
+
+class AccountDisabledError extends CredentialsSignin {
+  code = ACCOUNT_DISABLED_ERROR;
 }
 
 declare module "next-auth" {
@@ -126,6 +131,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             userAgent,
           });
           return null;
+        }
+
+        if (!user.isActive) {
+          await recordLoginAttempt({
+            email,
+            status: "FAILED",
+            userId: user.id,
+            ipAddress,
+            userAgent,
+          });
+          throw new AccountDisabledError();
         }
 
         clearFailures(rateLimitKey);

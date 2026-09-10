@@ -5,6 +5,7 @@ export type UserRow = {
   name: string;
   email: string;
   role: Role;
+  isActive: boolean;
   is2FAEnabled: boolean;
   hasTwoFactorSecret: boolean;
 };

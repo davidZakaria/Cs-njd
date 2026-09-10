@@ -16,6 +16,7 @@ import { CreateUserSheet } from "@/components/users/create-user-sheet";
 import { UserCell } from "@/components/users/user-cell";
 import { UserRoleBadge } from "@/components/users/user-role-badge";
 import { UserRowActionsMenu } from "@/components/users/user-row-actions-menu";
+import { UserStatusBadge } from "@/components/users/user-status-badge";
 import { UserTwoFactorBadge } from "@/components/users/user-two-factor-badge";
 import type { UserRow } from "@/components/users/types";
 import { Button } from "@/components/ui/button";
@@ -41,8 +42,9 @@ import { cn } from "@/lib/utils";
 const ROLE_FILTER_ALL = "all";
 
 const USER_COLUMN_WIDTHS: Record<string, string> = {
-  user: "w-[34%]",
-  role: "w-[12rem]",
+  user: "w-[30%]",
+  role: "w-[10rem]",
+  status: "w-[8rem]",
   twoFactor: "w-[10rem]",
   actions: "w-[5rem]",
 };
@@ -106,6 +108,13 @@ export function UsersDataTable({
         accessorKey: "role",
         header: t("role"),
         cell: ({ row }) => <UserRoleBadge role={row.original.role} />,
+      },
+      {
+        id: "status",
+        header: t("statusColumn"),
+        cell: ({ row }) => (
+          <UserStatusBadge isActive={row.original.isActive} />
+        ),
       },
       {
         id: "twoFactor",

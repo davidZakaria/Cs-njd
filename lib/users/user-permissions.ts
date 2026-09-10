@@ -8,6 +8,7 @@ export type UserManagementActor = {
 export type UserManagementTarget = {
   id: string;
   role: Role;
+  isActive: boolean;
   is2FAEnabled: boolean;
   hasTwoFactorSecret: boolean;
 };
@@ -47,6 +48,25 @@ export function canForcePasswordReset(
   return true;
 }
 
+export function canAdminChangePassword(
+  actor: UserManagementActor,
+  target: UserManagementTarget
+): boolean {
+  return canForcePasswordReset(actor, target);
+}
+
+export function canToggleUserStatus(
+  actor: UserManagementActor,
+  target: UserManagementTarget
+): boolean {
+  if (!["SUPER_ADMIN", "MANAGEMENT"].includes(actor.role)) return false;
+  if (actor.id === target.id) return false;
+  if (target.role === "SUPER_ADMIN" && actor.role !== "SUPER_ADMIN") {
+    return false;
+  }
+  return true;
+}
+
 export function canDeleteUser(
   actor: UserManagementActor,
   target: UserManagementTarget
@@ -65,6 +85,8 @@ export function hasAnyUserAction(
     canEditUser(actor, target) ||
     canResetUser2FA(actor, target) ||
     canForcePasswordReset(actor, target) ||
+    canAdminChangePassword(actor, target) ||
+    canToggleUserStatus(actor, target) ||
     canDeleteUser(actor, target)
   );
 }

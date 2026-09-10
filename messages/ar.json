@@ -368,6 +368,7 @@
     "login": "تسجيل الدخول",
     "loginSigningIn": "جاري تسجيل الدخول…",
     "loginInvalidCredentials": "البريد أو كلمة المرور غير صحيحة. تحقق من بياناتك وحاول مرة أخرى.",
+    "accountDisabled": "تم إيقاف الحساب. يرجى التواصل مع المسؤول.",
     "tooManyAttempts": "محاولات تسجيل دخول كثيرة. يرجى المحاولة لاحقًا.",
     "loginSessionFailed": "تم التحقق من الحساب لكن تعذّر بدء الجلسة. يرجى المحاولة مرة أخرى.",
     "loginSessionExpired": "انتهت جلستك. يرجى تسجيل الدخول مرة أخرى للمتابعة.",
@@ -697,6 +698,33 @@
     "twoFactorDisableAction": "تعطيل المصادقة الثنائية",
     "twoFactorSetupRequired": "لم يُكمل هذا المستخدم إعداد المصادقة الثنائية بعد. يجب التسجيل وإكمال الإعداد عند الدخول التالي.",
     "passwordHint": "8 أحرف على الأقل. مطلوبة للحسابات الجديدة فقط.",
+    "actions": {
+      "changePassword": "تغيير كلمة المرور",
+      "disableAccount": "إيقاف الحساب",
+      "enableAccount": "تفعيل الحساب"
+    },
+    "statusColumn": "الحالة",
+    "status": {
+      "active": "نشط",
+      "disabled": "موقوف"
+    },
+    "disableAccountTitle": "إيقاف الحساب",
+    "disableAccountConfirm": "هل أنت متأكد من إيقاف {name}؟ سيتم تسجيل خروجه فوراً ولن يتمكن من الدخول.",
+    "disableAccountAction": "إيقاف الحساب",
+    "enableAccountTitle": "تفعيل الحساب",
+    "enableAccountConfirm": "إعادة تفعيل الوصول لـ {name}؟ سيتمكن من تسجيل الدخول مرة أخرى.",
+    "enableAccountAction": "تفعيل الحساب",
+    "messages": {
+      "passwordChanged": "تم تغيير كلمة المرور بنجاح",
+      "accountDisabled": "تم إيقاف الحساب بنجاح. لن يتمكن المستخدم من الدخول.",
+      "accountEnabled": "تم تفعيل الحساب."
+    },
+    "changePasswordTitle": "تغيير كلمة المرور",
+    "changePasswordDescription": "تعيين كلمة مرور جديدة لـ {name}. سيتم إنهاء جميع الجلسات النشطة لهذا المستخدم فوراً.",
+    "newPassword": "كلمة المرور الجديدة",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "passwordMismatch": "كلمتا المرور غير متطابقتين",
+    "changePasswordAction": "حفظ كلمة المرور",
     "validation": {
       "nameRequired": "الاسم مطلوب",
       "emailRequired": "البريد الإلكتروني مطلوب",
