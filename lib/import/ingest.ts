@@ -14,7 +14,6 @@ import {
 import { parseLegacyDate } from "@/lib/import/dates";
 import { parseLegacyNumber } from "@/lib/import/numbers";
 import {
-  normalizeProjectName,
   normalizeUnitCode,
   normalizeHeader,
   splitPhones,
@@ -164,13 +163,6 @@ function getCell(row: Row, ...keys: string[]) {
     if (match && String(match[1]).trim() !== "") return match[1];
   }
   return undefined;
-}
-
-function combineNotes(...parts: unknown[]) {
-  return parts
-    .map((p) => String(p ?? "").trim())
-    .filter(Boolean)
-    .join("\n---\n");
 }
 
 type TicketCounters = { created: number; skipped: number; updated: number };
@@ -1019,7 +1011,7 @@ export async function ingestWorkbook(
     }
   }
 
-  for (const [sheetName, status] of [
+  for (const [sheetName, _status] of [
     [juraReadyName, "PENDING"],
     [greenReadyName, "PENDING"],
   ] as const) {

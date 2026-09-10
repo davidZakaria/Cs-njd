@@ -375,7 +375,6 @@ function TicketCard({
 }) {
   const locale = useLocale();
   const tCommon = useTranslations("common");
-  const tCases = useTranslations("cases");
   const tWorkflow = useTranslations("workflow");
 
   const followUpLabel = formatFollowUpLabel(ticket.nextFollowUpDate, locale);

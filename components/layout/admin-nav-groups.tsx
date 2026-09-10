@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Activity,
   Bell,
@@ -68,20 +68,17 @@ function AdminNavGroup({
   defaultOpen: boolean;
 }) {
   const t = useTranslations("nav");
-  const [open, setOpen] = useState(defaultOpen);
+  const [userToggled, setUserToggled] = useState<boolean | null>(null);
+  const open = userToggled ?? defaultOpen;
   const GroupIcon = groupIconMap[groupKey];
   const groupActive = items.some((item) => isPathActive(pathname, item.href));
-
-  useEffect(() => {
-    if (defaultOpen) setOpen(true);
-  }, [defaultOpen]);
 
   return (
     <SidebarMenuItem className="group/admin-nav">
       <SidebarMenuButton
         type="button"
         isActive={groupActive}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => setUserToggled((value) => !(value ?? defaultOpen))}
         className={cn(
           "rounded-lg transition-all duration-300 [dir=rtl]:flex-row-reverse",
           groupActive && "bg-primary/10",

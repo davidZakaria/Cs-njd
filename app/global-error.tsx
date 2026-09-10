@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 
 export default function GlobalError({
   error,
@@ -34,12 +35,12 @@ export default function GlobalError({
           >
             Try again / حاول مرة أخرى
           </button>
-          <a
+          <Link
             href="/en/dashboard"
             className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium"
           >
             Return to Dashboard / العودة للوحة التحكم
-          </a>
+          </Link>
         </div>
       </body>
     </html>

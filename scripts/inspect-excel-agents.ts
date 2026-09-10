@@ -13,19 +13,6 @@ function col(row: unknown[], index: number) {
   return value;
 }
 
-function getCell(row: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    if (row[key] != null && String(row[key]).trim() !== "") return String(row[key]).trim();
-  }
-  const normalizedEntries = Object.entries(row);
-  for (const key of keys) {
-    const target = key.trim().toLowerCase();
-    const match = normalizedEntries.find(([k]) => k.trim().toLowerCase() === target);
-    if (match && String(match[1]).trim() !== "") return String(match[1]).trim();
-  }
-  return undefined;
-}
-
 async function main() {
   const buffer = fs.readFileSync(path);
   const wb = XLSX.read(buffer, { type: "buffer", cellDates: true });
@@ -55,7 +42,7 @@ async function main() {
 
   let unitsUpdated = 0;
   let ticketsUpdated = 0;
-  let unmatchedAgents = new Set<string>();
+  const unmatchedAgents = new Set<string>();
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];

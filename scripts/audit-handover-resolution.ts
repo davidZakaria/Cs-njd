@@ -30,7 +30,7 @@ type AuditRow = {
 };
 
 const resolved: AuditRow[] = [];
-const shouldBeUnresolved: AuditRow[] = [];
+const _shouldBeUnresolved: AuditRow[] = [];
 const signedButPending: AuditRow[] = [];
 
 for (let i = 1; i < rows.length; i++) {

@@ -1,5 +1,3 @@
-import type { FinishingPhase } from "@prisma/client";
-
 import {
   hasTrackedFinishingWork,
   isFinishingWorkComplete,

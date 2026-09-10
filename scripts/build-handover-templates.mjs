@@ -54,7 +54,6 @@ function splitGreenAvenue(text) {
 }
 
 function splitJura(text) {
-  const sections = [];
   const markers = [
     "ثانيا :",
     "ثالثا :",

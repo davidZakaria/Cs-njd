@@ -67,14 +67,48 @@ export function NotificationBell({ locale }: { locale: string }) {
   }, []);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    let cancelled = false;
+
+    async function load() {
+      const [listResult, count] = await Promise.all([
+        getMyNotifications(),
+        getMyUnreadNotificationCount(),
+      ]);
+      if (cancelled) return;
+      if (listResult.success && listResult.items) {
+        setItems(listResult.items);
+      }
+      setUnreadCount(count);
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
-    if (open) {
-      void refresh();
+    if (!open) return;
+
+    let cancelled = false;
+
+    async function load() {
+      const [listResult, count] = await Promise.all([
+        getMyNotifications(),
+        getMyUnreadNotificationCount(),
+      ]);
+      if (cancelled) return;
+      if (listResult.success && listResult.items) {
+        setItems(listResult.items);
+      }
+      setUnreadCount(count);
     }
-  }, [open, refresh]);
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   function handleMarkAllRead() {
     startTransition(async () => {

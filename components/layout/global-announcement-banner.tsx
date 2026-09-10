@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore, useCallback, useState } from "react";
 import { Megaphone, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -10,21 +10,36 @@ import { cn } from "@/lib/utils";
 
 const DISMISS_KEY = "njd-announcement-dismissed";
 
+function subscribeToStorage(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+
 export function GlobalAnnouncementBanner({ text }: { text: string }) {
   const t = useTranslations("announcement");
-  const [visible, setVisible] = useState<boolean | null>(null);
+  const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    setVisible(sessionStorage.getItem(DISMISS_KEY) !== text);
-  }, [text]);
+  const getSnapshot = useCallback(
+    () => sessionStorage.getItem(DISMISS_KEY) !== text,
+    [text]
+  );
+  const getServerSnapshot = useCallback(() => true, []);
 
-  if (!text.trim() || visible !== true) {
+  const storedVisible = useSyncExternalStore(
+    subscribeToStorage,
+    getSnapshot,
+    getServerSnapshot
+  );
+
+  const visible = storedVisible && !dismissed;
+
+  if (!text.trim() || !visible) {
     return null;
   }
 
   function handleDismiss() {
     sessionStorage.setItem(DISMISS_KEY, text);
-    setVisible(false);
+    setDismissed(true);
   }
 
   return (

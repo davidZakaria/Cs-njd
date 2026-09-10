@@ -31,7 +31,19 @@ export function GlobalSpotlight() {
     function onKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setOpen((current) => !current);
+        setOpen((current) => {
+          const newOpen = !current;
+          if (newOpen) {
+            startTransition(async () => {
+              const items = await searchUnitsSpotlight("");
+              setResults(items);
+            });
+          } else {
+            setQuery("");
+            setResults([]);
+          }
+          return newOpen;
+        });
       }
     }
     window.addEventListener("keydown", onKeyDown);
@@ -46,14 +58,18 @@ export function GlobalSpotlight() {
     });
   }, []);
 
-  useEffect(() => {
-    if (!open) {
-      setQuery("");
-      setResults([]);
-      return;
-    }
-    runSearch("");
-  }, [open, runSearch]);
+  const handleOpenChange = useCallback(
+    (newOpen: boolean) => {
+      setOpen(newOpen);
+      if (newOpen) {
+        runSearch("");
+      } else {
+        setQuery("");
+        setResults([]);
+      }
+    },
+    [runSearch]
+  );
 
   function navigate(unitId: string) {
     setOpen(false);
@@ -63,7 +79,7 @@ export function GlobalSpotlight() {
   return (
     <CommandDialog
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={handleOpenChange}
       title={t("searchShortcut")}
       description={t("searchShortcut")}
     >
