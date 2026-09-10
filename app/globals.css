@@ -279,8 +279,13 @@
     box-shadow: none !important;
   }
 
-  .handover-bilingual-row {
+  .handover-arabic-block,
+  .handover-signatures {
     break-inside: avoid;
+  }
+
+  .handover-print-sheet section {
+    break-inside: avoid-page;
   }
 
   .handover-print-sheet p {

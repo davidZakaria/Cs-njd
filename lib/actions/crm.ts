@@ -1016,13 +1016,6 @@ export async function updateCsFinishingAdditions(
     return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
   }
 
-  const hasAddition =
-    Boolean(parsed.data.addFinishingNote?.trim()) ||
-    Boolean(parsed.data.addCustomModification?.trim());
-  if (!hasAddition) {
-    return actionFail("Nothing to add");
-  }
-
   const unit = await prisma.unit.findUnique({
     where: { id: parsed.data.unitId },
     include: { finishing: true },
@@ -1038,14 +1031,32 @@ export async function updateCsFinishingAdditions(
   };
 
   const { next, changes } = applyCsFinishingAdditions(previous, parsed.data);
+
+  const packageChanged =
+    (parsed.data.packageType ?? null) !== (unit.finishing?.packageType ?? null);
+  const companyChanged =
+    (parsed.data.executingCompany ?? null) !==
+    (unit.finishing?.executingCompany ?? null);
+
+  if (packageChanged) {
+    changes.push("Finishing package type updated");
+  }
+  if (companyChanged) {
+    changes.push("Executing company updated");
+  }
+
   if (changes.length === 0) {
-    return actionOk();
+    return actionFail("Nothing to save");
   }
 
   await withAudit(() =>
     prisma.finishing.upsert({
       where: { unitId: unit.id },
       update: {
+        ...(packageChanged ? { packageType: parsed.data.packageType ?? null } : {}),
+        ...(companyChanged
+          ? { executingCompany: parsed.data.executingCompany ?? null }
+          : {}),
         currentFinishingStatus: next.currentFinishingStatus,
         customModifications: next.customModifications,
         modificationsCompleted:
@@ -1055,6 +1066,8 @@ export async function updateCsFinishingAdditions(
       },
       create: {
         unitId: unit.id,
+        packageType: parsed.data.packageType ?? null,
+        executingCompany: parsed.data.executingCompany ?? null,
         currentFinishingStatus: next.currentFinishingStatus,
         customModifications: next.customModifications,
         modificationsCompleted: next.customModifications != null ? false : true,

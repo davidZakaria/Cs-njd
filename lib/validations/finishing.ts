@@ -95,6 +95,8 @@ export const csFinishingAdditionsSchema = z.object({
   unitId: z.string().min(1),
   addFinishingNote: optionalString(),
   addCustomModification: optionalString(),
+  packageType: optionalEnum(finishingPackageValues),
+  executingCompany: optionalEnum(executingCompanyValues),
 });
 
 export type CsFinishingAdditionsInput = z.infer<typeof csFinishingAdditionsSchema>;

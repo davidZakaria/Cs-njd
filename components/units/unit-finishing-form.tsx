@@ -184,6 +184,7 @@ export function UnitFinishingForm({
   const [addCustomModification, setAddCustomModification] = useState("");
 
   const canSubmit = managementEdit || canSubmitCs;
+  const canEditGeneralFields = managementEdit || canSubmitCs;
 
   const formDefaults = useMemo(
     (): FinishingFormInput => ({
@@ -252,6 +253,12 @@ export function UnitFinishingForm({
   const customModsText = String(watched.customModifications ?? "").trim();
   const hasCustomMods = customModsText.length > 0;
 
+  const packageTypeChanged =
+    String(watched.packageType ?? "") !== String(defaults.packageType ?? "");
+  const executingCompanyChanged =
+    String(watched.executingCompany ?? "") !==
+    String(defaults.executingCompany ?? "");
+
   function onSubmit(values: FinishingFormInput) {
     if (managementEdit) {
       const trimmedMods = String(values.customModifications ?? "").trim();
@@ -270,6 +277,14 @@ export function UnitFinishingForm({
           unitId: values.unitId,
           addFinishingNote: addFinishingNote.trim() || null,
           addCustomModification: addCustomModification.trim() || null,
+          packageType:
+            values.packageType === "" || values.packageType == null
+              ? null
+              : values.packageType,
+          executingCompany:
+            values.executingCompany === "" || values.executingCompany == null
+              ? null
+              : values.executingCompany,
         });
         if (result.success) {
           setAddFinishingNote("");
@@ -374,7 +389,7 @@ export function UnitFinishingForm({
                     value={field.value ?? ""}
                     onValueChange={(value) => field.onChange(value ?? "")}
                     items={packageItems}
-                    disabled={!managementEdit || pending}
+                    disabled={!canEditGeneralFields || pending}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder={tCommon("all")} />
@@ -390,11 +405,6 @@ export function UnitFinishingForm({
                   </Select>
                 )}
               />
-              {canSubmitCs ? (
-                <span className="text-xs text-muted-foreground">
-                  ({tFinishing("managementOnly")})
-                </span>
-              ) : null}
             </div>
 
             <div className="space-y-2">
@@ -407,7 +417,7 @@ export function UnitFinishingForm({
                     value={field.value ?? ""}
                     onValueChange={(value) => field.onChange(value ?? "")}
                     items={companyItems}
-                    disabled={!managementEdit || pending}
+                    disabled={!canEditGeneralFields || pending}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder={tCommon("all")} />
@@ -423,11 +433,6 @@ export function UnitFinishingForm({
                   </Select>
                 )}
               />
-              {canSubmitCs ? (
-                <span className="text-xs text-muted-foreground">
-                  ({tFinishing("managementOnly")})
-                </span>
-              ) : null}
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="currentFinishingStatus">
@@ -630,10 +635,17 @@ export function UnitFinishingForm({
                 pending ||
                 (canSubmitCs &&
                   !addFinishingNote.trim() &&
-                  !addCustomModification.trim())
+                  !addCustomModification.trim() &&
+                  !packageTypeChanged &&
+                  !executingCompanyChanged)
               }
             >
-              {canSubmitCs ? tFinishing("addNotes") : tCommon("save")}
+              {canSubmitCs &&
+              !packageTypeChanged &&
+              !executingCompanyChanged &&
+              (addFinishingNote.trim() || addCustomModification.trim())
+                ? tFinishing("addNotes")
+                : tCommon("save")}
             </Button>
           </div>
         ) : null}
