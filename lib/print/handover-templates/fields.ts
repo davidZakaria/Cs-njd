@@ -96,6 +96,7 @@ export function interpolateHandoverText(text: string, fields: HandoverFieldValue
     .replace(/عماره \(\)/g, `عماره (${fields.building})`)
     .replace(/بالدور\(\)/g, `بالدور (${fields.floor})`)
     .replace(/مساحتها \(\)/g, `مساحتها (${fields.area})`)
+    .replace(/أقر أنا الموقع أدناه\s*\/\s+أحمل/g, `أقر أنا الموقع أدناه / ${fields.clientName} أحمل`)
     .replace(/الاسم :\s+/g, `الاسم : ${fields.clientName} `)
     .replace(/1-الاسم :\s+/g, `1-الاسم : ${fields.clientName} `)
     .replace(/2-الاسم :\s+/g, `2-الاسم : ${fields.clientName2 ?? "—"} `);
