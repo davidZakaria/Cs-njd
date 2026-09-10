@@ -46,13 +46,20 @@ export async function ensureSignedProtocolDirectory(unitId: string): Promise<voi
   await fs.mkdir(getSignedProtocolDirectory(unitId), { recursive: true });
 }
 
+export function getSignedProtocolRelativePath(
+  unitId: string,
+  storedName: string
+): string {
+  return path.posix.join("signed-protocols", unitId, storedName);
+}
+
 export async function writeSignedProtocolFile(
   unitId: string,
   storedName: string,
-  buffer: Buffer
+  file: File
 ): Promise<void> {
-  await ensureSignedProtocolDirectory(unitId);
-  await fs.writeFile(getSignedProtocolFilePath(unitId, storedName), buffer);
+  const { writeStoredObject } = await import("@/lib/storage/object-store");
+  await writeStoredObject(getSignedProtocolRelativePath(unitId, storedName), file);
 }
 
 export async function deleteSignedProtocolFile(
@@ -60,11 +67,8 @@ export async function deleteSignedProtocolFile(
   storedName: string | null | undefined
 ): Promise<void> {
   if (!storedName) return;
-  try {
-    await fs.unlink(getSignedProtocolFilePath(unitId, storedName));
-  } catch {
-    // Missing file on disk is acceptable when cleaning metadata.
-  }
+  const { deleteStoredObject } = await import("@/lib/storage/object-store");
+  await deleteStoredObject(getSignedProtocolRelativePath(unitId, storedName));
 }
 
 export function isAllowedSignedProtocolMime(mime: string): mime is SignedProtocolMimeType {

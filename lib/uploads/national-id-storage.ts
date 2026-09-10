@@ -43,23 +43,24 @@ export async function ensureNationalIdDirectory(): Promise<void> {
   await fs.mkdir(getNationalIdDirectory(), { recursive: true });
 }
 
+export function getNationalIdRelativePath(storedName: string): string {
+  return path.posix.join("national-ids", storedName);
+}
+
 export async function writeNationalIdFile(
   storedName: string,
-  buffer: Buffer
+  file: File
 ): Promise<void> {
-  await ensureNationalIdDirectory();
-  await fs.writeFile(getNationalIdFilePath(storedName), buffer);
+  const { writeStoredObject } = await import("@/lib/storage/object-store");
+  await writeStoredObject(getNationalIdRelativePath(storedName), file);
 }
 
 export async function deleteNationalIdFile(
   storedName: string | null | undefined
 ): Promise<void> {
   if (!storedName) return;
-  try {
-    await fs.unlink(getNationalIdFilePath(storedName));
-  } catch {
-    // Missing file on disk is acceptable when replacing.
-  }
+  const { deleteStoredObject } = await import("@/lib/storage/object-store");
+  await deleteStoredObject(getNationalIdRelativePath(storedName));
 }
 
 export function isAllowedNationalIdMime(mime: string): mime is NationalIdMimeType {

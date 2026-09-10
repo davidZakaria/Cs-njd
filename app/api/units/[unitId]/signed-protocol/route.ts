@@ -3,12 +3,12 @@ import {
   canDownloadSignedProtocol,
   resolveSignedProtocolAccess,
 } from "@/lib/auth/signed-protocol-access";
+import { serveStoredObjectResponse } from "@/lib/storage/serve-stored-object";
 import { prisma } from "@/lib/prisma";
 import {
   contentTypeForSignedProtocol,
-  getSignedProtocolFilePath,
+  getSignedProtocolRelativePath,
 } from "@/lib/uploads/signed-protocol-storage";
-import fs from "fs/promises";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -39,24 +39,12 @@ export async function GET(
   }
 
   const workflow = unit.contractWorkflow;
-  const filepath = getSignedProtocolFilePath(
-    unitId,
-    workflow.signedProtocolStoredName!
+  const filename =
+    workflow.signedProtocolOriginalName ?? "signed-handover-protocol";
+
+  return serveStoredObjectResponse(
+    getSignedProtocolRelativePath(unitId, workflow.signedProtocolStoredName!),
+    filename,
+    contentTypeForSignedProtocol(workflow.signedProtocolMimeType)
   );
-
-  try {
-    const content = await fs.readFile(filepath);
-    const filename =
-      workflow.signedProtocolOriginalName ?? "signed-handover-protocol";
-
-    return new NextResponse(content, {
-      headers: {
-        "Content-Type": contentTypeForSignedProtocol(workflow.signedProtocolMimeType),
-        "Content-Disposition": `inline; filename="${encodeURIComponent(filename)}"`,
-        "Cache-Control": "private, no-store",
-      },
-    });
-  } catch {
-    return NextResponse.json({ error: "File missing on server" }, { status: 404 });
-  }
 }

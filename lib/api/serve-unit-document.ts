@@ -1,13 +1,13 @@
-import fs from "fs/promises";
 import { NextResponse } from "next/server";
 
 import {
   canDownloadSignedProtocol,
   resolveSignedProtocolAccess,
 } from "@/lib/auth/signed-protocol-access";
+import { serveStoredObjectResponse } from "@/lib/storage/serve-stored-object";
 import {
   contentTypeForUnitDocument,
-  getUnitDocumentFilePath,
+  getUnitDocumentRelativePath,
   type UnitDocumentKind,
 } from "@/lib/uploads/unit-document-storage";
 
@@ -40,21 +40,12 @@ export async function serveUnitDocument(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const filepath = getUnitDocumentFilePath(kind, storedName);
+  const ext = storedName.includes(".") ? storedName.split(".").pop() : "pdf";
+  const filename = `${downloadLabel}.${ext}`;
 
-  try {
-    const content = await fs.readFile(filepath);
-    const ext = storedName.includes(".") ? storedName.split(".").pop() : "pdf";
-    const filename = `${downloadLabel}.${ext}`;
-
-    return new NextResponse(content, {
-      headers: {
-        "Content-Type": contentTypeForUnitDocument(storedName),
-        "Content-Disposition": `inline; filename="${encodeURIComponent(filename)}"`,
-        "Cache-Control": "private, no-store",
-      },
-    });
-  } catch {
-    return NextResponse.json({ error: "File missing on server" }, { status: 404 });
-  }
+  return serveStoredObjectResponse(
+    getUnitDocumentRelativePath(kind, storedName),
+    filename,
+    contentTypeForUnitDocument(storedName)
+  );
 }

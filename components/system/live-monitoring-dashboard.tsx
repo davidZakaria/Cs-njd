@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { fetchMonitoringMetrics } from "@/lib/actions/monitoring";
+import { StorageMonitoringPanel } from "@/components/system/storage-monitoring-panel";
 import { SystemHealthPanel } from "@/components/system/system-health-panel";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -14,8 +15,12 @@ const POLL_INTERVAL_MS = 5000;
 
 export function LiveMonitoringDashboard({
   initialData,
+  initialStorageDriver,
+  initialRemoteBackupEnabled,
 }: {
   initialData: MonitoringMetrics;
+  initialStorageDriver: "local" | "s3";
+  initialRemoteBackupEnabled: boolean;
 }) {
   const t = useTranslations("systemMonitoring");
   const locale = useLocale();
@@ -80,6 +85,12 @@ export function LiveMonitoringDashboard({
       </div>
 
       <SystemHealthPanel metrics={metrics} />
+
+      <StorageMonitoringPanel
+        metrics={metrics}
+        initialDriver={initialStorageDriver}
+        initialRemoteEnabled={initialRemoteBackupEnabled}
+      />
     </div>
   );
 }

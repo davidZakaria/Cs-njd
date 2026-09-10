@@ -78,12 +78,11 @@ export async function uploadUnitDocument(
   if (!access.ok) return access.result;
 
   const { unit } = access;
-  const buffer = Buffer.from(await file.arrayBuffer());
   const storedName = buildUnitDocumentStoredFilename(unitId, file.name);
 
   if (documentType === "finishingContract") {
     const previousStoredName = unit.finishing?.finishingContractFile ?? null;
-    await writeUnitDocumentFile(documentType, storedName, buffer);
+    await writeUnitDocumentFile(documentType, storedName, file);
     await deleteUnitDocumentFile(documentType, previousStoredName);
 
     await prisma.finishing.upsert({
@@ -97,7 +96,7 @@ export async function uploadUnitDocument(
         ? unit.contractWorkflow?.signedContractFile ?? null
         : unit.contractWorkflow?.extensionAnnexFile ?? null;
 
-    await writeUnitDocumentFile(documentType, storedName, buffer);
+    await writeUnitDocumentFile(documentType, storedName, file);
     await deleteUnitDocumentFile(documentType, previousStoredName);
 
     await prisma.contractWorkflow.upsert({

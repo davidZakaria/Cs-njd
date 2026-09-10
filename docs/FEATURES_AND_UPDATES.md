@@ -367,7 +367,11 @@ Collapsible sidebar groups organize super-admin tools:
 - **Smart gate** — `signed_contract_missing` blocks resolve until sales contract is uploaded
 - **ClientSecurityGuard** — dashboard-only anti-snoop (watermark, blocked shortcuts, no text selection except inputs)
 - **Full backup now includes `uploads/`** — nightly archive covers DB + all on-disk documents
-- **Monitoring** — “Document uploads” KPI on System Health (total bytes + file count on VPS)
+- **Off-site backup to S3/R2** — after each nightly `.tar.gz`, optional upload to Cloudflare R2 or AWS S3
+- **Object storage switch** — Super Admin can choose local VPS disk vs S3/R2 for document uploads (System → Monitoring)
+- **Streaming uploads** — files stream to disk/S3 instead of full in-memory buffers (lower RAM spikes)
+- **Backup health warnings** — stale backup, large archive folder, remote upload failure, low disk space
+- **Monitoring** — “Document uploads” KPI + backup health + S3/R2 toggles on System Health
 - **Upload limit alignment** — server action body limit raised to 15 MB to match protocol/contract validators
 - Migration: `20260910153000_add_contracts_archives_and_security`
 
@@ -493,7 +497,9 @@ Collapsible sidebar groups organize super-admin tools:
 | **Document uploads** | Files on disk under `{UPLOADS_DIR}` (default `./uploads`): `signed-protocols/`, `signed-contracts/`, `extension-annexes/`, `finishing-contracts/`, `national-ids/` — DB stores filenames only |
 | **Upload size limits** | Protocols & contracts: 15 MB; national ID scans: 10 MB (aligned with Next.js server action body limit) |
 | **Full backup includes uploads** | Nightly `.tar.gz` archives PostgreSQL dump + `.env` + deploy configs + `uploads/` folder |
-| **Monitor document storage** | Super Admin → System → Monitoring → “Document uploads” card (disk usage + file count) |
+| **Off-site backup (S3/R2)** | Set `S3_*` vars in `.env`, enable in System → Monitoring → “Copy nightly backups to S3/R2” |
+| **Object storage driver** | System → Monitoring → switch document storage between local disk and S3/R2 |
+| **Monitor document storage** | Super Admin → System → Monitoring (uploads size, backup warnings, S3 status) |
 | **Maintenance mode** | Super Admin → System → General Settings; blocks CS Agent & Management only |
 | **Kill user sessions** | Super Admin → Users & Security → Security & Sessions → Active sessions tab |
 | **Backup env (VPS)** | `BACKUP_DOCKER_CONTAINER=njd-crm-postgres-prod` |

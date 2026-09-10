@@ -19,6 +19,15 @@ export type BackupDatabaseCounts = {
   auditLogs: number;
 };
 
+export type BackupRemoteManifest = {
+  enabled: boolean;
+  status: "SUCCESS" | "FAILED" | "SKIPPED";
+  provider: "s3" | "r2" | "local";
+  objectKey?: string;
+  sizeBytes?: number;
+  error?: string;
+};
+
 export type BackupManifest = {
   version: 1;
   createdAt: string;
@@ -33,6 +42,7 @@ export type BackupManifest = {
     filename: string;
     sizeBytes: number;
   };
+  remote?: BackupRemoteManifest;
 };
 
 export function isBackupManifest(value: unknown): value is BackupManifest {

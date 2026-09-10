@@ -58,13 +58,20 @@ export async function ensureUnitDocumentDirectory(
   await fs.mkdir(getUnitDocumentDirectory(kind), { recursive: true });
 }
 
+export function getUnitDocumentRelativePath(
+  kind: UnitDocumentKind,
+  storedName: string
+): string {
+  return path.posix.join(DIRECTORY_BY_KIND[kind], storedName);
+}
+
 export async function writeUnitDocumentFile(
   kind: UnitDocumentKind,
   storedName: string,
-  buffer: Buffer
+  file: File
 ): Promise<void> {
-  await ensureUnitDocumentDirectory(kind);
-  await fs.writeFile(getUnitDocumentFilePath(kind, storedName), buffer);
+  const { writeStoredObject } = await import("@/lib/storage/object-store");
+  await writeStoredObject(getUnitDocumentRelativePath(kind, storedName), file);
 }
 
 export async function deleteUnitDocumentFile(
@@ -72,11 +79,8 @@ export async function deleteUnitDocumentFile(
   storedName: string | null | undefined
 ): Promise<void> {
   if (!storedName) return;
-  try {
-    await fs.unlink(getUnitDocumentFilePath(kind, storedName));
-  } catch {
-    // Missing file on disk is acceptable when replacing.
-  }
+  const { deleteStoredObject } = await import("@/lib/storage/object-store");
+  await deleteStoredObject(getUnitDocumentRelativePath(kind, storedName));
 }
 
 export function isAllowedUnitDocumentMime(

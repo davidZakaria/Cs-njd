@@ -60,16 +60,15 @@ export async function uploadNationalId(
   );
   if (!canUpload) return uploadFail("Unauthorized");
 
-  const buffer = Buffer.from(await file.arrayBuffer());
   const storedName = buildNationalIdStoredFilename(unit.clientId, file.name);
   const previousStoredName = unit.client.nationalIdFile;
 
   const extractedId =
     file.type.startsWith("image/")
-      ? await extractEgyptianNationalId(buffer)
+      ? await extractEgyptianNationalId(Buffer.from(await file.arrayBuffer()))
       : null;
 
-  await writeNationalIdFile(storedName, buffer);
+  await writeNationalIdFile(storedName, file);
   await deleteNationalIdFile(previousStoredName);
 
   await prisma.client.update({

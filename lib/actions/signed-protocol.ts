@@ -50,11 +50,10 @@ export async function uploadSignedProtocol(
   );
   if (!canUpload) return actionFail("Unauthorized");
 
-  const buffer = Buffer.from(await file.arrayBuffer());
   const storedName = buildStoredFilename(file.name);
   const previousStoredName = unit.contractWorkflow?.signedProtocolStoredName;
 
-  await writeSignedProtocolFile(unitId, storedName, buffer);
+  await writeSignedProtocolFile(unitId, storedName, file);
   await deleteSignedProtocolFile(unitId, previousStoredName);
 
   await prisma.contractWorkflow.upsert({

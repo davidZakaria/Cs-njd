@@ -12,6 +12,7 @@ import {
   SYSTEM_BACKUP_FILES,
   type BackupManifest,
 } from "@/lib/backup/backup-manifest";
+import { uploadBackupArchiveToRemote } from "@/lib/backup/backup-remote";
 import { basePrisma } from "@/lib/prisma";
 import { getBackupRetentionDaysDirect } from "@/lib/system/settings-db-read";
 
@@ -193,6 +194,10 @@ export async function runFullBackup(
 
     const archiveSize = await createArchive(stagingDir, archivePath);
     manifest.archive.sizeBytes = archiveSize;
+    manifest.remote = await uploadBackupArchiveToRemote(
+      archivePath,
+      archiveFilename
+    );
 
     await prisma.backupLog.update({
       where: { id: log.id },

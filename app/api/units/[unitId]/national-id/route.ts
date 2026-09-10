@@ -3,12 +3,12 @@ import {
   canDownloadSignedProtocol,
   resolveSignedProtocolAccess,
 } from "@/lib/auth/signed-protocol-access";
+import { serveStoredObjectResponse } from "@/lib/storage/serve-stored-object";
 import { prisma } from "@/lib/prisma";
 import {
   contentTypeForNationalId,
-  getNationalIdFilePath,
+  getNationalIdRelativePath,
 } from "@/lib/uploads/national-id-storage";
-import fs from "fs/promises";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -39,21 +39,12 @@ export async function GET(
   }
 
   const storedName = unit.client.nationalIdFile;
-  const filepath = getNationalIdFilePath(storedName);
+  const ext = storedName.includes(".") ? storedName.split(".").pop() : "jpg";
+  const filename = `national-id-${unit.client.name}.${ext}`;
 
-  try {
-    const content = await fs.readFile(filepath);
-    const ext = storedName.includes(".") ? storedName.split(".").pop() : "jpg";
-    const filename = `national-id-${unit.client.name}.${ext}`;
-
-    return new NextResponse(content, {
-      headers: {
-        "Content-Type": contentTypeForNationalId(storedName),
-        "Content-Disposition": `inline; filename="${encodeURIComponent(filename)}"`,
-        "Cache-Control": "private, no-store",
-      },
-    });
-  } catch {
-    return NextResponse.json({ error: "File missing on server" }, { status: 404 });
-  }
+  return serveStoredObjectResponse(
+    getNationalIdRelativePath(storedName),
+    filename,
+    contentTypeForNationalId(storedName)
+  );
 }

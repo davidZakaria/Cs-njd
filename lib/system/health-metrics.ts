@@ -2,6 +2,11 @@ import os from "node:os";
 
 import { getDatabaseMetrics, type DatabaseMetrics } from "@/lib/system/database-metrics";
 import { getDiskMetrics, type DiskMetrics } from "@/lib/system/disk-metrics";
+import { getBackupMetrics, type BackupMetrics } from "@/lib/backup/backup-metrics";
+import {
+  getObjectStorageMetrics,
+  type ObjectStorageMetrics,
+} from "@/lib/system/storage-metrics";
 import { getUploadsMetrics, type UploadsMetrics } from "@/lib/system/uploads-metrics";
 
 export type SystemHealthMetrics = {
@@ -34,6 +39,8 @@ export type MonitoringMetrics = SystemHealthMetrics & {
   disk: DiskMetrics;
   database: DatabaseMetrics;
   uploads: UploadsMetrics;
+  backups: BackupMetrics;
+  objectStorage: ObjectStorageMetrics;
 };
 
 export function getSystemHealthMetrics(): SystemHealthMetrics {
@@ -78,10 +85,12 @@ export function getSystemHealthMetrics(): SystemHealthMetrics {
 }
 
 export async function collectMonitoringMetrics(): Promise<MonitoringMetrics> {
-  const [disk, database, uploads] = await Promise.all([
-    getDiskMetrics(),
+  const disk = await getDiskMetrics();
+  const [database, uploads, backups, objectStorage] = await Promise.all([
     getDatabaseMetrics(),
     getUploadsMetrics(),
+    getBackupMetrics(disk.freeBytes),
+    getObjectStorageMetrics(),
   ]);
 
   return {
@@ -89,5 +98,7 @@ export async function collectMonitoringMetrics(): Promise<MonitoringMetrics> {
     disk,
     database,
     uploads,
+    backups,
+    objectStorage,
   };
 }
