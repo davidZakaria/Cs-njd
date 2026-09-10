@@ -253,7 +253,7 @@ export function HandoverProtocolDocument({ data }: { data: HandoverPrintPayload 
     <article
       dir="rtl"
       lang="ar"
-      className="handover-print-sheet mx-auto w-[210mm] bg-white px-[14mm] py-[12mm] font-[family-name:var(--font-cairo)] text-black shadow-premium print:m-0 print:w-full print:max-w-none print:px-[12mm] print:py-[10mm] print:shadow-none"
+      className="handover-print-sheet mx-auto w-[210mm] bg-white px-[14mm] py-[12mm] font-[family-name:var(--font-cairo)] text-black shadow-premium print:shadow-none"
     >
       {data.template.kind === "green-avenue" ? (
         <GreenAvenueDocument
