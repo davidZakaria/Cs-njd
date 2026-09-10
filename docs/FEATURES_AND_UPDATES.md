@@ -362,6 +362,15 @@ Collapsible sidebar groups organize super-admin tools:
 - **Pending parties bottleneck chart** on overview
 - Bilingual labels: “Legal cases” vs “Handover at-risk” to avoid confusion
 
+### September 2026 — Document archives, security guard & sustainability
+- **Secure document uploads** — signed sales contract (required for case resolution), extension annex, finishing contract; authenticated per-unit download APIs
+- **Smart gate** — `signed_contract_missing` blocks resolve until sales contract is uploaded
+- **ClientSecurityGuard** — dashboard-only anti-snoop (watermark, blocked shortcuts, no text selection except inputs)
+- **Full backup now includes `uploads/`** — nightly archive covers DB + all on-disk documents
+- **Monitoring** — “Document uploads” KPI on System Health (total bytes + file count on VPS)
+- **Upload limit alignment** — server action body limit raised to 15 MB to match protocol/contract validators
+- Migration: `20260910153000_add_contracts_archives_and_security`
+
 ### September 2026 — Handover print & signed documents
 - **Official bilingual handover templates** — 6 variants (Green Avenue / JURA; insurance; dual signature) from legal Word docs
 - **NJD logo** on print header (single centered logo)
@@ -481,7 +490,10 @@ Collapsible sidebar groups organize super-admin tools:
 | **Excel full sync** | `npm run sync:excel:all` (three workbooks under `docs/`) |
 | **Session env (VPS)** | `AUTH_SESSION_MAX_AGE_SECONDS`, `AUTH_SESSION_BROWSER_ONLY` — see `.env.example` |
 | **Apply migrations (VPS)** | `npx prisma migrate deploy` (includes edge-case and ops workflow migrations if not yet applied) |
-| **Signed protocol uploads** | Files stored under `{UPLOADS_DIR}/signed-protocols/` (default `./uploads`); ensure directory exists on VPS |
+| **Document uploads** | Files on disk under `{UPLOADS_DIR}` (default `./uploads`): `signed-protocols/`, `signed-contracts/`, `extension-annexes/`, `finishing-contracts/`, `national-ids/` — DB stores filenames only |
+| **Upload size limits** | Protocols & contracts: 15 MB; national ID scans: 10 MB (aligned with Next.js server action body limit) |
+| **Full backup includes uploads** | Nightly `.tar.gz` archives PostgreSQL dump + `.env` + deploy configs + `uploads/` folder |
+| **Monitor document storage** | Super Admin → System → Monitoring → “Document uploads” card (disk usage + file count) |
 | **Maintenance mode** | Super Admin → System → General Settings; blocks CS Agent & Management only |
 | **Kill user sessions** | Super Admin → Users & Security → Security & Sessions → Active sessions tab |
 | **Backup env (VPS)** | `BACKUP_DOCKER_CONTAINER=njd-crm-postgres-prod` |
@@ -511,4 +523,4 @@ These are natural next steps, not current features:
 
 ---
 
-*This document reflects the application state as of 6 September 2026. For the latest code-level changes, see the git commit history on the `main` branch.*
+*This document reflects the application state as of 10 September 2026. For the latest code-level changes, see the git commit history on the `main` branch.*

@@ -3,7 +3,9 @@ import path from "path";
 
 import { getUploadsRoot } from "@/lib/uploads/signed-protocol-storage";
 
-export const NATIONAL_ID_MAX_BYTES = 10 * 1024 * 1024;
+import { NATIONAL_ID_MAX_BYTES as NATIONAL_ID_LIMIT } from "@/lib/uploads/limits";
+
+export const NATIONAL_ID_MAX_BYTES = NATIONAL_ID_LIMIT;
 
 export const NATIONAL_ID_MIME_TYPES = [
   "application/pdf",

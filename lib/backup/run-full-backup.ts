@@ -8,7 +8,7 @@ import {
   runDatabaseBackup,
 } from "@/lib/backup/run-database-backup";
 import {
-  SYSTEM_BACKUP_DIRS,
+  SYSTEM_BACKUP_DIR_SPECS,
   SYSTEM_BACKUP_FILES,
   type BackupManifest,
 } from "@/lib/backup/backup-manifest";
@@ -152,17 +152,17 @@ export async function runFullBackup(
       });
     }
 
-    for (const item of SYSTEM_BACKUP_DIRS) {
-      const abs = path.join(process.cwd(), item.path);
+    for (const item of SYSTEM_BACKUP_DIR_SPECS) {
+      const abs = item.resolveAbsolutePath();
       const included = await pathExists(abs);
       let sizeBytes = 0;
       if (included) {
-        const dest = path.join(systemDir, item.path);
+        const dest = path.join(systemDir, item.manifestPath.replace(/\/$/, ""));
         await cp(abs, dest, { recursive: true });
         sizeBytes = await dirSize(abs);
       }
       systemFiles.push({
-        path: `${item.path}/`,
+        path: item.manifestPath,
         labelKey: item.labelKey,
         sizeBytes,
         included,

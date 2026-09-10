@@ -1,4 +1,7 @@
+import path from "path";
+
 import type { BackupSource } from "@prisma/client";
+import { getUploadsRoot } from "@/lib/uploads/signed-protocol-storage";
 
 export type BackupSystemFileEntry = {
   path: string;
@@ -50,6 +53,29 @@ export const SYSTEM_BACKUP_FILES: Array<{ path: string; labelKey: string }> = [
   { path: "package.json", labelKey: "appVersion" },
 ];
 
-export const SYSTEM_BACKUP_DIRS: Array<{ path: string; labelKey: string }> = [
-  { path: "data/legacy", labelKey: "legacyData" },
+export type SystemBackupDirSpec = {
+  /** Path shown in manifest.json (archive-relative). */
+  manifestPath: string;
+  labelKey: string;
+  resolveAbsolutePath: () => string;
+};
+
+export const SYSTEM_BACKUP_DIR_SPECS: SystemBackupDirSpec[] = [
+  {
+    manifestPath: "data/legacy/",
+    labelKey: "legacyData",
+    resolveAbsolutePath: () => path.join(process.cwd(), "data/legacy"),
+  },
+  {
+    manifestPath: "uploads/",
+    labelKey: "uploadedDocuments",
+    resolveAbsolutePath: () => getUploadsRoot(),
+  },
 ];
+
+/** @deprecated Use SYSTEM_BACKUP_DIR_SPECS */
+export const SYSTEM_BACKUP_DIRS: Array<{ path: string; labelKey: string }> =
+  SYSTEM_BACKUP_DIR_SPECS.map((spec) => ({
+    path: spec.manifestPath.replace(/\/$/, ""),
+    labelKey: spec.labelKey,
+  }));

@@ -61,6 +61,7 @@ export default async function BackupsPage() {
             <li>{t("autoBackupPointEnv")}</li>
             <li>{t("autoBackupPointDeploy")}</li>
             <li>{t("autoBackupPointLegacy")}</li>
+            <li>{t("autoBackupPointUploads")}</li>
           </ul>
         </CardContent>
       </Card>

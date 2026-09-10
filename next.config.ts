@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb",
+      bodySizeLimit: "15mb",
       allowedOrigins: [
         "njd-crm.com",
         "www.njd-crm.com",

@@ -4,7 +4,9 @@ import { randomUUID } from "crypto";
 
 import { env } from "@/env";
 
-export const SIGNED_PROTOCOL_MAX_BYTES = 15 * 1024 * 1024;
+import { MAX_UPLOAD_BYTES } from "@/lib/uploads/limits";
+
+export const SIGNED_PROTOCOL_MAX_BYTES = MAX_UPLOAD_BYTES;
 
 export const SIGNED_PROTOCOL_MIME_TYPES = [
   "application/pdf",

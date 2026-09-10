@@ -5,6 +5,7 @@ import {
   Clock3,
   Cpu,
   Database,
+  FileStack,
   HardDrive,
   Server,
 } from "lucide-react";
@@ -219,6 +220,19 @@ export function SystemHealthPanel({ metrics }: { metrics: MonitoringMetrics }) {
               count: metrics.database.activeConnections.toLocaleString(locale),
             }),
           ]}
+        />
+        <MetricCard
+          title={t("documentStorage")}
+          icon={FileStack}
+          value={formatBytes(metrics.uploads.totalBytes)}
+          subtitle={
+            metrics.uploads.exists
+              ? t("documentStorageDetail", {
+                  count: metrics.uploads.fileCount.toLocaleString(locale),
+                })
+              : t("documentStorageMissing")
+          }
+          hint={t("documentStorageHint")}
         />
       </div>
 

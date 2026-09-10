@@ -3,7 +3,9 @@ import path from "path";
 
 import { getUploadsRoot } from "@/lib/uploads/signed-protocol-storage";
 
-export const UNIT_DOCUMENT_MAX_BYTES = 15 * 1024 * 1024;
+import { MAX_UPLOAD_BYTES } from "@/lib/uploads/limits";
+
+export const UNIT_DOCUMENT_MAX_BYTES = MAX_UPLOAD_BYTES;
 
 export const UNIT_DOCUMENT_MIME_TYPES = [
   "application/pdf",
