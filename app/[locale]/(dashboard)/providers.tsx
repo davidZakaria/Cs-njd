@@ -12,9 +12,11 @@ import {
 export default function DashboardProviders({
   children,
   userEmail = "",
+  securityGuardEnabled = true,
 }: {
   children: React.ReactNode;
   userEmail?: string;
+  securityGuardEnabled?: boolean;
 }) {
   return (
     <SessionProvider
@@ -22,7 +24,7 @@ export default function DashboardProviders({
       refetchInterval={Math.min(SESSION_UPDATE_AGE_SECONDS, 300)}
     >
       <SessionGuard />
-      <ClientSecurityGuard userEmail={userEmail} />
+      {securityGuardEnabled ? <ClientSecurityGuard userEmail={userEmail} /> : null}
       {children}
     </SessionProvider>
   );

@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { DashboardShell } from "@/components/layout/app-sidebar";
 import { redirect } from "next/navigation";
 import DashboardProviders from "./providers";
+import { isPrivilegedRole } from "@/lib/auth/abac";
 import { getAnnouncementConfig } from "@/lib/system/settings-store";
 import { resolveLocale } from "@/lib/auth-redirect";
 
@@ -25,7 +26,10 @@ export default async function DashboardLayout({
   const showAnnouncement = announcement.enabled && announcement.text.length > 0;
 
   return (
-    <DashboardProviders userEmail={session.user.email ?? ""}>
+    <DashboardProviders
+      userEmail={session.user.email ?? ""}
+      securityGuardEnabled={!isPrivilegedRole(session.user.role)}
+    >
       <DashboardShell
         role={session.user.role}
         announcementText={showAnnouncement ? announcement.text : null}
