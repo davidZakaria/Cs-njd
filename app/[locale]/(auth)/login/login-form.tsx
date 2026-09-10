@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { signIn, getSession, signOut, useSession } from "next-auth/react";
@@ -37,12 +37,15 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  const sessionExpiredHandled = useRef(false);
 
   useEffect(() => {
     const reason = searchParams.get("reason");
-    if (reason === "session_expired") {
-      setInfo(t("loginSessionExpired"));
-      void signOut({ redirect: false });
+    if (reason === "session_expired" && !sessionExpiredHandled.current) {
+      sessionExpiredHandled.current = true;
+      void signOut({ redirect: false }).then(() => {
+        setInfo(t("loginSessionExpired"));
+      });
     }
   }, [searchParams, t]);
 

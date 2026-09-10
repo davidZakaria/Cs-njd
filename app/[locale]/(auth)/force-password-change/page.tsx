@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import { forcePasswordChange } from "@/lib/actions/password";
 import { getPostAuthPath } from "@/lib/auth-redirect";
@@ -13,7 +13,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ForcePasswordChangePage() {
   const t = useTranslations("auth.forcePasswordChange");
-  const locale = useLocale();
   const router = useRouter();
   const { data: session, update } = useSession();
   const [error, setError] = useState("");

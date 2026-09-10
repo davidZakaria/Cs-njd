@@ -94,7 +94,7 @@ function ChartTooltip({
 }
 
 function ChartLegend({
-  className,
+  className: _className,
   ...props
 }: React.ComponentProps<typeof RechartsPrimitive.Legend> & {
   className?: string;

@@ -52,7 +52,6 @@ export function ActiveSessionsTable({
   currentUserId: string;
 }) {
   const t = useTranslations("systemSecurity");
-  const tCommon = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
   const { pending, runAction } = useCrudToast();

@@ -211,7 +211,7 @@ export function CasesTable({
     return resolved === "unassigned" ? UNASSIGNED_AGENT_FILTER : resolved;
   });
   const [followUpFilter, setFollowUpFilter] = useState(defaultFollowUpFilter);
-  const [pendingPartyFilter, setPendingPartyFilter] = useState(
+  const [pendingPartyFilter, _setPendingPartyFilter] = useState(
     defaultPendingPartyFilter
   );
 
