@@ -15,6 +15,7 @@ export const RESOLUTION_GATE_CODES = [
   "finishing_not_done",
   "fees_unpaid",
   "missing_papers",
+  "signed_contract_missing",
   "party_not_none",
   "active_lawsuit",
   "modifications_pending",
@@ -41,6 +42,7 @@ type GateContext = {
     | "papersReceived"
     | "handoverStatus"
     | "isLegallyBlocked"
+    | "signedContractFile"
   > | null;
 };
 
@@ -83,6 +85,10 @@ export function evaluateResolutionGates(ctx: GateContext): ResolutionGateCode[] 
     if (!papersComplete) {
       failures.push("missing_papers");
     }
+  }
+
+  if (!ctx.contractWorkflow?.signedContractFile) {
+    failures.push("signed_contract_missing");
   }
 
   if (ctx.contractWorkflow?.isLegallyBlocked === true) {

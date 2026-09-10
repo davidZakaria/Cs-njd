@@ -12,7 +12,7 @@ echo "==> Pull latest code"
 git pull origin main
 
 echo "==> Ensure upload directory"
-mkdir -p uploads/signed-protocols uploads/national-ids
+mkdir -p uploads/signed-protocols uploads/national-ids uploads/signed-contracts uploads/extension-annexes uploads/finishing-contracts
 
 echo "==> Install dependencies"
 npm ci

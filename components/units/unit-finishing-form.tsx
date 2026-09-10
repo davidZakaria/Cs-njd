@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FinishingPhasePicker } from "@/components/units/finishing-phase-picker";
+import { UnitDocumentUpload } from "@/components/units/unit-document-upload";
 import {
   normalizeFinishingPhases,
   sortPhases,
@@ -65,6 +66,7 @@ export type FinishingFormDefaults = {
   packageLabel: string | null;
   companyName: string | null;
   finishingType: string | null;
+  finishingContractFile: string | null;
 };
 
 function toDateInput(value: string | null | undefined): string {
@@ -156,6 +158,7 @@ export function UnitFinishingForm({
   canEditManagement = false,
   canEditCsFinishing = false,
   canEdit,
+  canUploadDocuments = false,
   packageDisplayLabel,
   companyDisplayLabel,
 }: {
@@ -164,6 +167,7 @@ export function UnitFinishingForm({
   canEditCsFinishing?: boolean;
   /** @deprecated Use canEditManagement */
   canEdit?: boolean;
+  canUploadDocuments?: boolean;
   packageDisplayLabel: string;
   companyDisplayLabel: string;
 }) {
@@ -526,6 +530,14 @@ export function UnitFinishingForm({
                 </Label>
               </div>
             ) : null}
+            <div className="md:col-span-2">
+              <UnitDocumentUpload
+                unitId={defaults.unitId}
+                documentType="finishingContract"
+                existingFile={defaults.finishingContractFile}
+                canUpload={canUploadDocuments}
+              />
+            </div>
           </CardContent>
         </Card>
 

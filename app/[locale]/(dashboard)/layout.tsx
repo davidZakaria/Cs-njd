@@ -25,7 +25,7 @@ export default async function DashboardLayout({
   const showAnnouncement = announcement.enabled && announcement.text.length > 0;
 
   return (
-    <DashboardProviders>
+    <DashboardProviders userEmail={session.user.email ?? ""}>
       <DashboardShell
         role={session.user.role}
         announcementText={showAnnouncement ? announcement.text : null}

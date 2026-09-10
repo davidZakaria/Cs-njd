@@ -31,6 +31,7 @@ export type ResolutionChecklistContext = {
     | "papersReceived"
     | "handoverStatus"
     | "isLegallyBlocked"
+    | "signedContractFile"
   > | null;
 };
 

@@ -93,6 +93,7 @@ function pendingPartyFromGate(code: ResolutionGateCode): PendingParty {
     case "fees_unpaid":
       return "FINANCE";
     case "missing_papers":
+    case "signed_contract_missing":
       return "LOGISTICS";
     case "active_lawsuit":
       return "LEGAL";
@@ -116,6 +117,7 @@ export type ImportGateContext = {
     papersReceived: boolean;
     handoverStatus: HandoverStatus;
     isLegallyBlocked?: boolean;
+    signedContractFile?: string | null;
   } | null;
 };
 
@@ -156,6 +158,7 @@ export function reconcileImportCaseStatus(
       ? {
           ...ctx.contractWorkflow,
           isLegallyBlocked: ctx.contractWorkflow.isLegallyBlocked ?? false,
+          signedContractFile: ctx.contractWorkflow.signedContractFile ?? null,
         }
       : null,
   });

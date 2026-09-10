@@ -99,6 +99,35 @@
     "noModificationsYet": "No custom modifications recorded.",
     "currentStatus": "Current unit finishing status"
   },
+  "documents": {
+    "requiredBadge": "Required for closure",
+    "optionalBadge": "Optional",
+    "removeConfirm": "Remove this uploaded document from the unit?",
+    "signedContract": {
+      "title": "Signed sales contract (required for closure)",
+      "upload": "Upload sales contract",
+      "view": "View contract",
+      "replace": "Replace contract",
+      "missing": "Signed sales contract has not been uploaded yet."
+    },
+    "extensionAnnex": {
+      "title": "Signed extension annex (optional)",
+      "upload": "Upload extension annex",
+      "view": "View annex",
+      "replace": "Replace annex",
+      "missing": "Extension annex has not been uploaded."
+    },
+    "finishingContract": {
+      "title": "Signed finishing contract / annex (optional)",
+      "upload": "Upload finishing contract",
+      "view": "View contract",
+      "replace": "Replace contract",
+      "missing": "Finishing contract has not been uploaded."
+    }
+  },
+  "security": {
+    "actionBlocked": "Action not allowed for security reasons."
+  },
   "workflow": {
     "pendingParty": "Pending with",
     "nextFollowUpDate": "Next follow-up date",
@@ -162,6 +191,7 @@
       "finishing_not_done": "Cannot close ticket: engineering finishing work is not complete.",
       "fees_unpaid": "Cannot close ticket: outstanding fees have not been paid.",
       "missing_papers": "Cannot close ticket: papers / signatures are still missing.",
+      "signed_contract_missing": "Cannot close ticket: signed sales contract has not been uploaded.",
       "party_not_none": "Cannot close ticket: still pending with another party.",
       "active_lawsuit": "Cannot close ticket: unit is under an active legal block.",
       "modifications_pending": "Cannot close ticket: custom engineering modifications are not complete."
@@ -175,6 +205,7 @@
       "finishing_not_done": "Engineering finishing work complete",
       "fees_unpaid": "Financials and fees settled",
       "missing_papers": "Handover protocol and papers signed",
+      "signed_contract_missing": "Signed sales contract uploaded",
       "party_not_none": "No blocking pending party",
       "active_lawsuit": "No active legal block on unit",
       "modifications_pending": "Custom engineering modifications complete"
@@ -447,6 +478,7 @@
     "legalDisputes": "Legal Disputes"
   },
   "errors": {
+    "missing_signed_contract": "Cannot close ticket: the signed sales contract has not been uploaded to the system.",
     "title": "Something went wrong",
     "description": "An unexpected error occurred. You can try again or return to the dashboard.",
     "tryAgain": "Try again",

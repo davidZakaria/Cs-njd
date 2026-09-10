@@ -15,6 +15,7 @@ import { UnitFinishingForm } from "@/components/units/unit-finishing-form";
 import { UnitClientForm } from "@/components/units/unit-client-form";
 import { PrintProtocolButton } from "@/components/units/print-protocol-button";
 import { SignedProtocolUpload } from "@/components/units/signed-protocol-upload";
+import { UnitDocumentUpload } from "@/components/units/unit-document-upload";
 import { LegalBlockBanner } from "@/components/units/legal-block-banner";
 import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
 import { resolveSignedProtocolAccess } from "@/lib/auth/signed-protocol-access";
@@ -123,6 +124,7 @@ export default async function UnitProfilePage({
           papersReceived: unit.contractWorkflow.papersReceived,
           handoverStatus: unit.contractWorkflow.handoverStatus,
           isLegallyBlocked: unit.contractWorkflow.isLegallyBlocked,
+          signedContractFile: unit.contractWorkflow.signedContractFile,
         }
       : null,
   };
@@ -250,7 +252,9 @@ export default async function UnitProfilePage({
               packageLabel: unit.finishing?.packageLabel ?? null,
               companyName: unit.finishing?.companyName ?? null,
               finishingType: unit.finishing?.finishingType ?? null,
+              finishingContractFile: unit.finishing?.finishingContractFile ?? null,
             }}
+            canUploadDocuments={signedProtocolAccess.canUpload}
             packageDisplayLabel={finishingLabel}
             companyDisplayLabel={companyLabel}
           />
@@ -319,6 +323,19 @@ export default async function UnitProfilePage({
             info={signedProtocolInfo}
             canUpload={signedProtocolAccess.canUpload}
             hasResolvedCase={hasResolvedCase}
+          />
+          <UnitDocumentUpload
+            unitId={unit.id}
+            documentType="signedContract"
+            existingFile={workflow?.signedContractFile ?? null}
+            canUpload={signedProtocolAccess.canUpload}
+            required
+          />
+          <UnitDocumentUpload
+            unitId={unit.id}
+            documentType="extensionAnnex"
+            existingFile={workflow?.extensionAnnexFile ?? null}
+            canUpload={signedProtocolAccess.canUpload}
           />
         </TabsContent>
 
