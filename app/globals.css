@@ -265,7 +265,7 @@
 @media print {
   @page {
     size: A4 portrait;
-    margin: 0;
+    margin: 10mm 12mm;
   }
 
   html,
@@ -277,15 +277,19 @@
 
   .handover-print-sheet {
     box-shadow: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
-  .handover-arabic-block,
   .handover-signatures {
     break-inside: avoid;
+    break-before: auto;
   }
 
-  .handover-print-sheet section {
-    break-inside: avoid-page;
+  .handover-print-sheet h3 {
+    break-after: avoid;
   }
 
   .handover-print-sheet p {
