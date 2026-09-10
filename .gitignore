@@ -49,3 +49,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Secrets (extra protection)
+*.key
+*.cert
+secrets/
+.secrets/
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
