@@ -22,6 +22,11 @@ import {
   staggerEntranceClass,
 } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
+import { CommunityDailyTracker } from "@/components/dashboard/CommunityDailyTracker";
+import { getInitialCommunityDailyActivity } from "@/lib/actions/community-tracker";
+import { format } from "date-fns";
+
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -41,7 +46,11 @@ export default async function DashboardPage() {
     ? csAgentUnitScope(csScope)
     : {};
 
-  const [totalUnits, pendingTickets, deliveredUnits, legalDisputes, pendingWork] =
+  const isCommunityManagement =
+    session?.user.role === "COMMUNITY_MANAGEMENT";
+  const communityTrackerDate = format(new Date(), "yyyy-MM-dd");
+
+  const [totalUnits, pendingTickets, deliveredUnits, legalDisputes, pendingWork, communityDailyActivity] =
     await Promise.all([
       prisma.unit.count({ where: activeUnitWhere(unitScope) }),
       prisma.ticket.count({
@@ -77,6 +86,9 @@ export default async function DashboardPage() {
             effectiveAgentId: csScope?.effectiveAgentId,
           })
         : Promise.resolve([]),
+      isCommunityManagement
+        ? getInitialCommunityDailyActivity(communityTrackerDate)
+        : Promise.resolve(null),
     ]);
 
   const stats = [
@@ -95,6 +107,22 @@ export default async function DashboardPage() {
         <h1 className="font-heading text-3xl font-bold tracking-tight">{t("welcome")}</h1>
         <p className="text-muted-foreground">{session?.user.name}</p>
       </div>
+
+      {communityDailyActivity && session?.user ? (
+        <div
+          className={cn(
+            "rounded-xl border bg-card p-4 shadow-sm ring-1 ring-foreground/5 sm:p-6",
+            entranceAnimationClass,
+            "animate-delay-100"
+          )}
+        >
+          <CommunityDailyTracker
+            initialData={communityDailyActivity}
+            initialDate={communityTrackerDate}
+            viewerRole="COMMUNITY_MANAGEMENT"
+          />
+        </div>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat, index) => (

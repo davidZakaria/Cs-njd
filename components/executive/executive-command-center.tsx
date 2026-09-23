@@ -18,7 +18,10 @@ import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
 import type { ExecutivePortfolioMetrics } from "@/lib/executive/portfolio-analytics";
 import type { ExecutiveFinancials } from "@/lib/executive/financial-analytics";
 import { CommunityDailyTracker } from "@/components/dashboard/CommunityDailyTracker";
-import type { SerializedCommunityDailyActivity } from "@/lib/actions/community-tracker";
+import type {
+  CommunityTrackerViewerRole,
+  SerializedCommunityDailyActivity,
+} from "@/lib/actions/community-tracker";
 
 function TabCountBadge({
   count,
@@ -48,6 +51,7 @@ export function ExecutiveCommandCenter({
   kpis,
   communityDailyActivity,
   communityTrackerDate,
+  communityTrackerViewerRole,
   canUseManagementOverride = false,
 }: {
   data: ExecutiveDashboardData;
@@ -56,6 +60,7 @@ export function ExecutiveCommandCenter({
   kpis: AgentKPIRow[];
   communityDailyActivity: SerializedCommunityDailyActivity;
   communityTrackerDate: string;
+  communityTrackerViewerRole: CommunityTrackerViewerRole;
   canUseManagementOverride?: boolean;
 }) {
   const locale = useLocale();
@@ -252,6 +257,7 @@ export function ExecutiveCommandCenter({
         <CommunityDailyTracker
           initialData={communityDailyActivity}
           initialDate={communityTrackerDate}
+          viewerRole={communityTrackerViewerRole}
         />
       </TabsContent>
 

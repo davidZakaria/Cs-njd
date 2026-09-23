@@ -10,7 +10,10 @@ import {
   getExecutiveFinancials,
 } from "@/lib/executive/financial-analytics";
 import { ExecutiveCommandCenter } from "@/components/executive/executive-command-center";
-import { getInitialCommunityDailyActivity } from "@/lib/actions/community-tracker";
+import {
+  getInitialCommunityDailyActivity,
+  type CommunityTrackerViewerRole,
+} from "@/lib/actions/community-tracker";
 import { format } from "date-fns";
 import { Link } from "@/i18n/navigation";
 import { buttonVariants } from "@/components/ui/button";
@@ -81,6 +84,9 @@ export default async function ExecutiveDashboardPage() {
           kpis={kpis}
           communityDailyActivity={communityDailyActivity}
           communityTrackerDate={communityTrackerDate}
+          communityTrackerViewerRole={
+            session.user.role as CommunityTrackerViewerRole
+          }
           canUseManagementOverride={canUseManagementOverride(session.user)}
         />
       </div>

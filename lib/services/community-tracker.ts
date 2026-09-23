@@ -1,6 +1,53 @@
-import type { TicketCategory } from "@prisma/client";
+import type { Role, TicketCategory } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+
+export type CommunityTrackerSessionUser = {
+  id: string;
+  role: Role;
+};
+
+export class CommunityTrackerAccessError extends Error {
+  constructor(message = "Unauthorized") {
+    super(message);
+    this.name = "CommunityTrackerAccessError";
+  }
+}
+
+/** ABAC: CM agents always see only themselves; management sees team or one peer. */
+export function resolveCommunityDailyTargetAgentId(
+  user: CommunityTrackerSessionUser,
+  requestedAgentId?: string
+): string | undefined {
+  if (user.role === "COMMUNITY_MANAGEMENT") {
+    return user.id;
+  }
+
+  if (user.role === "MANAGEMENT" || user.role === "SUPER_ADMIN") {
+    return requestedAgentId;
+  }
+
+  throw new CommunityTrackerAccessError();
+}
+
+export function canAccessCommunityDailyTracker(role: Role): boolean {
+  return (
+    role === "COMMUNITY_MANAGEMENT" ||
+    role === "MANAGEMENT" ||
+    role === "SUPER_ADMIN"
+  );
+}
+
+export type CommunityTrackerViewerRole = Extract<
+  Role,
+  "COMMUNITY_MANAGEMENT" | "MANAGEMENT" | "SUPER_ADMIN"
+>;
+
+export function isCommunityTrackerTeamView(
+  role: CommunityTrackerViewerRole
+): boolean {
+  return role === "MANAGEMENT" || role === "SUPER_ADMIN";
+}
 
 export type CommunityActivityActionType =
   | "TICKET_OPENED"
@@ -130,12 +177,18 @@ function incrementKpi(
 
 export async function getCommunityDailyActivity(
   date: Date,
-  agentId?: string
+  sessionUser: CommunityTrackerSessionUser,
+  targetAgentId?: string
 ): Promise<CommunityDailyActivityResult> {
+  const scopedAgentId = resolveCommunityDailyTargetAgentId(
+    sessionUser,
+    targetAgentId
+  );
+
   const rangeStart = startOfDay(date);
   const rangeEnd = endOfDay(date);
 
-  const agents = await loadCommunityAgents(agentId);
+  const agents = await loadCommunityAgents(scopedAgentId);
   const agentIds = agents.map((agent) => agent.id);
   const agentNameById = new Map(agents.map((agent) => [agent.id, agent.name]));
 

@@ -18,7 +18,11 @@ import {
   loadCommunityDailyActivity,
   type SerializedCommunityDailyActivity,
 } from "@/lib/actions/community-tracker";
-import type { CommunityActivityActionType } from "@/lib/services/community-tracker";
+import {
+  isCommunityTrackerTeamView,
+  type CommunityActivityActionType,
+  type CommunityTrackerViewerRole,
+} from "@/lib/services/community-tracker";
 import { ExecutiveKpiGrid, type StatItem } from "@/components/executive/executive-kpi-grid";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -71,11 +75,14 @@ export function CommunityDailyTracker({
   initialData,
   initialDate = todayDateInput(),
   initialAgentId = ALL_AGENTS,
+  viewerRole,
 }: {
   initialData: SerializedCommunityDailyActivity;
   initialDate?: string;
   initialAgentId?: string;
+  viewerRole: CommunityTrackerViewerRole;
 }) {
+  const teamView = isCommunityTrackerTeamView(viewerRole);
   const locale = useLocale();
   const dateLocale = locale === "ar" ? ar : enUS;
   const t = useTranslations("executive.communityTracking");
@@ -155,7 +162,7 @@ export function CommunityDailyTracker({
     <div className="space-y-6">
       <div className={cn("space-y-1", entranceAnimationClass)}>
         <h2 className="font-heading text-xl font-semibold tracking-tight">
-          {t("title")}
+          {teamView ? t("title") : t("titlePersonal")}
         </h2>
       </div>
 
@@ -174,14 +181,14 @@ export function CommunityDailyTracker({
                     "w-full justify-start text-start font-normal",
                     !selectedDate && "text-muted-foreground"
                   )}
-                />
+                >
+                  <CalendarIcon className="size-4 opacity-60" />
+                  {selectedDate
+                    ? format(selectedDate, "PPP", { locale: dateLocale })
+                    : "—"}
+                </Button>
               }
-            >
-              <CalendarIcon className="size-4 opacity-60" />
-              {selectedDate
-                ? format(selectedDate, "PPP", { locale: dateLocale })
-                : "—"}
-            </PopoverTrigger>
+            />
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
@@ -198,30 +205,32 @@ export function CommunityDailyTracker({
           </Popover>
         </div>
 
-        <div className="min-w-[220px] flex-1 space-y-2">
-          <Label htmlFor="community-tracker-agent">{t("selectAgent")}</Label>
-          <Select
-            value={agentFilter}
-            onValueChange={(value) => {
-              const next = value ?? ALL_AGENTS;
-              setAgentFilter(next);
-              refresh(dateInput, next);
-            }}
-            disabled={pending}
-          >
-            <SelectTrigger id="community-tracker-agent" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALL_AGENTS}>{t("allAgents")}</SelectItem>
-              {agentOptions.map((agent) => (
-                <SelectItem key={agent.id} value={agent.id}>
-                  {agent.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {teamView ? (
+          <div className="min-w-[220px] flex-1 space-y-2">
+            <Label htmlFor="community-tracker-agent">{t("selectAgent")}</Label>
+            <Select
+              value={agentFilter}
+              onValueChange={(value) => {
+                const next = value ?? ALL_AGENTS;
+                setAgentFilter(next);
+                refresh(dateInput, next);
+              }}
+              disabled={pending}
+            >
+              <SelectTrigger id="community-tracker-agent" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_AGENTS}>{t("allAgents")}</SelectItem>
+                {agentOptions.map((agent) => (
+                  <SelectItem key={agent.id} value={agent.id}>
+                    {agent.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
 
         {pending ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground pb-1">
@@ -254,7 +263,9 @@ export function CommunityDailyTracker({
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("columns.time")}</TableHead>
-                    <TableHead>{t("columns.agent")}</TableHead>
+                    {teamView ? (
+                      <TableHead>{t("columns.agent")}</TableHead>
+                    ) : null}
                     <TableHead>{t("columns.action")}</TableHead>
                     <TableHead>{t("columns.unit")}</TableHead>
                     <TableHead className="min-w-[12rem]">
@@ -271,9 +282,11 @@ export function CommunityDailyTracker({
                         <TableCell className="whitespace-nowrap tabular-nums text-sm">
                           {format(at, "p", { locale: dateLocale })}
                         </TableCell>
-                        <TableCell className="text-sm font-medium">
-                          {row.agentName}
-                        </TableCell>
+                        {teamView ? (
+                          <TableCell className="text-sm font-medium">
+                            {row.agentName}
+                          </TableCell>
+                        ) : null}
                         <TableCell>
                           <span className="inline-flex items-center gap-1.5 text-sm">
                             <Icon className="size-3.5 shrink-0 opacity-70" />

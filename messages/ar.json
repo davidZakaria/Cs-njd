@@ -626,6 +626,7 @@
     "communityTracking": {
       "tabLabel": "متابعة المجتمعات",
       "title": "متابعة أداء إدارة المجتمعات (Daily Work Trace)",
+      "titlePersonal": "سجل إنجازي اليومي (My Daily Work Trace)",
       "selectDate": "اختر اليوم",
       "selectAgent": "تحديد موظف المجتمعات",
       "allAgents": "جميع موظفي إدارة المجتمعات",

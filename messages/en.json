@@ -626,6 +626,7 @@
     "communityTracking": {
       "tabLabel": "Community daily",
       "title": "Community Management daily work trace",
+      "titlePersonal": "My daily work trace",
       "selectDate": "Select day",
       "selectAgent": "Community agent",
       "allAgents": "All community management agents",

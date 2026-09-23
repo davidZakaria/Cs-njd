@@ -2,6 +2,8 @@
 
 import { auth } from "@/lib/auth";
 import {
+  canAccessCommunityDailyTracker,
+  CommunityTrackerAccessError,
   getCommunityDailyActivity,
   type CommunityActivityActionType,
   type CommunityDailyActivityResult,
@@ -53,11 +55,11 @@ function parseTrackerDate(dateInput: string): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-async function assertManagementAccess() {
+async function assertCommunityTrackerAccess() {
   const session = await auth();
   if (
     !session?.user ||
-    !["MANAGEMENT", "SUPER_ADMIN"].includes(session.user.role)
+    !canAccessCommunityDailyTracker(session.user.role)
   ) {
     return { ok: false as const, error: actionFail("Unauthorized") };
   }
@@ -68,7 +70,7 @@ export async function loadCommunityDailyActivity(input: {
   date: string;
   agentId?: string;
 }): Promise<ActionResult & { data?: SerializedCommunityDailyActivity }> {
-  const access = await assertManagementAccess();
+  const access = await assertCommunityTrackerAccess();
   if (!access.ok) return access.error;
 
   const day = parseTrackerDate(input.date);
@@ -77,15 +79,26 @@ export async function loadCommunityDailyActivity(input: {
   const agentId =
     input.agentId && input.agentId !== "all" ? input.agentId : undefined;
 
-  const result = await getCommunityDailyActivity(day, agentId);
-  return { ...actionOk(), data: serializeActivityResult(result) };
+  try {
+    const result = await getCommunityDailyActivity(
+      day,
+      access.session.user,
+      agentId
+    );
+    return { ...actionOk(), data: serializeActivityResult(result) };
+  } catch (error) {
+    if (error instanceof CommunityTrackerAccessError) {
+      return actionFail("Unauthorized");
+    }
+    throw error;
+  }
 }
 
 export async function getInitialCommunityDailyActivity(
   date: string,
   agentId?: string
 ): Promise<SerializedCommunityDailyActivity> {
-  const access = await assertManagementAccess();
+  const access = await assertCommunityTrackerAccess();
   if (!access.ok) {
     throw new Error("Unauthorized");
   }
@@ -97,7 +110,10 @@ export async function getInitialCommunityDailyActivity(
 
   const result = await getCommunityDailyActivity(
     day,
+    access.session.user,
     agentId && agentId !== "all" ? agentId : undefined
   );
   return serializeActivityResult(result);
 }
+
+export type { CommunityTrackerViewerRole } from "@/lib/services/community-tracker";
