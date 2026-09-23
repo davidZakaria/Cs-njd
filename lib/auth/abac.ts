@@ -17,6 +17,10 @@ export async function assertCsAgentCanMutateTicket(
     return null;
   }
 
+  if (user.role === "COMMUNITY_MANAGEMENT") {
+    return null;
+  }
+
   if (user.role !== "CS_AGENT") {
     return actionFail("Unauthorized");
   }

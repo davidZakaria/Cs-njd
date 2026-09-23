@@ -103,8 +103,15 @@ export async function createUser(input: CreateUserInput): Promise<ActionResult> 
 
   const { name, email, password, role } = parsed.data;
 
-  if (session.user.role === "MANAGEMENT" && role !== "CS_AGENT" && role !== "ENGINEER") {
-    return actionFail("Management can only create CS agents or site engineers");
+  if (
+    session.user.role === "MANAGEMENT" &&
+    role !== "CS_AGENT" &&
+    role !== "ENGINEER" &&
+    role !== "COMMUNITY_MANAGEMENT"
+  ) {
+    return actionFail(
+      "Management can only create CS agents, community management, or site engineers"
+    );
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -154,8 +161,15 @@ export async function updateUser(input: UpdateUserInput): Promise<ActionResult> 
     return actionFail("Cannot modify super admin");
   }
 
-  if (session.user.role === "MANAGEMENT" && role !== "CS_AGENT" && role !== "ENGINEER") {
-    return actionFail("Management can only assign CS agent or site engineer role");
+  if (
+    session.user.role === "MANAGEMENT" &&
+    role !== "CS_AGENT" &&
+    role !== "ENGINEER" &&
+    role !== "COMMUNITY_MANAGEMENT"
+  ) {
+    return actionFail(
+      "Management can only assign CS agent, community management, or site engineer role"
+    );
   }
 
   if (email !== existing.email) {
@@ -1137,84 +1151,6 @@ export async function logCallQuickAction(input: {
 export async function updateUnitProfile(
   input: UnitProfileFormInput
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (
-    !session?.user ||
-    !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)
-  ) {
-    return actionFail("Unauthorized");
-  }
-
-  const parsed = unitProfileFormSchema.safeParse(input);
-  if (!parsed.success) {
-    return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
-  }
-
-  const {
-    unitId,
-    clientName,
-    phone1,
-    phone2,
-    email,
-    nationalId,
-    address1,
-    address2,
-    deliveryYear,
-    gracePeriod,
-    contractPricePerMeter,
-    type,
-    area,
-  } = parsed.data;
-
-  const unit = await prisma.unit.findUnique({
-    where: { id: unitId },
-    include: { client: true },
-  });
-  if (!unit) return actionFail("Unit not found");
-
-  try {
-    await withAudit(async () => {
-      await prisma.unit.update({
-        where: { id: unitId },
-        data: { deliveryYear, gracePeriod, contractPricePerMeter, type, area },
-      });
-
-      const clientData = {
-        name: clientName,
-        phone1,
-        phone2,
-        email,
-        nationalId,
-        address1,
-        address2,
-      };
-
-      if (unit.clientId) {
-        await prisma.client.update({
-          where: { id: unit.clientId },
-          data: clientData,
-        });
-      } else {
-        const client = await prisma.client.create({ data: clientData });
-        await prisma.unit.update({
-          where: { id: unitId },
-          data: { clientId: client.id },
-        });
-      }
-    });
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002" &&
-      Array.isArray(error.meta?.target) &&
-      error.meta.target.includes("nationalId")
-    ) {
-      return actionFail("A client with this national ID already exists");
-    }
-    throw error;
-  }
-
-  revalidatePath(`/units/${unitId}`);
-  revalidatePath("/units");
-  return actionOk();
+  const { updateUnit } = await import("@/lib/actions/units");
+  return updateUnit(input);
 }

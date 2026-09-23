@@ -55,6 +55,7 @@ export function NotificationsLogTable({ rows }: { rows: NotificationLogRow[] }) 
                   SUPER_ADMIN: "superAdmin",
                   MANAGEMENT: "management",
                   CS_AGENT: "csAgent",
+                  COMMUNITY_MANAGEMENT: "communityManagement",
                   ENGINEER: "engineer",
                 }[row.original.recipientRole] ?? "csAgent") as "superAdmin"
               )}

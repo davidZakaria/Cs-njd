@@ -20,6 +20,7 @@
     "import:legacy": "tsx scripts/import-legacy.ts",
     "sync:excel": "tsx scripts/sync-from-excel.ts",
     "sync:excel:all": "tsx scripts/sync-all-excel.ts",
+    "sync:contacts": "tsx scripts/update-clients-from-excel.ts --file \"docs/Copy of Njd 2026 - Update (full contacts).xlsx\"",
     "cleanup:import-users": "tsx scripts/cleanup-bogus-users.ts",
     "purge:imported-users": "tsx scripts/purge-imported-users.ts",
     "backup:cron": "tsx scripts/cron.ts"

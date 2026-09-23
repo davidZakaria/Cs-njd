@@ -621,6 +621,12 @@
   },
   "units": {
     "title": "الوحدات",
+    "addUnit": "إضافة وحدة",
+    "addUnitDescription": "إنشاء وحدة جديدة وسجل عميل في المشروع المحدد.",
+    "deleteUnit": "حذف الوحدة",
+    "deleteUnitTitle": "حذف هذه الوحدة؟",
+    "deleteUnitConfirm": "سيتم حذف الوحدة {unitCode} ({project}) بشكل مؤقت. الاستعادة تتم من قاعدة البيانات فقط.",
+    "deleteUnitAction": "حذف الوحدة",
     "exportCsv": "تصدير Excel/CSV",
     "unitCode": "رقم الوحدة",
     "project": "المشروع",
@@ -708,6 +714,7 @@
       "superAdmin": "مدير النظام",
       "management": "إدارة",
       "csAgent": "موظف خدمة العملاء",
+      "communityManagement": "إدارة المجتمع",
       "engineer": "مهندس موقع"
     },
     "twoFactor": "المصادقة الثنائية",

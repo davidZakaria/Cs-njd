@@ -35,6 +35,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExportCsvButton } from "@/components/export/export-csv-button";
+import { CreateUnitDialog } from "@/components/units/create-unit-dialog";
 
 import { cn } from "@/lib/utils";
 
@@ -65,12 +66,18 @@ export function UnitsTable({
   agents,
   statuses,
   canExport = true,
+  canCreateUnit = false,
+  createUnitProjects = [],
+  createUnitAgents = [],
 }: {
   data: UnitRow[];
   projects: string[];
   agents: string[];
   statuses: string[];
   canExport?: boolean;
+  canCreateUnit?: boolean;
+  createUnitProjects?: Array<{ id: string; name: string }>;
+  createUnitAgents?: Array<{ id: string; name: string }>;
 }) {
   const t = useTranslations("units");
   const tCommon = useTranslations("common");
@@ -295,15 +302,23 @@ export function UnitsTable({
             ))}
           </SelectContent>
         </Select>
-        {canExport ? (
-          <ExportCsvButton
-            label={t("exportCsv")}
-            filenamePrefix="units"
-            headers={exportHeaders}
-            rows={exportRows}
-            className="w-full lg:ms-auto lg:w-auto"
-          />
-        ) : null}
+        <div className="flex w-full flex-col gap-2 sm:flex-row lg:ms-auto lg:w-auto">
+          {canCreateUnit ? (
+            <CreateUnitDialog
+              projects={createUnitProjects}
+              agents={createUnitAgents}
+            />
+          ) : null}
+          {canExport ? (
+            <ExportCsvButton
+              label={t("exportCsv")}
+              filenamePrefix="units"
+              headers={exportHeaders}
+              rows={exportRows}
+              className="w-full sm:w-auto"
+            />
+          ) : null}
+        </div>
       </div>
 
       <div className="min-w-0 rounded-md border">

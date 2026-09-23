@@ -36,6 +36,8 @@ function optionalEmail() {
 
 export const unitProfileFormSchema = z.object({
   unitId: z.string().min(1),
+  unitCode: z.string().min(1).optional(),
+  agentId: optionalString(),
   clientName: z.string().min(1),
   phone1: optionalString(),
   phone2: optionalString(),
@@ -49,6 +51,25 @@ export const unitProfileFormSchema = z.object({
   area: optionalNumber(),
   type: z.enum(unitTypeValues),
 });
+
+export const createUnitFormSchema = z.object({
+  projectId: z.string().min(1),
+  unitCode: z.string().min(1),
+  type: z.enum(unitTypeValues),
+  clientName: z.string().min(1),
+  phone1: optionalString(),
+  phone2: optionalString(),
+  email: optionalEmail(),
+  nationalId: optionalString(),
+  address1: optionalString(),
+  address2: optionalString(),
+  area: optionalNumber(),
+  contractPricePerMeter: optionalNumber(),
+  agentId: optionalString(),
+});
+
+export type CreateUnitFormInput = z.input<typeof createUnitFormSchema>;
+export type CreateUnitFormValues = z.output<typeof createUnitFormSchema>;
 
 export type UnitProfileFormInput = z.input<typeof unitProfileFormSchema>;
 export type UnitProfileFormValues = z.output<typeof unitProfileFormSchema>;

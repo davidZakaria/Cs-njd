@@ -43,6 +43,7 @@ const roleRoutes: Record<Role, string[]> = {
   ],
   MANAGEMENT: ["/executive", "/dashboard", "/cases", "/units", "/users", "/print"],
   CS_AGENT: ["/dashboard", "/cases", "/units", "/print"],
+  COMMUNITY_MANAGEMENT: ["/dashboard", "/cases", "/units", "/print"],
   ENGINEER: ["/engineering"],
 };
 
@@ -88,9 +89,21 @@ export function getCoreNavItems(role: Role) {
 
   const items: Array<{ href: string; key: NavItemKey; roles: Role[] }> = [
     { href: "/executive", key: "executive", roles: ["SUPER_ADMIN", "MANAGEMENT"] },
-    { href: "/dashboard", key: "dashboard", roles: ["SUPER_ADMIN", "CS_AGENT"] },
-    { href: "/cases", key: "cases", roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT"] },
-    { href: "/units", key: "units", roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT"] },
+    {
+      href: "/dashboard",
+      key: "dashboard",
+      roles: ["SUPER_ADMIN", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
+    },
+    {
+      href: "/cases",
+      key: "cases",
+      roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
+    },
+    {
+      href: "/units",
+      key: "units",
+      roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
+    },
   ];
 
   return items.filter((item) => item.roles.includes(role));
@@ -144,9 +157,21 @@ export function getNavItems(role: Role) {
     roles: Role[];
   }> = [
     { href: "/executive", key: "executive", roles: ["SUPER_ADMIN", "MANAGEMENT"] },
-    { href: "/dashboard", key: "dashboard", roles: ["SUPER_ADMIN", "CS_AGENT"] },
-    { href: "/cases", key: "cases", roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT"] },
-    { href: "/units", key: "units", roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT"] },
+    {
+      href: "/dashboard",
+      key: "dashboard",
+      roles: ["SUPER_ADMIN", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
+    },
+    {
+      href: "/cases",
+      key: "cases",
+      roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
+    },
+    {
+      href: "/units",
+      key: "units",
+      roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
+    },
     { href: "/users", key: "users", roles: ["MANAGEMENT"] },
     { href: "/imports", key: "imports", roles: ["SUPER_ADMIN"] },
     { href: "/audit-logs", key: "auditLogs", roles: ["SUPER_ADMIN"] },

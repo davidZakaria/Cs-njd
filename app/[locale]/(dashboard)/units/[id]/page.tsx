@@ -24,6 +24,11 @@ import { getDomainLabels } from "@/lib/i18n/domain-labels";
 import { getWhatsAppTemplateSetting } from "@/lib/system/settings-store";
 import { canUseManagementOverride } from "@/lib/workflow/management-override";
 import { canManageUnitTickets } from "@/lib/auth/unit-ticket-access";
+import {
+  canEditClientContactOnUnit,
+  isAdminUnitManager,
+} from "@/lib/auth/unit-roles";
+import { getAssignableAgentEmails } from "@/lib/staff";
 import type { SerializedResolutionContext } from "@/lib/workflow/resolution-checklist";
 
 export default async function UnitProfilePage({
@@ -89,9 +94,19 @@ export default async function UnitProfilePage({
   const companyLabel = unit.finishing?.executingCompany
     ? await labels.executingCompany(unit.finishing.executingCompany)
     : unit.finishing?.companyName ?? "-";
-  const canEditProfile =
-    session?.user.role === "SUPER_ADMIN" ||
-    session?.user.role === "MANAGEMENT";
+  const canEditAdmin = session?.user.role
+    ? isAdminUnitManager(session.user.role)
+    : false;
+  const csHasUnitAccess =
+    csScope != null && canAccessUnitAsCsAgent(csScope, unit.agentId);
+  const canEditClient = session?.user.role
+    ? canEditClientContactOnUnit(session.user.role, csHasUnitAccess)
+    : false;
+  const profileEditLevel = canEditAdmin
+    ? "admin"
+    : canEditClient
+      ? "contact"
+      : "none";
 
   const canManageTickets = session?.user
     ? canManageUnitTickets(session.user)
@@ -167,6 +182,14 @@ export default async function UnitProfilePage({
   const inspectionDateLabel = workflow?.inspectionDate
     ? workflow.inspectionDate.toLocaleDateString(locale)
     : null;
+  const assignableAgents = canEditAdmin
+    ? await prisma.user.findMany({
+        where: { email: { in: getAssignableAgentEmails() } },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
+      })
+    : [];
+
   const poaStatusLabel = workflow?.powerOfAttorneyReceived
     ? tWorkflowEdge("poaReceived")
     : tWorkflowEdge("poaPending");
@@ -181,7 +204,7 @@ export default async function UnitProfilePage({
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("profile")}</h1>
           <p className="text-muted-foreground">
-            {projectLabel} ¬∑ {unit.unitCode}
+            {projectLabel} ù {unit.unitCode}
           </p>
         </div>
         <PrintProtocolButton unitId={unit.id} locale={locale} projectName={unit.project.name} />
@@ -197,11 +220,12 @@ export default async function UnitProfilePage({
 
         <TabsContent value="client">
           <UnitClientForm
-            canEdit={canEditProfile}
+            profileEditLevel={profileEditLevel}
+            agentOptions={assignableAgents}
             contactDisabled={isLegallyBlocked}
             defaults={{
               unitId: unit.id,
-              clientName: unit.client?.name ?? "‚Äî",
+              clientName: unit.client?.name ?? "ù",
               phone1: unit.client?.phone1 ?? null,
               phone2: unit.client?.phone2 ?? null,
               email: unit.client?.email ?? null,
@@ -215,6 +239,7 @@ export default async function UnitProfilePage({
               unitCode: unit.unitCode,
               projectName: projectLabel,
               agentLabel,
+              agentId: unit.agentId ?? null,
               area: unit.area ?? null,
               clientId: unit.clientId ?? null,
               nationalIdFile: unit.client?.nationalIdFile ?? null,
@@ -226,7 +251,7 @@ export default async function UnitProfilePage({
 
         <TabsContent value="financials">
           <UnitFinishingForm
-            canEditManagement={canEditProfile}
+            canEditManagement={canEditAdmin}
             canEditCsFinishing={canEditCsChecklist}
             defaults={{
               unitId: unit.id,
@@ -261,9 +286,9 @@ export default async function UnitProfilePage({
         </TabsContent>
 
         <TabsContent value="legal" className="space-y-4">
-          {canEditProfile || canEditCsChecklist ? (
+          {canEditAdmin || canEditCsChecklist ? (
             <UnitLegalHandoverForm
-              canEditManagement={canEditProfile}
+              canEditManagement={canEditAdmin}
               canEditCsChecklist={canEditCsChecklist}
               defaults={{
                 unitId: unit.id,

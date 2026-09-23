@@ -77,6 +77,7 @@ export function UsersDataTable({
       items.MANAGEMENT = t("roles.management");
     }
     items.CS_AGENT = t("roles.csAgent");
+    items.COMMUNITY_MANAGEMENT = t("roles.communityManagement");
     items.ENGINEER = t("roles.engineer");
     return items;
   }, [isSuperAdmin, t]);
@@ -195,6 +196,10 @@ export function UsersDataTable({
               </>
             )}
             <SelectItem value="CS_AGENT">{t("roles.csAgent")}</SelectItem>
+            <SelectItem value="COMMUNITY_MANAGEMENT">
+              {t("roles.communityManagement")}
+            </SelectItem>
+            <SelectItem value="ENGINEER">{t("roles.engineer")}</SelectItem>
           </SelectContent>
         </Select>
 

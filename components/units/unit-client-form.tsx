@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 
-import { updateUnitProfile } from "@/lib/actions/crm";
+import { deleteUnit, updateUnit } from "@/lib/actions/units";
 import {
   UNIT_TYPE_OPTIONS,
   unitProfileFormSchema,
@@ -17,6 +18,14 @@ import { ClientPhoneRow } from "@/components/units/client-phone-row";
 import { NationalIdUpload } from "@/components/units/national-id-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -45,6 +54,7 @@ export type UnitClientFormDefaults = {
   unitCode: string;
   projectName: string;
   agentLabel: string;
+  agentId: string | null;
   area: number | null;
   clientId: string | null;
   nationalIdFile: string | null;
@@ -52,17 +62,23 @@ export type UnitClientFormDefaults = {
   waMessageTemplate: string;
 };
 
+export type UnitProfileEditLevel = "none" | "contact" | "admin";
+
 export function UnitClientForm({
   defaults,
-  canEdit,
+  profileEditLevel,
   hideClientContact = false,
   contactDisabled = false,
+  agentOptions = [],
 }: {
   defaults: UnitClientFormDefaults;
-  canEdit: boolean;
+  profileEditLevel: UnitProfileEditLevel;
   hideClientContact?: boolean;
   contactDisabled?: boolean;
+  agentOptions?: Array<{ id: string; name: string }>;
 }) {
+  const canEditClient = profileEditLevel !== "none";
+  const canEditAdmin = profileEditLevel === "admin";
   const locale = useLocale();
   const isRtl = locale === "ar";
   const t = useTranslations("units");
@@ -71,7 +87,9 @@ export function UnitClientForm({
   const tFields = useTranslations("fields");
   const tCommon = useTranslations("common");
   const labels = useDomainLabels();
+  const router = useRouter();
   const { pending, runAction } = useCrudToast();
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const formDefaults = useMemo(
     (): UnitProfileFormInput => ({
@@ -88,6 +106,8 @@ export function UnitClientForm({
       contractPricePerMeter: defaults.contractPricePerMeter ?? "",
       area: defaults.area ?? "",
       type: defaults.type as UnitProfileFormInput["type"],
+      unitCode: defaults.unitCode,
+      agentId: defaults.agentId ?? "",
     }),
     [defaults]
   );
@@ -113,7 +133,19 @@ export function UnitClientForm({
   const currencyLabel = currencySuffix(locale);
 
   function onSubmit(values: UnitProfileFormInput) {
-    runAction(() => updateUnitProfile(values), "saved");
+    runAction(() => updateUnit(values), "saved");
+  }
+
+  function onConfirmDelete() {
+    runAction(async () => {
+      const result = await deleteUnit(defaults.unitId);
+      if (result.success) {
+        setDeleteOpen(false);
+        router.push("/units");
+        router.refresh();
+      }
+      return result;
+    }, "deleted");
   }
 
   return (
@@ -134,8 +166,49 @@ export function UnitClientForm({
                 {t("contactRestrictedHint")}
               </p>
             </div>
-          ) : canEdit ? (
+          ) : canEditClient ? (
             <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="unitCode">{t("unitCode")}</Label>
+                <Input
+                  id="unitCode"
+                  disabled={pending || !canEditAdmin}
+                  readOnly={!canEditAdmin}
+                  {...register("unitCode")}
+                />
+              </div>
+              {canEditAdmin ? (
+                <div className="space-y-2">
+                  <Label htmlFor="agentId">{t("agent")}</Label>
+                  <Controller
+                    control={control}
+                    name="agentId"
+                    render={({ field }) => (
+                      <Select
+                        value={field.value ?? ""}
+                        onValueChange={field.onChange}
+                        disabled={pending}
+                      >
+                        <SelectTrigger id="agentId" className="w-full">
+                          <SelectValue placeholder={labels.unassigned} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">{labels.unassigned}</SelectItem>
+                          {agentOptions.map((agent) => (
+                            <SelectItem key={agent.id} value={agent.id}>
+                              {labels.staffName(agent.name)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+              ) : (
+                <p className="text-sm sm:pt-7">
+                  <strong>{t("agent")}:</strong> {defaults.agentLabel}
+                </p>
+              )}
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="clientName">{t("client")}</Label>
                 <Input
@@ -218,7 +291,7 @@ export function UnitClientForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="area">{t("area")}</Label>
-              {canEdit ? (
+              {canEditAdmin ? (
                 <div className="relative">
                   <Input
                     id="area"
@@ -244,9 +317,11 @@ export function UnitClientForm({
                 </p>
               )}
             </div>
-            <p className="text-sm sm:pt-7">
-              <strong>{t("agent")}:</strong> {defaults.agentLabel}
-            </p>
+            {!canEditClient ? (
+              <p className="text-sm sm:pt-7">
+                <strong>{t("agent")}:</strong> {defaults.agentLabel}
+              </p>
+            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -263,7 +338,7 @@ export function UnitClientForm({
               <Label htmlFor="address1">{tClient("address1")}</Label>
               <Input
                 id="address1"
-                disabled={!canEdit || pending}
+                disabled={!canEditClient || pending}
                 {...register("address1")}
               />
             </div>
@@ -271,7 +346,7 @@ export function UnitClientForm({
               <Label htmlFor="address2">{tClient("address2")}</Label>
               <Input
                 id="address2"
-                disabled={!canEdit || pending}
+                disabled={!canEditClient || pending}
                 {...register("address2")}
               />
             </div>
@@ -294,7 +369,7 @@ export function UnitClientForm({
                   value={field.value}
                   onValueChange={field.onChange}
                   items={typeItems}
-                  disabled={!canEdit || pending}
+                  disabled={!canEditAdmin || pending}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -314,7 +389,7 @@ export function UnitClientForm({
             <Label htmlFor="deliveryYear">{tUnit("deliveryYear")}</Label>
             <Input
               id="deliveryYear"
-              disabled={!canEdit || pending}
+              disabled={!canEditAdmin || pending}
               placeholder="2028"
               {...register("deliveryYear")}
             />
@@ -323,7 +398,7 @@ export function UnitClientForm({
             <Label htmlFor="gracePeriod">{tUnit("gracePeriod")}</Label>
             <Input
               id="gracePeriod"
-              disabled={!canEdit || pending}
+              disabled={!canEditAdmin || pending}
               {...register("gracePeriod")}
             />
           </div>
@@ -337,7 +412,7 @@ export function UnitClientForm({
                 type="number"
                 step="any"
                 min="0"
-                disabled={!canEdit || pending}
+                disabled={!canEditAdmin || pending}
                 className={cn(isRtl ? "pl-14" : "pr-14")}
                 {...register("contractPricePerMeter")}
               />
@@ -354,9 +429,53 @@ export function UnitClientForm({
         </CardContent>
       </Card>
 
-      {canEdit ? (
-        <div className="flex justify-end">
-          <Button type="submit" disabled={pending}>
+      {canEditClient ? (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {canEditAdmin ? (
+            <>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={pending}
+                onClick={() => setDeleteOpen(true)}
+              >
+                {t("deleteUnit")}
+              </Button>
+              <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{t("deleteUnitTitle")}</DialogTitle>
+                    <DialogDescription>
+                      {t("deleteUnitConfirm", {
+                        unitCode: defaults.unitCode,
+                        project: defaults.projectName,
+                      })}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDeleteOpen(false)}
+                    >
+                      {tCommon("cancel")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      disabled={pending}
+                      onClick={onConfirmDelete}
+                    >
+                      {t("deleteUnitAction")}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          ) : (
+            <span />
+          )}
+          <Button type="submit" disabled={pending} className="sm:ms-auto">
             {tCommon("save")}
           </Button>
         </div>

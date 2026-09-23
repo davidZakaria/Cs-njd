@@ -9,6 +9,10 @@ import { getTranslations } from "next-intl/server";
 import { getAssignableAgentEmails } from "@/lib/staff";
 import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
 import { UnitsTable } from "@/components/units/units-table";
+import {
+  isAdminUnitManager,
+  isLimitedExportRole,
+} from "@/lib/auth/unit-roles";
 
 export default async function UnitsPage() {
   const session = await auth();
@@ -20,7 +24,7 @@ export default async function UnitsPage() {
 
   const scope = csScope ? csAgentUnitScope(csScope) : {};
 
-  const [units, staffUsers] = await Promise.all([
+  const [units, staffUsers, projectRecords] = await Promise.all([
     prisma.unit.findMany({
       where: activeUnitWhere(scope),
       include: {
@@ -34,7 +38,11 @@ export default async function UnitsPage() {
     prisma.user.findMany({
       where: { email: { in: getAssignableAgentEmails() } },
       orderBy: { name: "asc" },
-      select: { name: true },
+      select: { id: true, name: true },
+    }),
+    prisma.project.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
     }),
   ]);
 
@@ -64,7 +72,14 @@ export default async function UnitsPage() {
         projects={projects}
         agents={agents}
         statuses={statuses}
-        canExport={session?.user.role !== "CS_AGENT"}
+        canExport={
+          session?.user.role ? !isLimitedExportRole(session.user.role) : true
+        }
+        canCreateUnit={
+          session?.user.role ? isAdminUnitManager(session.user.role) : false
+        }
+        createUnitProjects={projectRecords}
+        createUnitAgents={staffUsers}
       />
     </div>
   );

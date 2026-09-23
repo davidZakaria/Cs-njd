@@ -621,6 +621,12 @@
   },
   "units": {
     "title": "Units",
+    "addUnit": "Add unit",
+    "addUnitDescription": "Create a new unit and client record in the selected project.",
+    "deleteUnit": "Delete unit",
+    "deleteUnitTitle": "Delete this unit?",
+    "deleteUnitConfirm": "This soft-deletes unit {unitCode} ({project}). You can restore it only from the database.",
+    "deleteUnitAction": "Delete unit",
     "exportCsv": "Export to Excel/CSV",
     "unitCode": "Unit Code",
     "project": "Project",
@@ -708,6 +714,7 @@
       "superAdmin": "Super Admin",
       "management": "Management",
       "csAgent": "CS Agent",
+      "communityManagement": "Community Management",
       "engineer": "Site Engineer"
     },
     "twoFactor": "2FA",

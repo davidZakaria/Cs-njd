@@ -11,6 +11,8 @@ const roleStyles: Record<Role, string> = {
     "border-blue-200/80 bg-blue-500/10 text-blue-800 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200",
   CS_AGENT:
     "border-slate-200/80 bg-slate-500/10 text-slate-700 dark:border-slate-500/30 dark:bg-slate-500/15 dark:text-slate-200",
+  COMMUNITY_MANAGEMENT:
+    "border-teal-200/80 bg-teal-500/10 text-teal-800 dark:border-teal-500/30 dark:bg-teal-500/15 dark:text-teal-200",
   ENGINEER:
     "border-orange-200/80 bg-orange-500/10 text-orange-800 dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-200",
 };
@@ -25,7 +27,9 @@ export function UserRoleBadge({ role }: { role: Role }) {
         ? t("roles.management")
         : role === "ENGINEER"
           ? t("roles.engineer")
-          : t("roles.csAgent");
+          : role === "COMMUNITY_MANAGEMENT"
+            ? t("roles.communityManagement")
+            : t("roles.csAgent");
 
   return (
     <Badge

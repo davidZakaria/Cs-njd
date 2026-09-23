@@ -5,13 +5,13 @@ Deploy **only** this app on your existing VPS without touching other projects.
 | Item | Value (isolated) |
 |------|------------------|
 | VPS IP | `72.61.192.84` |
-| Domain | `cs-njd.duckdns.org` |
+| Domain | `njd-crm.com` |
 | App directory | `/var/www/cs-njd` |
 | PM2 process name | `cs-njd-crm` |
 | App port | `3001` (localhost only) |
 | Postgres container | `njd-crm-postgres-prod` |
 | Postgres port | `127.0.0.1:5434` |
-| Nginx site file | `/etc/nginx/sites-available/cs-njd.duckdns.org` |
+| Nginx site file | `/etc/nginx/sites-available/njd-crm.com` |
 
 **Repo:** https://github.com/davidZakaria/Cs-njd.git
 
@@ -19,7 +19,7 @@ Deploy **only** this app on your existing VPS without touching other projects.
 
 ## Before you SSH in (one-time, outside VPS)
 
-1. **DuckDNS** — point `cs-njd.duckdns.org` → `72.61.192.84` (A record or DuckDNS update).
+1. **GoDaddy DNS** — point `njd-crm.com` → `72.61.192.84` (A record). See [`deploy/GODADDY-DNS.md`](GODADDY-DNS.md).
 2. Wait a few minutes for DNS to propagate.
 
 ---
@@ -51,7 +51,7 @@ If **3001** or **5434** is already taken, edit before deploy:
 
 - `deploy/ecosystem.config.cjs` → change `3001`
 - `deploy/docker-compose.prod.yml` → change `5434`
-- `deploy/nginx-cs-njd.conf.example` → match the app port in `proxy_pass`
+- `deploy/nginx-njd-crm.conf.example` → match the app port in `proxy_pass`
 
 ---
 
@@ -119,7 +119,7 @@ Set these values (replace placeholders):
 ```env
 DATABASE_URL="postgresql://njd:YOUR_DB_PASSWORD@127.0.0.1:5434/njd_crm?schema=public"
 AUTH_SECRET="PASTE_OUTPUT_OF_openssl_rand_base64_32"
-AUTH_URL="https://cs-njd.duckdns.org"
+AUTH_URL="https://njd-crm.com"
 BACKUP_DIR="/var/www/cs-njd/backups"
 BACKUP_DOCKER_CONTAINER="njd-crm-postgres-prod"
 BACKUP_CRON="0 2 * * *"
@@ -219,11 +219,11 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3001/en/login
 Copy the example config — **does not edit other sites**:
 
 ```bash
-sudo cp /var/www/cs-njd/deploy/nginx-cs-njd.conf.example \
-  /etc/nginx/sites-available/cs-njd.duckdns.org
+sudo cp /var/www/cs-njd/deploy/nginx-njd-crm.conf.example \
+  /etc/nginx/sites-available/njd-crm.com
 
-sudo ln -sf /etc/nginx/sites-available/cs-njd.duckdns.org \
-  /etc/nginx/sites-enabled/cs-njd.duckdns.org
+sudo ln -sf /etc/nginx/sites-available/njd-crm.com \
+  /etc/nginx/sites-enabled/njd-crm.com
 
 sudo nginx -t
 sudo systemctl reload nginx
@@ -232,7 +232,7 @@ sudo systemctl reload nginx
 Test HTTP:
 
 ```bash
-curl -sI http://cs-njd.duckdns.org | head -5
+curl -sI http://njd-crm.com | head -5
 ```
 
 ---
@@ -240,18 +240,18 @@ curl -sI http://cs-njd.duckdns.org | head -5
 ## Step 9 — HTTPS (Certbot, this domain only)
 
 ```bash
-sudo certbot --nginx -d cs-njd.duckdns.org
+sudo certbot --nginx -d njd-crm.com -d www.njd-crm.com
 ```
 
-Follow prompts. Certbot updates **only** the `cs-njd.duckdns.org` server block.
+Follow prompts. Certbot updates **only** the `njd-crm.com` server block.
 
 Verify:
 
 ```bash
-curl -sI https://cs-njd.duckdns.org | head -5
+curl -sI https://njd-crm.com | head -5
 ```
 
-Open in browser: **https://cs-njd.duckdns.org**
+Open in browser: **https://njd-crm.com**
 
 ---
 
@@ -293,6 +293,26 @@ cd /var/www/cs-njd
 npm run sync:excel
 ```
 
+### Contact-only update (2026 full contacts sheet)
+
+Requires a deploy that includes `scripts/update-clients-from-excel.ts` (Community Management / contact sync release). Upload the workbook:
+
+```powershell
+scp "E:\My Projects\Customer Service  njd\docs\Copy of Njd 2026 - Update (full contacts).xlsx" `
+  root@YOUR_VPS_IP:/var/www/cs-njd/docs/
+```
+
+On VPS — **dry run first**, then apply:
+
+```bash
+cd /var/www/cs-njd
+npx tsx scripts/update-clients-from-excel.ts --file "docs/Copy of Njd 2026 - Update (full contacts).xlsx"
+npx tsx scripts/update-clients-from-excel.ts --file "docs/Copy of Njd 2026 - Update (full contacts).xlsx" --apply
+# or: npm run sync:contacts -- --apply
+```
+
+If you see `Cannot find module ... update-clients`, the server code is behind GitHub — run `./deploy/update.sh` after pushing from your dev machine.
+
 ---
 
 ## Future updates (safe, one app only)
@@ -319,7 +339,7 @@ pm2 save
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3001/en/login
 ```
 
-Expect **200** from the curl check. Then verify in browser: **https://cs-njd.duckdns.org**
+Expect **200** from the curl check. Then verify in browser: **https://njd-crm.com**
 
 ---
 
@@ -362,7 +382,7 @@ pm2 logs cs-njd-crm --lines 50
 | Resource | Other projects | This deploy |
 |----------|----------------|-------------|
 | PM2 | Existing processes stay as-is | Adds `cs-njd-crm` only |
-| Nginx | Other `sites-enabled` unchanged | New file `cs-njd.duckdns.org` |
+| Nginx | Other `sites-enabled` unchanged | New file `njd-crm.com` |
 | Docker | Other containers unchanged | New `njd-crm-postgres-prod` + volume `njd_crm_pg_prod` |
 | Ports | 80/443 shared via nginx (normal) | App `3001`, DB `5434` bound to 127.0.0.1 |
 | `/var/www/*` | Other app folders untouched | Only `/var/www/cs-njd` |
@@ -401,7 +421,7 @@ grep DATABASE_URL .env
 
 **Auth/cookies issues**
 
-Ensure `AUTH_URL=https://cs-njd.duckdns.org` matches the URL you use in the browser.
+Ensure `AUTH_URL=https://njd-crm.com` matches the URL you use in the browser.
 
 **2FA / QR code issues**
 
