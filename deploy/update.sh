@@ -15,7 +15,7 @@ echo "==> Ensure upload directory"
 mkdir -p uploads/signed-protocols uploads/national-ids uploads/signed-contracts uploads/extension-annexes uploads/finishing-contracts
 
 echo "==> Install dependencies"
-npm ci
+npm ci --legacy-peer-deps
 
 echo "==> Run migrations"
 npx prisma migrate deploy
