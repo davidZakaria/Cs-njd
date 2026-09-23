@@ -160,7 +160,8 @@ model User {
 
   assignedUnits         Unit[]          @relation("AssignedAgent")
   assignedEngineerUnits Unit[]          @relation("AssignedEngineer")
-  tickets               Ticket[]
+  tickets               Ticket[]        @relation("TicketAgent")
+  createdTickets        Ticket[]        @relation("TicketCreatedBy")
   auditLogs     AuditLog[]
   notifications Notification[]
   loginHistory  LoginHistory[]
@@ -303,6 +304,7 @@ model Ticket {
   id               String         @id @default(cuid())
   unitId           String
   agentId          String?
+  createdById      String?
   notes            String
   category         TicketCategory @default(GENERAL)
   status           TicketStatus   @default(PENDING)
@@ -314,12 +316,14 @@ model Ticket {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  unit  Unit  @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  agent User? @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  unit      Unit  @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  agent     User? @relation("TicketAgent", fields: [agentId], references: [id], onDelete: SetNull)
+  createdBy User? @relation("TicketCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([unitId])
   @@index([status])
   @@index([agentId])
+  @@index([createdById])
   @@index([category])
   @@index([status, agentId])
   @@index([status, updatedAt])

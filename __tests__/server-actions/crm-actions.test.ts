@@ -63,6 +63,7 @@ vi.mock("@/lib/notifications/triggers", () => ({
   notifyFinishingUpdatedByAgent: vi.fn().mockResolvedValue(undefined),
   notifyHandoverChecklistUpdatedByAgent: vi.fn().mockResolvedValue(undefined),
   notifyInboundCall: vi.fn().mockResolvedValue(undefined),
+  notifyCrossAgentTicketOpened: vi.fn().mockResolvedValue(undefined),
 }));
 
 function createMockSession(user: {
@@ -520,6 +521,58 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
       const result = await createTicket(formData);
       
       expect(result.success).toBe(true);
+      expect(mockPrismaTicket.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            agentId: agentId,
+            createdById: agentId,
+          }),
+        })
+      );
+    });
+
+    it("allows CS agent to create ticket on another agent's unit", async () => {
+      const actorId = "cs-agent-2";
+      const ownerId = "cs-agent-1";
+      mockAuth.mockResolvedValue(createMockSession({
+        id: actorId,
+        role: "CS_AGENT",
+        name: "Agent Two",
+      }));
+
+      const unit = { id: "unit-1", agentId: ownerId, unitCode: "A-101" };
+      mockPrismaUnit.findUnique.mockResolvedValue(unit);
+      mockPrismaTicket.create.mockResolvedValue({
+        id: "ticket-cross",
+        unitId: unit.id,
+      });
+
+      const { createTicket } = await import("@/lib/actions/crm");
+      const { notifyCrossAgentTicketOpened } = await import(
+        "@/lib/notifications/triggers"
+      );
+
+      const formData = new FormData();
+      formData.set("unitId", "unit-1");
+      formData.set("notes", "Cross-unit ticket");
+
+      const result = await createTicket(formData);
+
+      expect(result.success).toBe(true);
+      expect(mockPrismaTicket.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            agentId: ownerId,
+            createdById: actorId,
+          }),
+        })
+      );
+      expect(notifyCrossAgentTicketOpened).toHaveBeenCalledWith(
+        expect.objectContaining({
+          assignedAgentId: ownerId,
+          ticketId: "ticket-cross",
+        })
+      );
     });
 
     it("requires notes for ticket creation", async () => {

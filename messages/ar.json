@@ -801,6 +801,7 @@
     "legal": "قانوني",
     "general": "عام",
     "awaitingResponse": "في انتظار الرد",
+    "crossAssignTicketHint": "هذه الوحدة مسندة للزميل/ة {agentName}. سيتم تحويل التذكرة إلى قائمة أعماله تلقائياً.",
     "openCases": "المفتوحة فقط",
     "showSection": "عرض",
     "hideSection": "إخفاء",

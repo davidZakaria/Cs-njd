@@ -145,7 +145,18 @@ export default async function UnitProfilePage({
   };
 
   const hideAddFeedback =
-    hasResolvedCase && session?.user.role === "CS_AGENT";
+    hasResolvedCase &&
+    (session?.user.role === "CS_AGENT" ||
+      session?.user.role === "COMMUNITY_MANAGEMENT");
+  const crossAssignAgentName =
+    session?.user &&
+    (session.user.role === "CS_AGENT" ||
+      session.user.role === "COMMUNITY_MANAGEMENT") &&
+    unit.agentId &&
+    unit.agentId !== session.user.id &&
+    unit.agent
+      ? agentLabel
+      : null;
   const canEditCsChecklist =
     csScope != null && canAccessUnitAsCsAgent(csScope, unit.agentId);
   const defaultTab =
@@ -421,6 +432,7 @@ export default async function UnitProfilePage({
             resolvedTicketId={resolvedTicket?.id ?? null}
             gateContext={gateContext}
             hideAddFeedback={hideAddFeedback}
+            crossAssignAgentName={crossAssignAgentName}
             canBypassGates={session?.user?.role === "SUPER_ADMIN"}
           />
         </TabsContent>

@@ -801,6 +801,7 @@
     "legal": "Legal",
     "general": "General",
     "awaitingResponse": "Awaiting response",
+    "crossAssignTicketHint": "This unit is assigned to {agentName}. The ticket will be routed to their queue automatically.",
     "openCases": "Open only",
     "showSection": "Show",
     "hideSection": "Hide",

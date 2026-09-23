@@ -4,6 +4,29 @@ import {
   notifyUser,
 } from "@/lib/services/notifications";
 
+export async function notifyCrossAgentTicketOpened({
+  assignedAgentId,
+  actorName,
+  unitCode,
+  unitId,
+  ticketId,
+}: {
+  assignedAgentId: string;
+  actorName: string;
+  unitCode: string;
+  unitId: string;
+  ticketId: string;
+}) {
+  await notifyUser(
+    assignedAgentId,
+    "New Ticket Opened",
+    "تذكرة جديدة مرفوعة",
+    `${actorName} opened ticket #${ticketId} for unit ${unitCode}.`,
+    `قام ${actorName} بفتح تذكرة جديدة رقم #${ticketId} للوحدة ${unitCode}.`,
+    `/units/${unitId}?tab=timeline`
+  );
+}
+
 export async function notifyInboundCall({
   agentUserId,
   unitCode,
