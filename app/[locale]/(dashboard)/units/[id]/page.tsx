@@ -225,7 +225,7 @@ export default async function UnitProfilePage({
             contactDisabled={isLegallyBlocked}
             defaults={{
               unitId: unit.id,
-              clientName: unit.client?.name ?? "ù",
+              clientName: unit.client?.name ?? "ó",
               phone1: unit.client?.phone1 ?? null,
               phone2: unit.client?.phone2 ?? null,
               email: unit.client?.email ?? null,
