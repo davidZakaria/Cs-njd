@@ -8,7 +8,9 @@ import {
   KeyRound,
   MoreHorizontal,
   Pencil,
+  ShieldCheck,
   ShieldOff,
+  ShieldX,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
@@ -19,7 +21,11 @@ import {
   forcePasswordResetByAdmin,
 } from "@/lib/actions/crm";
 import { adminChangeUserPassword, toggleUserStatus } from "@/lib/actions/users";
-import { setUserTwoFactorByAdmin } from "@/lib/actions/two-factor";
+import {
+  approveUser2FAResetRequest,
+  rejectUser2FAResetRequest,
+  setUserTwoFactorByAdmin,
+} from "@/lib/actions/two-factor";
 import {
   canAdminChangePassword,
   canDeleteUser,
@@ -81,6 +87,7 @@ export function UserRowActionsMenu({
 
   const showEdit = canEditUser(actor, target);
   const showReset2FA = canResetUser2FA(actor, target);
+  const showApprove2FAReset = isSuperAdmin && user.hasPending2FAReset;
   const showChangePassword = canAdminChangePassword(actor, target);
   const showForcePassword = canForcePasswordReset(actor, target);
   const showToggleStatus = canToggleUserStatus(actor, target);
@@ -88,6 +95,8 @@ export function UserRowActionsMenu({
 
   const [editOpen, setEditOpen] = useState(false);
   const [reset2faOpen, setReset2faOpen] = useState(false);
+  const [approve2faResetOpen, setApprove2faResetOpen] = useState(false);
+  const [reject2faResetOpen, setReject2faResetOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -112,6 +121,36 @@ export function UserRowActionsMenu({
       },
       "saved",
       tToast("twoFactorReset")
+    );
+  }
+
+  function handleApprove2FAReset() {
+    runAction(
+      async () => {
+        const result = await approveUser2FAResetRequest(user.id);
+        if (result.success) {
+          setApprove2faResetOpen(false);
+          router.refresh();
+        }
+        return result;
+      },
+      "saved",
+      tToast("twoFactorResetApproved")
+    );
+  }
+
+  function handleReject2FAReset() {
+    runAction(
+      async () => {
+        const result = await rejectUser2FAResetRequest(user.id);
+        if (result.success) {
+          setReject2faResetOpen(false);
+          router.refresh();
+        }
+        return result;
+      },
+      "saved",
+      tToast("twoFactorResetRejected")
     );
   }
 
@@ -221,6 +260,18 @@ export function UserRowActionsMenu({
               {t("editDetails")}
             </DropdownMenuItem>
           ) : null}
+          {showApprove2FAReset ? (
+            <>
+              <DropdownMenuItem onClick={() => setApprove2faResetOpen(true)}>
+                <ShieldCheck />
+                {t("approve2FAResetRequest")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setReject2faResetOpen(true)}>
+                <ShieldX />
+                {t("reject2FAResetRequest")}
+              </DropdownMenuItem>
+            </>
+          ) : null}
           {showReset2FA ? (
             <DropdownMenuItem onClick={() => setReset2faOpen(true)}>
               <ShieldOff />
@@ -295,6 +346,63 @@ export function UserRowActionsMenu({
               onClick={handleReset2FA}
             >
               {pending ? tCommon("loading") : t("resetTwoFactorAction")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={approve2faResetOpen} onOpenChange={setApprove2faResetOpen}>
+        <DialogContent showCloseButton={!pending}>
+          <DialogHeader>
+            <DialogTitle>{t("approve2FAResetTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("approve2FAResetConfirm", { name: user.name })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="border-t-0 bg-transparent p-0 pt-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={() => setApprove2faResetOpen(false)}
+            >
+              {tCommon("cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={pending}
+              onClick={handleApprove2FAReset}
+            >
+              {pending ? tCommon("loading") : t("approve2FAResetAction")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={reject2faResetOpen} onOpenChange={setReject2faResetOpen}>
+        <DialogContent showCloseButton={!pending}>
+          <DialogHeader>
+            <DialogTitle>{t("reject2FAResetTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("reject2FAResetConfirm", { name: user.name })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="border-t-0 bg-transparent p-0 pt-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={() => setReject2faResetOpen(false)}
+            >
+              {tCommon("cancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={pending}
+              onClick={handleReject2FAReset}
+            >
+              {pending ? tCommon("loading") : t("reject2FAResetAction")}
             </Button>
           </DialogFooter>
         </DialogContent>

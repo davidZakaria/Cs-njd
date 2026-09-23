@@ -66,6 +66,19 @@ export async function resetTwoFactorSetupForSession(): Promise<ActionResult> {
     return actionFail("SESSION_EXPIRED");
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { is2FAEnabled: true },
+  });
+
+  if (!user) {
+    return actionFail("SESSION_EXPIRED");
+  }
+
+  if (user.is2FAEnabled) {
+    return actionFail("APPROVAL_REQUIRED");
+  }
+
   await prisma.user.update({
     where: { id: session.user.id },
     data: { is2FAEnabled: false, twoFactorSecret: null },

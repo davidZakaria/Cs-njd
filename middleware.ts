@@ -110,6 +110,13 @@ export default middlewareAuth(async (req) => {
   }
 
   if (user.twoFactorVerified && isAuthRoute(normalizedPath)) {
+    // Allow setup-2fa even when the JWT still says verified (e.g. right after reset).
+    if (
+      normalizedPath.startsWith("/setup-2fa") ||
+      user.needs2FASetup
+    ) {
+      return intlMiddleware(req);
+    }
     const home = getHomeRoute(user.role);
     return NextResponse.redirect(new URL(`/${locale}${home}`, req.url));
   }

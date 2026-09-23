@@ -8,6 +8,7 @@ export type UserRow = {
   isActive: boolean;
   is2FAEnabled: boolean;
   hasTwoFactorSecret: boolean;
+  hasPending2FAReset: boolean;
 };
 
 export type UsersTableMeta = {

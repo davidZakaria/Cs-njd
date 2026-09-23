@@ -7,6 +7,13 @@ import {
   verifyTwoFactorCode,
 } from "@/lib/auth/two-factor-session";
 import {
+  approveTwoFactorResetRequest,
+  cancelPendingTwoFactorResetRequests,
+  getTwoFactorResetStatusForSession,
+  rejectTwoFactorResetRequest,
+  requestTwoFactorResetForSession,
+} from "@/lib/auth/two-factor-reset-request";
+import {
   confirmSetupTwoFactor,
   getSetupTwoFactorData,
 } from "@/lib/auth/setup-two-factor";
@@ -68,12 +75,13 @@ export async function setUserTwoFactorByAdmin(
       return actionOk();
     }
 
-    await withAudit(() =>
-      prisma.user.update({
+    await withAudit(async () => {
+      await cancelPendingTwoFactorResetRequests(userId);
+      await prisma.user.update({
         where: { id: userId },
         data: { is2FAEnabled: false, twoFactorSecret: null },
-      })
-    );
+      });
+    });
   }
 
   revalidatePath("/users");
@@ -82,6 +90,34 @@ export async function setUserTwoFactorByAdmin(
 
 export async function resetMy2FASetup(): Promise<ActionResult> {
   return resetTwoFactorSetupForSession();
+}
+
+export async function requestMy2FAReset(): Promise<ActionResult> {
+  return requestTwoFactorResetForSession();
+}
+
+export async function getMy2FAResetStatus() {
+  return getTwoFactorResetStatusForSession();
+}
+
+export async function approveUser2FAResetRequest(
+  userId: string
+): Promise<ActionResult> {
+  const result = await approveTwoFactorResetRequest(userId);
+  if (result.success) {
+    revalidatePath("/users");
+  }
+  return result;
+}
+
+export async function rejectUser2FAResetRequest(
+  userId: string
+): Promise<ActionResult> {
+  const result = await rejectTwoFactorResetRequest(userId);
+  if (result.success) {
+    revalidatePath("/users");
+  }
+  return result;
 }
 
 export async function getSetup2FAData(): Promise<

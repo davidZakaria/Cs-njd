@@ -219,11 +219,15 @@ describe("Two-Factor Authentication Server Actions", () => {
       expect(result).toHaveProperty("error", "SESSION_EXPIRED");
     });
 
-    it("resets 2FA settings for authenticated user", async () => {
+    it("resets 2FA settings during initial setup only", async () => {
       mockAuth.mockResolvedValue(createMockSession({
         id: "user-1",
         role: "CS_AGENT",
       }));
+
+      mockPrismaUser.findUnique.mockResolvedValue({
+        is2FAEnabled: false,
+      });
       
       mockPrismaUser.update.mockResolvedValue({
         id: "user-1",
@@ -239,6 +243,24 @@ describe("Two-Factor Authentication Server Actions", () => {
         where: { id: "user-1" },
         data: { is2FAEnabled: false, twoFactorSecret: null },
       });
+    });
+
+    it("requires super admin approval when 2FA is already enabled", async () => {
+      mockAuth.mockResolvedValue(createMockSession({
+        id: "user-1",
+        role: "CS_AGENT",
+      }));
+
+      mockPrismaUser.findUnique.mockResolvedValue({
+        is2FAEnabled: true,
+      });
+
+      const { resetMy2FASetup } = await import("@/lib/actions/two-factor");
+      const result = await resetMy2FASetup();
+
+      expect(result.success).toBe(false);
+      expect(result).toHaveProperty("error", "APPROVAL_REQUIRED");
+      expect(mockPrismaUser.update).not.toHaveBeenCalled();
     });
   });
 

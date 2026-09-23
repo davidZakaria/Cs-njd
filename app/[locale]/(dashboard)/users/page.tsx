@@ -11,6 +11,14 @@ export default async function UsersPage() {
   const session = await auth();
   const t = await getTranslations("users");
 
+  const pending2FAResets = await prisma.twoFactorResetRequest.findMany({
+    where: { status: "PENDING" },
+    select: { userId: true },
+  });
+  const pending2FAUserIds = new Set(
+    pending2FAResets.map((request) => request.userId)
+  );
+
   const users = await prisma.user.findMany({
     where: {
       deletedAt: null,
@@ -36,6 +44,7 @@ export default async function UsersPage() {
     isActive: user.isActive,
     is2FAEnabled: user.is2FAEnabled,
     hasTwoFactorSecret: Boolean(user.twoFactorSecret),
+    hasPending2FAReset: pending2FAUserIds.has(user.id),
   }));
 
   const canCreate =

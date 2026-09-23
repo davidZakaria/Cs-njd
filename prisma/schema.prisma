@@ -142,6 +142,12 @@ enum LoginAttemptStatus {
   FAILED
 }
 
+enum TwoFactorResetRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id                     String    @id @default(cuid())
   name                   String
@@ -165,9 +171,26 @@ model User {
   auditLogs     AuditLog[]
   notifications Notification[]
   loginHistory  LoginHistory[]
+  twoFactorResetRequests TwoFactorResetRequest[] @relation("TwoFactorResetRequestUser")
+  twoFactorResetReviews  TwoFactorResetRequest[] @relation("TwoFactorResetRequestReviewer")
 
   @@index([role])
   @@index([deletedAt])
+}
+
+model TwoFactorResetRequest {
+  id           String                      @id @default(cuid())
+  userId       String
+  status       TwoFactorResetRequestStatus @default(PENDING)
+  requestedAt  DateTime                    @default(now())
+  reviewedAt   DateTime?
+  reviewedById String?
+
+  user       User  @relation("TwoFactorResetRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("TwoFactorResetRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status, requestedAt])
 }
 
 model Project {

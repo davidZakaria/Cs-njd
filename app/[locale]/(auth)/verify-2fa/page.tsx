@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { getSession, useSession } from "next-auth/react";
-import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { AlertCircle, Clock, Loader2, RefreshCw } from "lucide-react";
 
 import {
   getPostAuthRedirect,
@@ -14,6 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ActionResult } from "@/lib/actions/result";
+type TwoFactorResetStatus =
+  | "none"
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "ready";
 
 const VERIFY_ERROR_CODES = [
   "SESSION_EXPIRED",
@@ -42,6 +48,15 @@ async function postAuthJson<T>(url: string, body?: unknown): Promise<T> {
   return (await response.json()) as T;
 }
 
+async function fetchResetStatus(): Promise<TwoFactorResetStatus> {
+  const response = await fetch("/api/auth/2fa-reset-status", {
+    credentials: "include",
+    cache: "no-store",
+  });
+  const data = (await response.json()) as { status: TwoFactorResetStatus };
+  return data.status ?? "none";
+}
+
 export default function Verify2FAPage() {
   const t = useTranslations("auth");
   const locale = useLocale();
@@ -49,7 +64,52 @@ export default function Verify2FAPage() {
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [resetting, setResetting] = useState(false);
+  const [requestingReset, setRequestingReset] = useState(false);
+  const [resetStatus, setResetStatus] = useState<TwoFactorResetStatus>("none");
+
+  const goToSetup = useCallback(async () => {
+    await update({
+      needs2FASetup: true,
+      is2FAEnabled: false,
+      twoFactorVerified: false,
+    });
+
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const session = await getSession();
+      if (
+        session?.user?.needs2FASetup &&
+        !session.user.twoFactorVerified
+      ) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+
+    window.location.assign(`/${resolveLocale(locale)}/setup-2fa`);
+  }, [locale, update]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function poll() {
+      const status = await fetchResetStatus();
+      if (cancelled) return;
+      setResetStatus(status);
+      if (status === "ready") {
+        await goToSetup();
+      }
+    }
+
+    void poll();
+    const interval = setInterval(() => {
+      void poll();
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [goToSetup]);
 
   function resolveVerifyError(code: string | undefined): string {
     if (!code) return t("verifyFailed");
@@ -100,17 +160,17 @@ export default function Verify2FAPage() {
     }
   }
 
-  async function handleResetAuthenticator() {
+  async function handleRequestReset() {
     if (!window.confirm(t("resetAuthenticatorConfirm"))) {
       return;
     }
 
-    setResetting(true);
+    setRequestingReset(true);
     setError("");
 
     try {
       const result = await postAuthJson<ActionResult>(
-        "/api/auth/reset-2fa-setup"
+        "/api/auth/request-2fa-reset"
       );
 
       if (!result.success) {
@@ -118,21 +178,17 @@ export default function Verify2FAPage() {
         return;
       }
 
-      await update({
-        needs2FASetup: true,
-        is2FAEnabled: false,
-        twoFactorVerified: false,
-      });
-
-      window.location.assign(`/${resolveLocale(locale)}/setup-2fa`);
+      setResetStatus("pending");
     } catch {
       setError(t("resetAuthenticatorFailed"));
     } finally {
-      setResetting(false);
+      setRequestingReset(false);
     }
   }
 
-  const busy = submitting || resetting;
+  const busy = submitting || requestingReset;
+  const resetPending = resetStatus === "pending";
+  const resetRejected = resetStatus === "rejected";
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -198,25 +254,44 @@ export default function Verify2FAPage() {
             <p className="text-sm text-muted-foreground">
               {t("lostAuthenticatorDescription")}
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              disabled={busy}
-              onClick={() => void handleResetAuthenticator()}
-            >
-              {resetting ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  {t("resettingAuthenticator")}
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="size-4" />
-                  {t("resetAuthenticator")}
-                </>
-              )}
-            </Button>
+
+            {resetPending ? (
+              <div className="flex gap-2 rounded-md border border-border bg-muted/40 p-3 text-sm">
+                <Clock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <p>{t("resetAuthenticatorPending")}</p>
+              </div>
+            ) : null}
+
+            {resetRejected ? (
+              <div
+                role="alert"
+                className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive"
+              >
+                {t("resetAuthenticatorRejected")}
+              </div>
+            ) : null}
+
+            {!resetPending ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={busy}
+                onClick={() => void handleRequestReset()}
+              >
+                {requestingReset ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    {t("resettingAuthenticator")}
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="size-4" />
+                    {t("resetAuthenticator")}
+                  </>
+                )}
+              </Button>
+            ) : null}
           </div>
         </CardContent>
       </Card>
