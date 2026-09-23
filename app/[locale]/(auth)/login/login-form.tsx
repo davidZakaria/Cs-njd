@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NjdMark } from "@/components/brand/njd-mark";
+import { JCommunitiesLogo } from "@/components/brand/j-communities-logo";
 import { ACCOUNT_DISABLED_ERROR } from "@/lib/auth/error-codes";
 import { AUTH_RATE_LIMIT_ERROR } from "@/lib/security/rate-limit";
 
@@ -130,14 +130,9 @@ export default function LoginForm() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-4 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <NjdMark size={48} className="rounded-xl shadow-md" />
-            <div className="space-y-1">
-              <p className="font-heading text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                NJD Post-Sales CRM
-              </p>
-              <CardTitle>{t("login")}</CardTitle>
-            </div>
+          <div className="flex flex-col items-center gap-4">
+            <JCommunitiesLogo height={52} className="max-w-[min(100%,18rem)]" />
+            <CardTitle>{t("login")}</CardTitle>
           </div>
         </CardHeader>
         <CardContent>

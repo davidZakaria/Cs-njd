@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "نظام NJD لخدمة ما بعد البيع",
+    "title": "J Communities",
     "description": "إدارة خدمة العملاء وتسليم الوحدات العقارية"
   },
   "print": {
@@ -430,10 +430,12 @@
       "QR_GENERATION_FAILED": "تعذّر إنشاء رمز QR. اضغط البدء من جديد للمحاولة مرة أخرى."
     },
     "lostAuthenticatorTitle": "فقدت الوصول إلى تطبيق المصادقة؟",
-    "lostAuthenticatorDescription": "يمكنك إعادة ضبط المصادقة الثنائية ومسح رمز QR جديد. ستتوقف الرموز القديمة فورًا.",
-    "resetAuthenticator": "إعادة الضبط ومسح QR جديد",
-    "resetAuthenticatorConfirm": "إعادة ضبط المصادقة الثنائية وعرض رمز QR جديد؟ سيتوقف تطبيق المصادقة الحالي عن العمل.",
-    "resetAuthenticatorFailed": "تعذّر إعادة ضبط المصادقة الثنائية. حاول مرة أخرى أو تواصل مع المسؤول.",
+    "lostAuthenticatorDescription": "اطلب إعادة الضبط من المسؤول الأعلى. بعد الموافقة ستُحدَّث هذه الصفحة تلقائيًا لعرض رمز QR جديد.",
+    "resetAuthenticator": "طلب موافقة المسؤول الأعلى",
+    "resetAuthenticatorConfirm": "إرسال طلب إعادة ضبط المصادقة إلى المسؤول الأعلى؟ يظل تطبيق المصادقة الحالي فعّالًا حتى الموافقة.",
+    "resetAuthenticatorPending": "بانتظار موافقة المسؤول الأعلى. اترك هذه الصفحة مفتوحة — سيتم تحويلك لمسح رمز QR جديد بعد الموافقة.",
+    "resetAuthenticatorRejected": "رفض المسؤول الأعلى طلب إعادة الضبط. تواصل معه إذا كنت ما زلت بحاجة للمساعدة.",
+    "resetAuthenticatorFailed": "تعذّر إرسال طلب إعادة الضبط. حاول مرة أخرى أو تواصل مع المسؤول.",
     "resettingAuthenticator": "جاري إعادة الضبط…",
     "loadingQr": "جاري تحميل رمز QR…",
     "qrAlt": "رم QR للمصادقة الثنائية",
@@ -727,6 +729,14 @@
     "resetTwoFactorTitle": "إعادة تعيين المصادقة الثنائية",
     "resetTwoFactorConfirm": "هل أنت متأكد من تعطيل المصادقة الثنائية لـ {name}؟ سيُطلب منهم إعادة التسجيل عند تسجيل الدخول التالي.",
     "resetTwoFactorAction": "إعادة تعيين المصادقة الثنائية",
+    "approve2FAResetRequest": "الموافقة على طلب إعادة ضبط المصادقة",
+    "approve2FAResetTitle": "الموافقة على إعادة ضبط المصادقة",
+    "approve2FAResetConfirm": "الموافقة على طلب {name} لتسجيل مصادقة جديدة؟ ستتوقف الرموز الحالية فورًا.",
+    "approve2FAResetAction": "موافقة",
+    "reject2FAResetRequest": "رفض طلب إعادة ضبط المصادقة",
+    "reject2FAResetTitle": "رفض إعادة ضبط المصادقة",
+    "reject2FAResetConfirm": "رفض طلب {name}؟ سيظل يستخدم المصادقة الحالية.",
+    "reject2FAResetAction": "رفض الطلب",
     "forcePasswordReset": "إجبار تغيير كلمة المرور",
     "forcePasswordResetTitle": "إجبار تغيير كلمة المرور",
     "forcePasswordResetConfirm": "هل تريد إلزام {name} بتعيين كلمة مرور جديدة عند تسجيل الدخول التالي؟",
@@ -776,6 +786,8 @@
       "userUpdated": "تم تحديث المستخدم بنجاح",
       "userDeleted": "تم حذف المستخدم بنجاح",
       "twoFactorReset": "تم إعادة تعيين المصادقة الثنائية لهذا المستخدم",
+      "twoFactorResetApproved": "تمت الموافقة — يمكن للمستخدم مسح رمز QR جديد",
+      "twoFactorResetRejected": "تم رفض طلب إعادة ضبط المصادقة",
       "passwordResetForced": "سيُطلب من المستخدم تغيير كلمة المرور عند تسجيل الدخول التالي"
     }
   },

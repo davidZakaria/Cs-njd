@@ -43,7 +43,7 @@ import { cn } from "@/lib/utils";
 import { AdminNavGroups } from "@/components/layout/admin-nav-groups";
 import { GlobalAnnouncementBanner } from "@/components/layout/global-announcement-banner";
 import { GlobalSpotlight } from "@/components/layout/global-spotlight";
-import { NjdMark } from "@/components/brand/njd-mark";
+import { JCommunitiesLogo } from "@/components/brand/j-communities-logo";
 
 const iconMap = {
   dashboard: LayoutDashboard,
@@ -70,9 +70,10 @@ function DashboardTopBar() {
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <SidebarTrigger className="shrink-0 transition-transform duration-300 active:scale-95" />
-          <p className="hidden truncate text-sm font-medium text-muted-foreground sm:block">
-            NJD Post-Sales CRM
-          </p>
+          <JCommunitiesLogo
+            height={26}
+            className="min-w-0 max-w-[min(100%,10rem)] shrink"
+          />
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <NotificationBell locale={locale} />
@@ -97,9 +98,11 @@ export function AppSidebar({ role }: { role: Role }) {
   return (
     <Sidebar collapsible="icon" side={isRtl ? "right" : "left"}>
       <SidebarHeader className="border-b border-border/50 px-4 py-4">
-        <div className="flex items-center gap-2.5 font-heading text-base font-semibold tracking-tight [dir=rtl]:flex-row-reverse">
-          <NjdMark size={32} className="rounded-lg shadow-sm" />
-          <span className="truncate group-data-[collapsible=icon]:hidden">NJD CRM</span>
+        <div className="flex min-w-0 items-center [dir=rtl]:flex-row-reverse">
+          <JCommunitiesLogo
+            height={34}
+            className="max-w-[10.5rem] group-data-[collapsible=icon]:max-w-8 group-data-[collapsible=icon]:overflow-hidden"
+          />
         </div>
       </SidebarHeader>
       <SidebarContent className="px-1 py-2">

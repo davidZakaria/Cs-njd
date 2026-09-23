@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "NJD Post-Sales CRM",
+    "title": "J Communities",
     "description": "Real Estate Post-Sales & Customer Service"
   },
   "print": {
@@ -430,10 +430,12 @@
       "QR_GENERATION_FAILED": "Could not generate the QR code. Tap Start over to retry."
     },
     "lostAuthenticatorTitle": "Lost access to your authenticator?",
-    "lostAuthenticatorDescription": "You can reset 2FA and scan a new QR code. Your old authenticator codes will stop working immediately.",
-    "resetAuthenticator": "Reset & scan new QR code",
-    "resetAuthenticatorConfirm": "Reset two-factor authentication and show a new QR code? Your current authenticator will stop working.",
-    "resetAuthenticatorFailed": "Could not reset 2FA. Try again or contact your administrator.",
+    "lostAuthenticatorDescription": "Request a reset from your Super Admin. After they approve, this page will refresh automatically with a new QR code to scan.",
+    "resetAuthenticator": "Request Super Admin approval",
+    "resetAuthenticatorConfirm": "Send a 2FA reset request to your Super Admin? Your current authenticator stays active until they approve.",
+    "resetAuthenticatorPending": "Waiting for Super Admin approval. Keep this page open — you will be redirected to scan a new QR code once approved.",
+    "resetAuthenticatorRejected": "Your Super Admin declined this reset request. Contact them if you still need help.",
+    "resetAuthenticatorFailed": "Could not send the reset request. Try again or contact your administrator.",
     "resettingAuthenticator": "Resetting…",
     "loadingQr": "Loading QR code…",
     "qrAlt": "Two-factor authentication QR code",
@@ -727,6 +729,14 @@
     "resetTwoFactorTitle": "Reset two-factor authentication",
     "resetTwoFactorConfirm": "Are you sure you want to disable 2FA for {name}? They will be forced to re-enroll on next login.",
     "resetTwoFactorAction": "Reset 2FA",
+    "approve2FAResetRequest": "Approve 2FA reset request",
+    "approve2FAResetTitle": "Approve authenticator reset",
+    "approve2FAResetConfirm": "Approve {name}'s request to enroll a new authenticator? Their current codes will stop working immediately.",
+    "approve2FAResetAction": "Approve reset",
+    "reject2FAResetRequest": "Decline 2FA reset request",
+    "reject2FAResetTitle": "Decline authenticator reset",
+    "reject2FAResetConfirm": "Decline {name}'s 2FA reset request? They will keep using their current authenticator.",
+    "reject2FAResetAction": "Decline request",
     "forcePasswordReset": "Force password reset",
     "forcePasswordResetTitle": "Force password change",
     "forcePasswordResetConfirm": "Require {name} to set a new password on their next login?",
@@ -776,6 +786,8 @@
       "userUpdated": "User updated successfully",
       "userDeleted": "User deleted successfully",
       "twoFactorReset": "2FA has been reset for this user",
+      "twoFactorResetApproved": "2FA reset approved — user can scan a new QR code",
+      "twoFactorResetRejected": "2FA reset request declined",
       "passwordResetForced": "User will be required to change their password on next login"
     }
   },

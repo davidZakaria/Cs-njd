@@ -1,18 +1,15 @@
 import type { ReactNode } from "react";
 
+import { JCommunitiesLogo } from "@/components/brand/j-communities-logo";
 import { cn } from "@/lib/utils";
-
-const NJD_LOGO_SRC = "/brand/njd-logo.png";
 
 export function HandoverBrandLogo({ className }: { className?: string }) {
   return (
-    // Native img for reliable print/PDF output (Next/Image can skip in print).
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={NJD_LOGO_SRC}
-      alt="New Jersey Development"
+    <JCommunitiesLogo
+      variant="light-ui"
+      height={48}
       className={cn(
-        "h-12 w-auto max-w-[7.5rem] shrink-0 object-contain object-center print:h-[14mm] print:max-w-[42mm]",
+        "mx-auto max-w-[11rem] shrink-0 object-center print:h-[14mm] print:max-w-[52mm]",
         className
       )}
     />
