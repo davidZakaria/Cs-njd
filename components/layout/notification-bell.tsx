@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { buttonVariants } from "@/components/ui/button";
+import { isTwoFactorResetReviewLink } from "@/lib/auth/two-factor-reset-links";
 import { cn } from "@/lib/utils";
 
 function formatRelativeTime(iso: string, locale: string) {
@@ -124,7 +125,14 @@ export function NotificationBell({ locale }: { locale: string }) {
       }
       setOpen(false);
       if (item.link) {
-        router.push(item.link);
+        const href = item.link.startsWith("/")
+          ? `/${locale}${item.link}`
+          : item.link;
+        if (isTwoFactorResetReviewLink(item.link)) {
+          window.open(href, "_blank", "noopener,noreferrer");
+        } else {
+          router.push(item.link);
+        }
       }
       await refresh();
     });

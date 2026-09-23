@@ -106,6 +106,7 @@ export async function approveUser2FAResetRequest(
   const result = await approveTwoFactorResetRequest(userId);
   if (result.success) {
     revalidatePath("/users");
+    revalidatePath(`/users/2fa-reset/${userId}`);
   }
   return result;
 }
@@ -116,6 +117,7 @@ export async function rejectUser2FAResetRequest(
   const result = await rejectTwoFactorResetRequest(userId);
   if (result.success) {
     revalidatePath("/users");
+    revalidatePath(`/users/2fa-reset/${userId}`);
   }
   return result;
 }
