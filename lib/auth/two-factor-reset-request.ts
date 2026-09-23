@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { prisma } from "@/lib/prisma";
-import { twoFactorResetReviewPath } from "@/lib/auth/two-factor-reset-links";
+import { twoFactorResetRequestsPath } from "@/lib/auth/two-factor-reset-links";
 import { notifyRoles, notifyUser } from "@/lib/services/notifications";
 
 export type TwoFactorResetStatus =
@@ -41,9 +41,9 @@ export async function requestTwoFactorResetForSession(): Promise<ActionResult> {
       ["SUPER_ADMIN"],
       "2FA reset requested",
       "طلب إعادة ضبط المصادقة الثنائية",
-      `${user.name} (${user.email}) requested a new authenticator setup. Open the review page to approve or decline.`,
-      `طلب ${user.name} (${user.email}) إعادة ضبط المصادقة الثنائية. افتح صفحة المراجعة للموافقة أو الرفض.`,
-      twoFactorResetReviewPath(user.id)
+      `${user.name} (${user.email}) requested a new authenticator setup. Open 2FA Reset Requests to approve or decline.`,
+      `طلب ${user.name} (${user.email}) إعادة ضبط المصادقة الثنائية. افتح «طلبات إعادة ضبط 2FA» للموافقة أو الرفض.`,
+      twoFactorResetRequestsPath()
     );
   }
 

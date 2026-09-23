@@ -348,6 +348,7 @@
     "backups": "النسخ الاحتياطي",
     "system": "النظام",
     "loginHistory": "سجل تسجيل الدخول",
+    "twoFactorRequests": "طلبات إعادة ضبط 2FA",
     "systemHealth": "صحة النظام",
     "notificationsLog": "سجل الإشعارات",
     "systemSettings": "الإعدادات العامة",
@@ -776,6 +777,16 @@
     "confirmPassword": "تأكيد كلمة المرور",
     "passwordMismatch": "كلمتا المرور غير متطابقتين",
     "changePasswordAction": "حفظ كلمة المرور",
+    "twoFactorResetRequests": {
+      "title": "طلبات إعادة ضبط المصادقة الثنائية",
+      "subtitle": "مستخدمون بانتظار موافقة المدير العام لمسح رمز QR جديد.",
+      "emptyTitle": "لا توجد طلبات معلّقة",
+      "emptyDescription": "عند طلب إعادة الضبط من شاشة التحقق، سيظهر الطلب هنا.",
+      "columns": {
+        "actions": "إجراءات"
+      },
+      "openReview": "مراجعة"
+    },
     "twoFactorResetReview": {
       "title": "طلب إعادة ضبط المصادقة الثنائية",
       "description": "فقد هذا المستخدم الوصول إلى تطبيق المصادقة. وافق فقط بعد التحقق من هويته.",

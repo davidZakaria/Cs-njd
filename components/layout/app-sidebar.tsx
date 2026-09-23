@@ -13,6 +13,7 @@ import {
   Settings,
   Users,
   Shield,
+  ShieldAlert,
   Gauge,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -56,6 +57,7 @@ const iconMap = {
   auditLogs: ScrollText,
   backups: Database,
   loginHistory: Shield,
+  twoFactorRequests: ShieldAlert,
   systemHealth: Gauge,
   notificationsLog: Bell,
   systemSettings: Settings,

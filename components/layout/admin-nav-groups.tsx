@@ -11,6 +11,7 @@ import {
   ScrollText,
   Settings,
   Shield,
+  ShieldAlert,
   Users,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -39,6 +40,7 @@ const groupIconMap = {
 
 const itemIconMap: Partial<Record<NavItemKey, typeof Users>> = {
   users: Users,
+  twoFactorRequests: ShieldAlert,
   loginHistory: Shield,
   imports: FileUp,
   backups: Database,

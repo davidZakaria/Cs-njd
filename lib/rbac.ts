@@ -72,6 +72,7 @@ export type NavItemKey =
   | "backups"
   | "system"
   | "loginHistory"
+  | "twoFactorRequests"
   | "systemHealth"
   | "systemSettings"
   | "notificationsLog";
@@ -118,6 +119,7 @@ export function getSuperAdminNavGroups(): Array<{
       key: "usersSecurity",
       items: [
         { href: "/users", key: "users" },
+        { href: "/users/2fa-requests", key: "twoFactorRequests" },
         { href: "/system/security", key: "loginHistory" },
       ],
     },

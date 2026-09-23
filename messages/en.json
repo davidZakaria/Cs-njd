@@ -348,6 +348,7 @@
     "backups": "Backups",
     "system": "System",
     "loginHistory": "Login History",
+    "twoFactorRequests": "2FA Reset Requests",
     "systemHealth": "System Health",
     "notificationsLog": "Notifications Log",
     "systemSettings": "General Settings",
@@ -776,6 +777,16 @@
     "confirmPassword": "Confirm password",
     "passwordMismatch": "Passwords do not match",
     "changePasswordAction": "Save password",
+    "twoFactorResetRequests": {
+      "title": "2FA reset requests",
+      "subtitle": "Users waiting for Super Admin approval to scan a new authenticator QR code.",
+      "emptyTitle": "No pending requests",
+      "emptyDescription": "When someone requests a reset from the verify screen, they will appear here.",
+      "columns": {
+        "actions": "Actions"
+      },
+      "openReview": "Review"
+    },
     "twoFactorResetReview": {
       "title": "2FA reset request",
       "description": "This user lost access to their authenticator app. Approve only if you have verified their identity.",
