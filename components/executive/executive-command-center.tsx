@@ -17,6 +17,8 @@ import type { AgentKPIRow } from "@/lib/cases/kpi-types";
 import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
 import type { ExecutivePortfolioMetrics } from "@/lib/executive/portfolio-analytics";
 import type { ExecutiveFinancials } from "@/lib/executive/financial-analytics";
+import { CommunityDailyTracker } from "@/components/dashboard/CommunityDailyTracker";
+import type { SerializedCommunityDailyActivity } from "@/lib/actions/community-tracker";
 
 function TabCountBadge({
   count,
@@ -44,18 +46,23 @@ export function ExecutiveCommandCenter({
   portfolio,
   financials,
   kpis,
+  communityDailyActivity,
+  communityTrackerDate,
   canUseManagementOverride = false,
 }: {
   data: ExecutiveDashboardData;
   portfolio: ExecutivePortfolioMetrics;
   financials: ExecutiveFinancials | null;
   kpis: AgentKPIRow[];
+  communityDailyActivity: SerializedCommunityDailyActivity;
+  communityTrackerDate: string;
   canUseManagementOverride?: boolean;
 }) {
   const locale = useLocale();
   const isRtl = locale === "ar";
   const t = useTranslations("executive");
   const tPerformance = useTranslations("performance");
+  const tCommunity = useTranslations("executive.communityTracking");
   const { project: projectLabel } = useDomainLabels();
 
   const kpiLabels = useMemo(
@@ -147,6 +154,24 @@ export function ExecutiveCommandCenter({
             >
               {tPerformance("tabTitle")}
             </TabsTrigger>
+            <TabsTrigger
+              value="community"
+              className={cn(
+                "group/tabs-trigger snap-start rounded-md px-4 py-2.5 text-sm font-medium",
+                "text-muted-foreground transition-colors",
+                "hover:bg-muted/60 hover:text-foreground",
+                "data-active:bg-background data-active:text-foreground data-active:shadow-sm",
+                "data-active:ring-1 data-active:ring-foreground/10"
+              )}
+            >
+              <span className="flex items-center gap-2">
+                {tCommunity("tabLabel")}
+                <TabCountBadge
+                  count={communityDailyActivity.activities.length}
+                  variant="open"
+                />
+              </span>
+            </TabsTrigger>
             {data.byProject.map((slice) => (
               <TabsTrigger
                 key={slice.slug}
@@ -218,6 +243,16 @@ export function ExecutiveCommandCenter({
         className="animate-fade-up animate-delay-100 opacity-0 animate-fill-backwards"
       >
         <ExecutivePerformancePanel kpis={kpis} />
+      </TabsContent>
+
+      <TabsContent
+        value="community"
+        className="animate-fade-up animate-delay-100 opacity-0 animate-fill-backwards"
+      >
+        <CommunityDailyTracker
+          initialData={communityDailyActivity}
+          initialDate={communityTrackerDate}
+        />
       </TabsContent>
 
       {data.byProject.map((slice) => (

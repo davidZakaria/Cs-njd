@@ -10,6 +10,8 @@ import {
   getExecutiveFinancials,
 } from "@/lib/executive/financial-analytics";
 import { ExecutiveCommandCenter } from "@/components/executive/executive-command-center";
+import { getInitialCommunityDailyActivity } from "@/lib/actions/community-tracker";
+import { format } from "date-fns";
 import { Link } from "@/i18n/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
@@ -31,12 +33,18 @@ export default async function ExecutiveDashboardPage() {
 
   const { startDate, endDate } = getDefaultKpiPeriod();
 
-  const [data, portfolio, financials, kpis] = await Promise.all([
-    getExecutiveDashboardData(session.user.id),
-    getExecutivePortfolioMetrics(),
-    EXECUTIVE_FINANCIALS_ENABLED ? getExecutiveFinancials() : Promise.resolve(null),
-    getAgentKPIs(startDate, endDate),
-  ]);
+  const communityTrackerDate = format(new Date(), "yyyy-MM-dd");
+
+  const [data, portfolio, financials, kpis, communityDailyActivity] =
+    await Promise.all([
+      getExecutiveDashboardData(session.user.id),
+      getExecutivePortfolioMetrics(),
+      EXECUTIVE_FINANCIALS_ENABLED
+        ? getExecutiveFinancials()
+        : Promise.resolve(null),
+      getAgentKPIs(startDate, endDate),
+      getInitialCommunityDailyActivity(communityTrackerDate),
+    ]);
 
   return (
     <div className="space-y-6">
@@ -71,6 +79,8 @@ export default async function ExecutiveDashboardPage() {
           portfolio={portfolio}
           financials={financials}
           kpis={kpis}
+          communityDailyActivity={communityDailyActivity}
+          communityTrackerDate={communityTrackerDate}
           canUseManagementOverride={canUseManagementOverride(session.user)}
         />
       </div>

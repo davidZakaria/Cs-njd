@@ -622,6 +622,36 @@
       "doorFees": "مصاريف الباب",
       "aluminumFees": "مصاريف الألوميتال",
       "grandTotal": "إجمالي المحفظة"
+    },
+    "communityTracking": {
+      "tabLabel": "متابعة المجتمعات",
+      "title": "متابعة أداء إدارة المجتمعات (Daily Work Trace)",
+      "selectDate": "اختر اليوم",
+      "selectAgent": "تحديد موظف المجتمعات",
+      "allAgents": "جميع موظفي إدارة المجتمعات",
+      "kpis": {
+        "ticketsCreated": "تذاكر جديدة مرفوعة",
+        "callsLogged": "مكالمات مسجلة",
+        "timelineNotes": "ملاحظات وتحديثات متتابعة",
+        "casesResolved": "حالات تم إغلاقها"
+      },
+      "activityLog": "سجل النشاط اليومي التفصيلي",
+      "noActivity": "لا يوجد نشاط مسجل لهذا اليوم",
+      "loadFailed": "تعذّر تحميل نشاط هذا اليوم.",
+      "columns": {
+        "time": "الوقت",
+        "agent": "الموظف",
+        "action": "نوع الإجراء",
+        "unit": "الوحدة",
+        "snippet": "الملخص"
+      },
+      "actionTypes": {
+        "TICKET_OPENED": "فتح تذكرة",
+        "CALL_LOGGED": "تسجيل مكالمة",
+        "TIMELINE_NOTE": "ملاحظة متابعة",
+        "STATUS_CHANGE": "تغيير حالة",
+        "CASE_RESOLVED": "إغلاق حالة"
+      }
     }
   },
   "units": {

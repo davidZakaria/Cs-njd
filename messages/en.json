@@ -622,6 +622,36 @@
       "doorFees": "Door fees",
       "aluminumFees": "Aluminum fees",
       "grandTotal": "Portfolio total"
+    },
+    "communityTracking": {
+      "tabLabel": "Community daily",
+      "title": "Community Management daily work trace",
+      "selectDate": "Select day",
+      "selectAgent": "Community agent",
+      "allAgents": "All community management agents",
+      "kpis": {
+        "ticketsCreated": "New tickets opened",
+        "callsLogged": "Calls logged",
+        "timelineNotes": "Timeline notes & updates",
+        "casesResolved": "Cases closed"
+      },
+      "activityLog": "Detailed daily activity log",
+      "noActivity": "No activity recorded for this day",
+      "loadFailed": "Could not load activity for this day.",
+      "columns": {
+        "time": "Time",
+        "agent": "Agent",
+        "action": "Action type",
+        "unit": "Unit",
+        "snippet": "Summary"
+      },
+      "actionTypes": {
+        "TICKET_OPENED": "Ticket opened",
+        "CALL_LOGGED": "Call logged",
+        "TIMELINE_NOTE": "Timeline note",
+        "STATUS_CHANGE": "Status change",
+        "CASE_RESOLVED": "Case resolved"
+      }
     }
   },
   "units": {
