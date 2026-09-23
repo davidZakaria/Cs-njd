@@ -22,7 +22,7 @@ import {
   isCommunityTrackerTeamView,
   type CommunityActivityActionType,
   type CommunityTrackerViewerRole,
-} from "@/lib/services/community-tracker";
+} from "@/lib/community-tracker/types";
 import { ExecutiveKpiGrid, type StatItem } from "@/components/executive/executive-kpi-grid";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";

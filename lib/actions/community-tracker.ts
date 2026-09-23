@@ -5,10 +5,10 @@ import {
   canAccessCommunityDailyTracker,
   CommunityTrackerAccessError,
   getCommunityDailyActivity,
-  type CommunityActivityActionType,
   type CommunityDailyActivityResult,
   type CommunityDailyKpis,
 } from "@/lib/services/community-tracker";
+import type { CommunityActivityActionType } from "@/lib/community-tracker/types";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 
 export type SerializedCommunityActivityItem = {
@@ -116,4 +116,4 @@ export async function getInitialCommunityDailyActivity(
   return serializeActivityResult(result);
 }
 
-export type { CommunityTrackerViewerRole } from "@/lib/services/community-tracker";
+export type { CommunityTrackerViewerRole } from "@/lib/community-tracker/types";
