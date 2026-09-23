@@ -91,6 +91,16 @@ export function CreateUnitDialog({
     return items;
   }, [labels, projects]);
 
+  const agentSelectItems = useMemo(() => {
+    const items: Record<string, string> = {
+      "": labels.unassigned,
+    };
+    for (const agent of agents) {
+      items[agent.id] = labels.staffName(agent.name);
+    }
+    return items;
+  }, [agents, labels]);
+
   function onSubmit(values: CreateUnitFormInput) {
     runAction(async () => {
       const result = await createUnit(values);
@@ -218,6 +228,7 @@ export function CreateUnitDialog({
                   <Select
                     value={field.value ?? ""}
                     onValueChange={field.onChange}
+                    items={agentSelectItems}
                     disabled={pending}
                   >
                     <SelectTrigger className="w-full">

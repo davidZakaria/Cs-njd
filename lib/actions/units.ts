@@ -10,6 +10,10 @@ import { isAdminUnitManager, isCommunityManagementRole } from "@/lib/auth/unit-r
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { normalizeUnitCode } from "@/lib/import/sanitize";
 import { prisma } from "@/lib/prisma";
+import {
+  getAssignableAgentUsers,
+  isValidUnitAgentId,
+} from "@/lib/units/assignable-agents";
 import { auditContext } from "@/lib/prisma";
 import {
   createUnitFormSchema,
@@ -29,6 +33,14 @@ async function withAudit<T>(fn: () => Promise<T>) {
   const headersList = await headers();
   const ip = headersList.get("x-forwarded-for") ?? "unknown";
   return auditContext.run({ userId: session?.user?.id, ipAddress: ip }, fn);
+}
+
+async function resolveUnitAgentId(
+  agentId: string | null | undefined
+): Promise<string | null> {
+  if (!agentId) return null;
+  const assignableAgents = await getAssignableAgentUsers();
+  return isValidUnitAgentId(agentId, assignableAgents) ? agentId : null;
 }
 
 export async function createUnit(input: CreateUnitFormInput): Promise<ActionResult> {
@@ -75,6 +87,8 @@ export async function createUnit(input: CreateUnitFormInput): Promise<ActionResu
           },
         });
 
+        const resolvedAgentId = await resolveUnitAgentId(data.agentId);
+
         const unit = await tx.unit.create({
           data: {
             unitCode,
@@ -82,7 +96,7 @@ export async function createUnit(input: CreateUnitFormInput): Promise<ActionResu
             type: data.type,
             area: data.area,
             contractPricePerMeter: data.contractPricePerMeter,
-            agentId: data.agentId,
+            agentId: resolvedAgentId,
             clientId: client.id,
           },
         });
@@ -192,8 +206,9 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
         }
 
         if (agentId !== undefined) {
-          unitUpdate.agent = agentId
-            ? { connect: { id: agentId } }
+          const resolvedAgentId = await resolveUnitAgentId(agentId);
+          unitUpdate.agent = resolvedAgentId
+            ? { connect: { id: resolvedAgentId } }
             : { disconnect: true };
         }
 

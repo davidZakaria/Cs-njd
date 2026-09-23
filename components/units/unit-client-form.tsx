@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
@@ -130,6 +130,23 @@ export function UnitClientForm({
     return items;
   }, [labels]);
 
+  const agentSelectItems = useMemo(() => {
+    const items: Record<string, string> = {
+      "": labels.unassigned,
+    };
+    for (const agent of agentOptions) {
+      items[agent.id] = labels.staffName(agent.name);
+    }
+    return items;
+  }, [agentOptions, labels]);
+
+  useEffect(() => {
+    const current = defaults.agentId ?? "";
+    if (current && !agentSelectItems[current]) {
+      setValue("agentId", "");
+    }
+  }, [agentSelectItems, defaults.agentId, setValue]);
+
   const currencyLabel = currencySuffix(locale);
 
   function onSubmit(values: UnitProfileFormInput) {
@@ -183,10 +200,15 @@ export function UnitClientForm({
                   <Controller
                     control={control}
                     name="agentId"
-                    render={({ field }) => (
+                    render={({ field }) => {
+                      const raw = field.value ?? "";
+                      const resolved =
+                        raw && agentSelectItems[raw] ? raw : "";
+                      return (
                       <Select
-                        value={field.value ?? ""}
+                        value={resolved}
                         onValueChange={field.onChange}
+                        items={agentSelectItems}
                         disabled={pending}
                       >
                         <SelectTrigger id="agentId" className="w-full">
@@ -201,7 +223,8 @@ export function UnitClientForm({
                           ))}
                         </SelectContent>
                       </Select>
-                    )}
+                      );
+                    }}
                   />
                 </div>
               ) : (

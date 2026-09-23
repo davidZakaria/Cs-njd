@@ -28,7 +28,10 @@ import {
   canEditClientContactOnUnit,
   isAdminUnitManager,
 } from "@/lib/auth/unit-roles";
-import { getAssignableAgentEmails } from "@/lib/staff";
+import {
+  getAssignableAgentUsers,
+  isValidUnitAgentId,
+} from "@/lib/units/assignable-agents";
 import type { SerializedResolutionContext } from "@/lib/workflow/resolution-checklist";
 
 export default async function UnitProfilePage({
@@ -71,6 +74,16 @@ export default async function UnitProfilePage({
   });
 
   if (!unit) notFound();
+
+  const rosterAgents = await getAssignableAgentUsers();
+  if (unit.agentId && !isValidUnitAgentId(unit.agentId, rosterAgents)) {
+    await prisma.unit.update({
+      where: { id: unit.id },
+      data: { agentId: null },
+    });
+    unit.agentId = null;
+    unit.agent = null;
+  }
 
   const csScope =
     session?.user.role === "CS_AGENT"
@@ -193,13 +206,7 @@ export default async function UnitProfilePage({
   const inspectionDateLabel = workflow?.inspectionDate
     ? workflow.inspectionDate.toLocaleDateString(locale)
     : null;
-  const assignableAgents = canEditAdmin
-    ? await prisma.user.findMany({
-        where: { email: { in: getAssignableAgentEmails() } },
-        orderBy: { name: "asc" },
-        select: { id: true, name: true },
-      })
-    : [];
+  const assignableAgents = canEditAdmin ? rosterAgents : [];
 
   const poaStatusLabel = workflow?.powerOfAttorneyReceived
     ? tWorkflowEdge("poaReceived")
