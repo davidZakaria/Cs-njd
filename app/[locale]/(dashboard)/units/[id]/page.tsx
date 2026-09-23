@@ -204,7 +204,9 @@ export default async function UnitProfilePage({
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("profile")}</h1>
           <p className="text-muted-foreground">
-            {projectLabel} ù {unit.unitCode}
+            {projectLabel}
+            {" \u00b7 "}
+            {unit.unitCode}
           </p>
         </div>
         <PrintProtocolButton unitId={unit.id} locale={locale} projectName={unit.project.name} />
@@ -225,7 +227,7 @@ export default async function UnitProfilePage({
             contactDisabled={isLegallyBlocked}
             defaults={{
               unitId: unit.id,
-              clientName: unit.client?.name ?? "ó",
+              clientName: unit.client?.name ?? "ù",
               phone1: unit.client?.phone1 ?? null,
               phone2: unit.client?.phone2 ?? null,
               email: unit.client?.email ?? null,
