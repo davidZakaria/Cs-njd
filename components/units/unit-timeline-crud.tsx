@@ -476,7 +476,6 @@ export function UnitTimelineCrud({
   resolvedTicketId = null,
   gateContext,
   hideAddFeedback = false,
-  crossAssignAgentName = null,
 }: {
   unitId: string;
   tickets: TicketRow[];
@@ -493,7 +492,6 @@ export function UnitTimelineCrud({
   resolvedTicketId?: string | null;
   gateContext: SerializedResolutionContext;
   hideAddFeedback?: boolean;
-  crossAssignAgentName?: string | null;
 }) {
   const tCases = useTranslations("cases");
   const tCommon = useTranslations("common");
@@ -660,15 +658,6 @@ export function UnitTimelineCrud({
           ) : (
           <form action={handleCreate} className="space-y-3">
             <input type="hidden" name="unitId" value={unitId} />
-            {crossAssignAgentName ? (
-              <Alert className="border-sky-200/80 bg-sky-50/90 text-sky-950 dark:border-sky-500/30 dark:bg-sky-950/30 dark:text-sky-50">
-                <AlertDescription className="text-sm leading-relaxed">
-                  {tCases("crossAssignTicketHint", {
-                    agentName: crossAssignAgentName,
-                  })}
-                </AlertDescription>
-              </Alert>
-            ) : null}
             <Field label={tCases("caseNotes")}>
               <Textarea
                 name="notes"

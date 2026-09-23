@@ -19,7 +19,6 @@ import {
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { archivedUserEmail } from "@/lib/prisma/soft-delete";
 import { dispatchTicketWorkflowNotifications } from "@/lib/notifications/dispatch-ticket-notifications";
-import { notifyCrossAgentTicketOpened } from "@/lib/notifications/triggers";
 import {
   finishingFormSchema,
   csFinishingAdditionsSchema,
@@ -360,13 +359,6 @@ function canCreateTicketOnAnyUnit(role: Role): boolean {
   return TICKET_CREATE_ROLES.has(role);
 }
 
-function resolveNewTicketAgentId(
-  unitAgentId: string | null | undefined,
-  actorId: string
-): string {
-  return unitAgentId ?? actorId;
-}
-
 export async function createTicket(formData: FormData): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
@@ -409,21 +401,17 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
       ? `${managementOverrideNote(session.user.name ?? session.user.email ?? "Manager")}\n${notes}`
       : notes;
 
-  const ticketAgentId = resolveNewTicketAgentId(
-    unit.agentId,
-    session.user.id
-  );
   const actorName =
     session.user.name ?? session.user.email ?? "Agent";
 
-  const ticket = await withAudit(() =>
+  await withAudit(() =>
     prisma.ticket.create({
       data: {
         unitId,
         notes: noteBody,
         status,
         category,
-        agentId: ticketAgentId,
+        agentId: session.user.id,
         createdById: session.user.id,
         pendingParty: pendingParty ?? "NONE",
         nextFollowUpDate,
@@ -431,16 +419,6 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
       },
     })
   );
-
-  if (unit.agentId && unit.agentId !== session.user.id) {
-    await notifyCrossAgentTicketOpened({
-      assignedAgentId: unit.agentId,
-      actorName,
-      unitCode: unit.unitCode,
-      unitId: unit.id,
-      ticketId: ticket.id,
-    });
-  }
 
   await dispatchTicketWorkflowNotifications({
     unit,
@@ -1157,11 +1135,6 @@ export async function logCallQuickAction(input: {
   });
   if (!unit) return actionFail("Unit not found");
 
-  const ticketAgentId = resolveNewTicketAgentId(
-    unit.agentId,
-    session.user.id
-  );
-
   await withAudit(() =>
     prisma.ticket.create({
       data: {
@@ -1169,7 +1142,7 @@ export async function logCallQuickAction(input: {
         notes,
         status: "PENDING",
         category: "FEEDBACK_HISTORY",
-        agentId: ticketAgentId,
+        agentId: session.user.id,
         createdById: session.user.id,
         pendingParty: "NONE",
       },

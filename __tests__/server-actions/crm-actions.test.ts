@@ -562,17 +562,12 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
       expect(mockPrismaTicket.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            agentId: ownerId,
+            agentId: actorId,
             createdById: actorId,
           }),
         })
       );
-      expect(notifyCrossAgentTicketOpened).toHaveBeenCalledWith(
-        expect.objectContaining({
-          assignedAgentId: ownerId,
-          ticketId: "ticket-cross",
-        })
-      );
+      expect(notifyCrossAgentTicketOpened).not.toHaveBeenCalled();
     });
 
     it("requires notes for ticket creation", async () => {
