@@ -436,6 +436,8 @@
     "resetAuthenticatorPending": "بانتظار موافقة المسؤول الأعلى. اترك هذه الصفحة مفتوحة — سيتم تحويلك لمسح رمز QR جديد بعد الموافقة.",
     "resetAuthenticatorRejected": "رفض المسؤول الأعلى طلب إعادة الضبط. تواصل معه إذا كنت ما زلت بحاجة للمساعدة.",
     "resetAuthenticatorFailed": "تعذّر إرسال طلب إعادة الضبط. حاول مرة أخرى أو تواصل مع المسؤول.",
+    "continueToQrSetup": "متابعة لمسح رمز QR جديد",
+    "continueToQrSetupHint": "حسابك جاهز لإعداد مصادقة جديدة.",
     "resettingAuthenticator": "جاري إعادة الضبط…",
     "loadingQr": "جاري تحميل رمز QR…",
     "qrAlt": "رم QR للمصادقة الثنائية",

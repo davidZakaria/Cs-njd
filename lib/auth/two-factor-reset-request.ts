@@ -22,7 +22,8 @@ export async function requestTwoFactorResetForSession(): Promise<ActionResult> {
   });
 
   if (!user?.is2FAEnabled) {
-    return actionFail("NOT_CONFIGURED");
+    // Already cleared / never finished — user should enroll, not request approval.
+    return actionOk();
   }
 
   const existing = await prisma.twoFactorResetRequest.findFirst({
@@ -51,13 +52,19 @@ export async function requestTwoFactorResetForSession(): Promise<ActionResult> {
 export async function getTwoFactorResetStatusForSession(): Promise<{
   success: true;
   status: TwoFactorResetStatus;
+  needsEnrollment: boolean;
 }> {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: true, status: "none" };
+    return { success: true, status: "none", needsEnrollment: false };
   }
 
   const userId = session.user.id;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { is2FAEnabled: true, twoFactorSecret: true },
+  });
 
   const pending = await prisma.twoFactorResetRequest.findFirst({
     where: { userId, status: "PENDING" },
@@ -65,13 +72,12 @@ export async function getTwoFactorResetStatusForSession(): Promise<{
     select: { id: true },
   });
   if (pending) {
-    return { success: true, status: "pending" };
+    return { success: true, status: "pending", needsEnrollment: false };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { is2FAEnabled: true, twoFactorSecret: true },
-  });
+  if (user && !user.is2FAEnabled) {
+    return { success: true, status: "ready", needsEnrollment: true };
+  }
 
   const latestReviewed = await prisma.twoFactorResetRequest.findFirst({
     where: {
@@ -88,7 +94,7 @@ export async function getTwoFactorResetStatusForSession(): Promise<{
     !user.is2FAEnabled &&
     !user.twoFactorSecret
   ) {
-    return { success: true, status: "ready" };
+    return { success: true, status: "ready", needsEnrollment: true };
   }
 
   if (
@@ -96,14 +102,14 @@ export async function getTwoFactorResetStatusForSession(): Promise<{
     latestReviewed.reviewedAt &&
     Date.now() - latestReviewed.reviewedAt.getTime() < 1000 * 60 * 60 * 24
   ) {
-    return { success: true, status: "rejected" };
+    return { success: true, status: "rejected", needsEnrollment: false };
   }
 
   if (latestReviewed?.status === "APPROVED") {
-    return { success: true, status: "approved" };
+    return { success: true, status: "approved", needsEnrollment: false };
   }
 
-  return { success: true, status: "none" };
+  return { success: true, status: "none", needsEnrollment: false };
 }
 
 async function clearUserTwoFactor(userId: string) {

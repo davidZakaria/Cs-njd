@@ -436,6 +436,8 @@
     "resetAuthenticatorPending": "Waiting for Super Admin approval. Keep this page open — you will be redirected to scan a new QR code once approved.",
     "resetAuthenticatorRejected": "Your Super Admin declined this reset request. Contact them if you still need help.",
     "resetAuthenticatorFailed": "Could not send the reset request. Try again or contact your administrator.",
+    "continueToQrSetup": "Continue to scan new QR code",
+    "continueToQrSetupHint": "Your account is ready for a new authenticator setup.",
     "resettingAuthenticator": "Resetting…",
     "loadingQr": "Loading QR code…",
     "qrAlt": "Two-factor authentication QR code",

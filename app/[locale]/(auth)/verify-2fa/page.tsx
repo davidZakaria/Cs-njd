@@ -48,13 +48,22 @@ async function postAuthJson<T>(url: string, body?: unknown): Promise<T> {
   return (await response.json()) as T;
 }
 
-async function fetchResetStatus(): Promise<TwoFactorResetStatus> {
+async function fetchResetStatus(): Promise<{
+  status: TwoFactorResetStatus;
+  needsEnrollment: boolean;
+}> {
   const response = await fetch("/api/auth/2fa-reset-status", {
     credentials: "include",
     cache: "no-store",
   });
-  const data = (await response.json()) as { status: TwoFactorResetStatus };
-  return data.status ?? "none";
+  const data = (await response.json()) as {
+    status?: TwoFactorResetStatus;
+    needsEnrollment?: boolean;
+  };
+  return {
+    status: data.status ?? "none",
+    needsEnrollment: data.needsEnrollment ?? false,
+  };
 }
 
 export default function Verify2FAPage() {
@@ -66,6 +75,7 @@ export default function Verify2FAPage() {
   const [submitting, setSubmitting] = useState(false);
   const [requestingReset, setRequestingReset] = useState(false);
   const [resetStatus, setResetStatus] = useState<TwoFactorResetStatus>("none");
+  const [needsEnrollment, setNeedsEnrollment] = useState(false);
 
   const goToSetup = useCallback(async () => {
     await update({
@@ -92,10 +102,11 @@ export default function Verify2FAPage() {
     let cancelled = false;
 
     async function poll() {
-      const status = await fetchResetStatus();
+      const result = await fetchResetStatus();
       if (cancelled) return;
-      setResetStatus(status);
-      if (status === "ready") {
+      setResetStatus(result.status);
+      setNeedsEnrollment(result.needsEnrollment);
+      if (result.status === "ready" || result.needsEnrollment) {
         await goToSetup();
       }
     }
@@ -174,7 +185,17 @@ export default function Verify2FAPage() {
       );
 
       if (!result.success) {
+        if (result.error === "NOT_CONFIGURED") {
+          await goToSetup();
+          return;
+        }
         setError(resolveVerifyError(result.error));
+        return;
+      }
+
+      const enrollmentCheck = await fetchResetStatus();
+      if (enrollmentCheck.needsEnrollment || enrollmentCheck.status === "ready") {
+        await goToSetup();
         return;
       }
 
@@ -250,6 +271,22 @@ export default function Verify2FAPage() {
           </form>
 
           <div className="space-y-2 border-t pt-4">
+            {needsEnrollment ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  {t("continueToQrSetupHint")}
+                </p>
+                <Button
+                  type="button"
+                  className="w-full"
+                  disabled={busy}
+                  onClick={() => void goToSetup()}
+                >
+                  {t("continueToQrSetup")}
+                </Button>
+              </>
+            ) : (
+              <>
             <p className="text-sm font-medium">{t("lostAuthenticatorTitle")}</p>
             <p className="text-sm text-muted-foreground">
               {t("lostAuthenticatorDescription")}
@@ -292,6 +329,8 @@ export default function Verify2FAPage() {
                 )}
               </Button>
             ) : null}
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
