@@ -109,14 +109,18 @@ export function CommunityDailyTracker({
           date: nextDate,
           agentId: nextAgentId,
         });
-        if (!result.success || !result.data) {
-          setError(result.error ?? t("loadFailed"));
+        if (!result.success) {
+          setError(result.error);
+          return;
+        }
+        if (!result.data) {
+          setError(t("loadFailed"));
           return;
         }
         setData(result.data);
       });
     },
-    [tCommon]
+    [t]
   );
 
   const kpiItems = useMemo((): StatItem[] => {
