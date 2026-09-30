@@ -13,10 +13,16 @@ import {
   isAdminUnitManager,
   isLimitedExportRole,
 } from "@/lib/auth/unit-roles";
+import { parseUnitsPageFilters } from "@/lib/units/units-filter-url";
 
-export default async function UnitsPage() {
+export default async function UnitsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
   const t = await getTranslations("units");
+  const filters = parseUnitsPageFilters(await searchParams);
   const csScope =
     session?.user.role === "CS_AGENT"
       ? await resolveCsAgentScope(session.user)
@@ -72,6 +78,7 @@ export default async function UnitsPage() {
         projects={projects}
         agents={agents}
         statuses={statuses}
+        defaultHandoverGroupFilter={filters.handover}
         canExport={
           session?.user.role ? !isLimitedExportRole(session.user.role) : true
         }

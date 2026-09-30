@@ -37,6 +37,10 @@ import { Badge } from "@/components/ui/badge";
 import { ExportCsvButton } from "@/components/export/export-csv-button";
 import { CreateUnitDialog } from "@/components/units/create-unit-dialog";
 
+import {
+  matchesUnitsHandoverGroup,
+  type UnitsHandoverGroup,
+} from "@/lib/units/units-filter-url";
 import { cn } from "@/lib/utils";
 
 export type UnitRow = {
@@ -69,6 +73,7 @@ export function UnitsTable({
   canCreateUnit = false,
   createUnitProjects = [],
   createUnitAgents = [],
+  defaultHandoverGroupFilter = "all",
 }: {
   data: UnitRow[];
   projects: string[];
@@ -78,6 +83,7 @@ export function UnitsTable({
   canCreateUnit?: boolean;
   createUnitProjects?: Array<{ id: string; name: string }>;
   createUnitAgents?: Array<{ id: string; name: string }>;
+  defaultHandoverGroupFilter?: UnitsHandoverGroup;
 }) {
   const t = useTranslations("units");
   const tCommon = useTranslations("common");
@@ -86,6 +92,7 @@ export function UnitsTable({
   const [projectFilter, setProjectFilter] = useState("all");
   const [agentFilter, setAgentFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const handoverGroupFilter = defaultHandoverGroupFilter;
 
   const projectItems = useMemo(() => {
     const items: Record<string, string> = { all: labels.all };
@@ -131,6 +138,11 @@ export function UnitsTable({
       } else if (agentFilter !== "all" && row.agent !== agentFilter) {
         return false;
       }
+      if (
+        !matchesUnitsHandoverGroup(row.handoverStatus, handoverGroupFilter)
+      ) {
+        return false;
+      }
       if (statusFilter !== "all" && row.handoverStatus !== statusFilter) return false;
       if (!globalFilter) return true;
       const q = globalFilter.toLowerCase();
@@ -141,7 +153,15 @@ export function UnitsTable({
         labels.project(row.project).toLowerCase().includes(q)
       );
     });
-  }, [data, projectFilter, agentFilter, statusFilter, globalFilter, labels]);
+  }, [
+    data,
+    projectFilter,
+    agentFilter,
+    statusFilter,
+    handoverGroupFilter,
+    globalFilter,
+    labels,
+  ]);
 
   const exportHeaders = useMemo(
     () => [
