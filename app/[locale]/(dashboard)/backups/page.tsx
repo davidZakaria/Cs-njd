@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { formatDateTime } from "@/lib/format/datetime";
 import { TriggerBackupButton } from "@/components/backups/trigger-backup-button";
 import { BackupContentsPreview } from "@/components/backups/backup-contents-preview";
 import { requireSuperAdmin } from "@/lib/auth/require-super-admin";
@@ -33,7 +34,7 @@ export const dynamic = "force-dynamic";
 
 export default async function BackupsPage() {
   await requireSuperAdmin();
-  const t = await getTranslations("backups");
+  const [locale, t] = await Promise.all([getLocale(), getTranslations("backups")]);
   const schedule = getBackupCronSchedule();
   const backups = await prisma.backupLog.findMany({
     orderBy: { createdAt: "desc" },
@@ -116,7 +117,7 @@ export default async function BackupsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {backup.createdAt.toLocaleString()}
+                      {formatDateTime(backup.createdAt, locale)}
                     </TableCell>
                     <TableCell className="min-w-[16rem] max-w-md">
                       <BackupContentsPreview

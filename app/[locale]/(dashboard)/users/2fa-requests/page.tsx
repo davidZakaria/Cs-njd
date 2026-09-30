@@ -4,6 +4,7 @@ import { TwoFactorResetRequestsTable } from "@/components/users/two-factor-reset
 import { requireSuperAdmin } from "@/lib/auth/require-super-admin";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { prisma } from "@/lib/prisma";
+import { formatDateTime } from "@/lib/format/datetime";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -32,9 +33,7 @@ export default async function TwoFactorResetRequestsPage() {
       userName: request.user!.name,
       userEmail: request.user!.email,
       userRole: request.user!.role,
-      requestedAtLabel: request.requestedAt.toLocaleString(
-        locale === "ar" ? "ar-EG" : "en-GB"
-      ),
+      requestedAtLabel: formatDateTime(request.requestedAt, locale),
     }));
 
   return (

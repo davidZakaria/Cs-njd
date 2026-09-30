@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { formatDateTime } from "@/lib/format/datetime";
 import { AuditLogsTable } from "@/components/audit/audit-logs-table";
 import { requireSuperAdmin } from "@/lib/auth/require-super-admin";
 
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AuditLogsPage() {
   await requireSuperAdmin();
-  const t = await getTranslations("audit");
+  const [locale, t] = await Promise.all([getLocale(), getTranslations("audit")]);
 
   const logs = await prisma.auditLog.findMany({
     include: { user: true },
@@ -20,7 +21,7 @@ export default async function AuditLogsPage() {
     action: log.action,
     tableName: log.tableName,
     user: log.user?.name ?? t("systemUser"),
-    timestamp: log.timestamp.toLocaleString(),
+    timestamp: formatDateTime(log.timestamp, locale),
     ipAddress: log.ipAddress ?? "—",
   }));
 

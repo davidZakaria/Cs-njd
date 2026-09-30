@@ -33,6 +33,7 @@ import {
   isValidUnitAgentId,
 } from "@/lib/units/assignable-agents";
 import type { SerializedResolutionContext } from "@/lib/workflow/resolution-checklist";
+import { formatDateTime } from "@/lib/format/datetime";
 
 export default async function UnitProfilePage({
   params,
@@ -183,7 +184,7 @@ export default async function UnitProfilePage({
     unitId: unit.id,
     originalName: workflow?.signedProtocolOriginalName ?? null,
     uploadedAtLabel: workflow?.signedProtocolUploadedAt
-      ? workflow.signedProtocolUploadedAt.toLocaleString(locale)
+      ? formatDateTime(workflow.signedProtocolUploadedAt, locale)
       : null,
     uploadedByLabel: signedProtocolUploader?.name ?? null,
     sizeLabel:
@@ -402,7 +403,7 @@ export default async function UnitProfilePage({
                   agentLabel: ticket.agent
                     ? await labels.staffName(ticket.agent.name)
                     : labels.unassigned,
-                  createdAtLabel: ticket.createdAt.toLocaleString(locale),
+                  createdAtLabel: formatDateTime(ticket.createdAt, locale),
                   displayNotes: isAwaitingResponseNote(ticket.notes)
                     ? tCases("awaitingResponse")
                     : ticket.notes,

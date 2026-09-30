@@ -9,7 +9,8 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { formatDateTime } from "@/lib/format/datetime";
 import { Link } from "@/i18n/navigation";
 import { updateTicketStatus } from "@/lib/actions/crm";
 import { useCrudToast } from "@/hooks/use-crud-toast";
@@ -197,6 +198,7 @@ export function CasesTable({
   defaultCollapsed?: boolean;
   canExport?: boolean;
 }) {
+  const locale = useLocale();
   const t = useTranslations("cases");
   const tCommon = useTranslations("common");
   const tFilters = useTranslations("filters");
@@ -370,9 +372,9 @@ export function CasesTable({
           ? t("unassigned")
           : labels.staffName(row.effectiveAgent),
         labels.ticketStatus(row.status),
-        new Date(row.createdAt).toLocaleString(),
+        formatDateTime(row.createdAt, locale),
       ]),
-    [filtered, labels, categoryLabels, t]
+    [filtered, labels, categoryLabels, locale, t]
   );
 
   const columns = useMemo<ColumnDef<CaseRow>[]>(() => {

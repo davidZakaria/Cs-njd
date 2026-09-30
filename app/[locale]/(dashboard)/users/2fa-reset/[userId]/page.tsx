@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 
 import { TwoFactorResetReviewPanel } from "@/components/users/two-factor-reset-review-panel";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
+import { formatDateTime } from "@/lib/format/datetime";
 
 export default async function TwoFactorResetReviewPage({
   params,
@@ -40,9 +41,7 @@ export default async function TwoFactorResetReviewPage({
   }
 
   const roleLabel = await labels.role(pending.user.role);
-  const requestedAtLabel = pending.requestedAt.toLocaleString(
-    locale === "ar" ? "ar-EG" : "en-GB"
-  );
+  const requestedAtLabel = formatDateTime(pending.requestedAt, locale);
 
   return (
     <div className="space-y-6 py-4">
