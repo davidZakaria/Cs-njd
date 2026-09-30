@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/format/datetime";
 
 export function NotificationsLogTable({ rows }: { rows: NotificationLogRow[] }) {
   const locale = useLocale();
@@ -38,10 +39,10 @@ export function NotificationsLogTable({ rows }: { rows: NotificationLogRow[] }) 
         header: t("columns.timestamp"),
         accessorKey: "createdAt",
         cell: ({ row }) =>
-          new Date(row.original.createdAt).toLocaleString(
-            locale === "ar" ? "ar-EG" : "en-GB",
-            { dateStyle: "medium", timeStyle: "short" }
-          ),
+          formatDateTime(row.original.createdAt, locale, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }),
       },
       {
         id: "recipient",

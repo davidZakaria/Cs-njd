@@ -4,6 +4,7 @@ import { SystemSecurityPanel } from "@/components/system/system-security-panel";
 import { requireSuperAdmin } from "@/lib/auth/require-super-admin";
 import { parseBrowserLabel } from "@/lib/system/parse-user-agent";
 import { prisma } from "@/lib/prisma";
+import { formatDateTime } from "@/lib/format/datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ export default async function SystemSecurityPage() {
         ipAddress: row.ipAddress,
         browser: parseBrowserLabel(row.userAgent),
         status: row.status,
-        timestampLabel: row.timestamp.toLocaleString(locale),
+        timestampLabel: formatDateTime(row.timestamp, locale),
       }))}
       users={users.map((user) => ({
         id: user.id,
@@ -58,7 +59,7 @@ export default async function SystemSecurityPage() {
         role: user.role,
         sessionVersion: user.sessionVersion,
         lastLoginLabel: user.lastLoginAt
-          ? user.lastLoginAt.toLocaleString(locale)
+          ? formatDateTime(user.lastLoginAt, locale)
           : "—",
       }))}
     />

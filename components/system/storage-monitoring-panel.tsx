@@ -13,6 +13,7 @@ import {
   USAGE_TONE_TEXT_CLASS,
 } from "@/lib/system/health-format";
 import { SYSTEM_SETTING_KEYS } from "@/lib/system/settings-keys";
+import { formatDateTime } from "@/lib/format/datetime";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,7 +95,7 @@ export function StorageMonitoringPanel({
               <p className="text-muted-foreground">{t("backupLastSuccess")}</p>
               <p className="font-semibold">
                 {backups.lastSuccessAt
-                  ? new Date(backups.lastSuccessAt).toLocaleString(locale)
+                  ? formatDateTime(backups.lastSuccessAt, locale)
                   : "—"}
               </p>
             </div>

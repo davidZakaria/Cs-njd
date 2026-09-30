@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/format/datetime";
 
 const WORKFLOW_STATUSES = ["PENDING", "ENGINEERING", "LEGAL"] as const;
 const PENDING_PARTIES = [
@@ -79,7 +80,7 @@ function formatFollowUpLabel(value: string, locale: string): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(locale);
+  return formatDate(date, locale);
 }
 
 function Field({

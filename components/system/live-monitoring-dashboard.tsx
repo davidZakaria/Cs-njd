@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { MonitoringMetrics } from "@/lib/system/health-metrics";
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/format/datetime";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -41,7 +42,7 @@ export function LiveMonitoringDashboard({
     return () => window.clearInterval(intervalId);
   }, [liveRefresh, refreshMetrics]);
 
-  const capturedAt = new Date(metrics.capturedAt).toLocaleString(locale);
+  const capturedAt = formatDateTime(metrics.capturedAt, locale);
 
   return (
     <div className="space-y-6">
