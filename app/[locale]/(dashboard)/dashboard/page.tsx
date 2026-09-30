@@ -25,6 +25,9 @@ import { cn } from "@/lib/utils";
 import { CommunityDailyTracker } from "@/components/dashboard/CommunityDailyTracker";
 import { getInitialCommunityDailyActivity } from "@/lib/actions/community-tracker";
 import { format } from "date-fns";
+import { Link } from "@/i18n/navigation";
+import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
+import { buildUnitsFilterUrl } from "@/lib/units/units-filter-url";
 
 export const dynamic = "force-dynamic";
 
@@ -92,10 +95,30 @@ export default async function DashboardPage() {
     ]);
 
   const stats = [
-    { label: t("totalUnits"), value: totalUnits },
-    { label: t("pendingTickets"), value: pendingTickets },
-    { label: t("deliveredUnits"), value: deliveredUnits },
-    { label: t("legalDisputes"), value: legalDisputes },
+    {
+      key: "totalUnits",
+      label: t("totalUnits"),
+      value: totalUnits,
+      href: buildUnitsFilterUrl(),
+    },
+    {
+      key: "pendingTickets",
+      label: t("pendingTickets"),
+      value: pendingTickets,
+      href: buildCasesFilterUrl({ status: "PENDING" }),
+    },
+    {
+      key: "deliveredUnits",
+      label: t("deliveredUnits"),
+      value: deliveredUnits,
+      href: buildUnitsFilterUrl({ handover: "delivered" }),
+    },
+    {
+      key: "legalDisputes",
+      label: t("legalDisputes"),
+      value: legalDisputes,
+      href: buildUnitsFilterUrl({ handover: "legal" }),
+    },
   ];
 
   return (
@@ -125,27 +148,40 @@ export default async function DashboardPage() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat, index) => (
-          <Card
-            key={stat.label}
-            className={cn(
-              premiumCardHoverClass,
-              entranceAnimationClass,
-              staggerEntranceClass(index)
-            )}
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="font-heading text-3xl font-bold tabular-nums">
-                {stat.value}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {stats.map((stat, index) => {
+          const card = (
+            <Card
+              className={cn(
+                "group bg-card shadow-sm",
+                premiumCardHoverClass,
+                entranceAnimationClass,
+                staggerEntranceClass(index),
+                "cursor-pointer hover:ring-1 hover:ring-foreground/10"
+              )}
+            >
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.label}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="font-heading text-3xl font-bold tabular-nums transition-transform duration-300 group-hover:scale-[1.02]">
+                  {stat.value.toLocaleString()}
+                </div>
+              </CardContent>
+            </Card>
+          );
+
+          return (
+            <Link
+              key={stat.key}
+              href={stat.href}
+              className="block rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              {card}
+            </Link>
+          );
+        })}
       </div>
 
       {session?.user.role === "CS_AGENT" ? (
