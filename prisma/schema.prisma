@@ -268,11 +268,29 @@ model ContractWorkflow {
   actionLabel        String?
   hasSignedProtocol  Boolean        @default(false)
   hasSignedExtension Boolean        @default(false)
+  hasPreliminarySaleContract Boolean @default(false)
+  signedProtocolDate DateTime?
+  signedExtensionDate DateTime?
+  hasFinalSaleContract Boolean      @default(false)
+  finalSaleContractDate DateTime?
   hasPaidFees        Boolean        @default(false)
   papersReceived     Boolean        @default(false)
   isLegallyBlocked   Boolean        @default(false)
   powerOfAttorneyReceived Boolean   @default(false)
   inspectionDate     DateTime?
+  siteVisitDone      Boolean        @default(false)
+  siteVisitDate1     DateTime?
+  siteVisitDate2     DateTime?
+  siteVisitDate3     DateTime?
+  clientInspectionNotes String?
+  dhlSentToClient    Boolean        @default(false)
+  dhlSentToClientDate DateTime?
+  dhlReceivedFromClient Boolean     @default(false)
+  dhlReceivedFromClientDate DateTime?
+  paperHandoverPreliminaryCopy Boolean @default(false)
+  paperHandoverOriginalProtocol Boolean @default(false)
+  paperHandoverFinishingPapers Boolean @default(false)
+  paperHandoverKeyReceived Boolean   @default(false)
   signedProtocolStoredName     String?
   signedProtocolOriginalName   String?
   signedProtocolMimeType       String?

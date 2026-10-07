@@ -62,7 +62,11 @@ export type UnitClientFormDefaults = {
   waMessageTemplate: string;
 };
 
-export type UnitProfileEditLevel = "none" | "contact" | "admin";
+export type UnitProfileEditLevel =
+  | "none"
+  | "communityExtras"
+  | "contact"
+  | "admin";
 
 export function UnitClientForm({
   defaults,
@@ -77,8 +81,11 @@ export function UnitClientForm({
   contactDisabled?: boolean;
   agentOptions?: Array<{ id: string; name: string }>;
 }) {
-  const canEditClient = profileEditLevel !== "none";
+  const canEditClient =
+    profileEditLevel === "contact" || profileEditLevel === "admin";
+  const canEditCommunityExtras = profileEditLevel === "communityExtras";
   const canEditAdmin = profileEditLevel === "admin";
+  const canSubmitProfile = canEditClient || canEditCommunityExtras;
   const locale = useLocale();
   const isRtl = locale === "ar";
   const t = useTranslations("units");
@@ -182,6 +189,43 @@ export function UnitClientForm({
               <p className="text-xs text-muted-foreground">
                 {t("contactRestrictedHint")}
               </p>
+            </div>
+          ) : canEditCommunityExtras ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">{t("communityExtrasHint")}</p>
+              <div className="grid gap-4 md:grid-cols-2 text-sm">
+                <p>
+                  <strong>{t("client")}:</strong> {defaults.clientName}
+                </p>
+                <p>
+                  <strong>{t("phone1")}:</strong> {defaults.phone1 ?? "—"}
+                </p>
+                <p>
+                  <strong>{tCommon("email")}:</strong> {defaults.email ?? "—"}
+                </p>
+                <p>
+                  <strong>{tFields("nationalId")}:</strong>{" "}
+                  {defaults.nationalId ?? "—"}
+                </p>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="phone2">{t("phone2")}</Label>
+                  <Input
+                    id="phone2"
+                    disabled={pending || Boolean(defaults.phone2?.trim())}
+                    {...register("phone2")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address2">{tClient("address2")}</Label>
+                  <Input
+                    id="address2"
+                    disabled={pending || Boolean(defaults.address2?.trim())}
+                    {...register("address2")}
+                  />
+                </div>
+              </div>
             </div>
           ) : canEditClient ? (
             <div className="grid gap-4 md:grid-cols-2">
@@ -349,7 +393,7 @@ export function UnitClientForm({
         </CardContent>
       </Card>
 
-      {!hideClientContact ? (
+      {!hideClientContact && !canEditCommunityExtras ? (
         <Card>
           <CardHeader>
             <CardTitle>
@@ -452,7 +496,7 @@ export function UnitClientForm({
         </CardContent>
       </Card>
 
-      {canEditClient ? (
+      {canSubmitProfile ? (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {canEditAdmin ? (
             <>

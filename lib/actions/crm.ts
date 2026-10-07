@@ -38,6 +38,8 @@ import {
   type TicketWorkflowInput,
 } from "@/lib/validations/workflow";
 import { collectCsHandoverChanges } from "@/lib/workflow/cs-handover-fields";
+import { applyDhlSiteVisitLock } from "@/lib/workflow/handover-dhl-gate";
+import { isCommunityManagementRole } from "@/lib/auth/unit-roles";
 import { applyCsFinishingAdditions } from "@/lib/workflow/cs-finishing-fields";
 import {
   notifyFinishingUpdatedByAgent,
@@ -362,6 +364,9 @@ function canCreateTicketOnAnyUnit(role: Role): boolean {
 export async function createTicket(formData: FormData): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
+  if (isCommunityManagementRole(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
   if (!canCreateTicketOnAnyUnit(session.user.role)) {
     return actionFail("Unauthorized");
   }
@@ -825,16 +830,24 @@ export async function updateHandoverChecklist(
 
   const { unitId, ...workflowData } = parsed.data;
 
-  const unit = await prisma.unit.findUnique({ where: { id: unitId } });
+  const unit = await prisma.unit.findUnique({
+    where: { id: unitId },
+    include: { contractWorkflow: true },
+  });
   if (!unit) return actionFail("Unit not found");
+
+  const lockedWorkflow = applyDhlSiteVisitLock(
+    workflowData,
+    unit.contractWorkflow
+  );
 
   await withAudit(() =>
     prisma.contractWorkflow.upsert({
       where: { unitId },
-      update: workflowData,
+      update: lockedWorkflow,
       create: {
         unitId,
-        ...workflowData,
+        ...lockedWorkflow,
       },
     })
   );
@@ -865,17 +878,37 @@ export async function updateCsHandoverChecklist(
   const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
   if (accessError) return accessError;
 
+  if (isCommunityManagementRole(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
+
   const existing = unit.contractWorkflow;
   const previousSnapshot = {
     hasSignedProtocol: existing?.hasSignedProtocol ?? false,
+    signedProtocolDate: existing?.signedProtocolDate ?? null,
     hasSignedExtension: existing?.hasSignedExtension ?? false,
+    signedExtensionDate: existing?.signedExtensionDate ?? null,
     papersReceived: existing?.papersReceived ?? false,
     powerOfAttorneyReceived: existing?.powerOfAttorneyReceived ?? false,
     inspectionDate: existing?.inspectionDate ?? null,
+    siteVisitDone: existing?.siteVisitDone ?? false,
+    siteVisitDate1: existing?.siteVisitDate1 ?? null,
+    siteVisitDate2: existing?.siteVisitDate2 ?? null,
+    siteVisitDate3: existing?.siteVisitDate3 ?? null,
+    clientInspectionNotes: existing?.clientInspectionNotes ?? null,
+    dhlSentToClient: existing?.dhlSentToClient ?? false,
+    dhlSentToClientDate: existing?.dhlSentToClientDate ?? null,
+    dhlReceivedFromClient: existing?.dhlReceivedFromClient ?? false,
+    dhlReceivedFromClientDate: existing?.dhlReceivedFromClientDate ?? null,
+    paperHandoverPreliminaryCopy: existing?.paperHandoverPreliminaryCopy ?? false,
+    paperHandoverOriginalProtocol: existing?.paperHandoverOriginalProtocol ?? false,
+    paperHandoverFinishingPapers: existing?.paperHandoverFinishingPapers ?? false,
+    paperHandoverKeyReceived: existing?.paperHandoverKeyReceived ?? false,
   };
 
   const { unitId, ...workflowData } = parsed.data;
-  const changes = collectCsHandoverChanges(previousSnapshot, workflowData);
+  const lockedWorkflow = applyDhlSiteVisitLock(workflowData, existing);
+  const changes = collectCsHandoverChanges(previousSnapshot, lockedWorkflow);
   if (changes.length === 0) {
     return actionOk();
   }
@@ -883,13 +916,13 @@ export async function updateCsHandoverChecklist(
   await withAudit(() =>
     prisma.contractWorkflow.upsert({
       where: { unitId },
-      update: workflowData,
+      update: lockedWorkflow,
       create: {
         unitId,
         handoverStatus: "PENDING",
         hasPaidFees: false,
         isLegallyBlocked: false,
-        ...workflowData,
+        ...lockedWorkflow,
       },
     })
   );
@@ -1039,6 +1072,9 @@ export async function updateCsFinishingAdditions(
 ): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
+  if (isCommunityManagementRole(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
 
   const parsed = csFinishingAdditionsSchema.safeParse(input);
   if (!parsed.success) {
@@ -1125,6 +1161,9 @@ export async function logCallQuickAction(input: {
 }): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
+  if (!canCreateTicketOnAnyUnit(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
 
   const notes = input.notes.trim();
   if (!notes) return actionFail("Notes are required");

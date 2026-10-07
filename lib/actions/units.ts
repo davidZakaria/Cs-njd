@@ -6,7 +6,11 @@ import { headers } from "next/headers";
 
 import { auth } from "@/lib/auth";
 import { assertCsAgentUnitAccess } from "@/lib/auth/abac";
-import { isAdminUnitManager, isCommunityManagementRole } from "@/lib/auth/unit-roles";
+import {
+  isAdminUnitManager,
+  isCommunityManagementRole,
+} from "@/lib/auth/unit-roles";
+import { validateCommunityClientContactUpdate } from "@/lib/auth/community-contact-update";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { normalizeUnitCode } from "@/lib/import/sanitize";
 import { prisma } from "@/lib/prisma";
@@ -127,8 +131,8 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
 
   const role = session.user.role;
   const isAdmin = isAdminUnitManager(role);
-  const isContactEditor =
-    isAdmin || isCommunityManagementRole(role) || role === "CS_AGENT";
+  const isCommunity = isCommunityManagementRole(role);
+  const isContactEditor = isAdmin || isCommunity || role === "CS_AGENT";
 
   if (!isContactEditor) {
     return actionFail("Unauthorized");
@@ -167,6 +171,46 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
     unitCode,
     agentId,
   } = parsed.data;
+
+  if (isCommunity) {
+    if (!unit.client) {
+      return actionFail("Client record not found");
+    }
+    const communityPatch = validateCommunityClientContactUpdate(unit.client, {
+      clientName,
+      phone1,
+      phone2,
+      email,
+      nationalId,
+      address1,
+      address2,
+    });
+    if ("success" in communityPatch) {
+      return communityPatch;
+    }
+    const patch = communityPatch;
+
+    const hasChange =
+      (patch.phone2 ?? null) !== (unit.client.phone2 ?? null) ||
+      (patch.address2 ?? null) !== (unit.client.address2 ?? null);
+    if (!hasChange) {
+      return actionOk();
+    }
+
+    await withAudit(async () => {
+      await prisma.client.update({
+        where: { id: unit.clientId! },
+        data: {
+          phone2: patch.phone2,
+          address2: patch.address2,
+        },
+      });
+    });
+
+    revalidatePath(`/units/${unitId}`);
+    revalidatePath("/units");
+    return actionOk();
+  }
 
   const clientData = {
     name: clientName,

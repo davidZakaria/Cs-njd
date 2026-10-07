@@ -25,8 +25,8 @@ import { getWhatsAppTemplateSetting } from "@/lib/system/settings-store";
 import { canUseManagementOverride } from "@/lib/workflow/management-override";
 import { canManageUnitTickets } from "@/lib/auth/unit-ticket-access";
 import {
-  canEditClientContactOnUnit,
   isAdminUnitManager,
+  resolveUnitClientEditMode,
 } from "@/lib/auth/unit-roles";
 import {
   getAssignableAgentUsers,
@@ -113,14 +113,18 @@ export default async function UnitProfilePage({
     : false;
   const csHasUnitAccess =
     csScope != null && canAccessUnitAsCsAgent(csScope, unit.agentId);
-  const canEditClient = session?.user.role
-    ? canEditClientContactOnUnit(session.user.role, csHasUnitAccess)
-    : false;
-  const profileEditLevel = canEditAdmin
-    ? "admin"
-    : canEditClient
-      ? "contact"
-      : "none";
+  const clientEditMode = session?.user.role
+    ? resolveUnitClientEditMode(session.user.role, csHasUnitAccess)
+    : "none";
+  const profileEditLevel =
+    clientEditMode === "admin"
+      ? "admin"
+      : clientEditMode === "contact"
+        ? "contact"
+        : clientEditMode === "communityExtras"
+          ? "communityExtras"
+          : "none";
+  const isCommunityViewer = session?.user.role === "COMMUNITY_MANAGEMENT";
 
   const canManageTickets = session?.user
     ? canManageUnitTickets(session.user)
@@ -310,8 +314,18 @@ export default async function UnitProfilePage({
                   unit.contractWorkflow?.contractDate?.toISOString() ?? null,
                 deliveryDate:
                   unit.contractWorkflow?.deliveryDate?.toISOString() ?? null,
+                hasPreliminarySaleContract:
+                  unit.contractWorkflow?.hasPreliminarySaleContract ?? false,
                 hasSignedProtocol: unit.contractWorkflow?.hasSignedProtocol ?? false,
+                signedProtocolDate:
+                  unit.contractWorkflow?.signedProtocolDate?.toISOString() ?? null,
                 hasSignedExtension: unit.contractWorkflow?.hasSignedExtension ?? false,
+                signedExtensionDate:
+                  unit.contractWorkflow?.signedExtensionDate?.toISOString() ?? null,
+                hasFinalSaleContract:
+                  unit.contractWorkflow?.hasFinalSaleContract ?? false,
+                finalSaleContractDate:
+                  unit.contractWorkflow?.finalSaleContractDate?.toISOString() ?? null,
                 hasPaidFees: unit.contractWorkflow?.hasPaidFees ?? false,
                 papersReceived: unit.contractWorkflow?.papersReceived ?? false,
                 powerOfAttorneyReceived:
@@ -319,6 +333,31 @@ export default async function UnitProfilePage({
                 isLegallyBlocked: unit.contractWorkflow?.isLegallyBlocked ?? false,
                 inspectionDate:
                   unit.contractWorkflow?.inspectionDate?.toISOString() ?? null,
+                siteVisitDone: unit.contractWorkflow?.siteVisitDone ?? false,
+                siteVisitDate1:
+                  unit.contractWorkflow?.siteVisitDate1?.toISOString() ?? null,
+                siteVisitDate2:
+                  unit.contractWorkflow?.siteVisitDate2?.toISOString() ?? null,
+                siteVisitDate3:
+                  unit.contractWorkflow?.siteVisitDate3?.toISOString() ?? null,
+                clientInspectionNotes:
+                  unit.contractWorkflow?.clientInspectionNotes ?? null,
+                dhlSentToClient: unit.contractWorkflow?.dhlSentToClient ?? false,
+                dhlSentToClientDate:
+                  unit.contractWorkflow?.dhlSentToClientDate?.toISOString() ?? null,
+                dhlReceivedFromClient:
+                  unit.contractWorkflow?.dhlReceivedFromClient ?? false,
+                dhlReceivedFromClientDate:
+                  unit.contractWorkflow?.dhlReceivedFromClientDate?.toISOString() ??
+                  null,
+                paperHandoverPreliminaryCopy:
+                  unit.contractWorkflow?.paperHandoverPreliminaryCopy ?? false,
+                paperHandoverOriginalProtocol:
+                  unit.contractWorkflow?.paperHandoverOriginalProtocol ?? false,
+                paperHandoverFinishingPapers:
+                  unit.contractWorkflow?.paperHandoverFinishingPapers ?? false,
+                paperHandoverKeyReceived:
+                  unit.contractWorkflow?.paperHandoverKeyReceived ?? false,
               }}
             />
           ) : (
@@ -408,10 +447,11 @@ export default async function UnitProfilePage({
                     ? tCases("awaitingResponse")
                     : ticket.notes,
                   canEdit:
-                    session?.user.role !== "CS_AGENT" ||
-                    (csScope
-                      ? canAccessUnitAsCsAgent(csScope, unit.agentId)
-                      : unit.agentId === session?.user.id),
+                    !isCommunityViewer &&
+                    (session?.user.role !== "CS_AGENT" ||
+                      (csScope
+                        ? canAccessUnitAsCsAgent(csScope, unit.agentId)
+                        : unit.agentId === session?.user.id)),
                 }))
               )
             )}
@@ -430,7 +470,7 @@ export default async function UnitProfilePage({
             activeTicketId={activeTicket?.id ?? null}
             resolvedTicketId={resolvedTicket?.id ?? null}
             gateContext={gateContext}
-            hideAddFeedback={hideAddFeedback}
+            hideAddFeedback={hideAddFeedback || isCommunityViewer}
             canBypassGates={session?.user?.role === "SUPER_ADMIN"}
           />
         </TabsContent>
