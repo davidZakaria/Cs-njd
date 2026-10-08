@@ -5,8 +5,11 @@ const mockAuth = vi.fn();
 const mockPrismaUnit = {
   findUnique: vi.fn(),
 };
-const mockPrismaClient = {
-  update: vi.fn(),
+const mockPrismaClientPhone = {
+  create: vi.fn(),
+};
+const mockPrismaClientAddress = {
+  create: vi.fn(),
 };
 
 vi.mock("@/lib/auth", () => ({
@@ -16,7 +19,8 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     unit: mockPrismaUnit,
-    client: mockPrismaClient,
+    clientPhone: mockPrismaClientPhone,
+    clientAddress: mockPrismaClientAddress,
   },
   auditContext: {
     run: <T>(_ctx: unknown, fn: () => T) => fn(),
@@ -45,109 +49,76 @@ function session(role: Role) {
   };
 }
 
-describe("updateUnit community management restrictions", () => {
+const unitWithClient = {
+  id: "unit-1",
+  deletedAt: null,
+  agentId: null,
+  client: {
+    id: "client-1",
+    phone1: "0100",
+    phone2: null,
+    address1: "Street 1",
+    address2: null,
+    phones: [],
+    addresses: [],
+  },
+};
+
+describe("community client contact actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  const baseInput = {
-    unitId: "unit-1",
-    clientName: "Client A",
-    phone1: "0100",
-    phone2: "",
-    email: "a@example.com",
-    nationalId: "123",
-    address1: "Street 1",
-    address2: "",
-    deliveryYear: "",
-    gracePeriod: "",
-    contractPricePerMeter: "",
-    area: "",
-    type: "APARTMENT" as const,
-    unitCode: "A-1",
-    agentId: "",
-  };
-
-  it("allows adding secondary phone when empty", async () => {
+  it("allows community management to add an extra phone", async () => {
     mockAuth.mockResolvedValue(session("COMMUNITY_MANAGEMENT"));
-    mockPrismaUnit.findUnique.mockResolvedValue({
-      id: "unit-1",
-      deletedAt: null,
-      agentId: null,
-      clientId: "client-1",
-      client: {
-        name: "Client A",
-        phone1: "0100",
-        phone2: null,
-        email: "a@example.com",
-        nationalId: "123",
-        address1: "Street 1",
-        address2: null,
-      },
-    });
-    mockPrismaClient.update.mockResolvedValue({});
+    mockPrismaUnit.findUnique.mockResolvedValue(unitWithClient);
+    mockPrismaClientPhone.create.mockResolvedValue({ id: "new-phone" });
 
-    const { updateUnit } = await import("@/lib/actions/units");
-    const result = await updateUnit({ ...baseInput, phone2: "0111" });
+    const { addClientExtraPhone } = await import("@/lib/actions/client-contacts");
+    const result = await addClientExtraPhone("unit-1", "0111");
 
     expect(result.success).toBe(true);
-    expect(mockPrismaClient.update).toHaveBeenCalledWith({
-      where: { id: "client-1" },
-      data: { phone2: "0111", address2: null },
+    expect(mockPrismaClientPhone.create).toHaveBeenCalledWith({
+      data: {
+        clientId: "client-1",
+        phone: "0111",
+        sortOrder: 0,
+      },
     });
   });
 
-  it("rejects changing primary phone", async () => {
+  it("denies community management from updateUnit", async () => {
     mockAuth.mockResolvedValue(session("COMMUNITY_MANAGEMENT"));
-    mockPrismaUnit.findUnique.mockResolvedValue({
-      id: "unit-1",
-      deletedAt: null,
-      agentId: null,
-      clientId: "client-1",
-      client: {
-        name: "Client A",
-        phone1: "0100",
-        phone2: null,
-        email: "a@example.com",
-        nationalId: "123",
-        address1: "Street 1",
-        address2: null,
-      },
-    });
 
     const { updateUnit } = await import("@/lib/actions/units");
-    const result = await updateUnit({ ...baseInput, phone1: "0999" });
+    const result = await updateUnit({
+      unitId: "unit-1",
+      clientName: "Client",
+      phone1: "0100",
+      email: null,
+      nationalId: null,
+      address1: null,
+      type: "APARTMENT",
+    });
 
     expect(result.success).toBe(false);
-    expect(result).toHaveProperty("error", "Cannot change primary phone number");
-    expect(mockPrismaClient.update).not.toHaveBeenCalled();
+    expect(result).toHaveProperty("error", "Unauthorized");
   });
 
-  it("rejects changing existing secondary phone", async () => {
+  it("rejects duplicate phone on add", async () => {
     mockAuth.mockResolvedValue(session("COMMUNITY_MANAGEMENT"));
     mockPrismaUnit.findUnique.mockResolvedValue({
-      id: "unit-1",
-      deletedAt: null,
-      agentId: null,
-      clientId: "client-1",
+      ...unitWithClient,
       client: {
-        name: "Client A",
-        phone1: "0100",
-        phone2: "0111",
-        email: "a@example.com",
-        nationalId: "123",
-        address1: "Street 1",
-        address2: "Street 2",
+        ...unitWithClient.client,
+        phones: [{ id: "p1", phone: "0111", sortOrder: 0 }],
       },
     });
 
-    const { updateUnit } = await import("@/lib/actions/units");
-    const result = await updateUnit({ ...baseInput, phone2: "0222", address2: "Street 2" });
+    const { addClientExtraPhone } = await import("@/lib/actions/client-contacts");
+    const result = await addClientExtraPhone("unit-1", "0111");
 
     expect(result.success).toBe(false);
-    expect(result).toHaveProperty(
-      "error",
-      "Cannot change or remove secondary phone number"
-    );
+    expect(mockPrismaClientPhone.create).not.toHaveBeenCalled();
   });
 });

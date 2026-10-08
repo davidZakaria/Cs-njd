@@ -46,6 +46,19 @@
     }
   },
   "client": {
+    "contacts": {
+      "additionalTitle": "Additional phones & addresses",
+      "extraPhones": "Additional phone numbers",
+      "extraAddresses": "Additional addresses",
+      "addPhone": "Add phone",
+      "addAddress": "Add address",
+      "removePhone": "Remove phone",
+      "removeAddress": "Remove address",
+      "noExtraPhones": "No additional phone numbers yet.",
+      "noExtraAddresses": "No additional addresses yet.",
+      "extraPhoneLabel": "Phone {index}",
+      "extraAddressLabel": "Address {index}"
+    },
     "address1": "Address 1",
     "address2": "Address 2",
     "nationalIdFile": "Attached ID scan",
@@ -706,7 +719,7 @@
     "phone2": "Phone 2",
     "contactRestricted": "Restricted",
     "contactRestrictedHint": "Phone numbers, email, and addresses are hidden for CS agents.",
-    "communityExtrasHint": "You can add a secondary phone or address when the field is empty. Existing contact details cannot be changed.",
+    "communityExtrasHint": "Use + to add more phone numbers or addresses. You cannot edit or remove any contact already on file.",
     "address1": "Address 1",
     "address2": "Address 2",
     "deliveryYear": "Delivery year",

@@ -34,6 +34,11 @@ import {
 } from "@/lib/units/assignable-agents";
 import type { SerializedResolutionContext } from "@/lib/workflow/resolution-checklist";
 import { formatDateTime } from "@/lib/format/datetime";
+import {
+  listClientExtraAddresses,
+  listClientExtraPhones,
+} from "@/lib/client/contact-lines";
+import { toContactExtraLines } from "@/components/units/client-contact-extras";
 
 export default async function UnitProfilePage({
   params,
@@ -62,7 +67,12 @@ export default async function UnitProfilePage({
     where: { id },
     include: {
       project: true,
-      client: true,
+      client: {
+        include: {
+          phones: { orderBy: { sortOrder: "asc" } },
+          addresses: { orderBy: { sortOrder: "asc" } },
+        },
+      },
       agent: true,
       contractWorkflow: true,
       finishing: true,
@@ -208,6 +218,13 @@ export default async function UnitProfilePage({
     ? tWorkflowEdge("poaReceived")
     : tWorkflowEdge("poaPending");
 
+  const clientContactExtras = unit.client
+    ? toContactExtraLines(
+        listClientExtraPhones(unit.client),
+        listClientExtraAddresses(unit.client)
+      )
+    : { phones: [], addresses: [] };
+
   return (
     <div className="space-y-6">
       {isLegallyBlocked ? <LegalBlockBanner /> : null}
@@ -243,11 +260,11 @@ export default async function UnitProfilePage({
               unitId: unit.id,
               clientName: unit.client?.name ?? "\u2014",
               phone1: unit.client?.phone1 ?? null,
-              phone2: unit.client?.phone2 ?? null,
               email: unit.client?.email ?? null,
               nationalId: unit.client?.nationalId ?? null,
               address1: unit.client?.address1 ?? null,
-              address2: unit.client?.address2 ?? null,
+              extraPhones: clientContactExtras.phones,
+              extraAddresses: clientContactExtras.addresses,
               deliveryYear: unit.deliveryYear ?? null,
               gracePeriod: unit.gracePeriod ?? null,
               contractPricePerMeter: unit.contractPricePerMeter ?? null,

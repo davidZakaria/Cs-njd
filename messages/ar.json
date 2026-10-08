@@ -46,6 +46,19 @@
     }
   },
   "client": {
+    "contacts": {
+      "additionalTitle": "أرقام وعناوين إضافية",
+      "extraPhones": "أرقام هاتف إضافية",
+      "extraAddresses": "عناوين إضافية",
+      "addPhone": "إضافة رقم",
+      "addAddress": "إضافة عنوان",
+      "removePhone": "حذف الرقم",
+      "removeAddress": "حذف العنوان",
+      "noExtraPhones": "لا توجد أرقام إضافية بعد.",
+      "noExtraAddresses": "لا توجد عناوين إضافية بعد.",
+      "extraPhoneLabel": "هاتف {index}",
+      "extraAddressLabel": "عنوان {index}"
+    },
     "address1": "عنوان 1",
     "address2": "عنوان 2",
     "nationalIdFile": "صورة البطاقة المرفقة",
@@ -706,7 +719,7 @@
     "phone2": "الهاتف ٢",
     "contactRestricted": "محجوب",
     "contactRestrictedHint": "أرقام الهاتف والبريد الإلكتروني والعناوين مخفية عن موظفي خدمة العملاء.",
-    "communityExtrasHint": "يمكنك إضافة رقم هاتف ثانٍ أو عنوان ثانٍ عندما يكون الحقل فارغاً. لا يمكن تعديل بيانات الاتصال الحالية.",
+    "communityExtrasHint": "استخدم + لإضافة أرقام أو عناوين. لا يمكن تعديل أو حذف أي بيانات اتصال مسجّلة مسبقاً.",
     "address1": "عنوان 1",
     "address2": "عنوان 2",
     "deliveryYear": "السنه للتسليم",

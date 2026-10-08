@@ -36,7 +36,12 @@ export default async function HandoverPrintPage({
     where: { id: unitId },
     include: {
       project: true,
-      client: true,
+      client: {
+        include: {
+          phones: { orderBy: { sortOrder: "asc" } },
+          addresses: { orderBy: { sortOrder: "asc" } },
+        },
+      },
       contractWorkflow: true,
     },
   });

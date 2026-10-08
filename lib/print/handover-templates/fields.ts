@@ -1,17 +1,18 @@
+import {
+  allClientAddressValues,
+  allClientPhoneValues,
+  type ClientWithContactLines,
+} from "@/lib/client/contact-lines";
 import type { HandoverFieldValues } from "./types";
 
 type UnitLike = {
   unitCode: string;
   area: number | null;
-  client: {
+  client: (ClientWithContactLines & {
     name: string;
     nationalId: string | null;
-    phone1: string | null;
-    phone2: string | null;
     email: string | null;
-    address1: string | null;
-    address2: string | null;
-  } | null;
+  }) | null;
   contractWorkflow: {
     contractDate: Date | null;
     deliveryDate: Date | null;
@@ -52,9 +53,12 @@ export function buildHandoverFields(
     clientName: unit.client?.name ?? "—",
     nationality: locale === "ar" ? "مصري" : "Egyptian",
     nationalId: unit.client?.nationalId ?? "—",
-    address: [unit.client?.address1, unit.client?.address2].filter(Boolean).join(" — ") || "—",
-    phone1: unit.client?.phone1 ?? "—",
-    phone2: unit.client?.phone2 ?? "—",
+    address:
+      unit.client
+        ? allClientAddressValues(unit.client).join(" — ") || "—"
+        : "—",
+    phone1: unit.client ? allClientPhoneValues(unit.client)[0] ?? "—" : "—",
+    phone2: unit.client ? allClientPhoneValues(unit.client)[1] ?? "—" : "—",
     email: unit.client?.email ?? "—",
     unitNumber,
     floor,

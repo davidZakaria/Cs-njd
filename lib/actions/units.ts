@@ -10,8 +10,13 @@ import {
   isAdminUnitManager,
   isCommunityManagementRole,
 } from "@/lib/auth/unit-roles";
-import { validateCommunityClientContactUpdate } from "@/lib/auth/community-contact-update";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
+import {
+  addressesForCreate,
+  phonesForCreate,
+  syncClientExtraAddresses,
+  syncClientExtraPhones,
+} from "@/lib/client/sync-contact-extras";
 import { normalizeUnitCode } from "@/lib/import/sanitize";
 import { prisma } from "@/lib/prisma";
 import {
@@ -76,6 +81,13 @@ export async function createUnit(input: CreateUnitFormInput): Promise<ActionResu
     return actionFail("A unit with this code already exists in this project");
   }
 
+  const extraPhoneValues = phonesForCreate(data.phone1, data.phone2, []);
+  const extraAddressValues = addressesForCreate(
+    data.address1,
+    data.address2,
+    []
+  );
+
   try {
     await withAudit(async () => {
       await prisma.$transaction(async (tx) => {
@@ -83,13 +95,32 @@ export async function createUnit(input: CreateUnitFormInput): Promise<ActionResu
           data: {
             name: data.clientName,
             phone1: data.phone1,
-            phone2: data.phone2,
+            phone2: null,
             email: data.email,
             nationalId: data.nationalId,
             address1: data.address1,
-            address2: data.address2,
+            address2: null,
           },
         });
+
+        for (let i = 0; i < extraPhoneValues.length; i++) {
+          await tx.clientPhone.create({
+            data: {
+              clientId: client.id,
+              phone: extraPhoneValues[i],
+              sortOrder: i,
+            },
+          });
+        }
+        for (let i = 0; i < extraAddressValues.length; i++) {
+          await tx.clientAddress.create({
+            data: {
+              clientId: client.id,
+              address: extraAddressValues[i],
+              sortOrder: i,
+            },
+          });
+        }
 
         const resolvedAgentId = await resolveUnitAgentId(data.agentId);
 
@@ -131,8 +162,10 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
 
   const role = session.user.role;
   const isAdmin = isAdminUnitManager(role);
-  const isCommunity = isCommunityManagementRole(role);
-  const isContactEditor = isAdmin || isCommunity || role === "CS_AGENT";
+  if (isCommunityManagementRole(role)) {
+    return actionFail("Unauthorized");
+  }
+  const isContactEditor = isAdmin || role === "CS_AGENT";
 
   if (!isContactEditor) {
     return actionFail("Unauthorized");
@@ -158,11 +191,9 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
     unitId,
     clientName,
     phone1,
-    phone2,
     email,
     nationalId,
     address1,
-    address2,
     deliveryYear,
     gracePeriod,
     contractPricePerMeter,
@@ -170,110 +201,79 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
     area,
     unitCode,
     agentId,
+    extraPhones = [],
+    extraAddresses = [],
   } = parsed.data;
-
-  if (isCommunity) {
-    if (!unit.client) {
-      return actionFail("Client record not found");
-    }
-    const communityPatch = validateCommunityClientContactUpdate(unit.client, {
-      clientName,
-      phone1,
-      phone2,
-      email,
-      nationalId,
-      address1,
-      address2,
-    });
-    if ("success" in communityPatch) {
-      return communityPatch;
-    }
-    const patch = communityPatch;
-
-    const hasChange =
-      (patch.phone2 ?? null) !== (unit.client.phone2 ?? null) ||
-      (patch.address2 ?? null) !== (unit.client.address2 ?? null);
-    if (!hasChange) {
-      return actionOk();
-    }
-
-    await withAudit(async () => {
-      await prisma.client.update({
-        where: { id: unit.clientId! },
-        data: {
-          phone2: patch.phone2,
-          address2: patch.address2,
-        },
-      });
-    });
-
-    revalidatePath(`/units/${unitId}`);
-    revalidatePath("/units");
-    return actionOk();
-  }
 
   const clientData = {
     name: clientName,
     phone1,
-    phone2,
+    phone2: null,
     email,
     nationalId,
     address1,
-    address2,
+    address2: null,
   };
 
   try {
     await withAudit(async () => {
-      if (isAdmin) {
-        const unitUpdate: Prisma.UnitUpdateInput = {
-          deliveryYear,
-          gracePeriod,
-          contractPricePerMeter,
-          type,
-          area,
-        };
+      await prisma.$transaction(async (tx) => {
+        if (isAdmin) {
+          const unitUpdate: Prisma.UnitUpdateInput = {
+            deliveryYear,
+            gracePeriod,
+            contractPricePerMeter,
+            type,
+            area,
+          };
 
-        if (unitCode && normalizeUnitCode(unitCode) !== unit.unitCode) {
-          const normalized = normalizeUnitCode(unitCode);
-          const clash = await prisma.unit.findUnique({
-            where: {
-              projectId_unitCode: {
-                projectId: unit.projectId,
-                unitCode: normalized,
+          if (unitCode && normalizeUnitCode(unitCode) !== unit.unitCode) {
+            const normalized = normalizeUnitCode(unitCode);
+            const clash = await tx.unit.findUnique({
+              where: {
+                projectId_unitCode: {
+                  projectId: unit.projectId,
+                  unitCode: normalized,
+                },
               },
-            },
-          });
-          if (clash && clash.id !== unitId) {
-            throw new Error("DUPLICATE_UNIT_CODE");
+            });
+            if (clash && clash.id !== unitId) {
+              throw new Error("DUPLICATE_UNIT_CODE");
+            }
+            unitUpdate.unitCode = normalized;
           }
-          unitUpdate.unitCode = normalized;
+
+          if (agentId !== undefined) {
+            const resolvedAgentId = await resolveUnitAgentId(agentId);
+            unitUpdate.agent = resolvedAgentId
+              ? { connect: { id: resolvedAgentId } }
+              : { disconnect: true };
+          }
+
+          await tx.unit.update({
+            where: { id: unitId },
+            data: unitUpdate,
+          });
         }
 
-        if (agentId !== undefined) {
-          const resolvedAgentId = await resolveUnitAgentId(agentId);
-          unitUpdate.agent = resolvedAgentId
-            ? { connect: { id: resolvedAgentId } }
-            : { disconnect: true };
+        let clientId = unit.clientId;
+        if (clientId) {
+          await tx.client.update({
+            where: { id: clientId },
+            data: clientData,
+          });
+        } else {
+          const client = await tx.client.create({ data: clientData });
+          clientId = client.id;
+          await tx.unit.update({
+            where: { id: unitId },
+            data: { clientId: client.id },
+          });
         }
 
-        await prisma.unit.update({
-          where: { id: unitId },
-          data: unitUpdate,
-        });
-      }
-
-      if (unit.clientId) {
-        await prisma.client.update({
-          where: { id: unit.clientId },
-          data: clientData,
-        });
-      } else {
-        const client = await prisma.client.create({ data: clientData });
-        await prisma.unit.update({
-          where: { id: unitId },
-          data: { clientId: client.id },
-        });
-      }
+        await syncClientExtraPhones(tx, clientId!, phone1, extraPhones);
+        await syncClientExtraAddresses(tx, clientId!, address1, extraAddresses);
+      });
     });
   } catch (error) {
     if (error instanceof Error && error.message === "DUPLICATE_UNIT_CODE") {

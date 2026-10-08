@@ -30,6 +30,7 @@ export async function searchUnitsSpotlight(
               { name: { contains: trimmed, mode: "insensitive" } },
               { phone1: { contains: trimmed } },
               { phone2: { contains: trimmed } },
+              { phones: { some: { phone: { contains: trimmed } } } },
             ],
           },
         },
@@ -37,7 +38,7 @@ export async function searchUnitsSpotlight(
     }),
     include: {
       project: { select: { name: true } },
-      client: { select: { name: true } },
+      client: { select: { name: true, phone1: true, phones: { select: { phone: true } } } },
     },
     take: 8,
     orderBy: { updatedAt: "desc" },
