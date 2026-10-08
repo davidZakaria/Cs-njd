@@ -79,3 +79,21 @@ export function allClientAddressValues(client: ClientWithContactLines): string[]
 export function isPersistedExtraId(id: string): boolean {
   return !id.startsWith("legacy-");
 }
+
+export type ContactExtraLine = { id: string; value: string };
+
+export function toContactExtraLines(
+  phones: ClientExtraPhone[],
+  addresses: ClientExtraAddress[]
+): { phones: ContactExtraLine[]; addresses: ContactExtraLine[] } {
+  return {
+    phones: phones.map((row) => ({
+      id: isPersistedExtraId(row.id) ? row.id : "",
+      value: row.phone,
+    })),
+    addresses: addresses.map((row) => ({
+      id: isPersistedExtraId(row.id) ? row.id : "",
+      value: row.address,
+    })),
+  };
+}

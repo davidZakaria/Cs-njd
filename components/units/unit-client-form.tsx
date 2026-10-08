@@ -221,14 +221,19 @@ export function UnitClientForm({
             </div>
           ) : canEditCommunityExtras ? (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">{t("communityExtrasHint")}</p>
               <div className="grid gap-4 md:grid-cols-2 text-sm">
                 <p>
                   <strong>{t("client")}:</strong> {defaults.clientName}
                 </p>
-                <p>
-                  <strong>{t("phone1")}:</strong> {defaults.phone1 ?? "—"}
-                </p>
+                <ClientPhoneRow
+                  label={t("phone1")}
+                  phone={defaults.phone1}
+                  clientName={defaults.clientName}
+                  unitCode={defaults.unitCode}
+                  projectName={defaults.projectName}
+                  messageTemplate={defaults.waMessageTemplate}
+                  contactDisabled={contactDisabled}
+                />
                 <p>
                   <strong>{tClient("address1")}:</strong> {defaults.address1 ?? "—"}
                 </p>

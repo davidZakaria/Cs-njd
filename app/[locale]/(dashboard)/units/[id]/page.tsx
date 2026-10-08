@@ -38,7 +38,7 @@ import {
   listClientExtraAddresses,
   listClientExtraPhones,
 } from "@/lib/client/contact-lines";
-import { toContactExtraLines } from "@/components/units/client-contact-extras";
+import { toContactExtraLines } from "@/lib/client/contact-lines";
 
 export default async function UnitProfilePage({
   params,

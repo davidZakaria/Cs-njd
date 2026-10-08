@@ -56,8 +56,8 @@
       "removeAddress": "Remove address",
       "noExtraPhones": "No additional phone numbers yet.",
       "noExtraAddresses": "No additional addresses yet.",
-      "extraPhoneLabel": "Phone {index}",
-      "extraAddressLabel": "Address {index}"
+      "extraPhoneLabel": "Extra phone {index}",
+      "extraAddressLabel": "Extra address {index}"
     },
     "address1": "Address 1",
     "address2": "Address 2",
@@ -178,7 +178,7 @@
       "finalSaleContract": "Final sale contract",
       "datedOn": "Dated",
       "contractDateHint": "Contract date above is the preliminary sale contract date.",
-      "notesTitle": "Notes",
+      "siteVisitSectionTitle": "Site visit",
       "siteVisitDone": "Site visit done",
       "siteVisitDate1": "1st site visit",
       "siteVisitDate2": "2nd site visit",

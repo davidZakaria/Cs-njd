@@ -9,11 +9,7 @@ import {
   addClientExtraAddress,
   addClientExtraPhone,
 } from "@/lib/actions/client-contacts";
-import type {
-  ClientExtraAddress,
-  ClientExtraPhone,
-} from "@/lib/client/contact-lines";
-import { isPersistedExtraId } from "@/lib/client/contact-lines";
+import type { ContactExtraLine } from "@/lib/client/contact-lines";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { ClientPhoneRow } from "@/components/units/client-phone-row";
 import { Button } from "@/components/ui/button";
@@ -28,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-export type ContactExtraLine = { id: string; value: string };
+export type { ContactExtraLine } from "@/lib/client/contact-lines";
 
 type ContactExtrasMode = "readonly" | "editable" | "communityAddOnly";
 
@@ -348,20 +344,4 @@ export function ClientContactExtras({
       ) : null}
     </div>
   );
-}
-
-export function toContactExtraLines(
-  phones: ClientExtraPhone[],
-  addresses: ClientExtraAddress[]
-): { phones: ContactExtraLine[]; addresses: ContactExtraLine[] } {
-  return {
-    phones: phones.map((row) => ({
-      id: isPersistedExtraId(row.id) ? row.id : "",
-      value: row.phone,
-    })),
-    addresses: addresses.map((row) => ({
-      id: isPersistedExtraId(row.id) ? row.id : "",
-      value: row.address,
-    })),
-  };
 }

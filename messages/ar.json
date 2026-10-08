@@ -56,8 +56,8 @@
       "removeAddress": "حذف العنوان",
       "noExtraPhones": "لا توجد أرقام إضافية بعد.",
       "noExtraAddresses": "لا توجد عناوين إضافية بعد.",
-      "extraPhoneLabel": "هاتف {index}",
-      "extraAddressLabel": "عنوان {index}"
+      "extraPhoneLabel": "هاتف إضافي {index}",
+      "extraAddressLabel": "عنوان إضافي {index}"
     },
     "address1": "عنوان 1",
     "address2": "عنوان 2",
@@ -172,14 +172,14 @@
     },
     "contractsHandover": {
       "contractsTitle": "العقود",
-      "preliminarySaleContract": "عقد ابتدائي بيع",
+      "preliminarySaleContract": "عقد بيع ابتدائي",
       "saleContractAnnex": "ملحق عقد البيع",
       "handoverRecord": "محضر استلام",
       "finalSaleContract": "عقد بيع نهائي",
       "datedOn": "مؤرخ في",
       "contractDateHint": "تاريخ العقد أعلاه هو تاريخ العقد الابتدائي.",
-      "notesTitle": "الملاحظات",
-      "siteVisitDone": "تاريخ المعاينة للموقع",
+      "siteVisitSectionTitle": "معاينة الموقع",
+      "siteVisitDone": "تمت معاينة الموقع",
       "siteVisitDate1": "المعاينة الأولى",
       "siteVisitDate2": "المعاينة الثانية",
       "siteVisitDate3": "المعاينة الثالثة",

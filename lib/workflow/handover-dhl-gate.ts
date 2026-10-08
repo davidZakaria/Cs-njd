@@ -49,48 +49,76 @@ function datesEqual(a: Date | null | undefined, b: Date | null | undefined) {
   return aTime === bTime;
 }
 
-/**
- * When site visit is not done, DHL fields cannot change — proposed values are
- * replaced with the persisted snapshot (server-side enforcement).
- */
-export function applyDhlSiteVisitLock<T extends DhlWorkflowPatch>(
-  proposed: T,
-  existing: DhlWorkflowSnapshot | null
-): T {
-  const siteVisitDone =
-    proposed.siteVisitDone ?? existing?.siteVisitDone ?? false;
-
-  if (siteVisitDone) {
-    return proposed;
-  }
-
-  if (!existing) {
-    return {
-      ...proposed,
-      dhlSentToClient: false,
-      dhlSentToClientDate: null,
-      dhlReceivedFromClient: false,
-      dhlReceivedFromClientDate: null,
-      powerOfAttorneyReceived: false,
-    };
-  }
-
-  if (
-    dhlFieldsEqual(proposed, existing) &&
-    (proposed.siteVisitDone === undefined ||
-      proposed.siteVisitDone === existing.siteVisitDone)
-  ) {
-    return proposed;
-  }
-
+function emptyDhlFields(): Pick<
+  DhlWorkflowSnapshot,
+  DhlWorkflowFieldName
+> {
   return {
-    ...proposed,
-    siteVisitDone: existing.siteVisitDone,
+    dhlSentToClient: false,
+    dhlSentToClientDate: null,
+    dhlReceivedFromClient: false,
+    dhlReceivedFromClientDate: null,
+    powerOfAttorneyReceived: false,
+  };
+}
+
+function frozenDhlFromExisting(
+  existing: DhlWorkflowSnapshot | null
+): Pick<DhlWorkflowSnapshot, DhlWorkflowFieldName> {
+  if (!existing) {
+    return emptyDhlFields();
+  }
+  return {
     dhlSentToClient: existing.dhlSentToClient,
     dhlSentToClientDate: existing.dhlSentToClientDate,
     dhlReceivedFromClient: existing.dhlReceivedFromClient,
     dhlReceivedFromClientDate: existing.dhlReceivedFromClientDate,
     powerOfAttorneyReceived: existing.powerOfAttorneyReceived,
+  };
+}
+
+function resolveSiteVisitDone(
+  proposed: DhlWorkflowPatch,
+  existing: DhlWorkflowSnapshot | null
+): boolean {
+  if (proposed.siteVisitDone !== undefined) {
+    return proposed.siteVisitDone;
+  }
+  return existing?.siteVisitDone ?? false;
+}
+
+/**
+ * When site visit is not done, DHL fields cannot change — values stay as stored
+ * but the UI stays locked. Site visit done may be toggled off (persists false).
+ */
+export function applyDhlSiteVisitLock<T extends DhlWorkflowPatch>(
+  proposed: T,
+  existing: DhlWorkflowSnapshot | null
+): T {
+  const siteVisitDone = resolveSiteVisitDone(proposed, existing);
+
+  if (siteVisitDone) {
+    return { ...proposed, siteVisitDone: true };
+  }
+
+  const frozen = frozenDhlFromExisting(existing);
+
+  if (
+    existing &&
+    dhlFieldsEqual(proposed, existing) &&
+    proposed.siteVisitDone === false
+  ) {
+    return { ...proposed, siteVisitDone: false, ...frozen };
+  }
+
+  if (existing && dhlFieldsEqual(proposed, existing)) {
+    return { ...proposed, siteVisitDone: false, ...frozen };
+  }
+
+  return {
+    ...proposed,
+    siteVisitDone: false,
+    ...frozen,
   };
 }
 

@@ -409,7 +409,7 @@ export function UnitLegalHandoverForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>{tForm("notesTitle")}</CardTitle>
+          <CardTitle>{tForm("siteVisitSectionTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-3">
