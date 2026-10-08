@@ -16,12 +16,27 @@ export function isLimitedExportRole(role: Role): boolean {
   return isCsAgentRole(role) || isCommunityManagementRole(role);
 }
 
+export type UnitClientEditMode = "none" | "communityExtras" | "contact" | "admin";
+
+export function resolveUnitClientEditMode(
+  role: Role,
+  csAgentHasUnitAccess: boolean
+): UnitClientEditMode {
+  if (isAdminUnitManager(role)) return "admin";
+  if (isCsAgentRole(role) && csAgentHasUnitAccess) return "contact";
+  if (isCommunityManagementRole(role)) return "communityExtras";
+  return "none";
+}
+
+/** @deprecated Use resolveUnitClientEditMode */
 export function canEditClientContactOnUnit(
   role: Role,
   csAgentHasUnitAccess: boolean
 ): boolean {
-  if (isAdminUnitManager(role)) return true;
-  if (isCommunityManagementRole(role)) return true;
-  if (isCsAgentRole(role)) return csAgentHasUnitAccess;
-  return false;
+  const mode = resolveUnitClientEditMode(role, csAgentHasUnitAccess);
+  return mode === "contact" || mode === "admin";
+}
+
+export function canAddCommunityExtraContact(role: Role): boolean {
+  return isCommunityManagementRole(role);
 }

@@ -34,6 +34,11 @@ function optionalEmail() {
     });
 }
 
+const contactExtraLineSchema = z.object({
+  id: optionalString(),
+  value: z.string(),
+});
+
 export const unitProfileFormSchema = z.object({
   unitId: z.string().min(1),
   unitCode: z.string().min(1).optional(),
@@ -45,6 +50,8 @@ export const unitProfileFormSchema = z.object({
   nationalId: optionalString(),
   address1: optionalString(),
   address2: optionalString(),
+  extraPhones: z.array(contactExtraLineSchema).optional(),
+  extraAddresses: z.array(contactExtraLineSchema).optional(),
   deliveryYear: optionalString(),
   gracePeriod: optionalString(),
   contractPricePerMeter: optionalNumber(),

@@ -497,6 +497,45 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
       expect(result).toHaveProperty("error", "Unauthorized");
     });
 
+    it("denies COMMUNITY_MANAGEMENT from creating timeline tickets", async () => {
+      mockAuth.mockResolvedValue(
+        createMockSession({ id: "community-1", role: "COMMUNITY_MANAGEMENT" })
+      );
+
+      const { createTicket } = await import("@/lib/actions/crm");
+      const formData = new FormData();
+      formData.set("unitId", "unit-1");
+      formData.set("notes", "Feedback");
+
+      const result = await createTicket(formData);
+
+      expect(result.success).toBe(false);
+      expect(result).toHaveProperty("error", "Unauthorized");
+      expect(mockPrismaTicket.create).not.toHaveBeenCalled();
+    });
+
+    it("allows COMMUNITY_MANAGEMENT to log calls", async () => {
+      mockAuth.mockResolvedValue(
+        createMockSession({ id: "community-1", role: "COMMUNITY_MANAGEMENT" })
+      );
+      mockPrismaUnit.findUnique.mockResolvedValue({
+        id: "unit-1",
+        agentId: "agent-1",
+        unitCode: "A-1",
+        agent: { id: "agent-1" },
+      });
+      mockPrismaTicket.create.mockResolvedValue({ id: "call-1" });
+
+      const { logCallQuickAction } = await import("@/lib/actions/crm");
+      const result = await logCallQuickAction({
+        unitId: "unit-1",
+        notes: "📞 Called client",
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockPrismaTicket.create).toHaveBeenCalled();
+    });
+
     it("allows authenticated user to create ticket for their unit", async () => {
       const agentId = "cs-agent-1";
       mockAuth.mockResolvedValue(createMockSession({
@@ -616,13 +655,31 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
       actionLabel: null,
       contractDate: null,
       deliveryDate: null,
+      hasPreliminarySaleContract: false,
       hasSignedProtocol: false,
+      signedProtocolDate: null,
       hasSignedExtension: false,
+      signedExtensionDate: null,
+      hasFinalSaleContract: false,
+      finalSaleContractDate: null,
       hasPaidFees: true,
       papersReceived: false,
       powerOfAttorneyReceived: false,
       isLegallyBlocked: false,
       inspectionDate: null,
+      siteVisitDone: false,
+      siteVisitDate1: null,
+      siteVisitDate2: null,
+      siteVisitDate3: null,
+      clientInspectionNotes: null,
+      dhlSentToClient: false,
+      dhlSentToClientDate: null,
+      dhlReceivedFromClient: false,
+      dhlReceivedFromClientDate: null,
+      paperHandoverPreliminaryCopy: false,
+      paperHandoverOriginalProtocol: false,
+      paperHandoverFinishingPapers: false,
+      paperHandoverKeyReceived: false,
     };
 
     it("denies access for unauthenticated users", async () => {
@@ -654,7 +711,10 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
         role: "SUPER_ADMIN",
       }));
       
-      mockPrismaUnit.findUnique.mockResolvedValue({ id: "unit-1" });
+      mockPrismaUnit.findUnique.mockResolvedValue({
+        id: "unit-1",
+        contractWorkflow: null,
+      });
       mockPrismaContractWorkflow.upsert.mockResolvedValue({
         unitId: "unit-1",
         hasPaidFees: true,
@@ -672,7 +732,10 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
         role: "MANAGEMENT",
       }));
       
-      mockPrismaUnit.findUnique.mockResolvedValue({ id: "unit-1" });
+      mockPrismaUnit.findUnique.mockResolvedValue({
+        id: "unit-1",
+        contractWorkflow: null,
+      });
       mockPrismaContractWorkflow.upsert.mockResolvedValue({
         unitId: "unit-1",
         hasPaidFees: true,

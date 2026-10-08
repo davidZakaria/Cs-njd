@@ -206,22 +206,51 @@ model Client {
   id         String    @id @default(cuid())
   name       String
   phone1     String?
+  /** @deprecated use ClientPhone — kept for imports / legacy reads */
   phone2     String?
   email      String?
   nationalId         String?   @unique
   nationalIdFile     String?
   address1           String?
+  /** @deprecated use ClientAddress — kept for imports / legacy reads */
   address2   String?
   deletedAt  DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  units Unit[]
+  units     Unit[]
+  phones    ClientPhone[]
+  addresses ClientAddress[]
 
   @@index([name])
   @@index([phone1])
   @@index([phone2])
   @@index([deletedAt])
+}
+
+model ClientPhone {
+  id        String   @id @default(cuid())
+  clientId  String
+  phone     String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([phone])
+}
+
+model ClientAddress {
+  id        String   @id @default(cuid())
+  clientId  String
+  address   String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
 }
 
 model Unit {
@@ -268,11 +297,29 @@ model ContractWorkflow {
   actionLabel        String?
   hasSignedProtocol  Boolean        @default(false)
   hasSignedExtension Boolean        @default(false)
+  hasPreliminarySaleContract Boolean @default(false)
+  signedProtocolDate DateTime?
+  signedExtensionDate DateTime?
+  hasFinalSaleContract Boolean      @default(false)
+  finalSaleContractDate DateTime?
   hasPaidFees        Boolean        @default(false)
   papersReceived     Boolean        @default(false)
   isLegallyBlocked   Boolean        @default(false)
   powerOfAttorneyReceived Boolean   @default(false)
   inspectionDate     DateTime?
+  siteVisitDone      Boolean        @default(false)
+  siteVisitDate1     DateTime?
+  siteVisitDate2     DateTime?
+  siteVisitDate3     DateTime?
+  clientInspectionNotes String?
+  dhlSentToClient    Boolean        @default(false)
+  dhlSentToClientDate DateTime?
+  dhlReceivedFromClient Boolean     @default(false)
+  dhlReceivedFromClientDate DateTime?
+  paperHandoverPreliminaryCopy Boolean @default(false)
+  paperHandoverOriginalProtocol Boolean @default(false)
+  paperHandoverFinishingPapers Boolean @default(false)
+  paperHandoverKeyReceived Boolean   @default(false)
   signedProtocolStoredName     String?
   signedProtocolOriginalName   String?
   signedProtocolMimeType       String?

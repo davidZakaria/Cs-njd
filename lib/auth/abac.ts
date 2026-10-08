@@ -8,6 +8,7 @@ import {
   type SessionUserForScope,
 } from "@/lib/auth/cs-agent-scope";
 import { canManageUnitTickets } from "@/lib/auth/unit-ticket-access";
+import { isCommunityManagementRole } from "@/lib/auth/unit-roles";
 
 export async function assertCsAgentCanMutateTicket(
   user: SessionUserForScope,
@@ -17,8 +18,8 @@ export async function assertCsAgentCanMutateTicket(
     return null;
   }
 
-  if (user.role === "COMMUNITY_MANAGEMENT") {
-    return null;
+  if (isCommunityManagementRole(user.role)) {
+    return actionFail("Unauthorized");
   }
 
   if (user.role !== "CS_AGENT") {

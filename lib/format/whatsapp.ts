@@ -1,7 +1,8 @@
 const DEFAULT_COUNTRY_CODE = "20";
 
 /**
- * Normalize a phone string for wa.me links (digits only, Egypt +20 default).
+ * Normalize a phone string for wa.me links (digits only).
+ * Egyptian local numbers default to +20; explicit international (+ / 00) is kept.
  */
 export function sanitizePhoneForWhatsApp(
   raw: string | null | undefined,
@@ -9,18 +10,27 @@ export function sanitizePhoneForWhatsApp(
 ): string | null {
   if (!raw?.trim()) return null;
 
-  let digits = raw.replace(/[^\d+]/g, "");
+  const trimmed = raw.trim();
+  let explicitInternational = trimmed.startsWith("+") || trimmed.startsWith("00");
+
+  let digits = trimmed.replace(/[^\d+]/g, "");
   if (!digits) return null;
 
   if (digits.startsWith("+")) {
     digits = digits.slice(1);
+    explicitInternational = true;
   }
   if (digits.startsWith("00")) {
     digits = digits.slice(2);
+    explicitInternational = true;
   }
 
   if (digits.startsWith(countryCode)) {
     return digits.length >= countryCode.length + 8 ? digits : null;
+  }
+
+  if (explicitInternational) {
+    return digits.length >= 10 && digits.length <= 15 ? digits : null;
   }
 
   if (digits.startsWith("0")) {
@@ -29,6 +39,8 @@ export function sanitizePhoneForWhatsApp(
     digits = `${countryCode}${digits}`;
   } else if (digits.length >= 9 && digits.length <= 11) {
     digits = `${countryCode}${digits}`;
+  } else if (digits.length >= 10 && digits.length <= 15) {
+    return digits;
   } else {
     return null;
   }

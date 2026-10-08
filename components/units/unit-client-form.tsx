@@ -15,6 +15,10 @@ import {
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { ClientPhoneRow } from "@/components/units/client-phone-row";
+import {
+  ClientContactExtras,
+  type ContactExtraLine,
+} from "@/components/units/client-contact-extras";
 import { NationalIdUpload } from "@/components/units/national-id-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,11 +46,11 @@ export type UnitClientFormDefaults = {
   unitId: string;
   clientName: string;
   phone1: string | null;
-  phone2: string | null;
   email: string | null;
   nationalId: string | null;
   address1: string | null;
-  address2: string | null;
+  extraPhones: ContactExtraLine[];
+  extraAddresses: ContactExtraLine[];
   deliveryYear: string | null;
   gracePeriod: string | null;
   contractPricePerMeter: number | null;
@@ -62,7 +66,11 @@ export type UnitClientFormDefaults = {
   waMessageTemplate: string;
 };
 
-export type UnitProfileEditLevel = "none" | "contact" | "admin";
+export type UnitProfileEditLevel =
+  | "none"
+  | "communityExtras"
+  | "contact"
+  | "admin";
 
 export function UnitClientForm({
   defaults,
@@ -77,8 +85,11 @@ export function UnitClientForm({
   contactDisabled?: boolean;
   agentOptions?: Array<{ id: string; name: string }>;
 }) {
-  const canEditClient = profileEditLevel !== "none";
+  const canEditClient =
+    profileEditLevel === "contact" || profileEditLevel === "admin";
+  const canEditCommunityExtras = profileEditLevel === "communityExtras";
   const canEditAdmin = profileEditLevel === "admin";
+  const canSubmitProfile = canEditClient;
   const locale = useLocale();
   const isRtl = locale === "ar";
   const t = useTranslations("units");
@@ -90,17 +101,21 @@ export function UnitClientForm({
   const router = useRouter();
   const { pending, runAction } = useCrudToast();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [contactExtras, setContactExtras] = useState({
+    phones: defaults.extraPhones,
+    addresses: defaults.extraAddresses,
+  });
 
   const formDefaults = useMemo(
     (): UnitProfileFormInput => ({
       unitId: defaults.unitId,
       clientName: defaults.clientName === "—" ? "" : defaults.clientName,
       phone1: defaults.phone1 ?? "",
-      phone2: defaults.phone2 ?? "",
+      phone2: "",
       email: defaults.email ?? "",
       nationalId: defaults.nationalId ?? "",
       address1: defaults.address1 ?? "",
-      address2: defaults.address2 ?? "",
+      address2: "",
       deliveryYear: defaults.deliveryYear ?? "",
       gracePeriod: defaults.gracePeriod ?? "",
       contractPricePerMeter: defaults.contractPricePerMeter ?? "",
@@ -147,11 +162,32 @@ export function UnitClientForm({
     }
   }, [agentSelectItems, defaults.agentId, setValue]);
 
+  useEffect(() => {
+    setContactExtras({
+      phones: defaults.extraPhones,
+      addresses: defaults.extraAddresses,
+    });
+  }, [defaults.extraAddresses, defaults.extraPhones]);
+
   const currencyLabel = currencySuffix(locale);
 
   function onSubmit(values: UnitProfileFormInput) {
-    runAction(() => updateUnit(values), "saved");
+    runAction(
+      () =>
+        updateUnit({
+          ...values,
+          extraPhones: contactExtras.phones,
+          extraAddresses: contactExtras.addresses,
+        }),
+      "saved"
+    );
   }
+
+  const contactExtrasMode = canEditCommunityExtras
+    ? "communityAddOnly"
+    : canEditClient
+      ? "editable"
+      : "readonly";
 
   function onConfirmDelete() {
     runAction(async () => {
@@ -182,6 +218,33 @@ export function UnitClientForm({
               <p className="text-xs text-muted-foreground">
                 {t("contactRestrictedHint")}
               </p>
+            </div>
+          ) : canEditCommunityExtras ? (
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2 text-sm">
+                <p>
+                  <strong>{t("client")}:</strong> {defaults.clientName}
+                </p>
+                <ClientPhoneRow
+                  label={t("phone1")}
+                  phone={defaults.phone1}
+                  clientName={defaults.clientName}
+                  unitCode={defaults.unitCode}
+                  projectName={defaults.projectName}
+                  messageTemplate={defaults.waMessageTemplate}
+                  contactDisabled={contactDisabled}
+                />
+                <p>
+                  <strong>{tClient("address1")}:</strong> {defaults.address1 ?? "—"}
+                </p>
+                <p>
+                  <strong>{tCommon("email")}:</strong> {defaults.email ?? "—"}
+                </p>
+                <p>
+                  <strong>{tFields("nationalId")}:</strong>{" "}
+                  {defaults.nationalId ?? "—"}
+                </p>
+              </div>
             </div>
           ) : canEditClient ? (
             <div className="grid gap-4 md:grid-cols-2">
@@ -246,10 +309,6 @@ export function UnitClientForm({
                 <Input id="phone1" disabled={pending} {...register("phone1")} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone2">{t("phone2")}</Label>
-                <Input id="phone2" disabled={pending} {...register("phone2")} />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="email">{tCommon("email")}</Label>
                 <Input
                   id="email"
@@ -280,15 +339,6 @@ export function UnitClientForm({
               <ClientPhoneRow
                 label={t("phone1")}
                 phone={defaults.phone1}
-                clientName={defaults.clientName}
-                unitCode={defaults.unitCode}
-                projectName={defaults.projectName}
-                messageTemplate={defaults.waMessageTemplate}
-                contactDisabled={contactDisabled}
-              />
-              <ClientPhoneRow
-                label={t("phone2")}
-                phone={defaults.phone2}
                 clientName={defaults.clientName}
                 unitCode={defaults.unitCode}
                 projectName={defaults.projectName}
@@ -349,30 +399,54 @@ export function UnitClientForm({
         </CardContent>
       </Card>
 
-      {!hideClientContact ? (
+      {!hideClientContact && canEditClient ? (
         <Card>
           <CardHeader>
-            <CardTitle>
-              {tClient("address1")} / {tClient("address2")}
-            </CardTitle>
+            <CardTitle>{tClient("address1")}</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
+          <CardContent>
             <div className="space-y-2">
               <Label htmlFor="address1">{tClient("address1")}</Label>
               <Input
                 id="address1"
-                disabled={!canEditClient || pending}
+                disabled={pending}
                 {...register("address1")}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="address2">{tClient("address2")}</Label>
-              <Input
-                id="address2"
-                disabled={!canEditClient || pending}
-                {...register("address2")}
-              />
-            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {!hideClientContact ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{tClient("contacts.additionalTitle")}</CardTitle>
+            {canEditCommunityExtras ? (
+              <p className="text-sm text-muted-foreground">{t("communityExtrasHint")}</p>
+            ) : null}
+          </CardHeader>
+          <CardContent>
+            {!canEditClient && !canEditCommunityExtras ? (
+              <p className="mb-4 text-sm">
+                <strong>{tClient("address1")}:</strong> {defaults.address1 ?? "—"}
+              </p>
+            ) : null}
+            <ClientContactExtras
+              unitId={defaults.unitId}
+              clientName={defaults.clientName}
+              unitCode={defaults.unitCode}
+              projectName={defaults.projectName}
+              messageTemplate={defaults.waMessageTemplate}
+              extraPhones={contactExtras.phones}
+              extraAddresses={contactExtras.addresses}
+              mode={contactExtrasMode}
+              contactDisabled={contactDisabled}
+              onExtrasChange={
+                canEditClient
+                  ? (next) => setContactExtras(next)
+                  : undefined
+              }
+            />
           </CardContent>
         </Card>
       ) : null}
@@ -452,7 +526,7 @@ export function UnitClientForm({
         </CardContent>
       </Card>
 
-      {canEditClient ? (
+      {canSubmitProfile ? (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {canEditAdmin ? (
             <>

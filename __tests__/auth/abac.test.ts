@@ -95,6 +95,22 @@ describe("ABAC - Attribute-Based Access Control", () => {
       expect(result).toHaveProperty("error", "Unauthorized");
     });
 
+    it("denies COMMUNITY_MANAGEMENT from mutating tickets", async () => {
+      const { assertCsAgentCanMutateTicket } = await import("@/lib/auth/abac");
+
+      const user = { id: "community-1", role: "COMMUNITY_MANAGEMENT" as Role };
+      const ticket = {
+        agentId: "some-agent",
+        unit: { agentId: "some-agent" },
+      };
+
+      const result = await assertCsAgentCanMutateTicket(user, ticket);
+
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(false);
+      expect(result).toHaveProperty("error", "Unauthorized");
+    });
+
     it("denies ENGINEER from mutating any ticket", async () => {
       const { assertCsAgentCanMutateTicket } = await import("@/lib/auth/abac");
       

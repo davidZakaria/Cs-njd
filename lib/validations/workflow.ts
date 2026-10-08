@@ -42,32 +42,52 @@ export const ticketWorkflowSchema = z.object({
 
 export type TicketWorkflowInput = z.infer<typeof ticketWorkflowSchema>;
 
-export const handoverChecklistSchema = z.object({
-  unitId: z.string().min(1),
-  handoverStatus: z.enum(handoverStatusValues),
-  actionLabel: optionalString(),
-  contractDate: optionalDate(),
-  deliveryDate: optionalDate(),
+const sharedHandoverFieldsSchema = z.object({
   hasSignedProtocol: z.boolean(),
+  signedProtocolDate: optionalDate(),
   hasSignedExtension: z.boolean(),
-  hasPaidFees: z.boolean(),
+  signedExtensionDate: optionalDate(),
   papersReceived: z.boolean(),
   powerOfAttorneyReceived: z.boolean(),
-  isLegallyBlocked: z.boolean(),
   inspectionDate: optionalDate(),
+  siteVisitDone: z.boolean(),
+  siteVisitDate1: optionalDate(),
+  siteVisitDate2: optionalDate(),
+  siteVisitDate3: optionalDate(),
+  clientInspectionNotes: optionalString(),
+  dhlSentToClient: z.boolean(),
+  dhlSentToClientDate: optionalDate(),
+  dhlReceivedFromClient: z.boolean(),
+  dhlReceivedFromClientDate: optionalDate(),
+  paperHandoverPreliminaryCopy: z.boolean(),
+  paperHandoverOriginalProtocol: z.boolean(),
+  paperHandoverFinishingPapers: z.boolean(),
+  paperHandoverKeyReceived: z.boolean(),
 });
+
+export const handoverChecklistSchema = z
+  .object({
+    unitId: z.string().min(1),
+    handoverStatus: z.enum(handoverStatusValues),
+    actionLabel: optionalString(),
+    contractDate: optionalDate(),
+    deliveryDate: optionalDate(),
+    hasPreliminarySaleContract: z.boolean(),
+    hasFinalSaleContract: z.boolean(),
+    finalSaleContractDate: optionalDate(),
+    hasPaidFees: z.boolean(),
+    isLegallyBlocked: z.boolean(),
+  })
+  .merge(sharedHandoverFieldsSchema);
 
 export type HandoverChecklistInput = z.infer<typeof handoverChecklistSchema>;
 export type HandoverChecklistFormInput = z.input<typeof handoverChecklistSchema>;
 
-export const csHandoverChecklistSchema = z.object({
-  unitId: z.string().min(1),
-  hasSignedProtocol: z.boolean(),
-  hasSignedExtension: z.boolean(),
-  papersReceived: z.boolean(),
-  powerOfAttorneyReceived: z.boolean(),
-  inspectionDate: optionalDate(),
-});
+export const csHandoverChecklistSchema = z
+  .object({
+    unitId: z.string().min(1),
+  })
+  .merge(sharedHandoverFieldsSchema);
 
 export type CsHandoverChecklistInput = z.infer<typeof csHandoverChecklistSchema>;
 
