@@ -59,13 +59,11 @@ export function canCreateOrUpdateCaseOnUnit(
 
 export function canEditClientContactsOnUnit(
   role: Role,
-  assignment: UnitAssignment,
-  scope?: CsAgentScope | null
+  _assignment?: UnitAssignment,
+  _scope?: CsAgentScope | null
 ): boolean {
   if (isAdminUnitManager(role)) return true;
-  if (isCsAgentRole(role) && scope) {
-    return isCsAgentAssignedToUnit(scope, assignment);
-  }
+  if (isCsAgentRole(role)) return true;
   return false;
 }
 
@@ -98,14 +96,12 @@ export function canEditCsHandoverChecklist(
 /** Finishing financials tab — all fields on the unit profile. */
 export function canEditFinishingFinancialsOnUnit(
   role: Role,
-  assignment: UnitAssignment,
-  scope?: CsAgentScope | null
+  _assignment?: UnitAssignment,
+  _scope?: CsAgentScope | null
 ): boolean {
   if (isAdminUnitManager(role) || role === "SUPER_ADMIN") return true;
   if (isCommunityManagementRole(role)) return false;
-  if (isCsAgentRole(role) && scope) {
-    return isCsAgentAssignedToUnit(scope, assignment);
-  }
+  if (isCsAgentRole(role)) return true;
   return false;
 }
 

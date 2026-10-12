@@ -114,10 +114,8 @@ export default async function UnitProfilePage({
   const canEditAdmin = session?.user.role
     ? isAdminUnitManager(session.user.role)
     : false;
-  const csHasUnitAccess =
-    csScope != null && isCsAgentAssignedToUnit(csScope, { unitAgentId: unit.agentId });
   const clientEditMode = session?.user.role
-    ? resolveUnitClientEditMode(session.user.role, csHasUnitAccess)
+    ? resolveUnitClientEditMode(session.user.role)
     : "none";
   const profileEditLevel =
     clientEditMode === "admin"

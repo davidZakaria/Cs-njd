@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { auth } from "@/lib/auth";
-import { assertCsAgentUnitAccess } from "@/lib/auth/abac";
 import {
   isAdminUnitManager,
   isCommunityManagementRole,
@@ -181,11 +180,6 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
     include: { client: true },
   });
   if (!unit || unit.deletedAt) return actionFail("Unit not found");
-
-  if (role === "CS_AGENT") {
-    const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
-    if (accessError) return accessError;
-  }
 
   const {
     unitId,

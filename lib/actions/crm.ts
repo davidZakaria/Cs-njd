@@ -1024,18 +1024,9 @@ export async function updateFinishing(
   if (!unit) return actionFail("Unit not found");
 
   const role = session.user.role;
-  if (isCsAgentRole(role)) {
-    const scope = await resolveCsAgentScope(session.user);
-    if (
-      !canEditFinishingFinancialsOnUnit(
-        role,
-        { unitAgentId: unit.agentId },
-        scope
-      )
-    ) {
-      return actionFail("Unauthorized");
-    }
-  } else if (!isAdminUnitManager(role)) {
+  if (
+    !canEditFinishingFinancialsOnUnit(role, { unitAgentId: unit.agentId })
+  ) {
     return actionFail("Unauthorized");
   }
 
