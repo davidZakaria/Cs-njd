@@ -570,7 +570,7 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
       );
     });
 
-    it("allows CS agent to create ticket on another agent's unit", async () => {
+    it("denies CS agent from creating ticket on another agent's unit", async () => {
       const actorId = "cs-agent-2";
       const ownerId = "cs-agent-1";
       mockAuth.mockResolvedValue(createMockSession({
@@ -581,15 +581,8 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
 
       const unit = { id: "unit-1", agentId: ownerId, unitCode: "A-101" };
       mockPrismaUnit.findUnique.mockResolvedValue(unit);
-      mockPrismaTicket.create.mockResolvedValue({
-        id: "ticket-cross",
-        unitId: unit.id,
-      });
 
       const { createTicket } = await import("@/lib/actions/crm");
-      const { notifyCrossAgentTicketOpened } = await import(
-        "@/lib/notifications/triggers"
-      );
 
       const formData = new FormData();
       formData.set("unitId", "unit-1");
@@ -597,16 +590,9 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
 
       const result = await createTicket(formData);
 
-      expect(result.success).toBe(true);
-      expect(mockPrismaTicket.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            agentId: actorId,
-            createdById: actorId,
-          }),
-        })
-      );
-      expect(notifyCrossAgentTicketOpened).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(result).toHaveProperty("error", "Unauthorized");
+      expect(mockPrismaTicket.create).not.toHaveBeenCalled();
     });
 
     it("requires notes for ticket creation", async () => {

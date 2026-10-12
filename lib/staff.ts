@@ -73,13 +73,6 @@ export function getCsAgentEmails(): string[] {
   );
 }
 
-/** CS agents + management — anyone who can appear on a case assignment. */
-export function getAssignableAgentEmails(): string[] {
-  return STAFF_ROSTER.filter(
-    (person) => person.role === "CS_AGENT" || person.role === "MANAGEMENT"
-  ).map((person) => person.email);
-}
-
 /** Maps normalized Excel agent labels to canonical staff emails. */
 export function buildStaffAliasMap(): Map<string, string> {
   const map = new Map<string, string>();

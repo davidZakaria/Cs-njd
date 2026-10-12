@@ -45,7 +45,7 @@ export default async function DashboardPage() {
       ? await resolveCsAgentScope(session.user)
       : null;
 
-  const unitScope: { agentId?: string } = csScope
+  const assignedUnitScope: { agentId?: string } = csScope
     ? csAgentUnitScope(csScope)
     : {};
 
@@ -55,17 +55,23 @@ export default async function DashboardPage() {
 
   const [totalUnits, pendingTickets, deliveredUnits, legalDisputes, pendingWork, communityDailyActivity] =
     await Promise.all([
-      prisma.unit.count({ where: activeUnitWhere(unitScope) }),
+      prisma.unit.count({
+        where: activeUnitWhere(csScope ? {} : assignedUnitScope),
+      }),
       prisma.ticket.count({
         where: activeTicketWhere({
           status: "PENDING",
-          unit: unitScope.agentId ? { agentId: unitScope.agentId } : {},
+          unit: assignedUnitScope.agentId
+            ? { agentId: assignedUnitScope.agentId }
+            : {},
         }),
       }),
       prisma.contractWorkflow.count({
         where: activeContractWorkflowWhere({
           handoverStatus: { in: ["DELIVERY_PROTOCOL", "DELIVERED"] },
-          unit: unitScope.agentId ? { agentId: unitScope.agentId } : {},
+          unit: assignedUnitScope.agentId
+            ? { agentId: assignedUnitScope.agentId }
+            : {},
         }),
       }),
       prisma.contractWorkflow.count({
@@ -79,7 +85,9 @@ export default async function DashboardPage() {
               "LEGAL_DISPUTE",
             ],
           },
-          unit: unitScope.agentId ? { agentId: unitScope.agentId } : {},
+          unit: assignedUnitScope.agentId
+            ? { agentId: assignedUnitScope.agentId }
+            : {},
         }),
       }),
       session?.user

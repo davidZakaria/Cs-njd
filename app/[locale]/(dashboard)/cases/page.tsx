@@ -6,7 +6,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { activeTicketWhere } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
-import { getAssignableAgentEmails } from "@/lib/staff";
+import { getAssignableAgentUsers } from "@/lib/units/assignable-agents";
 import { splitCasesForManager, getEffectiveCaseAgent } from "@/lib/cases/ownership";
 import { CasesTable, type CaseRow } from "@/components/cases/cases-table";
 import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
@@ -53,11 +53,7 @@ export default async function CasesPage({
       },
       orderBy: { updatedAt: "desc" },
     }),
-    prisma.user.findMany({
-      where: { email: { in: getAssignableAgentEmails() } },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
+    getAssignableAgentUsers(),
   ]);
 
   const rows: CaseRow[] = tickets.map((ticket) => {

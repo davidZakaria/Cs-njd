@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 
 import { returnToCsAction } from "@/lib/actions/engineering";
+import { Link } from "@/i18n/navigation";
 import { normalizeFinishingPhases } from "@/lib/finishing/phases";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
@@ -26,6 +27,8 @@ export function EngineeringTaskForm({
   customModifications,
   modificationsCompleted,
   engineeringNotes,
+  readOnly = false,
+  canEditUnitFinishing = false,
 }: {
   unitId: string;
   unitCode: string;
@@ -35,6 +38,8 @@ export function EngineeringTaskForm({
   customModifications: string | null;
   modificationsCompleted: boolean;
   engineeringNotes: string | null;
+  readOnly?: boolean;
+  canEditUnitFinishing?: boolean;
 }) {
   const locale = useLocale();
   const isRtl = locale === "ar";
@@ -59,6 +64,7 @@ export function EngineeringTaskForm({
   );
 
   async function handleReturn() {
+    if (readOnly) return;
     const result = await returnToCsAction({
       unitId,
       phases: selectedPhases,
@@ -82,6 +88,17 @@ export function EngineeringTaskForm({
           {unitCode}
         </h1>
         <p className="text-muted-foreground">{projectLabel}</p>
+        {readOnly ? (
+          <p className="mt-2 text-sm text-muted-foreground">{t("csReadOnlyHint")}</p>
+        ) : null}
+        {canEditUnitFinishing ? (
+          <Link
+            href={`/units/${unitId}?tab=financials`}
+            className="mt-2 inline-block text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {t("openUnitFinishing")}
+          </Link>
+        ) : null}
       </div>
 
       {hasCustomMods ? (
@@ -100,7 +117,7 @@ export function EngineeringTaskForm({
                 type="checkbox"
                 className="mt-1 size-5 rounded border"
                 checked={modsCompleted}
-                disabled={pending}
+                disabled={readOnly || pending}
                 onChange={(event) => setModsCompleted(event.target.checked)}
               />
               <span>{t("modificationsCompleted")}</span>
@@ -122,7 +139,7 @@ export function EngineeringTaskForm({
           <FinishingPhasePicker
             value={selectedPhases}
             onChange={setSelectedPhases}
-            disabled={pending}
+            disabled={readOnly || pending}
             packageType={packageType}
             label={tFinishing("phaseBannerLabel")}
             hint={tFinishing("phaseMultiHint")}
@@ -145,7 +162,7 @@ export function EngineeringTaskForm({
             id="engineeringNotes"
             rows={5}
             value={notes}
-            disabled={pending}
+            disabled={readOnly || pending}
             onChange={(event) => setNotes(event.target.value)}
             className="min-h-32 resize-y text-base"
             placeholder={tFinishing("finishingNotesPlaceholder")}
@@ -153,28 +170,30 @@ export function EngineeringTaskForm({
         </CardContent>
       </Card>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="mx-auto flex max-w-3xl flex-col gap-2">
-          {selectedPhases.some((phase) => phase !== "NOT_STARTED") ? (
-            <div className="flex flex-wrap gap-1.5">
-              {selectedPhases.map((phase) => (
-                <Badge key={phase} variant="secondary">
-                  {labels.finishingPhase(phase)}
-                </Badge>
-              ))}
-            </div>
-          ) : null}
-          <Button
-            type="button"
-            size="lg"
-            className="h-12 w-full text-base"
-            disabled={pending}
-            onClick={handleReturn}
-          >
-            {t("returnToCS")}
-          </Button>
+      {!readOnly ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="mx-auto flex max-w-3xl flex-col gap-2">
+            {selectedPhases.some((phase) => phase !== "NOT_STARTED") ? (
+              <div className="flex flex-wrap gap-1.5">
+                {selectedPhases.map((phase) => (
+                  <Badge key={phase} variant="secondary">
+                    {labels.finishingPhase(phase)}
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
+            <Button
+              type="button"
+              size="lg"
+              className="h-12 w-full text-base"
+              disabled={pending}
+              onClick={handleReturn}
+            >
+              {t("returnToCS")}
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

@@ -15,8 +15,11 @@ import {
   handoverChecklistSchema,
   type HandoverChecklistFormInput,
 } from "@/lib/validations/workflow";
-import { CS_HANDOVER_CHECKLIST_FIELDS } from "@/lib/workflow/cs-handover-fields";
 import { isDhlSectionActive } from "@/lib/workflow/handover-dhl-gate";
+import {
+  canEditHandoverChecklistField,
+  showManagementOnlyHint,
+} from "@/lib/workflow/handover-field-access";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { Button } from "@/components/ui/button";
@@ -66,30 +69,11 @@ export type UnitLegalHandoverDefaults = {
   paperHandoverKeyReceived: boolean;
 };
 
-const MANAGEMENT_ONLY_FIELDS = new Set([
-  "hasPaidFees",
-  "isLegallyBlocked",
-  "hasPreliminarySaleContract",
-  "hasFinalSaleContract",
-  "finalSaleContractDate",
-]);
-
 function toDateInput(value: string | null | undefined): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return format(date, "yyyy-MM-dd");
-}
-
-function canEditChecklistField(
-  field: string,
-  canEditManagement: boolean,
-  canEditCsChecklist: boolean
-): boolean {
-  if (canEditManagement) return true;
-  if (!canEditCsChecklist) return false;
-  if (MANAGEMENT_ONLY_FIELDS.has(field)) return false;
-  return (CS_HANDOVER_CHECKLIST_FIELDS as readonly string[]).includes(field);
 }
 
 function ContractRow({
@@ -220,10 +204,12 @@ export function UnitLegalHandoverForm({
 
   function fieldDisabled(field: string) {
     return (
-      !canEditChecklistField(field, managementEdit, canEditCsChecklist) ||
+      !canEditHandoverChecklistField(field, managementEdit, canEditCsChecklist) ||
       pending
     );
   }
+
+  const managementOnlyLabel = tChecklist("managementOnly");
 
   function onSubmit(values: HandoverChecklistFormInput) {
     if (managementEdit) {
@@ -283,74 +269,120 @@ export function UnitLegalHandoverForm({
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <input type="hidden" {...form.register("unitId")} />
 
-      {managementEdit ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("legalStatus")}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 md:col-span-2">
-              <Label>{t("handoverStatus")}</Label>
-              <Controller
-                control={form.control}
-                name="handoverStatus"
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    items={handoverStatusItems}
-                    disabled={pending}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {HANDOVER_STATUS_OPTIONS.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {labels.handoverStatus(status)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="actionLabel">{t("actionLabel")}</Label>
-              <Input
-                id="actionLabel"
-                disabled={pending}
-                {...form.register("actionLabel")}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contractDate">{t("contractDate")}</Label>
-              <Input
-                id="contractDate"
-                type="date"
-                disabled={pending}
-                value={String(form.watch("contractDate") ?? "")}
-                onChange={(event) =>
-                  form.setValue("contractDate", event.target.value)
-                }
-              />
-              <p className="text-xs text-muted-foreground">{tForm("contractDateHint")}</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="deliveryDate">{t("deliveryDate")}</Label>
-              <Input
-                id="deliveryDate"
-                type="date"
-                disabled={pending}
-                value={String(form.watch("deliveryDate") ?? "")}
-                onChange={(event) =>
-                  form.setValue("deliveryDate", event.target.value)
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("legalStatus")}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2 md:col-span-2">
+            <Label>
+              {t("handoverStatus")}
+              {showManagementOnlyHint(
+                "handoverStatus",
+                managementEdit,
+                canEditCsChecklist
+              ) ? (
+                <span className="ms-1 text-xs text-muted-foreground">
+                  ({managementOnlyLabel})
+                </span>
+              ) : null}
+            </Label>
+            <Controller
+              control={form.control}
+              name="handoverStatus"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  items={handoverStatusItems}
+                  disabled={fieldDisabled("handoverStatus")}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HANDOVER_STATUS_OPTIONS.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {labels.handoverStatus(status)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="actionLabel">
+              {t("actionLabel")}
+              {showManagementOnlyHint(
+                "actionLabel",
+                managementEdit,
+                canEditCsChecklist
+              ) ? (
+                <span className="ms-1 text-xs text-muted-foreground">
+                  ({managementOnlyLabel})
+                </span>
+              ) : null}
+            </Label>
+            <Input
+              id="actionLabel"
+              disabled={fieldDisabled("actionLabel")}
+              {...form.register("actionLabel")}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="contractDate">
+              {t("contractDate")}
+              {showManagementOnlyHint(
+                "contractDate",
+                managementEdit,
+                canEditCsChecklist
+              ) ? (
+                <span className="ms-1 text-xs text-muted-foreground">
+                  ({managementOnlyLabel})
+                </span>
+              ) : null}
+            </Label>
+            <Input
+              id="contractDate"
+              type="date"
+              disabled={fieldDisabled("contractDate")}
+              value={String(form.watch("contractDate") ?? "")}
+              onChange={(event) =>
+                form.setValue("contractDate", event.target.value)
+              }
+            />
+            {managementEdit ? (
+              <p className="text-xs text-muted-foreground">
+                {tForm("contractDateHint")}
+              </p>
+            ) : null}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="deliveryDate">
+              {t("deliveryDate")}
+              {showManagementOnlyHint(
+                "deliveryDate",
+                managementEdit,
+                canEditCsChecklist
+              ) ? (
+                <span className="ms-1 text-xs text-muted-foreground">
+                  ({managementOnlyLabel})
+                </span>
+              ) : null}
+            </Label>
+            <Input
+              id="deliveryDate"
+              type="date"
+              disabled={fieldDisabled("deliveryDate")}
+              value={String(form.watch("deliveryDate") ?? "")}
+              onChange={(event) =>
+                form.setValue("deliveryDate", event.target.value)
+              }
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -360,20 +392,26 @@ export function UnitLegalHandoverForm({
           ) : null}
         </CardHeader>
         <CardContent className="space-y-3">
-          {managementEdit ? (
-            <ContractRow
-              id="hasPreliminarySaleContract"
-              label={tForm("preliminarySaleContract")}
-              checked={Boolean(form.watch("hasPreliminarySaleContract"))}
-              dateValue={String(form.watch("contractDate") ?? "")}
-              onCheckChange={(value) =>
-                form.setValue("hasPreliminarySaleContract", value)
-              }
-              onDateChange={(value) => form.setValue("contractDate", value)}
-              disabled={fieldDisabled("hasPreliminarySaleContract")}
-              managementOnlyLabel={tChecklist("managementOnly")}
-            />
-          ) : null}
+          <ContractRow
+            id="hasPreliminarySaleContract"
+            label={tForm("preliminarySaleContract")}
+            checked={Boolean(form.watch("hasPreliminarySaleContract"))}
+            dateValue={String(form.watch("contractDate") ?? "")}
+            onCheckChange={(value) =>
+              form.setValue("hasPreliminarySaleContract", value)
+            }
+            onDateChange={(value) => form.setValue("contractDate", value)}
+            disabled={fieldDisabled("hasPreliminarySaleContract")}
+            managementOnlyLabel={
+              showManagementOnlyHint(
+                "hasPreliminarySaleContract",
+                managementEdit,
+                canEditCsChecklist
+              )
+                ? managementOnlyLabel
+                : undefined
+            }
+          />
           <ContractRow
             id="hasSignedExtension"
             label={tForm("saleContractAnnex")}
@@ -392,18 +430,24 @@ export function UnitLegalHandoverForm({
             onDateChange={(value) => form.setValue("signedProtocolDate", value)}
             disabled={fieldDisabled("hasSignedProtocol")}
           />
-          {managementEdit ? (
-            <ContractRow
-              id="hasFinalSaleContract"
-              label={tForm("finalSaleContract")}
-              checked={Boolean(form.watch("hasFinalSaleContract"))}
-              dateValue={String(form.watch("finalSaleContractDate") ?? "")}
-              onCheckChange={(value) => form.setValue("hasFinalSaleContract", value)}
-              onDateChange={(value) => form.setValue("finalSaleContractDate", value)}
-              disabled={fieldDisabled("hasFinalSaleContract")}
-              managementOnlyLabel={tChecklist("managementOnly")}
-            />
-          ) : null}
+          <ContractRow
+            id="hasFinalSaleContract"
+            label={tForm("finalSaleContract")}
+            checked={Boolean(form.watch("hasFinalSaleContract"))}
+            dateValue={String(form.watch("finalSaleContractDate") ?? "")}
+            onCheckChange={(value) => form.setValue("hasFinalSaleContract", value)}
+            onDateChange={(value) => form.setValue("finalSaleContractDate", value)}
+            disabled={fieldDisabled("hasFinalSaleContract")}
+            managementOnlyLabel={
+              showManagementOnlyHint(
+                "hasFinalSaleContract",
+                managementEdit,
+                canEditCsChecklist
+              )
+                ? managementOnlyLabel
+                : undefined
+            }
+          />
         </CardContent>
       </Card>
 

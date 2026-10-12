@@ -55,6 +55,12 @@ import {
 import { formatResolutionGateErrors } from "@/lib/workflow/resolution-gate-messages";
 import { canUseManagementOverride } from "@/lib/workflow/management-override";
 import { canManageUnitTickets } from "@/lib/auth/unit-ticket-access";
+import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
+import {
+  canCreateOrUpdateCaseOnUnit,
+  canEditCsFinishingEngineering,
+} from "@/lib/auth/role-permissions";
+import { isCsAgentRole } from "@/lib/auth/unit-roles";
 import {
   TICKET_CATEGORIES,
   ticketManageSchema,
@@ -391,6 +397,15 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
 
   const unit = await prisma.unit.findUnique({ where: { id: unitId } });
   if (!unit) return actionFail("Unit not found");
+
+  if (isCsAgentRole(session.user.role)) {
+    const scope = await resolveCsAgentScope(session.user);
+    if (
+      !canCreateOrUpdateCaseOnUnit(session.user.role, { unitAgentId: unit.agentId }, scope)
+    ) {
+      return actionFail("Unauthorized");
+    }
+  }
 
   const gateError = await assertCanResolveTicket(
     session.user,
@@ -1097,31 +1112,27 @@ export async function updateCsFinishingAdditions(
 
   const { next, changes } = applyCsFinishingAdditions(previous, parsed.data);
 
-  const packageChanged =
-    (parsed.data.packageType ?? null) !== (unit.finishing?.packageType ?? null);
-  const companyChanged =
-    (parsed.data.executingCompany ?? null) !==
-    (unit.finishing?.executingCompany ?? null);
-
-  if (packageChanged) {
-    changes.push("Finishing package type updated");
-  }
-  if (companyChanged) {
-    changes.push("Executing company updated");
-  }
-
   if (changes.length === 0) {
     return actionFail("Nothing to save");
+  }
+
+  if (isCsAgentRole(session.user.role)) {
+    const scope = await resolveCsAgentScope(session.user);
+    if (
+      !canEditCsFinishingEngineering(
+        session.user.role,
+        { unitAgentId: unit.agentId },
+        scope
+      )
+    ) {
+      return actionFail("Unauthorized");
+    }
   }
 
   await withAudit(() =>
     prisma.finishing.upsert({
       where: { unitId: unit.id },
       update: {
-        ...(packageChanged ? { packageType: parsed.data.packageType ?? null } : {}),
-        ...(companyChanged
-          ? { executingCompany: parsed.data.executingCompany ?? null }
-          : {}),
         currentFinishingStatus: next.currentFinishingStatus,
         customModifications: next.customModifications,
         modificationsCompleted:
@@ -1131,8 +1142,6 @@ export async function updateCsFinishingAdditions(
       },
       create: {
         unitId: unit.id,
-        packageType: parsed.data.packageType ?? null,
-        executingCompany: parsed.data.executingCompany ?? null,
         currentFinishingStatus: next.currentFinishingStatus,
         customModifications: next.customModifications,
         modificationsCompleted: next.customModifications != null ? false : true,
