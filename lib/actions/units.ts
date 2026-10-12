@@ -27,6 +27,7 @@ import {
 import { auditContext } from "@/lib/prisma";
 import {
   createUnitFormSchema,
+  csAgentUnitProfileFormSchema,
   unitProfileFormSchema,
   type CreateUnitFormInput,
   type UnitProfileFormInput,
@@ -171,7 +172,10 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
     return actionFail("Unauthorized");
   }
 
-  const parsed = unitProfileFormSchema.safeParse(input);
+  const parseSchema = isCsAgent
+    ? csAgentUnitProfileFormSchema
+    : unitProfileFormSchema;
+  const parsed = parseSchema.safeParse(input);
   if (!parsed.success) {
     return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
   }
@@ -202,17 +206,8 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
 
   const existingClient = unit.client;
 
-  if (isCsAgent) {
-    if (!unit.clientId || !existingClient) {
-      return actionFail("Client record not found");
-    }
-    if (
-      clientName !== existingClient.name ||
-      (email ?? null) !== (existingClient.email ?? null) ||
-      (nationalId ?? null) !== (existingClient.nationalId ?? null)
-    ) {
-      return actionFail("Cannot modify client identity fields");
-    }
+  if (isCsAgent && (!unit.clientId || !existingClient)) {
+    return actionFail("Client record not found");
   }
 
   const clientData = isCsAgent && existingClient

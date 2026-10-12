@@ -62,6 +62,18 @@ function csSession() {
 
 const unitType: UnitType = "APARTMENT";
 
+function client(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "client-1",
+    name: "Client Name",
+    phone1: "0100",
+    email: "client@test.com",
+    nationalId: "123",
+    address1: "Street 1",
+    ...overrides,
+  };
+}
+
 const baseUnit = {
   id: "unit-1",
   deletedAt: null,
@@ -69,14 +81,7 @@ const baseUnit = {
   unitCode: "A-101",
   clientId: "client-1",
   agentId: "other-agent",
-  client: {
-    id: "client-1",
-    name: "Client Name",
-    phone1: "0100",
-    email: "client@test.com",
-    nationalId: "123",
-    address1: "Street 1",
-  },
+  client: client(),
 };
 
 function validCsInput(overrides: Record<string, unknown> = {}) {
@@ -125,29 +130,85 @@ describe("updateUnit — CS_AGENT phone/address only", () => {
     });
   });
 
-  it("rejects tampered client name", async () => {
+  it("succeeds when stored email and national ID are empty strings", async () => {
+    mockUnitFindUnique.mockResolvedValue({
+      ...baseUnit,
+      client: client({ email: "", nationalId: "" }),
+    });
+
+    const { updateUnit } = await import("@/lib/actions/units");
+    const result = await updateUnit(
+      validCsInput({
+        email: null,
+        nationalId: null,
+        phone1: "0111",
+      })
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockClientUpdate).toHaveBeenCalledWith({
+      where: { id: "client-1" },
+      data: expect.objectContaining({
+        email: "",
+        nationalId: "",
+        phone1: "0111",
+      }),
+    });
+  });
+
+  it("succeeds with padded or invalid stored identity values in the database", async () => {
+    mockUnitFindUnique.mockResolvedValue({
+      ...baseUnit,
+      client: client({
+        name: "",
+        email: "  N/A  ",
+        nationalId: "  ",
+      }),
+    });
+
+    const { updateUnit } = await import("@/lib/actions/units");
+    const result = await updateUnit(
+      validCsInput({
+        clientName: "",
+        email: "N/A",
+        nationalId: "",
+        phone1: "0999",
+      })
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockClientUpdate).toHaveBeenCalledWith({
+      where: { id: "client-1" },
+      data: expect.objectContaining({
+        name: "",
+        email: "  N/A  ",
+        nationalId: "  ",
+        phone1: "0999",
+      }),
+    });
+  });
+
+  it("ignores tampered identity fields and keeps stored values", async () => {
     const { updateUnit } = await import("@/lib/actions/units");
     const result = await updateUnit(
       validCsInput({
         clientName: "Hacked Name",
-      })
-    );
-
-    expect(result.success).toBe(false);
-    expect(result).toHaveProperty("error", "Cannot modify client identity fields");
-    expect(mockClientUpdate).not.toHaveBeenCalled();
-  });
-
-  it("rejects tampered email", async () => {
-    const { updateUnit } = await import("@/lib/actions/units");
-    const result = await updateUnit(
-      validCsInput({
         email: "hacker@test.com",
+        nationalId: "999",
+        phone1: "0111",
       })
     );
 
-    expect(result.success).toBe(false);
-    expect(result).toHaveProperty("error", "Cannot modify client identity fields");
+    expect(result.success).toBe(true);
+    expect(mockClientUpdate).toHaveBeenCalledWith({
+      where: { id: "client-1" },
+      data: expect.objectContaining({
+        name: "Client Name",
+        email: "client@test.com",
+        nationalId: "123",
+        phone1: "0111",
+      }),
+    });
   });
 
   it("rejects units without a client record", async () => {

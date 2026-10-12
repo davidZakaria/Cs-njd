@@ -59,6 +59,29 @@ export const unitProfileFormSchema = z.object({
   type: z.enum(unitTypeValues),
 });
 
+/** CS agents only edit phones/addresses; identity and unit admin fields are not validated. */
+const csIgnoredField = z.unknown().optional();
+
+export const csAgentUnitProfileFormSchema = z.object({
+  unitId: z.string().min(1),
+  unitCode: csIgnoredField,
+  agentId: csIgnoredField,
+  clientName: csIgnoredField,
+  phone1: optionalString(),
+  phone2: optionalString(),
+  email: csIgnoredField,
+  nationalId: csIgnoredField,
+  address1: optionalString(),
+  address2: optionalString(),
+  extraPhones: z.array(contactExtraLineSchema).optional(),
+  extraAddresses: z.array(contactExtraLineSchema).optional(),
+  deliveryYear: csIgnoredField,
+  gracePeriod: csIgnoredField,
+  contractPricePerMeter: csIgnoredField,
+  area: csIgnoredField,
+  type: z.enum(unitTypeValues),
+});
+
 export const createUnitFormSchema = z.object({
   projectId: z.string().min(1),
   unitCode: z.string().min(1),

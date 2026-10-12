@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
@@ -9,6 +9,7 @@ import { useRouter } from "@/i18n/navigation";
 import { deleteUnit, updateUnit } from "@/lib/actions/units";
 import {
   UNIT_TYPE_OPTIONS,
+  csAgentUnitProfileFormSchema,
   unitProfileFormSchema,
   type UnitProfileFormInput,
 } from "@/lib/validations/unit-profile";
@@ -41,6 +42,16 @@ import {
 } from "@/components/ui/select";
 import { currencySuffix } from "@/lib/format/currency";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+function firstFormErrorMessage(errors: FieldErrors<UnitProfileFormInput>): string | undefined {
+  for (const value of Object.values(errors)) {
+    if (value && typeof value === "object" && "message" in value && value.message) {
+      return String(value.message);
+    }
+  }
+  return undefined;
+}
 
 export type UnitClientFormDefaults = {
   unitId: string;
@@ -102,6 +113,7 @@ export function UnitClientForm({
   const router = useRouter();
   const { pending, runAction } = useCrudToast();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [contactExtras, setContactExtras] = useState({
     phones: defaults.extraPhones,
     addresses: defaults.extraAddresses,
@@ -128,13 +140,23 @@ export function UnitClientForm({
     [defaults]
   );
 
+  const formResolver = useMemo(
+    () =>
+      zodResolver(
+        profileEditLevel === "phoneAddress"
+          ? csAgentUnitProfileFormSchema
+          : unitProfileFormSchema
+      ),
+    [profileEditLevel]
+  );
+
   const {
     register,
     control,
     handleSubmit,
     setValue,
   } = useForm<UnitProfileFormInput>({
-    resolver: zodResolver(unitProfileFormSchema),
+    resolver: formResolver,
     defaultValues: formDefaults,
   });
 
@@ -173,6 +195,7 @@ export function UnitClientForm({
   const currencyLabel = currencySuffix(locale);
 
   function onSubmit(values: UnitProfileFormInput) {
+    setValidationMessage(null);
     runAction(
       () =>
         updateUnit({
@@ -181,6 +204,12 @@ export function UnitClientForm({
           extraAddresses: contactExtras.addresses,
         }),
       "saved"
+    );
+  }
+
+  function onInvalid(errors: FieldErrors<UnitProfileFormInput>) {
+    setValidationMessage(
+      firstFormErrorMessage(errors) ?? t("formValidationFailed")
     );
   }
 
@@ -203,8 +232,19 @@ export function UnitClientForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" dir={isRtl ? "rtl" : "ltr"}>
+    <form
+      onSubmit={handleSubmit(onSubmit, onInvalid)}
+      className="space-y-6"
+      dir={isRtl ? "rtl" : "ltr"}
+      noValidate
+    >
       <input type="hidden" {...register("unitId")} />
+
+      {validationMessage ? (
+        <Alert variant="destructive">
+          <AlertDescription>{validationMessage}</AlertDescription>
+        </Alert>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -302,7 +342,7 @@ export function UnitClientForm({
                   id="clientName"
                   disabled={pending || !canEditIdentity}
                   readOnly={!canEditIdentity}
-                  required
+                  required={canEditIdentity}
                   {...register("clientName")}
                 />
               </div>
