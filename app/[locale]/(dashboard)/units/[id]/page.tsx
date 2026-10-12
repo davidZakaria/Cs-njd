@@ -28,7 +28,7 @@ import {
 } from "@/lib/auth/unit-roles";
 import {
   canCreateOrUpdateCaseOnUnit,
-  canEditCsFinishingEngineering,
+  canEditFinishingFinancialsOnUnit,
   canEditCsHandoverChecklist,
   isCsAgentAssignedToUnit,
 } from "@/lib/auth/role-permissions";
@@ -174,9 +174,13 @@ export default async function UnitProfilePage({
     session?.user.role != null && csScope != null
       ? canEditCsHandoverChecklist(session.user.role, assignment, csScope)
       : false;
-  const canEditCsFinishing =
-    session?.user.role != null && csScope != null
-      ? canEditCsFinishingEngineering(session.user.role, assignment, csScope)
+  const canEditFinishing =
+    session?.user.role != null
+      ? canEditFinishingFinancialsOnUnit(
+          session.user.role,
+          assignment,
+          csScope
+        )
       : false;
   const canCreateCaseOnUnit =
     session?.user != null
@@ -293,7 +297,7 @@ export default async function UnitProfilePage({
         <TabsContent value="financials">
           <UnitFinishingForm
             canEditManagement={canEditAdmin}
-            canEditCsFinishing={canEditCsFinishing}
+            canEditFinishing={canEditFinishing}
             defaults={{
               unitId: unit.id,
               packageType: unit.finishing?.packageType ?? null,

@@ -229,9 +229,9 @@ describe("RBAC Role Access Control", () => {
       expect(canAccessRoute(role, "/units")).toBe(true);
     });
 
-    it("can access engineering portal", () => {
-      expect(canAccessRoute(role, "/engineering")).toBe(true);
-      expect(canAccessRoute(role, "/engineering/units/abc")).toBe(true);
+    it("cannot access engineering portal", () => {
+      expect(canAccessRoute(role, "/engineering")).toBe(false);
+      expect(canAccessRoute(role, "/engineering/units/abc")).toBe(false);
     });
 
     it("cannot access executive", () => {
@@ -290,11 +290,11 @@ describe("RBAC Navigation Items", () => {
       expect(hrefs).not.toContain("/dashboard");
     });
 
-    it("returns dashboard and engineering but not executive for CS_AGENT", () => {
+    it("returns dashboard but not engineering or executive for CS_AGENT", () => {
       const items = getCoreNavItems("CS_AGENT");
       const hrefs = items.map((i) => i.href);
       expect(hrefs).toContain("/dashboard");
-      expect(hrefs).toContain("/engineering");
+      expect(hrefs).not.toContain("/engineering");
       expect(hrefs).not.toContain("/executive");
     });
   });

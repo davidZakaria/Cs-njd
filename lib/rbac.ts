@@ -42,7 +42,7 @@ const roleRoutes: Record<Role, string[]> = {
     "/print",
   ],
   MANAGEMENT: ["/executive", "/dashboard", "/cases", "/units", "/users", "/print"],
-  CS_AGENT: ["/dashboard", "/cases", "/units", "/engineering", "/print"],
+  CS_AGENT: ["/dashboard", "/cases", "/units", "/print"],
   COMMUNITY_MANAGEMENT: ["/dashboard", "/cases", "/units", "/print"],
   ENGINEER: ["/engineering"],
 };
@@ -104,11 +104,6 @@ export function getCoreNavItems(role: Role) {
       href: "/units",
       key: "units",
       roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
-    },
-    {
-      href: "/engineering",
-      key: "engineering",
-      roles: ["CS_AGENT"],
     },
   ];
 
@@ -178,11 +173,6 @@ export function getNavItems(role: Role) {
       href: "/units",
       key: "units",
       roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
-    },
-    {
-      href: "/engineering",
-      key: "engineering",
-      roles: ["CS_AGENT"],
     },
     { href: "/users", key: "users", roles: ["MANAGEMENT"] },
     { href: "/imports", key: "imports", roles: ["SUPER_ADMIN"] },

@@ -79,10 +79,8 @@ function FilterChip({
 
 export function EngineeringQueuePanel({
   tasks,
-  csEffectiveAgentId = null,
 }: {
   tasks: EngineeringQueueUnit[];
-  csEffectiveAgentId?: string | null;
 }) {
   const t = useTranslations("engineering");
   const tCommon = useTranslations("common");
@@ -335,12 +333,7 @@ export function EngineeringQueuePanel({
                         <Link href={`/engineering/units/${task.id}`} />
                       }
                     >
-                      {csEffectiveAgentId &&
-                      task.unitAgentId === csEffectiveAgentId
-                        ? t("updateFinishes")
-                        : csEffectiveAgentId
-                          ? t("viewTask")
-                          : t("updateFinishes")}
+                      {t("updateFinishes")}
                     </Button>
                   </CardContent>
                 </Card>

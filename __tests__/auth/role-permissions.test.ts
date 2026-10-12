@@ -4,12 +4,14 @@ import type { Role } from "@prisma/client";
 import type { CsAgentScope } from "@/lib/auth/cs-agent-scope";
 import {
   canAccessEngineeringPortal,
+  canAddCommunityExtraContactsOnly,
   canCreateOrUpdateCaseOnUnit,
-  canEditCsFinishingEngineering,
+  canEditFinishingFinancialsOnUnit,
   canEditCsHandoverChecklist,
   canListAllUnits,
   canLogCallOnUnit,
   canSubmitEngineeringSiteUpdate,
+  canSyncClientExtraContacts,
   isCsAgentAssignedToUnit,
 } from "@/lib/auth/role-permissions";
 
@@ -26,9 +28,9 @@ describe("role-permissions matrix", () => {
   describe("CS_AGENT", () => {
     const role: Role = "CS_AGENT";
 
-    it("lists all units and engineering portal", () => {
+    it("lists all units but not engineering portal", () => {
       expect(canListAllUnits(role)).toBe(true);
-      expect(canAccessEngineeringPortal(role)).toBe(true);
+      expect(canAccessEngineeringPortal(role)).toBe(false);
       expect(canSubmitEngineeringSiteUpdate(role)).toBe(false);
     });
 
@@ -39,10 +41,14 @@ describe("role-permissions matrix", () => {
       expect(canCreateOrUpdateCaseOnUnit(role, other, csScope)).toBe(false);
       expect(canEditCsHandoverChecklist(role, assigned, csScope)).toBe(true);
       expect(canEditCsHandoverChecklist(role, other, csScope)).toBe(false);
-      expect(canEditCsFinishingEngineering(role, assigned, csScope)).toBe(
+      expect(canEditFinishingFinancialsOnUnit(role, assigned, csScope)).toBe(
         true
       );
-      expect(canEditCsFinishingEngineering(role, other, csScope)).toBe(false);
+      expect(canEditFinishingFinancialsOnUnit(role, other, csScope)).toBe(
+        false
+      );
+      expect(canSyncClientExtraContacts(role, assigned, csScope)).toBe(true);
+      expect(canSyncClientExtraContacts(role, other, csScope)).toBe(false);
     });
 
     it("may log calls on any unit", () => {
@@ -59,11 +65,16 @@ describe("role-permissions matrix", () => {
   describe("COMMUNITY_MANAGEMENT", () => {
     const role: Role = "COMMUNITY_MANAGEMENT";
 
-    it("may list units and log calls but not cases or handover", () => {
+    it("may list units and log calls but not cases, handover, or finishing", () => {
       expect(canListAllUnits(role)).toBe(true);
       expect(canLogCallOnUnit(role, assigned)).toBe(true);
       expect(canCreateOrUpdateCaseOnUnit(role, assigned, csScope)).toBe(false);
       expect(canEditCsHandoverChecklist(role, assigned, csScope)).toBe(false);
+      expect(canEditFinishingFinancialsOnUnit(role, assigned, csScope)).toBe(
+        false
+      );
+      expect(canAddCommunityExtraContactsOnly(role)).toBe(true);
+      expect(canSyncClientExtraContacts(role, assigned, csScope)).toBe(false);
       expect(canAccessEngineeringPortal(role)).toBe(false);
     });
   });
@@ -71,11 +82,13 @@ describe("role-permissions matrix", () => {
   describe("MANAGEMENT", () => {
     const role: Role = "MANAGEMENT";
 
-    it("has full case and handover access", () => {
+    it("has full case, handover, and finishing access", () => {
       expect(canCreateOrUpdateCaseOnUnit(role, other)).toBe(true);
       expect(canEditCsHandoverChecklist(role, other)).toBe(true);
-      expect(canEditCsFinishingEngineering(role, other)).toBe(true);
+      expect(canEditFinishingFinancialsOnUnit(role, other)).toBe(true);
+      expect(canSyncClientExtraContacts(role, other)).toBe(true);
       expect(canSubmitEngineeringSiteUpdate(role)).toBe(false);
+      expect(canAccessEngineeringPortal(role)).toBe(false);
     });
   });
 
@@ -87,6 +100,7 @@ describe("role-permissions matrix", () => {
       expect(canSubmitEngineeringSiteUpdate(role)).toBe(true);
       expect(canCreateOrUpdateCaseOnUnit(role, assigned)).toBe(false);
       expect(canListAllUnits(role)).toBe(false);
+      expect(canEditFinishingFinancialsOnUnit(role, assigned)).toBe(false);
     });
   });
 });

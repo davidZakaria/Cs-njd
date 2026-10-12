@@ -1,16 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { FinishingPackage } from "@prisma/client";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { ar, enUS } from "date-fns/locale";
 import { CalendarIcon, HardHat } from "lucide-react";
 
-import { updateCsFinishingAdditions, updateFinishing } from "@/lib/actions/crm";
+import { updateFinishing } from "@/lib/actions/crm";
 import { formatCurrency } from "@/lib/format/currency";
 import {
   EXECUTING_COMPANY_OPTIONS,
@@ -156,7 +155,7 @@ function SummaryCard({
 export function UnitFinishingForm({
   defaults,
   canEditManagement = false,
-  canEditCsFinishing = false,
+  canEditFinishing = false,
   canEdit,
   canUploadDocuments = false,
   packageDisplayLabel,
@@ -164,7 +163,7 @@ export function UnitFinishingForm({
 }: {
   defaults: FinishingFormDefaults;
   canEditManagement?: boolean;
-  canEditCsFinishing?: boolean;
+  canEditFinishing?: boolean;
   /** @deprecated Use canEditManagement */
   canEdit?: boolean;
   canUploadDocuments?: boolean;
@@ -172,9 +171,8 @@ export function UnitFinishingForm({
   companyDisplayLabel: string;
 }) {
   const managementEdit = canEditManagement || Boolean(canEdit);
-  const canSubmitCs = canEditCsFinishing && !managementEdit;
+  const finishingEdit = managementEdit || canEditFinishing;
   const locale = useLocale();
-  const router = useRouter();
   const isRtl = locale === "ar";
   const t = useTranslations("units");
   const tFinishing = useTranslations("finishing");
@@ -184,11 +182,8 @@ export function UnitFinishingForm({
   const tCommon = useTranslations("common");
   const labels = useDomainLabels();
   const { pending, runAction } = useCrudToast();
-  const [addFinishingNote, setAddFinishingNote] = useState("");
-  const [addCustomModification, setAddCustomModification] = useState("");
 
-  const canSubmit = managementEdit || canSubmitCs;
-  const canEditGeneralFields = managementEdit || canSubmitCs;
+  const canSubmit = finishingEdit;
 
   const formDefaults = useMemo(
     (): FinishingFormInput => ({
@@ -257,39 +252,15 @@ export function UnitFinishingForm({
   const customModsText = String(watched.customModifications ?? "").trim();
   const hasCustomMods = customModsText.length > 0;
 
-  const packageTypeChanged =
-    String(watched.packageType ?? "") !== String(defaults.packageType ?? "");
-  const executingCompanyChanged =
-    String(watched.executingCompany ?? "") !==
-    String(defaults.executingCompany ?? "");
-
   function onSubmit(values: FinishingFormInput) {
-    if (managementEdit) {
-      const trimmedMods = String(values.customModifications ?? "").trim();
-      const payload: FinishingFormInput = {
-        ...values,
-        customModifications: trimmedMods || null,
-        modificationsCompleted: trimmedMods ? values.modificationsCompleted ?? false : true,
-      };
-      runAction(() => updateFinishing(payload), "saved");
-      return;
-    }
-
-    if (canSubmitCs) {
-      runAction(async () => {
-        const result = await updateCsFinishingAdditions({
-          unitId: values.unitId,
-          addFinishingNote: addFinishingNote.trim() || null,
-          addCustomModification: addCustomModification.trim() || null,
-        });
-        if (result.success) {
-          setAddFinishingNote("");
-          setAddCustomModification("");
-          router.refresh();
-        }
-        return result;
-      }, "saved");
-    }
+    if (!finishingEdit) return;
+    const trimmedMods = String(values.customModifications ?? "").trim();
+    const payload: FinishingFormInput = {
+      ...values,
+      customModifications: trimmedMods || null,
+      modificationsCompleted: trimmedMods ? values.modificationsCompleted ?? false : true,
+    };
+    runAction(() => updateFinishing(payload), "saved");
   }
 
   return (
@@ -324,7 +295,7 @@ export function UnitFinishingForm({
                 <FinishingPhasePicker
                   value={normalizeFinishingPhases(field.value ?? [])}
                   onChange={field.onChange}
-                  disabled={!managementEdit || pending}
+                  disabled={!finishingEdit || pending}
                   packageType={checklistPackageType}
                   label={tFinishing("phaseBannerLabel")}
                   hint={tFinishing("phaseMultiHint")}
@@ -368,155 +339,85 @@ export function UnitFinishingForm({
         <Card>
           <CardHeader>
             <CardTitle>{t("sectionGeneral")}</CardTitle>
-            {canSubmitCs ? (
-              <p className="text-sm text-muted-foreground">
-                {tFinishing("csAgentHint")}
-              </p>
-            ) : null}
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
-            {canSubmitCs ? (
-              <>
-                <SummaryCard
-                  label={tFinishing("packageType")}
-                  value={packageDisplayLabel}
-                />
-                <SummaryCard
-                  label={tFinishing("executingCompany")}
-                  value={companyDisplayLabel}
-                />
-              </>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label>{tFinishing("packageType")}</Label>
-                  <Controller
-                    control={control}
-                    name="packageType"
-                    render={({ field }) => (
-                      <Select
-                        value={field.value ?? ""}
-                        onValueChange={(value) => field.onChange(value ?? "")}
-                        items={packageItems}
-                        disabled={!managementEdit || pending}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={tCommon("all")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">{tCommon("all")}</SelectItem>
-                          {FINISHING_PACKAGE_OPTIONS.map((value) => (
-                            <SelectItem key={value} value={value}>
-                              {labels.finishingPackage(value)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label>{tFinishing("packageType")}</Label>
+              <Controller
+                control={control}
+                name="packageType"
+                render={({ field }) => (
+                  <Select
+                    value={field.value ?? ""}
+                    onValueChange={(value) => field.onChange(value ?? "")}
+                    items={packageItems}
+                    disabled={!finishingEdit || pending}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={tCommon("all")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">{tCommon("all")}</SelectItem>
+                      {FINISHING_PACKAGE_OPTIONS.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {labels.finishingPackage(value)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <Label>{tFinishing("executingCompany")}</Label>
-                  <Controller
-                    control={control}
-                    name="executingCompany"
-                    render={({ field }) => (
-                      <Select
-                        value={field.value ?? ""}
-                        onValueChange={(value) => field.onChange(value ?? "")}
-                        items={companyItems}
-                        disabled={!managementEdit || pending}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={tCommon("all")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">{tCommon("all")}</SelectItem>
-                          {EXECUTING_COMPANY_OPTIONS.map((value) => (
-                            <SelectItem key={value} value={value}>
-                              {labels.executingCompany(value)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                </div>
-              </>
-            )}
+            <div className="space-y-2">
+              <Label>{tFinishing("executingCompany")}</Label>
+              <Controller
+                control={control}
+                name="executingCompany"
+                render={({ field }) => (
+                  <Select
+                    value={field.value ?? ""}
+                    onValueChange={(value) => field.onChange(value ?? "")}
+                    items={companyItems}
+                    disabled={!finishingEdit || pending}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={tCommon("all")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">{tCommon("all")}</SelectItem>
+                      {EXECUTING_COMPANY_OPTIONS.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {labels.executingCompany(value)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="currentFinishingStatus">
                 {tFinishing("finishingNotes")}
               </Label>
-              {canSubmitCs ? (
-                <>
-                  {defaults.currentFinishingStatus ? (
-                    <div className="rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap">
-                      {defaults.currentFinishingStatus}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      {tFinishing("noNotesYet")}
-                    </p>
-                  )}
-                  <Label htmlFor="addFinishingNote">{tFinishing("addFinishingNote")}</Label>
-                  <Textarea
-                    id="addFinishingNote"
-                    rows={3}
-                    disabled={pending}
-                    placeholder={tFinishing("addFinishingNotePlaceholder")}
-                    className="min-h-20 resize-y text-start"
-                    value={addFinishingNote}
-                    onChange={(event) => setAddFinishingNote(event.target.value)}
-                  />
-                </>
-              ) : (
-                <Textarea
-                  id="currentFinishingStatus"
-                  rows={4}
-                  disabled={!managementEdit || pending}
-                  placeholder={tFinishing("finishingNotesPlaceholder")}
-                  className="min-h-24 resize-y text-start"
-                  {...register("currentFinishingStatus")}
-                />
-              )}
+              <Textarea
+                id="currentFinishingStatus"
+                rows={4}
+                disabled={!finishingEdit || pending}
+                placeholder={tFinishing("finishingNotesPlaceholder")}
+                className="min-h-24 resize-y text-start"
+                {...register("currentFinishingStatus")}
+              />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="customModifications">{tEdge("customModifications")}</Label>
-              {canSubmitCs ? (
-                <>
-                  {defaults.customModifications ? (
-                    <div className="rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap">
-                      {defaults.customModifications}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      {tFinishing("noModificationsYet")}
-                    </p>
-                  )}
-                  <Label htmlFor="addCustomModification">
-                    {tFinishing("addCustomModification")}
-                  </Label>
-                  <Textarea
-                    id="addCustomModification"
-                    rows={3}
-                    disabled={pending}
-                    placeholder={tFinishing("addCustomModificationPlaceholder")}
-                    className="min-h-20 resize-y text-start"
-                    value={addCustomModification}
-                    onChange={(event) => setAddCustomModification(event.target.value)}
-                  />
-                </>
-              ) : (
-                <Textarea
-                  id="customModifications"
-                  rows={3}
-                  disabled={!managementEdit || pending}
-                  className="min-h-20 resize-y text-start"
-                  {...register("customModifications")}
-                />
-              )}
+              <Textarea
+                id="customModifications"
+                rows={3}
+                disabled={!finishingEdit || pending}
+                className="min-h-20 resize-y text-start"
+                {...register("customModifications")}
+              />
             </div>
             {hasCustomMods || defaults.customModifications ? (
               <div className="flex items-start gap-3 md:col-span-2">
@@ -524,16 +425,11 @@ export function UnitFinishingForm({
                   id="modificationsCompleted"
                   type="checkbox"
                   className="mt-1 size-4 rounded border"
-                  disabled={!managementEdit || pending}
+                  disabled={!finishingEdit || pending}
                   {...register("modificationsCompleted")}
                 />
                 <Label htmlFor="modificationsCompleted" className="font-normal leading-snug">
                   {tEdge("modificationsCompleted")}
-                  {canSubmitCs ? (
-                    <span className="ms-1 text-xs text-muted-foreground">
-                      ({tFinishing("managementOnly")})
-                    </span>
-                  ) : null}
                 </Label>
               </div>
             ) : null}
@@ -559,7 +455,7 @@ export function UnitFinishingForm({
                 id="pricePerMeter"
                 type="number"
                 step="any"
-                disabled={!managementEdit || pending}
+                disabled={!finishingEdit || pending}
                 {...register("pricePerMeter")}
               />
             </div>
@@ -569,7 +465,7 @@ export function UnitFinishingForm({
                 id="totalFinishingPrice"
                 type="number"
                 step="any"
-                disabled={!managementEdit || pending}
+                disabled={!finishingEdit || pending}
                 {...register("totalFinishingPrice")}
               />
             </div>
@@ -579,7 +475,7 @@ export function UnitFinishingForm({
                 id="doorFees"
                 type="number"
                 step="any"
-                disabled={!managementEdit || pending}
+                disabled={!finishingEdit || pending}
                 {...register("doorFees")}
               />
             </div>
@@ -589,7 +485,7 @@ export function UnitFinishingForm({
                 id="aluminumFees"
                 type="number"
                 step="any"
-                disabled={!managementEdit || pending}
+                disabled={!finishingEdit || pending}
                 {...register("aluminumFees")}
               />
             </div>
@@ -610,7 +506,7 @@ export function UnitFinishingForm({
                   label={tFinishing("contractDate")}
                   value={String(field.value ?? "")}
                   onChange={field.onChange}
-                  disabled={!managementEdit || pending}
+                  disabled={!finishingEdit || pending}
                   locale={locale}
                 />
               )}
@@ -624,7 +520,7 @@ export function UnitFinishingForm({
                   label={t("datedAt")}
                   value={String(field.value ?? "")}
                   onChange={field.onChange}
-                  disabled={!managementEdit || pending}
+                  disabled={!finishingEdit || pending}
                   locale={locale}
                 />
               )}
@@ -638,7 +534,7 @@ export function UnitFinishingForm({
                   label={tFields("deliveryDate")}
                   value={String(field.value ?? "")}
                   onChange={field.onChange}
-                  disabled={!managementEdit || pending}
+                  disabled={!finishingEdit || pending}
                   locale={locale}
                 />
               )}
@@ -648,23 +544,8 @@ export function UnitFinishingForm({
 
         {canSubmit ? (
           <div className="flex justify-end">
-            <Button
-              type="submit"
-              disabled={
-                pending ||
-                (canSubmitCs &&
-                  !addFinishingNote.trim() &&
-                  !addCustomModification.trim() &&
-                  !packageTypeChanged &&
-                  !executingCompanyChanged)
-              }
-            >
-              {canSubmitCs &&
-              !packageTypeChanged &&
-              !executingCompanyChanged &&
-              (addFinishingNote.trim() || addCustomModification.trim())
-                ? tFinishing("addNotes")
-                : tCommon("save")}
+            <Button type="submit" disabled={pending}>
+              {tCommon("save")}
             </Button>
           </div>
         ) : null}

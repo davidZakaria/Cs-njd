@@ -69,6 +69,19 @@ export function canEditClientContactsOnUnit(
   return false;
 }
 
+/** Full add/edit/remove of extra phones and addresses (unit profile save). */
+export function canSyncClientExtraContacts(
+  role: Role,
+  assignment: UnitAssignment,
+  scope?: CsAgentScope | null
+): boolean {
+  return canEditClientContactsOnUnit(role, assignment, scope);
+}
+
+export function canAddCommunityExtraContactsOnly(role: Role): boolean {
+  return isCommunityManagementRole(role);
+}
+
 export function canEditCsHandoverChecklist(
   role: Role,
   assignment: UnitAssignment,
@@ -82,19 +95,14 @@ export function canEditCsHandoverChecklist(
   return false;
 }
 
-/** Finishing fees, contract dates, phases — management only. */
-export function canEditFinishingFinancials(role: Role): boolean {
-  return isAdminUnitManager(role);
-}
-
-/** Engineering notes / custom modifications on the unit profile. */
-export function canEditCsFinishingEngineering(
+/** Finishing financials tab — all fields on the unit profile. */
+export function canEditFinishingFinancialsOnUnit(
   role: Role,
   assignment: UnitAssignment,
   scope?: CsAgentScope | null
 ): boolean {
+  if (isAdminUnitManager(role) || role === "SUPER_ADMIN") return true;
   if (isCommunityManagementRole(role)) return false;
-  if (isAdminUnitManager(role)) return true;
   if (isCsAgentRole(role) && scope) {
     return isCsAgentAssignedToUnit(scope, assignment);
   }
@@ -102,31 +110,12 @@ export function canEditCsFinishingEngineering(
 }
 
 export function canAccessEngineeringPortal(role: Role): boolean {
-  return role === "ENGINEER" || isCsAgentRole(role);
+  return role === "ENGINEER";
 }
 
 /** Site engineer return-to-CS workflow — engineer account only. */
 export function canSubmitEngineeringSiteUpdate(role: Role): boolean {
   return role === "ENGINEER";
-}
-
-export function canViewEngineeringUnitTask(
-  role: Role,
-  _assignment?: UnitAssignment,
-  _scope?: CsAgentScope | null
-): boolean {
-  if (role === "ENGINEER") return true;
-  if (isCsAgentRole(role)) return true;
-  if (isAdminUnitManager(role) || role === "SUPER_ADMIN") return true;
-  return false;
-}
-
-export function canMutateEngineeringQueueAsCs(
-  role: Role,
-  assignment: UnitAssignment,
-  scope?: CsAgentScope | null
-): boolean {
-  return canEditCsFinishingEngineering(role, assignment, scope);
 }
 
 export function canReassignAgents(role: Role): boolean {
