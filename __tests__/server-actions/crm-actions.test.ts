@@ -747,19 +747,45 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
       expect(result).toHaveProperty("error", "Unauthorized");
     });
 
-    it("denies access for CS_AGENT role", async () => {
+    it("denies CS_AGENT on unassigned unit", async () => {
       mockAuth.mockResolvedValue(createMockSession({
         id: "cs-agent-1",
         role: "CS_AGENT",
       }));
-      
+      mockPrismaUnit.findUnique.mockResolvedValue({
+        id: "unit-1",
+        agentId: "other-agent",
+      });
+
       const { updateFinishing } = await import("@/lib/actions/crm");
       const result = await updateFinishing({
         unitId: "unit-1",
       });
-      
+
       expect(result.success).toBe(false);
       expect(result).toHaveProperty("error", "Unauthorized");
+      expect(mockPrismaFinishing.upsert).not.toHaveBeenCalled();
+    });
+
+    it("allows CS_AGENT on assigned unit", async () => {
+      const agentId = "cs-agent-1";
+      mockAuth.mockResolvedValue(createMockSession({
+        id: agentId,
+        role: "CS_AGENT",
+      }));
+      mockPrismaUnit.findUnique.mockResolvedValue({
+        id: "unit-1",
+        agentId,
+      });
+      mockPrismaFinishing.upsert.mockResolvedValue({ unitId: "unit-1" });
+
+      const { updateFinishing } = await import("@/lib/actions/crm");
+      const result = await updateFinishing({
+        unitId: "unit-1",
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockPrismaFinishing.upsert).toHaveBeenCalled();
     });
 
     it("allows SUPER_ADMIN to update finishing", async () => {

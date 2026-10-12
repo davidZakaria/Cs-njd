@@ -1,11 +1,4 @@
 import { auth } from "@/lib/auth";
-import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
-import {
-  canAccessEngineeringPortal,
-  canSubmitEngineeringSiteUpdate,
-  isCsAgentAssignedToUnit,
-} from "@/lib/auth/role-permissions";
-import { isCsAgentRole } from "@/lib/auth/unit-roles";
 import { isUnitInEngineeringQueue } from "@/lib/engineering/queue";
 import { getDomainLabels } from "@/lib/i18n/domain-labels";
 import { prisma, notDeleted } from "@/lib/prisma";
@@ -25,15 +18,12 @@ export default async function EngineeringUnitTaskPage({
   if (!session?.user) {
     redirect(`/${locale}/login?reason=session_expired`);
   }
-  if (!canAccessEngineeringPortal(session.user.role)) {
+  if (session.user.role !== "ENGINEER") {
     redirect(`/${locale}/dashboard`);
   }
 
   const t = await getTranslations("engineering");
   const labels = await getDomainLabels(locale);
-  const csScope = isCsAgentRole(session.user.role)
-    ? await resolveCsAgentScope(session.user)
-    : null;
 
   const unit = await prisma.unit.findUnique({
     where: { id: unitId },
@@ -66,10 +56,6 @@ export default async function EngineeringUnitTaskPage({
   );
 
   const projectLabel = await labels.project(unit.project.name);
-  const readOnly = !canSubmitEngineeringSiteUpdate(session.user.role);
-  const canEditUnitFinishing =
-    csScope != null &&
-    isCsAgentAssignedToUnit(csScope, { unitAgentId: unit.agentId });
 
   return (
     <div className="space-y-4">
@@ -94,8 +80,6 @@ export default async function EngineeringUnitTaskPage({
         customModifications={unit.finishing?.customModifications ?? null}
         modificationsCompleted={unit.finishing?.modificationsCompleted ?? true}
         engineeringNotes={engineeringTicket?.engineeringNotes ?? null}
-        readOnly={readOnly}
-        canEditUnitFinishing={canEditUnitFinishing}
       />
     </div>
   );

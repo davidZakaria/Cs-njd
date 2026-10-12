@@ -58,9 +58,9 @@ import { canManageUnitTickets } from "@/lib/auth/unit-ticket-access";
 import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import {
   canCreateOrUpdateCaseOnUnit,
-  canEditCsFinishingEngineering,
+  canEditFinishingFinancialsOnUnit,
 } from "@/lib/auth/role-permissions";
-import { isCsAgentRole } from "@/lib/auth/unit-roles";
+import { isAdminUnitManager, isCsAgentRole } from "@/lib/auth/unit-roles";
 import {
   TICKET_CATEGORIES,
   ticketManageSchema,
@@ -1007,10 +1007,7 @@ export async function updateFinishing(
   input: FinishingFormInput
 ): Promise<ActionResult> {
   const session = await auth();
-  if (
-    !session?.user ||
-    !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)
-  ) {
+  if (!session?.user) {
     return actionFail("Unauthorized");
   }
 
@@ -1025,6 +1022,22 @@ export async function updateFinishing(
 
   const unit = await prisma.unit.findUnique({ where: { id: unitId } });
   if (!unit) return actionFail("Unit not found");
+
+  const role = session.user.role;
+  if (isCsAgentRole(role)) {
+    const scope = await resolveCsAgentScope(session.user);
+    if (
+      !canEditFinishingFinancialsOnUnit(
+        role,
+        { unitAgentId: unit.agentId },
+        scope
+      )
+    ) {
+      return actionFail("Unauthorized");
+    }
+  } else if (!isAdminUnitManager(role)) {
+    return actionFail("Unauthorized");
+  }
 
   await withAudit(async () => {
     await prisma.finishing.upsert({
@@ -1117,16 +1130,7 @@ export async function updateCsFinishingAdditions(
   }
 
   if (isCsAgentRole(session.user.role)) {
-    const scope = await resolveCsAgentScope(session.user);
-    if (
-      !canEditCsFinishingEngineering(
-        session.user.role,
-        { unitAgentId: unit.agentId },
-        scope
-      )
-    ) {
-      return actionFail("Unauthorized");
-    }
+    return actionFail("Unauthorized");
   }
 
   await withAudit(() =>
