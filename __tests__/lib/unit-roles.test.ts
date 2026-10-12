@@ -4,7 +4,7 @@ import { resolveUnitClientEditMode } from "@/lib/auth/unit-roles";
 
 describe("resolveUnitClientEditMode", () => {
   it("gives CS agents contact edit on any unit", () => {
-    expect(resolveUnitClientEditMode("CS_AGENT")).toBe("contact");
+    expect(resolveUnitClientEditMode("CS_AGENT")).toBe("phoneAddress");
   });
 
   it("gives community management add-only extras mode", () => {

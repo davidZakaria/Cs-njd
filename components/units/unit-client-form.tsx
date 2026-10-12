@@ -69,7 +69,7 @@ export type UnitClientFormDefaults = {
 export type UnitProfileEditLevel =
   | "none"
   | "communityExtras"
-  | "contact"
+  | "phoneAddress"
   | "admin";
 
 export function UnitClientForm({
@@ -85,11 +85,12 @@ export function UnitClientForm({
   contactDisabled?: boolean;
   agentOptions?: Array<{ id: string; name: string }>;
 }) {
-  const canEditClient =
-    profileEditLevel === "contact" || profileEditLevel === "admin";
+  const canEditPhonesAndAddresses =
+    profileEditLevel === "phoneAddress" || profileEditLevel === "admin";
+  const canEditIdentity = profileEditLevel === "admin";
   const canEditCommunityExtras = profileEditLevel === "communityExtras";
   const canEditAdmin = profileEditLevel === "admin";
-  const canSubmitProfile = canEditClient;
+  const canSubmitProfile = canEditPhonesAndAddresses;
   const locale = useLocale();
   const isRtl = locale === "ar";
   const t = useTranslations("units");
@@ -185,7 +186,7 @@ export function UnitClientForm({
 
   const contactExtrasMode = canEditCommunityExtras
     ? "communityAddOnly"
-    : canEditClient
+    : canEditPhonesAndAddresses
       ? "editable"
       : "readonly";
 
@@ -246,7 +247,7 @@ export function UnitClientForm({
                 </p>
               </div>
             </div>
-          ) : canEditClient ? (
+          ) : canEditPhonesAndAddresses ? (
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="unitCode">{t("unitCode")}</Label>
@@ -299,7 +300,8 @@ export function UnitClientForm({
                 <Label htmlFor="clientName">{t("client")}</Label>
                 <Input
                   id="clientName"
-                  disabled={pending}
+                  disabled={pending || !canEditIdentity}
+                  readOnly={!canEditIdentity}
                   required
                   {...register("clientName")}
                 />
@@ -313,21 +315,30 @@ export function UnitClientForm({
                 <Input
                   id="email"
                   type="email"
-                  disabled={pending}
+                  disabled={pending || !canEditIdentity}
+                  readOnly={!canEditIdentity}
                   {...register("email")}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="nationalId">{tFields("nationalId")}</Label>
-                <Input id="nationalId" disabled={pending} {...register("nationalId")} />
+                <Input
+                  id="nationalId"
+                  disabled={pending || !canEditIdentity}
+                  readOnly={!canEditIdentity}
+                  {...register("nationalId")}
+                />
               </div>
               <NationalIdUpload
                 unitId={defaults.unitId}
                 clientId={defaults.clientId}
                 hasFile={Boolean(defaults.nationalIdFile)}
-                canUpload={defaults.canUploadNationalId}
-                onExtractedId={(nationalId) =>
-                  setValue("nationalId", nationalId, { shouldDirty: true })
+                canUpload={canEditIdentity && defaults.canUploadNationalId}
+                onExtractedId={
+                  canEditIdentity
+                    ? (nationalId) =>
+                        setValue("nationalId", nationalId, { shouldDirty: true })
+                    : undefined
                 }
               />
             </div>
@@ -390,7 +401,7 @@ export function UnitClientForm({
                 </p>
               )}
             </div>
-            {!canEditClient ? (
+            {!canEditPhonesAndAddresses ? (
               <p className="text-sm sm:pt-7">
                 <strong>{t("agent")}:</strong> {defaults.agentLabel}
               </p>
@@ -399,7 +410,7 @@ export function UnitClientForm({
         </CardContent>
       </Card>
 
-      {!hideClientContact && canEditClient ? (
+      {!hideClientContact && canEditPhonesAndAddresses ? (
         <Card>
           <CardHeader>
             <CardTitle>{tClient("address1")}</CardTitle>
@@ -426,7 +437,7 @@ export function UnitClientForm({
             ) : null}
           </CardHeader>
           <CardContent>
-            {!canEditClient && !canEditCommunityExtras ? (
+            {!canEditPhonesAndAddresses && !canEditCommunityExtras ? (
               <p className="mb-4 text-sm">
                 <strong>{tClient("address1")}:</strong> {defaults.address1 ?? "—"}
               </p>
@@ -442,7 +453,7 @@ export function UnitClientForm({
               mode={contactExtrasMode}
               contactDisabled={contactDisabled}
               onExtrasChange={
-                canEditClient
+                canEditPhonesAndAddresses
                   ? (next) => setContactExtras(next)
                   : undefined
               }

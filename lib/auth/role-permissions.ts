@@ -57,7 +57,8 @@ export function canCreateOrUpdateCaseOnUnit(
   return false;
 }
 
-export function canEditClientContactsOnUnit(
+/** Primary phone/address and extra phones/addresses (not client identity). */
+export function canEditClientPhonesAndAddressesOnUnit(
   role: Role,
   _assignment?: UnitAssignment,
   _scope?: CsAgentScope | null
@@ -67,13 +68,30 @@ export function canEditClientContactsOnUnit(
   return false;
 }
 
+/** @deprecated Prefer canEditClientPhonesAndAddressesOnUnit */
+export function canEditClientContactsOnUnit(
+  role: Role,
+  assignment?: UnitAssignment,
+  scope?: CsAgentScope | null
+): boolean {
+  return canEditClientPhonesAndAddressesOnUnit(role, assignment, scope);
+}
+
+export function canEditClientIdentityFields(role: Role): boolean {
+  return isAdminUnitManager(role);
+}
+
+export function canUploadClientNationalIdScan(role: Role): boolean {
+  return isAdminUnitManager(role);
+}
+
 /** Full add/edit/remove of extra phones and addresses (unit profile save). */
 export function canSyncClientExtraContacts(
   role: Role,
   assignment: UnitAssignment,
   scope?: CsAgentScope | null
 ): boolean {
-  return canEditClientContactsOnUnit(role, assignment, scope);
+  return canEditClientPhonesAndAddressesOnUnit(role, assignment, scope);
 }
 
 export function canAddCommunityExtraContactsOnly(role: Role): boolean {

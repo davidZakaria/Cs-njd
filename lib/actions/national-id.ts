@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { resolveSignedProtocolAccess } from "@/lib/auth/signed-protocol-access";
+import { canUploadClientNationalIdScan } from "@/lib/auth/role-permissions";
 import { prisma } from "@/lib/prisma";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { extractEgyptianNationalId } from "@/lib/services/ocr";
@@ -54,11 +54,9 @@ export async function uploadNationalId(
     return uploadFail("Save client profile before uploading an ID scan");
   }
 
-  const { canUpload } = await resolveSignedProtocolAccess(
-    session.user,
-    unit.agentId
-  );
-  if (!canUpload) return uploadFail("Unauthorized");
+  if (!canUploadClientNationalIdScan(session.user.role)) {
+    return uploadFail("Unauthorized");
+  }
 
   const storedName = buildNationalIdStoredFilename(unit.clientId, file.name);
   const previousStoredName = unit.client.nationalIdFile;
@@ -89,11 +87,9 @@ export async function removeNationalId(unitId: string): Promise<ActionResult> {
   if (!unit) return actionFail("Unit not found");
   if (!unit.clientId || !unit.client) return actionFail("Client not found");
 
-  const { canUpload } = await resolveSignedProtocolAccess(
-    session.user,
-    unit.agentId
-  );
-  if (!canUpload) return actionFail("Unauthorized");
+  if (!canUploadClientNationalIdScan(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
 
   const storedName = unit.client.nationalIdFile;
   if (!storedName) return actionFail("No ID scan on file");

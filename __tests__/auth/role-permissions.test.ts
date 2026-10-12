@@ -9,6 +9,9 @@ import {
   canEditFinishingFinancialsOnUnit,
   canEditCsHandoverChecklist,
   canEditClientContactsOnUnit,
+  canEditClientIdentityFields,
+  canEditClientPhonesAndAddressesOnUnit,
+  canUploadClientNationalIdScan,
   canListAllUnits,
   canLogCallOnUnit,
   canSubmitEngineeringSiteUpdate,
@@ -35,13 +38,18 @@ describe("role-permissions matrix", () => {
       expect(canSubmitEngineeringSiteUpdate(role)).toBe(false);
     });
 
-    it("edits finishing and contacts on any unit", () => {
+    it("edits finishing and phone/address contacts on any unit, not identity", () => {
       expect(canEditFinishingFinancialsOnUnit(role, assigned, csScope)).toBe(
         true
       );
       expect(canEditFinishingFinancialsOnUnit(role, other, csScope)).toBe(true);
+      expect(canEditClientPhonesAndAddressesOnUnit(role, other, csScope)).toBe(
+        true
+      );
       expect(canEditClientContactsOnUnit(role, other, csScope)).toBe(true);
       expect(canSyncClientExtraContacts(role, other, csScope)).toBe(true);
+      expect(canEditClientIdentityFields(role)).toBe(false);
+      expect(canUploadClientNationalIdScan(role)).toBe(false);
     });
 
     it("keeps cases and handover checklist assignment-scoped", () => {
@@ -90,6 +98,8 @@ describe("role-permissions matrix", () => {
       expect(canEditCsHandoverChecklist(role, other)).toBe(true);
       expect(canEditFinishingFinancialsOnUnit(role, other)).toBe(true);
       expect(canSyncClientExtraContacts(role, other)).toBe(true);
+      expect(canEditClientIdentityFields(role)).toBe(true);
+      expect(canUploadClientNationalIdScan(role)).toBe(true);
       expect(canSubmitEngineeringSiteUpdate(role)).toBe(false);
       expect(canAccessEngineeringPortal(role)).toBe(false);
     });

@@ -8,7 +8,9 @@ import { auth } from "@/lib/auth";
 import {
   isAdminUnitManager,
   isCommunityManagementRole,
+  isCsAgentRole,
 } from "@/lib/auth/unit-roles";
+import { canEditClientPhonesAndAddressesOnUnit } from "@/lib/auth/role-permissions";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import {
   addressesForCreate,
@@ -164,9 +166,8 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
   if (isCommunityManagementRole(role)) {
     return actionFail("Unauthorized");
   }
-  const isContactEditor = isAdmin || role === "CS_AGENT";
-
-  if (!isContactEditor) {
+  const isCsAgent = isCsAgentRole(role);
+  if (!canEditClientPhonesAndAddressesOnUnit(role)) {
     return actionFail("Unauthorized");
   }
 
@@ -199,15 +200,40 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
     extraAddresses = [],
   } = parsed.data;
 
-  const clientData = {
-    name: clientName,
-    phone1,
-    phone2: null,
-    email,
-    nationalId,
-    address1,
-    address2: null,
-  };
+  const existingClient = unit.client;
+
+  if (isCsAgent) {
+    if (!unit.clientId || !existingClient) {
+      return actionFail("Client record not found");
+    }
+    if (
+      clientName !== existingClient.name ||
+      (email ?? null) !== (existingClient.email ?? null) ||
+      (nationalId ?? null) !== (existingClient.nationalId ?? null)
+    ) {
+      return actionFail("Cannot modify client identity fields");
+    }
+  }
+
+  const clientData = isCsAgent && existingClient
+    ? {
+        name: existingClient.name,
+        phone1,
+        phone2: null,
+        email: existingClient.email,
+        nationalId: existingClient.nationalId,
+        address1,
+        address2: null,
+      }
+    : {
+        name: clientName,
+        phone1,
+        phone2: null,
+        email,
+        nationalId,
+        address1,
+        address2: null,
+      };
 
   try {
     await withAudit(async () => {
@@ -256,13 +282,15 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
             where: { id: clientId },
             data: clientData,
           });
-        } else {
+        } else if (isAdmin) {
           const client = await tx.client.create({ data: clientData });
           clientId = client.id;
           await tx.unit.update({
             where: { id: unitId },
             data: { clientId: client.id },
           });
+        } else {
+          throw new Error("CLIENT_NOT_FOUND");
         }
 
         await syncClientExtraPhones(tx, clientId!, phone1, extraPhones);
@@ -270,6 +298,9 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
       });
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "CLIENT_NOT_FOUND") {
+      return actionFail("Client record not found");
+    }
     if (error instanceof Error && error.message === "DUPLICATE_UNIT_CODE") {
       return actionFail("A unit with this code already exists in this project");
     }
