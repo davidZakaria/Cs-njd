@@ -1,0 +1,33 @@
+import { describe, expect, it } from "vitest";
+
+import { csAgentUnitProfileFormSchema } from "@/lib/validations/unit-profile";
+
+describe("csAgentUnitProfileFormSchema", () => {
+  it("accepts invalid or empty identity fields CS cannot edit", () => {
+    const result = csAgentUnitProfileFormSchema.safeParse({
+      unitId: "unit-1",
+      clientName: "",
+      email: "N/A",
+      nationalId: "  ",
+      phone1: "0100",
+      address1: "Street",
+      type: "APARTMENT",
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("still validates editable phone fields", () => {
+    const result = csAgentUnitProfileFormSchema.safeParse({
+      unitId: "unit-1",
+      clientName: "Name",
+      phone1: "   ",
+      type: "APARTMENT",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.phone1).toBeNull();
+    }
+  });
+});

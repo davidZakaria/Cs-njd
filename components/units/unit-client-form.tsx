@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
@@ -9,6 +9,7 @@ import { useRouter } from "@/i18n/navigation";
 import { deleteUnit, updateUnit } from "@/lib/actions/units";
 import {
   UNIT_TYPE_OPTIONS,
+  csAgentUnitProfileFormSchema,
   unitProfileFormSchema,
   type UnitProfileFormInput,
 } from "@/lib/validations/unit-profile";
@@ -41,6 +42,16 @@ import {
 } from "@/components/ui/select";
 import { currencySuffix } from "@/lib/format/currency";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+function firstFormErrorMessage(errors: FieldErrors<UnitProfileFormInput>): string | undefined {
+  for (const value of Object.values(errors)) {
+    if (value && typeof value === "object" && "message" in value && value.message) {
+      return String(value.message);
+    }
+  }
+  return undefined;
+}
 
 export type UnitClientFormDefaults = {
   unitId: string;
@@ -69,7 +80,7 @@ export type UnitClientFormDefaults = {
 export type UnitProfileEditLevel =
   | "none"
   | "communityExtras"
-  | "contact"
+  | "phoneAddress"
   | "admin";
 
 export function UnitClientForm({
@@ -85,11 +96,12 @@ export function UnitClientForm({
   contactDisabled?: boolean;
   agentOptions?: Array<{ id: string; name: string }>;
 }) {
-  const canEditClient =
-    profileEditLevel === "contact" || profileEditLevel === "admin";
+  const canEditPhonesAndAddresses =
+    profileEditLevel === "phoneAddress" || profileEditLevel === "admin";
+  const canEditIdentity = profileEditLevel === "admin";
   const canEditCommunityExtras = profileEditLevel === "communityExtras";
   const canEditAdmin = profileEditLevel === "admin";
-  const canSubmitProfile = canEditClient;
+  const canSubmitProfile = canEditPhonesAndAddresses;
   const locale = useLocale();
   const isRtl = locale === "ar";
   const t = useTranslations("units");
@@ -101,10 +113,31 @@ export function UnitClientForm({
   const router = useRouter();
   const { pending, runAction } = useCrudToast();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const extrasFingerprint = useMemo(
+    () =>
+      JSON.stringify({
+        unitId: defaults.unitId,
+        phones: defaults.extraPhones,
+        addresses: defaults.extraAddresses,
+      }),
+    [defaults.extraAddresses, defaults.extraPhones, defaults.unitId]
+  );
+
   const [contactExtras, setContactExtras] = useState({
     phones: defaults.extraPhones,
     addresses: defaults.extraAddresses,
   });
+  const [appliedExtrasFingerprint, setAppliedExtrasFingerprint] =
+    useState(extrasFingerprint);
+
+  if (extrasFingerprint !== appliedExtrasFingerprint) {
+    setAppliedExtrasFingerprint(extrasFingerprint);
+    setContactExtras({
+      phones: defaults.extraPhones,
+      addresses: defaults.extraAddresses,
+    });
+  }
 
   const formDefaults = useMemo(
     (): UnitProfileFormInput => ({
@@ -127,13 +160,23 @@ export function UnitClientForm({
     [defaults]
   );
 
+  const formResolver = useMemo(
+    () =>
+      zodResolver(
+        profileEditLevel === "phoneAddress"
+          ? csAgentUnitProfileFormSchema
+          : unitProfileFormSchema
+      ),
+    [profileEditLevel]
+  );
+
   const {
     register,
     control,
     handleSubmit,
     setValue,
   } = useForm<UnitProfileFormInput>({
-    resolver: zodResolver(unitProfileFormSchema),
+    resolver: formResolver,
     defaultValues: formDefaults,
   });
 
@@ -162,16 +205,10 @@ export function UnitClientForm({
     }
   }, [agentSelectItems, defaults.agentId, setValue]);
 
-  useEffect(() => {
-    setContactExtras({
-      phones: defaults.extraPhones,
-      addresses: defaults.extraAddresses,
-    });
-  }, [defaults.extraAddresses, defaults.extraPhones]);
-
   const currencyLabel = currencySuffix(locale);
 
   function onSubmit(values: UnitProfileFormInput) {
+    setValidationMessage(null);
     runAction(
       () =>
         updateUnit({
@@ -183,9 +220,15 @@ export function UnitClientForm({
     );
   }
 
+  function onInvalid(errors: FieldErrors<UnitProfileFormInput>) {
+    setValidationMessage(
+      firstFormErrorMessage(errors) ?? t("formValidationFailed")
+    );
+  }
+
   const contactExtrasMode = canEditCommunityExtras
     ? "communityAddOnly"
-    : canEditClient
+    : canEditPhonesAndAddresses
       ? "editable"
       : "readonly";
 
@@ -202,8 +245,19 @@ export function UnitClientForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" dir={isRtl ? "rtl" : "ltr"}>
+    <form
+      onSubmit={handleSubmit(onSubmit, onInvalid)}
+      className="space-y-6"
+      dir={isRtl ? "rtl" : "ltr"}
+      noValidate
+    >
       <input type="hidden" {...register("unitId")} />
+
+      {validationMessage ? (
+        <Alert variant="destructive">
+          <AlertDescription>{validationMessage}</AlertDescription>
+        </Alert>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -246,7 +300,7 @@ export function UnitClientForm({
                 </p>
               </div>
             </div>
-          ) : canEditClient ? (
+          ) : canEditPhonesAndAddresses ? (
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="unitCode">{t("unitCode")}</Label>
@@ -299,8 +353,9 @@ export function UnitClientForm({
                 <Label htmlFor="clientName">{t("client")}</Label>
                 <Input
                   id="clientName"
-                  disabled={pending}
-                  required
+                  disabled={pending || !canEditIdentity}
+                  readOnly={!canEditIdentity}
+                  required={canEditIdentity}
                   {...register("clientName")}
                 />
               </div>
@@ -313,21 +368,30 @@ export function UnitClientForm({
                 <Input
                   id="email"
                   type="email"
-                  disabled={pending}
+                  disabled={pending || !canEditIdentity}
+                  readOnly={!canEditIdentity}
                   {...register("email")}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="nationalId">{tFields("nationalId")}</Label>
-                <Input id="nationalId" disabled={pending} {...register("nationalId")} />
+                <Input
+                  id="nationalId"
+                  disabled={pending || !canEditIdentity}
+                  readOnly={!canEditIdentity}
+                  {...register("nationalId")}
+                />
               </div>
               <NationalIdUpload
                 unitId={defaults.unitId}
                 clientId={defaults.clientId}
                 hasFile={Boolean(defaults.nationalIdFile)}
-                canUpload={defaults.canUploadNationalId}
-                onExtractedId={(nationalId) =>
-                  setValue("nationalId", nationalId, { shouldDirty: true })
+                canUpload={canEditIdentity && defaults.canUploadNationalId}
+                onExtractedId={
+                  canEditIdentity
+                    ? (nationalId) =>
+                        setValue("nationalId", nationalId, { shouldDirty: true })
+                    : undefined
                 }
               />
             </div>
@@ -390,7 +454,7 @@ export function UnitClientForm({
                 </p>
               )}
             </div>
-            {!canEditClient ? (
+            {!canEditPhonesAndAddresses ? (
               <p className="text-sm sm:pt-7">
                 <strong>{t("agent")}:</strong> {defaults.agentLabel}
               </p>
@@ -399,7 +463,7 @@ export function UnitClientForm({
         </CardContent>
       </Card>
 
-      {!hideClientContact && canEditClient ? (
+      {!hideClientContact && canEditPhonesAndAddresses ? (
         <Card>
           <CardHeader>
             <CardTitle>{tClient("address1")}</CardTitle>
@@ -426,7 +490,7 @@ export function UnitClientForm({
             ) : null}
           </CardHeader>
           <CardContent>
-            {!canEditClient && !canEditCommunityExtras ? (
+            {!canEditPhonesAndAddresses && !canEditCommunityExtras ? (
               <p className="mb-4 text-sm">
                 <strong>{tClient("address1")}:</strong> {defaults.address1 ?? "—"}
               </p>
@@ -442,7 +506,7 @@ export function UnitClientForm({
               mode={contactExtrasMode}
               contactDisabled={contactDisabled}
               onExtrasChange={
-                canEditClient
+                canEditPhonesAndAddresses
                   ? (next) => setContactExtras(next)
                   : undefined
               }

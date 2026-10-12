@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { auth } from "@/lib/auth";
-import { assertCsAgentUnitAccess } from "@/lib/auth/abac";
+import { canEditClientContactsOnUnit } from "@/lib/auth/role-permissions";
 import {
   validateCommunityExtraAddressAdd,
   validateCommunityExtraPhoneAdd,
@@ -44,10 +44,8 @@ async function assertCanAddExtraContact(
 ): Promise<ActionResult | null> {
   if (isAdminUnitManager(role as never)) return null;
   if (isCommunityManagementRole(role as never)) return null;
-  if (role === "CS_AGENT") {
-    const session = await auth();
-    if (!session?.user) return actionFail("Unauthorized");
-    return assertCsAgentUnitAccess(session.user, unit.agentId);
+  if (canEditClientContactsOnUnit(role as never)) {
+    return null;
   }
   return actionFail("Unauthorized");
 }

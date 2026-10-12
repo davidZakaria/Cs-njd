@@ -30,6 +30,7 @@ import {
   canCreateOrUpdateCaseOnUnit,
   canEditFinishingFinancialsOnUnit,
   canEditCsHandoverChecklist,
+  canUploadClientNationalIdScan,
   isCsAgentAssignedToUnit,
 } from "@/lib/auth/role-permissions";
 import { getAssignableAgentUsers } from "@/lib/units/assignable-agents";
@@ -114,16 +115,14 @@ export default async function UnitProfilePage({
   const canEditAdmin = session?.user.role
     ? isAdminUnitManager(session.user.role)
     : false;
-  const csHasUnitAccess =
-    csScope != null && isCsAgentAssignedToUnit(csScope, { unitAgentId: unit.agentId });
   const clientEditMode = session?.user.role
-    ? resolveUnitClientEditMode(session.user.role, csHasUnitAccess)
+    ? resolveUnitClientEditMode(session.user.role)
     : "none";
   const profileEditLevel =
     clientEditMode === "admin"
       ? "admin"
-      : clientEditMode === "contact"
-        ? "contact"
+      : clientEditMode === "phoneAddress"
+        ? "phoneAddress"
         : clientEditMode === "communityExtras"
           ? "communityExtras"
           : "none";
@@ -288,7 +287,10 @@ export default async function UnitProfilePage({
               area: unit.area ?? null,
               clientId: unit.clientId ?? null,
               nationalIdFile: unit.client?.nationalIdFile ?? null,
-              canUploadNationalId: signedProtocolAccess.canUpload,
+              canUploadNationalId:
+                session?.user.role != null
+                  ? canUploadClientNationalIdScan(session.user.role)
+                  : false,
               waMessageTemplate,
             }}
           />

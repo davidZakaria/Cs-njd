@@ -34,6 +34,17 @@ function optionalEmail() {
     });
 }
 
+/** Same shape as optionalEmail output, without RFC email validation (CS view-only fields). */
+function optionalEmailLoose() {
+  return z
+    .union([z.string(), z.literal(""), z.null()])
+    .optional()
+    .transform((value) => {
+      if (value == null || value === "") return null;
+      return value.trim();
+    });
+}
+
 const contactExtraLineSchema = z.object({
   id: optionalString(),
   value: z.string(),
@@ -59,6 +70,15 @@ export const unitProfileFormSchema = z.object({
   type: z.enum(unitTypeValues),
 });
 
+/**
+ * CS agents only edit phones/addresses; identity fields skip strict validation
+ * but keep the same output types as unitProfileFormSchema for shared form/action typing.
+ */
+export const csAgentUnitProfileFormSchema = unitProfileFormSchema.extend({
+  clientName: z.string(),
+  email: optionalEmailLoose(),
+});
+
 export const createUnitFormSchema = z.object({
   projectId: z.string().min(1),
   unitCode: z.string().min(1),
@@ -80,5 +100,8 @@ export type CreateUnitFormValues = z.output<typeof createUnitFormSchema>;
 
 export type UnitProfileFormInput = z.input<typeof unitProfileFormSchema>;
 export type UnitProfileFormValues = z.output<typeof unitProfileFormSchema>;
+export type CsAgentUnitProfileFormValues = z.output<
+  typeof csAgentUnitProfileFormSchema
+>;
 
 export const UNIT_TYPE_OPTIONS = unitTypeValues;

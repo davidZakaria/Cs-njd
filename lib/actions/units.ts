@@ -5,11 +5,12 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { auth } from "@/lib/auth";
-import { assertCsAgentUnitAccess } from "@/lib/auth/abac";
 import {
   isAdminUnitManager,
   isCommunityManagementRole,
+  isCsAgentRole,
 } from "@/lib/auth/unit-roles";
+import { canEditClientPhonesAndAddressesOnUnit } from "@/lib/auth/role-permissions";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import {
   addressesForCreate,
@@ -26,6 +27,7 @@ import {
 import { auditContext } from "@/lib/prisma";
 import {
   createUnitFormSchema,
+  csAgentUnitProfileFormSchema,
   unitProfileFormSchema,
   type CreateUnitFormInput,
   type UnitProfileFormInput,
@@ -165,10 +167,76 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
   if (isCommunityManagementRole(role)) {
     return actionFail("Unauthorized");
   }
-  const isContactEditor = isAdmin || role === "CS_AGENT";
-
-  if (!isContactEditor) {
+  const isCsAgent = isCsAgentRole(role);
+  if (!canEditClientPhonesAndAddressesOnUnit(role)) {
     return actionFail("Unauthorized");
+  }
+
+  if (isCsAgent) {
+    const csParsed = csAgentUnitProfileFormSchema.safeParse(input);
+    if (!csParsed.success) {
+      return actionFail(csParsed.error.issues[0]?.message ?? "Invalid input");
+    }
+
+    const {
+      unitId,
+      phone1,
+      address1,
+      extraPhones = [],
+      extraAddresses = [],
+    } = csParsed.data;
+
+    const unit = await prisma.unit.findUnique({
+      where: { id: unitId },
+      include: { client: true },
+    });
+    if (!unit || unit.deletedAt) return actionFail("Unit not found");
+    const existingClient = unit.client;
+    if (!unit.clientId || !existingClient) {
+      return actionFail("Client record not found");
+    }
+
+    const clientData = {
+      name: existingClient.name,
+      phone1,
+      phone2: null,
+      email: existingClient.email,
+      nationalId: existingClient.nationalId,
+      address1,
+      address2: null,
+    };
+
+    try {
+      await withAudit(async () => {
+        await prisma.$transaction(async (tx) => {
+          await tx.client.update({
+            where: { id: unit.clientId! },
+            data: clientData,
+          });
+          await syncClientExtraPhones(tx, unit.clientId!, phone1, extraPhones);
+          await syncClientExtraAddresses(
+            tx,
+            unit.clientId!,
+            address1,
+            extraAddresses
+          );
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002" &&
+        Array.isArray(error.meta?.target) &&
+        error.meta.target.includes("nationalId")
+      ) {
+        return actionFail("A client with this national ID already exists");
+      }
+      throw error;
+    }
+
+    revalidatePath(`/units/${unitId}`);
+    revalidatePath("/units");
+    return actionOk();
   }
 
   const parsed = unitProfileFormSchema.safeParse(input);
@@ -181,11 +249,6 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
     include: { client: true },
   });
   if (!unit || unit.deletedAt) return actionFail("Unit not found");
-
-  if (role === "CS_AGENT") {
-    const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
-    if (accessError) return accessError;
-  }
 
   const {
     unitId,
@@ -276,6 +339,9 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
       });
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "CLIENT_NOT_FOUND") {
+      return actionFail("Client record not found");
+    }
     if (error instanceof Error && error.message === "DUPLICATE_UNIT_CODE") {
       return actionFail("A unit with this code already exists in this project");
     }

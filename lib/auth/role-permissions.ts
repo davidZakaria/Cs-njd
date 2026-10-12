@@ -57,16 +57,32 @@ export function canCreateOrUpdateCaseOnUnit(
   return false;
 }
 
-export function canEditClientContactsOnUnit(
+/** Primary phone/address and extra phones/addresses (not client identity). */
+export function canEditClientPhonesAndAddressesOnUnit(
   role: Role,
-  assignment: UnitAssignment,
-  scope?: CsAgentScope | null
+  _assignment?: UnitAssignment,
+  _scope?: CsAgentScope | null
 ): boolean {
   if (isAdminUnitManager(role)) return true;
-  if (isCsAgentRole(role) && scope) {
-    return isCsAgentAssignedToUnit(scope, assignment);
-  }
+  if (isCsAgentRole(role)) return true;
   return false;
+}
+
+/** @deprecated Prefer canEditClientPhonesAndAddressesOnUnit */
+export function canEditClientContactsOnUnit(
+  role: Role,
+  assignment?: UnitAssignment,
+  scope?: CsAgentScope | null
+): boolean {
+  return canEditClientPhonesAndAddressesOnUnit(role, assignment, scope);
+}
+
+export function canEditClientIdentityFields(role: Role): boolean {
+  return isAdminUnitManager(role);
+}
+
+export function canUploadClientNationalIdScan(role: Role): boolean {
+  return isAdminUnitManager(role);
 }
 
 /** Full add/edit/remove of extra phones and addresses (unit profile save). */
@@ -75,7 +91,7 @@ export function canSyncClientExtraContacts(
   assignment: UnitAssignment,
   scope?: CsAgentScope | null
 ): boolean {
-  return canEditClientContactsOnUnit(role, assignment, scope);
+  return canEditClientPhonesAndAddressesOnUnit(role, assignment, scope);
 }
 
 export function canAddCommunityExtraContactsOnly(role: Role): boolean {
@@ -98,14 +114,12 @@ export function canEditCsHandoverChecklist(
 /** Finishing financials tab — all fields on the unit profile. */
 export function canEditFinishingFinancialsOnUnit(
   role: Role,
-  assignment: UnitAssignment,
-  scope?: CsAgentScope | null
+  _assignment?: UnitAssignment,
+  _scope?: CsAgentScope | null
 ): boolean {
   if (isAdminUnitManager(role) || role === "SUPER_ADMIN") return true;
   if (isCommunityManagementRole(role)) return false;
-  if (isCsAgentRole(role) && scope) {
-    return isCsAgentAssignedToUnit(scope, assignment);
-  }
+  if (isCsAgentRole(role)) return true;
   return false;
 }
 
