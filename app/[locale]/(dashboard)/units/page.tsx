@@ -3,7 +3,7 @@ import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { prisma } from "@/lib/prisma";
 import { activeUnitWhere } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
-import { getAssignableAgentEmails } from "@/lib/staff";
+import { getAssignableAgentUsers } from "@/lib/units/assignable-agents";
 import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
 import { UnitsTable } from "@/components/units/units-table";
 import {
@@ -36,11 +36,7 @@ export default async function UnitsPage({
       },
       orderBy: [{ project: { name: "asc" } }, { unitCode: "asc" }],
     }),
-    prisma.user.findMany({
-      where: { email: { in: getAssignableAgentEmails() } },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
+    getAssignableAgentUsers(),
     prisma.project.findMany({
       orderBy: { name: "asc" },
       select: { id: true, name: true },

@@ -7,7 +7,7 @@ import {
   PROJECT_SLUGS,
   type CanonicalProject,
 } from "@/lib/projects";
-import { getAssignableAgentEmails } from "@/lib/staff";
+import { assignableAgentUserWhere } from "@/lib/units/assignable-agents";
 
 export type ExecutiveCaseRow = {
   id: string;
@@ -422,7 +422,7 @@ export async function getExecutiveDashboardData(
       orderBy: { updatedAt: "desc" },
     }),
     prisma.user.findMany({
-      where: { email: { in: getAssignableAgentEmails() } },
+      where: assignableAgentUserWhere,
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

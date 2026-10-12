@@ -32,10 +32,7 @@ import {
   canEditCsHandoverChecklist,
   isCsAgentAssignedToUnit,
 } from "@/lib/auth/role-permissions";
-import {
-  getAssignableAgentUsers,
-  isValidUnitAgentId,
-} from "@/lib/units/assignable-agents";
+import { getAssignableAgentUsers } from "@/lib/units/assignable-agents";
 import type { SerializedResolutionContext } from "@/lib/workflow/resolution-checklist";
 import { formatDateTime } from "@/lib/format/datetime";
 import {
@@ -91,14 +88,6 @@ export default async function UnitProfilePage({
   if (!unit) notFound();
 
   const rosterAgents = await getAssignableAgentUsers();
-  if (unit.agentId && !isValidUnitAgentId(unit.agentId, rosterAgents)) {
-    await prisma.unit.update({
-      where: { id: unit.id },
-      data: { agentId: null },
-    });
-    unit.agentId = null;
-    unit.agent = null;
-  }
 
   const csScope =
     session?.user.role === "CS_AGENT"
