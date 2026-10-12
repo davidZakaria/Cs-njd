@@ -1,4 +1,6 @@
 import { auth } from "@/lib/auth";
+import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
+import { canAccessEngineeringPortal } from "@/lib/auth/role-permissions";
 import { getEngineeringQueueUnits } from "@/lib/engineering/queue";
 import { HardHat } from "lucide-react";
 import { getTranslations } from "next-intl/server";
@@ -18,12 +20,14 @@ export default async function EngineeringPortalPage({
   if (!session?.user) {
     redirect(`/${locale}/login?reason=session_expired`);
   }
-  if (session.user.role !== "ENGINEER") {
+  if (!canAccessEngineeringPortal(session.user.role)) {
     redirect(`/${locale}/dashboard`);
   }
 
   const t = await getTranslations("engineering");
   const tasks = await getEngineeringQueueUnits();
+  const isCsAgent = session.user.role === "CS_AGENT";
+  const csScope = isCsAgent ? await resolveCsAgentScope(session.user) : null;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -35,14 +39,19 @@ export default async function EngineeringPortalPage({
           <h1 className="font-heading text-3xl font-bold tracking-tight">
             {t("portalTitle")}
           </h1>
-          <p className="text-muted-foreground">{t("myTasks")}</p>
+          <p className="text-muted-foreground">
+            {isCsAgent ? t("csAgentTasks") : t("myTasks")}
+          </p>
           <p className="mt-1 text-sm text-muted-foreground/90">
-            {t("sharedAccountHint")}
+            {isCsAgent ? t("csAgentPortalHint") : t("sharedAccountHint")}
           </p>
         </div>
       </div>
 
-      <EngineeringQueuePanel tasks={tasks} />
+      <EngineeringQueuePanel
+        tasks={tasks}
+        csEffectiveAgentId={csScope?.effectiveAgentId ?? null}
+      />
     </div>
   );
 }

@@ -310,6 +310,11 @@
   "engineering": {
     "portalTitle": "Engineering Portal",
     "myTasks": "Finishing tasks",
+    "csAgentTasks": "Engineering queue",
+    "csAgentPortalHint": "All units with open engineering work. You can update finishing notes on units assigned to you from the unit profile.",
+    "csReadOnlyHint": "View only — site engineers submit phase updates here. Use the unit profile to add finishing notes on your assigned units.",
+    "openUnitFinishing": "Open finishing / engineering on unit profile",
+    "viewTask": "View engineering status",
     "sharedAccountHint": "Shared site account — all units pending with Engineering appear here.",
     "noTasks": "No engineering tasks right now",
     "updateFinishes": "Update finishing status",

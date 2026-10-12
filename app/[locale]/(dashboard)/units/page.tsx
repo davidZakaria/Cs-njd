@@ -1,8 +1,5 @@
 import { auth } from "@/lib/auth";
-import {
-  csAgentUnitScope,
-  resolveCsAgentScope,
-} from "@/lib/auth/cs-agent-scope";
+import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { prisma } from "@/lib/prisma";
 import { activeUnitWhere } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
@@ -28,11 +25,9 @@ export default async function UnitsPage({
       ? await resolveCsAgentScope(session.user)
       : null;
 
-  const scope = csScope ? csAgentUnitScope(csScope) : {};
-
   const [units, staffUsers, projectRecords] = await Promise.all([
     prisma.unit.findMany({
-      where: activeUnitWhere(scope),
+      where: activeUnitWhere({}),
       include: {
         project: true,
         client: true,

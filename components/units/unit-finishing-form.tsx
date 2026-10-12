@@ -281,14 +281,6 @@ export function UnitFinishingForm({
           unitId: values.unitId,
           addFinishingNote: addFinishingNote.trim() || null,
           addCustomModification: addCustomModification.trim() || null,
-          packageType:
-            values.packageType === "" || values.packageType == null
-              ? null
-              : values.packageType,
-          executingCompany:
-            values.executingCompany === "" || values.executingCompany == null
-              ? null
-              : values.executingCompany,
         });
         if (result.success) {
           setAddFinishingNote("");
@@ -383,61 +375,76 @@ export function UnitFinishingForm({
             ) : null}
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>{tFinishing("packageType")}</Label>
-              <Controller
-                control={control}
-                name="packageType"
-                render={({ field }) => (
-                  <Select
-                    value={field.value ?? ""}
-                    onValueChange={(value) => field.onChange(value ?? "")}
-                    items={packageItems}
-                    disabled={!canEditGeneralFields || pending}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={tCommon("all")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">{tCommon("all")}</SelectItem>
-                      {FINISHING_PACKAGE_OPTIONS.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {labels.finishingPackage(value)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
+            {canSubmitCs ? (
+              <>
+                <SummaryCard
+                  label={tFinishing("packageType")}
+                  value={packageDisplayLabel}
+                />
+                <SummaryCard
+                  label={tFinishing("executingCompany")}
+                  value={companyDisplayLabel}
+                />
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label>{tFinishing("packageType")}</Label>
+                  <Controller
+                    control={control}
+                    name="packageType"
+                    render={({ field }) => (
+                      <Select
+                        value={field.value ?? ""}
+                        onValueChange={(value) => field.onChange(value ?? "")}
+                        items={packageItems}
+                        disabled={!managementEdit || pending}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={tCommon("all")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">{tCommon("all")}</SelectItem>
+                          {FINISHING_PACKAGE_OPTIONS.map((value) => (
+                            <SelectItem key={value} value={value}>
+                              {labels.finishingPackage(value)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label>{tFinishing("executingCompany")}</Label>
-              <Controller
-                control={control}
-                name="executingCompany"
-                render={({ field }) => (
-                  <Select
-                    value={field.value ?? ""}
-                    onValueChange={(value) => field.onChange(value ?? "")}
-                    items={companyItems}
-                    disabled={!canEditGeneralFields || pending}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={tCommon("all")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">{tCommon("all")}</SelectItem>
-                      {EXECUTING_COMPANY_OPTIONS.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {labels.executingCompany(value)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label>{tFinishing("executingCompany")}</Label>
+                  <Controller
+                    control={control}
+                    name="executingCompany"
+                    render={({ field }) => (
+                      <Select
+                        value={field.value ?? ""}
+                        onValueChange={(value) => field.onChange(value ?? "")}
+                        items={companyItems}
+                        disabled={!managementEdit || pending}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={tCommon("all")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">{tCommon("all")}</SelectItem>
+                          {EXECUTING_COMPANY_OPTIONS.map((value) => (
+                            <SelectItem key={value} value={value}>
+                              {labels.executingCompany(value)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+              </>
+            )}
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="currentFinishingStatus">
                 {tFinishing("finishingNotes")}

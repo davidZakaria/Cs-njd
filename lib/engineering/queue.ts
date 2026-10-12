@@ -6,6 +6,7 @@ export type EngineeringQueueUnit = {
   id: string;
   unitCode: string;
   projectName: string;
+  unitAgentId: string | null;
   customModifications: string | null;
   packageType: string | null;
   phases: FinishingPhase[];
@@ -25,6 +26,7 @@ export async function getEngineeringQueueUnits(): Promise<EngineeringQueueUnit[]
     select: {
       id: true,
       unitCode: true,
+      agentId: true,
       project: { select: { name: true } },
       finishing: {
         select: {
@@ -48,6 +50,7 @@ export async function getEngineeringQueueUnits(): Promise<EngineeringQueueUnit[]
     id: unit.id,
     unitCode: unit.unitCode,
     projectName: unit.project.name,
+    unitAgentId: unit.agentId,
     customModifications: unit.finishing?.customModifications ?? null,
     packageType: unit.finishing?.packageType ?? null,
     phases:

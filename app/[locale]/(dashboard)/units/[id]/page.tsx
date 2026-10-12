@@ -1,8 +1,5 @@
 import { auth } from "@/lib/auth";
-import {
-  canAccessUnitAsCsAgent,
-  resolveCsAgentScope,
-} from "@/lib/auth/cs-agent-scope";
+import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { prisma, notDeleted } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -26,8 +23,15 @@ import { canUseManagementOverride } from "@/lib/workflow/management-override";
 import { canManageUnitTickets } from "@/lib/auth/unit-ticket-access";
 import {
   isAdminUnitManager,
+  isCsAgentRole,
   resolveUnitClientEditMode,
 } from "@/lib/auth/unit-roles";
+import {
+  canCreateOrUpdateCaseOnUnit,
+  canEditCsFinishingEngineering,
+  canEditCsHandoverChecklist,
+  isCsAgentAssignedToUnit,
+} from "@/lib/auth/role-permissions";
 import {
   getAssignableAgentUsers,
   isValidUnitAgentId,
@@ -122,7 +126,7 @@ export default async function UnitProfilePage({
     ? isAdminUnitManager(session.user.role)
     : false;
   const csHasUnitAccess =
-    csScope != null && canAccessUnitAsCsAgent(csScope, unit.agentId);
+    csScope != null && isCsAgentAssignedToUnit(csScope, { unitAgentId: unit.agentId });
   const clientEditMode = session?.user.role
     ? resolveUnitClientEditMode(session.user.role, csHasUnitAccess)
     : "none";
@@ -176,8 +180,23 @@ export default async function UnitProfilePage({
     hasResolvedCase &&
     (session?.user.role === "CS_AGENT" ||
       session?.user.role === "COMMUNITY_MANAGEMENT");
+  const assignment = { unitAgentId: unit.agentId };
   const canEditCsChecklist =
-    csScope != null && canAccessUnitAsCsAgent(csScope, unit.agentId);
+    session?.user.role != null && csScope != null
+      ? canEditCsHandoverChecklist(session.user.role, assignment, csScope)
+      : false;
+  const canEditCsFinishing =
+    session?.user.role != null && csScope != null
+      ? canEditCsFinishingEngineering(session.user.role, assignment, csScope)
+      : false;
+  const canCreateCaseOnUnit =
+    session?.user != null
+      ? canCreateOrUpdateCaseOnUnit(session.user.role, assignment, csScope)
+      : false;
+  const showLegalHandoverForm =
+    canEditAdmin ||
+    canEditCsChecklist ||
+    (session?.user.role != null && isCsAgentRole(session.user.role));
   const defaultTab =
     tab === "timeline" || tab === "legal" || tab === "financials"
       ? tab
@@ -285,7 +304,7 @@ export default async function UnitProfilePage({
         <TabsContent value="financials">
           <UnitFinishingForm
             canEditManagement={canEditAdmin}
-            canEditCsFinishing={canEditCsChecklist}
+            canEditCsFinishing={canEditCsFinishing}
             defaults={{
               unitId: unit.id,
               packageType: unit.finishing?.packageType ?? null,
@@ -319,7 +338,7 @@ export default async function UnitProfilePage({
         </TabsContent>
 
         <TabsContent value="legal" className="space-y-4">
-          {canEditAdmin || canEditCsChecklist ? (
+          {showLegalHandoverForm ? (
             <UnitLegalHandoverForm
               canEditManagement={canEditAdmin}
               canEditCsChecklist={canEditCsChecklist}
@@ -466,9 +485,7 @@ export default async function UnitProfilePage({
                   canEdit:
                     !isCommunityViewer &&
                     (session?.user.role !== "CS_AGENT" ||
-                      (csScope
-                        ? canAccessUnitAsCsAgent(csScope, unit.agentId)
-                        : unit.agentId === session?.user.id)),
+                      canCreateCaseOnUnit),
                 }))
               )
             )}
@@ -487,7 +504,9 @@ export default async function UnitProfilePage({
             activeTicketId={activeTicket?.id ?? null}
             resolvedTicketId={resolvedTicket?.id ?? null}
             gateContext={gateContext}
-            hideAddFeedback={hideAddFeedback || isCommunityViewer}
+            hideAddFeedback={
+              hideAddFeedback || isCommunityViewer || !canCreateCaseOnUnit
+            }
             canBypassGates={session?.user?.role === "SUPER_ADMIN"}
           />
         </TabsContent>
