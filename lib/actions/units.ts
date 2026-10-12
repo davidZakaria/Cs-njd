@@ -172,10 +172,74 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
     return actionFail("Unauthorized");
   }
 
-  const parseSchema = isCsAgent
-    ? csAgentUnitProfileFormSchema
-    : unitProfileFormSchema;
-  const parsed = parseSchema.safeParse(input);
+  if (isCsAgent) {
+    const csParsed = csAgentUnitProfileFormSchema.safeParse(input);
+    if (!csParsed.success) {
+      return actionFail(csParsed.error.issues[0]?.message ?? "Invalid input");
+    }
+
+    const {
+      unitId,
+      phone1,
+      address1,
+      extraPhones = [],
+      extraAddresses = [],
+    } = csParsed.data;
+
+    const unit = await prisma.unit.findUnique({
+      where: { id: unitId },
+      include: { client: true },
+    });
+    if (!unit || unit.deletedAt) return actionFail("Unit not found");
+    const existingClient = unit.client;
+    if (!unit.clientId || !existingClient) {
+      return actionFail("Client record not found");
+    }
+
+    const clientData = {
+      name: existingClient.name,
+      phone1,
+      phone2: null,
+      email: existingClient.email,
+      nationalId: existingClient.nationalId,
+      address1,
+      address2: null,
+    };
+
+    try {
+      await withAudit(async () => {
+        await prisma.$transaction(async (tx) => {
+          await tx.client.update({
+            where: { id: unit.clientId! },
+            data: clientData,
+          });
+          await syncClientExtraPhones(tx, unit.clientId!, phone1, extraPhones);
+          await syncClientExtraAddresses(
+            tx,
+            unit.clientId!,
+            address1,
+            extraAddresses
+          );
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002" &&
+        Array.isArray(error.meta?.target) &&
+        error.meta.target.includes("nationalId")
+      ) {
+        return actionFail("A client with this national ID already exists");
+      }
+      throw error;
+    }
+
+    revalidatePath(`/units/${unitId}`);
+    revalidatePath("/units");
+    return actionOk();
+  }
+
+  const parsed = unitProfileFormSchema.safeParse(input);
   if (!parsed.success) {
     return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
   }
@@ -204,31 +268,15 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
     extraAddresses = [],
   } = parsed.data;
 
-  const existingClient = unit.client;
-
-  if (isCsAgent && (!unit.clientId || !existingClient)) {
-    return actionFail("Client record not found");
-  }
-
-  const clientData = isCsAgent && existingClient
-    ? {
-        name: existingClient.name,
-        phone1,
-        phone2: null,
-        email: existingClient.email,
-        nationalId: existingClient.nationalId,
-        address1,
-        address2: null,
-      }
-    : {
-        name: clientName,
-        phone1,
-        phone2: null,
-        email,
-        nationalId,
-        address1,
-        address2: null,
-      };
+  const clientData = {
+    name: clientName,
+    phone1,
+    phone2: null,
+    email,
+    nationalId,
+    address1,
+    address2: null,
+  };
 
   try {
     await withAudit(async () => {
@@ -277,15 +325,13 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
             where: { id: clientId },
             data: clientData,
           });
-        } else if (isAdmin) {
+        } else {
           const client = await tx.client.create({ data: clientData });
           clientId = client.id;
           await tx.unit.update({
             where: { id: unitId },
             data: { clientId: client.id },
           });
-        } else {
-          throw new Error("CLIENT_NOT_FOUND");
         }
 
         await syncClientExtraPhones(tx, clientId!, phone1, extraPhones);

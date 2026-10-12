@@ -114,10 +114,30 @@ export function UnitClientForm({
   const { pending, runAction } = useCrudToast();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const extrasFingerprint = useMemo(
+    () =>
+      JSON.stringify({
+        unitId: defaults.unitId,
+        phones: defaults.extraPhones,
+        addresses: defaults.extraAddresses,
+      }),
+    [defaults.extraAddresses, defaults.extraPhones, defaults.unitId]
+  );
+
   const [contactExtras, setContactExtras] = useState({
     phones: defaults.extraPhones,
     addresses: defaults.extraAddresses,
   });
+  const [appliedExtrasFingerprint, setAppliedExtrasFingerprint] =
+    useState(extrasFingerprint);
+
+  if (extrasFingerprint !== appliedExtrasFingerprint) {
+    setAppliedExtrasFingerprint(extrasFingerprint);
+    setContactExtras({
+      phones: defaults.extraPhones,
+      addresses: defaults.extraAddresses,
+    });
+  }
 
   const formDefaults = useMemo(
     (): UnitProfileFormInput => ({
@@ -184,13 +204,6 @@ export function UnitClientForm({
       setValue("agentId", "");
     }
   }, [agentSelectItems, defaults.agentId, setValue]);
-
-  useEffect(() => {
-    setContactExtras({
-      phones: defaults.extraPhones,
-      addresses: defaults.extraAddresses,
-    });
-  }, [defaults.extraAddresses, defaults.extraPhones]);
 
   const currencyLabel = currencySuffix(locale);
 
