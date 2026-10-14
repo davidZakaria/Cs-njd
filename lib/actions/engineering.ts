@@ -2,7 +2,6 @@
 
 import { FinishingPhase } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
@@ -13,18 +12,9 @@ import {
   sortPhases,
 } from "@/lib/finishing/phases";
 import { notifySiteUpdate } from "@/lib/notifications/triggers";
-import { auditContext, prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit/with-audit";
+import { prisma } from "@/lib/prisma";
 import { activeTicketWhere } from "@/lib/prisma";
-
-async function withAudit<T>(fn: () => Promise<T>) {
-  const session = await auth();
-  const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for") ?? "unknown";
-  return auditContext.run(
-    { userId: session?.user?.id, ipAddress: ip },
-    fn
-  );
-}
 
 const returnToCsSchema = z.object({
   unitId: z.string().min(1),

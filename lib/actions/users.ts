@@ -1,24 +1,14 @@
 "use server";
 
 import bcrypt from "bcryptjs";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
-import { auditContext, prisma } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit/with-audit";
+import { prisma } from "@/lib/prisma";
 
 const MIN_PASSWORD_LENGTH = 8;
-
-async function withAudit<T>(fn: () => Promise<T>) {
-  const session = await auth();
-  const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for") ?? "unknown";
-  return auditContext.run(
-    { userId: session?.user?.id, ipAddress: ip },
-    fn
-  );
-}
 
 export async function adminChangeUserPassword(
   userId: string,

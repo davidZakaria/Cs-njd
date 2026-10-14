@@ -1,7 +1,8 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { prisma, auditContext } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit/with-audit";
+import { prisma } from "@/lib/prisma";
 import {
   resetTwoFactorSetupForSession,
   verifyTwoFactorCode,
@@ -19,17 +20,6 @@ import {
 } from "@/lib/auth/setup-two-factor";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
-
-async function withAudit<T>(fn: () => Promise<T>) {
-  const session = await auth();
-  const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for") ?? "unknown";
-  return auditContext.run(
-    { userId: session?.user?.id, ipAddress: ip },
-    fn
-  );
-}
 
 /** Super Admin: enable or reset a user's 2FA (disable clears secret — user re-enrolls on login). */
 export async function setUserTwoFactorByAdmin(
