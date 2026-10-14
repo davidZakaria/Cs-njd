@@ -1,36 +1,44 @@
 import { PrismaClient } from "@prisma/client";
-import { AsyncLocalStorage } from "async_hooks";
-import type { AuditAction } from "@prisma/client";
+
+import { auditContext } from "@/lib/prisma/audit-context";
+import { isAuditedModel } from "@/lib/prisma/audited-models";
+import {
+  fetchRowsForBulkWhere,
+  recordCreateManyAndReturnAudits,
+  recordDeleteManyAudits,
+  recordUpdateManyAudits,
+  singleMutationAction,
+} from "@/lib/prisma/bulk-audit";
+import { recordAuditLog } from "@/lib/prisma/record-audit-log";
 import {
   archivedUserEmail,
   isSoftDeleteModel,
   mergeNotDeleted,
 } from "@/lib/prisma/soft-delete";
 
+export { auditContext } from "@/lib/prisma/audit-context";
 export { notDeleted, activeTicketWhere, activeUnitWhere, activeContractWorkflowWhere } from "@/lib/prisma/soft-delete";
-
-export const auditContext = new AsyncLocalStorage<{
-  userId?: string;
-  ipAddress?: string;
-}>();
 
 export const basePrisma = new PrismaClient();
 
-const auditedModels = [
-  "Client",
-  "ClientPhone",
-  "ClientAddress",
-  "Unit",
-  "ContractWorkflow",
-  "Finishing",
-  "Ticket",
-  "User",
-] as const;
+const extendedPrismaRef: {
+  current: ReturnType<typeof createAuditExtension> | null;
+} = { current: null };
 
 function modelDelegate(model: string) {
   const key = model.charAt(0).toLowerCase() + model.slice(1);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (basePrisma as any)[key];
+}
+
+function modelDelegateOnExtendedClient(model: string) {
+  const client = extendedPrismaRef.current;
+  if (!client) {
+    throw new Error("Extended Prisma client is not initialized");
+  }
+  const key = model.charAt(0).toLowerCase() + model.slice(1);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (client as any)[key];
 }
 
 function normalizeWhere(where: Record<string, unknown>): Record<string, unknown> {
@@ -39,6 +47,15 @@ function normalizeWhere(where: Record<string, unknown>): Record<string, unknown>
     return where[keys[0]] as Record<string, unknown>;
   }
   return where;
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "P2002"
+  );
 }
 
 function createSoftDeleteExtension(client: PrismaClient) {
@@ -99,15 +116,84 @@ function createAuditExtension(client: ReturnType<typeof createSoftDeleteExtensio
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
-          if (!auditedModels.includes(model as (typeof auditedModels)[number])) {
+          if (!isAuditedModel(model)) {
             return query(args);
           }
 
           const ctx = auditContext.getStore();
-          const isMutation = ["create", "update", "delete", "upsert"].includes(operation);
+          const isSingleMutation = ["create", "update", "delete", "upsert"].includes(
+            operation
+          );
+          const isBulkMutation = ["createMany", "createManyAndReturn", "updateMany", "deleteMany"].includes(
+            operation
+          );
 
-          if (!isMutation) {
+          if (!isSingleMutation && !isBulkMutation) {
             return query(args);
+          }
+
+          if (!ctx?.userId) {
+            return query(args);
+          }
+
+          if (operation === "createMany") {
+            const items = Array.isArray(
+              (args as { data?: unknown }).data
+            )
+              ? ((args as { data: Record<string, unknown>[] }).data)
+              : [(args as { data: Record<string, unknown> }).data];
+            const skipDuplicates = Boolean(
+              (args as { skipDuplicates?: boolean }).skipDuplicates
+            );
+            const delegate = modelDelegateOnExtendedClient(model);
+            let count = 0;
+
+            for (const item of items) {
+              try {
+                await delegate.create({ data: item });
+                count += 1;
+              } catch (error) {
+                if (skipDuplicates && isUniqueConstraintError(error)) {
+                  continue;
+                }
+                throw error;
+              }
+            }
+
+            return { count };
+          }
+
+          if (operation === "createManyAndReturn") {
+            const result = (await query(args)) as Array<{ id: string } & Record<string, unknown>>;
+            await recordCreateManyAndReturnAudits(basePrisma, ctx, model, result);
+            return result;
+          }
+
+          if (operation === "deleteMany") {
+            const where = (args as { where?: Record<string, unknown> }).where;
+            await recordDeleteManyAudits(
+              modelDelegate(model),
+              basePrisma,
+              ctx,
+              model,
+              where
+            );
+            return query(args);
+          }
+
+          if (operation === "updateMany") {
+            const where = (args as { where?: Record<string, unknown> }).where;
+            const delegate = modelDelegate(model);
+            const beforeRows = await fetchRowsForBulkWhere(delegate, model, where);
+            const result = await query(args);
+            await recordUpdateManyAudits(
+              delegate,
+              basePrisma,
+              ctx,
+              model,
+              beforeRows
+            );
+            return result;
           }
 
           let oldData: unknown = null;
@@ -126,36 +212,24 @@ function createAuditExtension(client: ReturnType<typeof createSoftDeleteExtensio
 
           const result = await query(args);
 
-          const actionMap: Record<string, AuditAction> = {
-            create: "CREATE",
-            update: "UPDATE",
-            delete: "DELETE",
-            upsert: oldData ? "UPDATE" : "CREATE",
-          };
-
           const recordId =
             (result as { id?: string })?.id ??
             (args as { where?: { id?: string } }).where?.id ??
             "unknown";
 
-          const auditAction =
-            operation === "delete" && isSoftDeleteModel(model)
-              ? "UPDATE"
-              : actionMap[operation] ?? "UPDATE";
+          const auditAction = singleMutationAction(
+            operation,
+            model,
+            Boolean(oldData)
+          );
 
-          if (ctx?.userId) {
-            await basePrisma.auditLog.create({
-              data: {
-                userId: ctx.userId,
-                action: auditAction,
-                tableName: model,
-                recordId: String(recordId),
-                oldData: oldData ? (oldData as object) : undefined,
-                newData: operation !== "delete" ? (result as object) : undefined,
-                ipAddress: ctx?.ipAddress,
-              },
-            });
-          }
+          await recordAuditLog(basePrisma, ctx, {
+            model,
+            action: auditAction,
+            recordId: String(recordId),
+            oldData: oldData ? (oldData as object) : undefined,
+            newData: operation !== "delete" ? (result as object) : undefined,
+          });
 
           return result;
         },
@@ -171,6 +245,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 export const prisma = globalForPrisma.prisma ?? createAuditExtension(prismaWithSoftDelete);
+extendedPrismaRef.current = prisma;
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
