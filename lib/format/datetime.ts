@@ -20,6 +20,10 @@ const DEFAULT_OPTIONS: Intl.DateTimeFormatOptions = {
   second: "numeric",
 };
 
+function usesDateOrTimeStyle(options?: Intl.DateTimeFormatOptions): boolean {
+  return options?.dateStyle !== undefined || options?.timeStyle !== undefined;
+}
+
 export function formatDateTime(
   value: Date | string | number,
   locale: string,
@@ -28,10 +32,11 @@ export function formatDateTime(
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "";
 
-  return date.toLocaleString(resolveIntlLocale(locale), {
-    ...DEFAULT_OPTIONS,
-    ...options,
-  });
+  const formatOptions: Intl.DateTimeFormatOptions = usesDateOrTimeStyle(options)
+    ? { timeZone: APP_DISPLAY_TIME_ZONE, ...options }
+    : { ...DEFAULT_OPTIONS, ...options };
+
+  return date.toLocaleString(resolveIntlLocale(locale), formatOptions);
 }
 
 export function formatDate(
