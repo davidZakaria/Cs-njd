@@ -5,10 +5,9 @@ import {
   assertCsAgentCanMutateTicket,
   assertCsAgentUnitAccess,
 } from "@/lib/auth/abac";
+import { withAudit } from "@/lib/audit/with-audit";
 import { prisma } from "@/lib/prisma";
-import { auditContext } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import bcrypt from "bcryptjs";
 import {
   createUserSchema,
@@ -67,16 +66,6 @@ import {
 } from "@/lib/validations/ticket";
 import { Prisma, type PendingParty, type Role, type TicketCategory } from "@prisma/client";
 import { resolvedAtForStatusChange } from "@/lib/tickets/resolved-at";
-
-async function withAudit<T>(fn: () => Promise<T>) {
-  const session = await auth();
-  const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for") ?? "unknown";
-  return auditContext.run(
-    { userId: session?.user?.id, ipAddress: ip },
-    fn
-  );
-}
 
 async function assertSingleEngineerAccount(
   excludeUserId?: string

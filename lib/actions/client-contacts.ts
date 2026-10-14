@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 
 import { auth } from "@/lib/auth";
 import { canEditClientContactsOnUnit } from "@/lib/auth/role-permissions";
@@ -14,15 +13,8 @@ import {
   isCommunityManagementRole,
 } from "@/lib/auth/unit-roles";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
-import { auditContext } from "@/lib/prisma";
+import { withAudit } from "@/lib/audit/with-audit";
 import { prisma } from "@/lib/prisma";
-
-async function withAudit<T>(fn: () => Promise<T>) {
-  const session = await auth();
-  const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for") ?? "unknown";
-  return auditContext.run({ userId: session?.user?.id, ipAddress: ip }, fn);
-}
 
 async function loadUnitForContactMutation(unitId: string) {
   return prisma.unit.findUnique({

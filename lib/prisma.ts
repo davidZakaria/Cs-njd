@@ -16,7 +16,16 @@ export const auditContext = new AsyncLocalStorage<{
 
 export const basePrisma = new PrismaClient();
 
-const auditedModels = ["Client", "Unit", "ContractWorkflow", "Ticket", "User"] as const;
+const auditedModels = [
+  "Client",
+  "ClientPhone",
+  "ClientAddress",
+  "Unit",
+  "ContractWorkflow",
+  "Finishing",
+  "Ticket",
+  "User",
+] as const;
 
 function modelDelegate(model: string) {
   const key = model.charAt(0).toLowerCase() + model.slice(1);

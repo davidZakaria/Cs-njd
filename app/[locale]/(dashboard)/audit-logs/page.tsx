@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getLocale, getTranslations } from "next-intl/server";
 import { formatDateTime } from "@/lib/format/datetime";
+import { auditTableNameTranslationKey } from "@/lib/audit/table-name-key";
 import { AuditLogsTable } from "@/components/audit/audit-logs-table";
 import { requireSuperAdmin } from "@/lib/auth/require-super-admin";
 
@@ -16,14 +17,18 @@ export default async function AuditLogsPage() {
     take: 500,
   });
 
-  const rows = logs.map((log) => ({
+  const rows = logs.map((log) => {
+    const tableKey = auditTableNameTranslationKey(log.tableName);
+    const tableName = tableKey ? t(tableKey) : log.tableName;
+    return {
     id: log.id,
     action: log.action,
-    tableName: log.tableName,
+    tableName,
     user: log.user?.name ?? t("systemUser"),
     timestamp: formatDateTime(log.timestamp, locale),
     ipAddress: log.ipAddress ?? "—",
-  }));
+  };
+  });
 
   return (
     <div className="space-y-6">

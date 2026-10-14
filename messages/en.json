@@ -1058,7 +1058,17 @@
     "timestamp": "Timestamp",
     "ip": "IP Address",
     "empty": "No audit entries yet. Actions on cases, units, and users will appear here.",
-    "systemUser": "System"
+    "systemUser": "System",
+    "tables": {
+      "Client": "Client",
+      "ClientPhone": "Client phone",
+      "ClientAddress": "Client address",
+      "Unit": "Unit",
+      "ContractWorkflow": "Handover checklist",
+      "Finishing": "Finishing",
+      "Ticket": "Case",
+      "User": "User"
+    }
   },
   "backups": {
     "title": "Database Backups",
