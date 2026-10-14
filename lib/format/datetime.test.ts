@@ -17,4 +17,19 @@ describe("formatDateTime", () => {
     const utcInstant = new Date("2026-09-30T00:17:17.000Z");
     expect(formatDateTime(utcInstant, "ar").length).toBeGreaterThan(0);
   });
+
+  it("allows dateStyle and timeStyle without mixing granular date fields", () => {
+    const utcInstant = new Date("2026-09-30T00:17:17.000Z");
+    expect(() =>
+      formatDateTime(utcInstant, "en", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    ).not.toThrow();
+    const label = formatDateTime(utcInstant, "en", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+    expect(label.length).toBeGreaterThan(0);
+  });
 });
