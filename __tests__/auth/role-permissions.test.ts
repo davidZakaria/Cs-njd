@@ -7,6 +7,7 @@ import {
   canAddCommunityExtraContactsOnly,
   canCreateOrUpdateCaseOnUnit,
   canEditFinishingFinancialsOnUnit,
+  canEditLegalHandoverOnUnit,
   canEditCsHandoverChecklist,
   canEditClientContactsOnUnit,
   canEditClientIdentityFields,
@@ -91,9 +92,27 @@ describe("role-permissions matrix", () => {
       ).toBe(false);
       expect(canCreateOrUpdateCaseOnUnit(role, assigned, csScope)).toBe(false);
       expect(canEditCsHandoverChecklist(role, assigned, csScope)).toBe(false);
-      expect(canEditFinishingFinancialsOnUnit(role, assigned, csScope)).toBe(
-        false
-      );
+      expect(
+        canEditLegalHandoverOnUnit(role, {
+          id: "p1",
+          name: "JAMILA NORTH COAST",
+        })
+      ).toBe(true);
+      expect(
+        canEditLegalHandoverOnUnit(role, { id: "p2", name: "GREEN AVENUE" })
+      ).toBe(false);
+      expect(
+        canEditFinishingFinancialsOnUnit(role, assigned, csScope, {
+          id: "p1",
+          name: "JAMILA NORTH COAST",
+        })
+      ).toBe(true);
+      expect(
+        canEditFinishingFinancialsOnUnit(role, assigned, csScope, {
+          id: "p2",
+          name: "GREEN AVENUE",
+        })
+      ).toBe(false);
       expect(canAddCommunityExtraContactsOnly(role)).toBe(true);
       expect(canEditClientContactsOnUnit(role, assigned, csScope)).toBe(false);
       expect(canSyncClientExtraContacts(role, assigned, csScope)).toBe(false);

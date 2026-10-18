@@ -695,7 +695,12 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
         id: "cs-agent-1",
         role: "CS_AGENT",
       }));
-      
+      mockPrismaUnit.findUnique.mockResolvedValue({
+        id: "unit-1",
+        project: { id: "proj-1", name: "GREEN AVENUE" },
+        contractWorkflow: null,
+      });
+
       const { updateHandoverChecklist } = await import("@/lib/actions/crm");
       const result = await updateHandoverChecklist(validHandoverInput);
       

@@ -122,14 +122,29 @@ export function canEditCsHandoverChecklist(
   return false;
 }
 
+/** Full Legal & Handover checklist (management form) on the unit profile. */
+export function canEditLegalHandoverOnUnit(
+  role: Role,
+  project?: ProjectRef | null
+): boolean {
+  if (isAdminUnitManager(role) || role === "SUPER_ADMIN") return true;
+  if (isCommunityManagementRole(role)) {
+    return project != null && isCommunityManagedProject(project);
+  }
+  return false;
+}
+
 /** Finishing financials tab — all fields on the unit profile. */
 export function canEditFinishingFinancialsOnUnit(
   role: Role,
   _assignment?: UnitAssignment,
-  _scope?: CsAgentScope | null
+  _scope?: CsAgentScope | null,
+  project?: ProjectRef | null
 ): boolean {
   if (isAdminUnitManager(role) || role === "SUPER_ADMIN") return true;
-  if (isCommunityManagementRole(role)) return false;
+  if (isCommunityManagementRole(role)) {
+    return project != null && isCommunityManagedProject(project);
+  }
   if (isCsAgentRole(role)) return true;
   return false;
 }

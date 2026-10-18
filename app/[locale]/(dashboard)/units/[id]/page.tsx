@@ -31,6 +31,7 @@ import {
 import {
   canCreateOrUpdateCaseOnUnit,
   canEditFinishingFinancialsOnUnit,
+  canEditLegalHandoverOnUnit,
   canEditCsHandoverChecklist,
   canUploadClientNationalIdScan,
   canLogCallOnUnit,
@@ -178,12 +179,17 @@ export default async function UnitProfilePage({
     session?.user.role != null && csScope != null
       ? canEditCsHandoverChecklist(session.user.role, assignment, csScope)
       : false;
+  const canEditLegalHandover =
+    session?.user.role != null
+      ? canEditLegalHandoverOnUnit(session.user.role, unit.project)
+      : false;
   const canEditFinishing =
     session?.user.role != null
       ? canEditFinishingFinancialsOnUnit(
           session.user.role,
           assignment,
-          csScope
+          csScope,
+          unit.project
         )
       : false;
   const canCreateCaseOnUnit =
@@ -202,6 +208,7 @@ export default async function UnitProfilePage({
   const showLegalHandoverForm =
     canEditAdmin ||
     canEditCsChecklist ||
+    canEditLegalHandover ||
     (session?.user.role != null && isCsAgentRole(session.user.role));
   const defaultTab =
     tab === "timeline" || tab === "legal" || tab === "financials"
@@ -358,7 +365,7 @@ export default async function UnitProfilePage({
         <TabsContent value="legal" className="space-y-4">
           {showLegalHandoverForm ? (
             <UnitLegalHandoverForm
-              canEditManagement={canEditAdmin}
+              canEditManagement={canEditAdmin || canEditLegalHandover}
               canEditCsChecklist={canEditCsChecklist}
               defaults={{
                 unitId: unit.id,
