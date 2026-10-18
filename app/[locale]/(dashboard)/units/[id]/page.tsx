@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { UnitTimelineCrud } from "@/components/units/unit-timeline-crud";
 import { UnitLegalHandoverForm } from "@/components/units/unit-legal-handover-form";
 import { UnitFinishingForm } from "@/components/units/unit-finishing-form";
-import { UnitClientForm } from "@/components/units/unit-client-form";
+import { UnitOwnersTab } from "@/components/units/unit-owners-tab";
 import { PrintProtocolButton } from "@/components/units/print-protocol-button";
 import { SignedProtocolUpload } from "@/components/units/signed-protocol-upload";
 import { UnitDocumentUpload } from "@/components/units/unit-document-upload";
@@ -33,10 +33,12 @@ import {
   canEditFinishingFinancialsOnUnit,
   canEditLegalHandoverOnUnit,
   canEditCsHandoverChecklist,
-  canUploadClientNationalIdScan,
+  canManageUnitCoOwners,
+  canUploadClientNationalIdOnUnit,
   canLogCallOnUnit,
   isCsAgentAssignedToUnit,
 } from "@/lib/auth/role-permissions";
+import { orderedUnitOwners } from "@/lib/units/unit-owners";
 import { getAssignableAgentUsers } from "@/lib/units/assignable-agents";
 import type { SerializedResolutionContext } from "@/lib/workflow/resolution-checklist";
 import { formatDateTime } from "@/lib/format/datetime";
@@ -77,6 +79,17 @@ export default async function UnitProfilePage({
         include: {
           phones: { orderBy: { sortOrder: "asc" } },
           addresses: { orderBy: { sortOrder: "asc" } },
+        },
+      },
+      unitClients: {
+        orderBy: { position: "asc" },
+        include: {
+          client: {
+            include: {
+              phones: { orderBy: { sortOrder: "asc" } },
+              addresses: { orderBy: { sortOrder: "asc" } },
+            },
+          },
         },
       },
       agent: true,
@@ -131,8 +144,16 @@ export default async function UnitProfilePage({
       : clientEditMode === "phoneAddress"
         ? "phoneAddress"
         : clientEditMode === "communityExtras" && communityCanActOnUnit
-          ? "communityExtras"
-          : "none";
+          ? "communityJamila"
+          : clientEditMode === "communityExtras"
+            ? "communityExtras"
+            : "none";
+
+  const canManageCoOwners =
+    session?.user.role != null
+      ? canManageUnitCoOwners(session.user.role, unit.project) &&
+        communityCanActOnUnit
+      : false;
 
   const canManageTickets = session?.user
     ? canManageUnitTickets(session.user)
@@ -250,12 +271,29 @@ export default async function UnitProfilePage({
     ? tWorkflowEdge("poaReceived")
     : tWorkflowEdge("poaPending");
 
-  const clientContactExtras = unit.client
-    ? toContactExtraLines(
-        listClientExtraPhones(unit.client),
-        listClientExtraAddresses(unit.client)
-      )
-    : { phones: [], addresses: [] };
+  const ownerRows = orderedUnitOwners(unit);
+  let coOwnerCounter = 0;
+  const owners = ownerRows.map((row) => {
+    const coOwnerIndex =
+      row.role === "CO_OWNER" ? ++coOwnerCounter : 0;
+    const extras = toContactExtraLines(
+      listClientExtraPhones(row.client),
+      listClientExtraAddresses(row.client)
+    );
+    return {
+      clientId: row.client.id,
+      role: row.role,
+      coOwnerIndex,
+      clientName: row.client.name,
+      phone1: row.client.phone1,
+      email: row.client.email,
+      nationalId: row.client.nationalId,
+      address1: row.client.address1,
+      extraPhones: extras.phones,
+      extraAddresses: extras.addresses,
+      nationalIdFile: row.client.nationalIdFile,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -290,22 +328,18 @@ export default async function UnitProfilePage({
         </TabsList>
 
         <TabsContent value="client">
-          <UnitClientForm
+          <UnitOwnersTab
+            unitId={unit.id}
+            owners={owners}
             profileEditLevel={profileEditLevel}
+            canManageCoOwners={canManageCoOwners}
             agentOptions={assignableAgents}
             contactDisabled={isLegallyBlocked}
             showCommunityJamilaHint={
               isCommunityViewer && !communityCanActOnUnit
             }
-            defaults={{
+            unitDefaults={{
               unitId: unit.id,
-              clientName: unit.client?.name ?? "\u2014",
-              phone1: unit.client?.phone1 ?? null,
-              email: unit.client?.email ?? null,
-              nationalId: unit.client?.nationalId ?? null,
-              address1: unit.client?.address1 ?? null,
-              extraPhones: clientContactExtras.phones,
-              extraAddresses: clientContactExtras.addresses,
               deliveryYear: unit.deliveryYear ?? null,
               gracePeriod: unit.gracePeriod ?? null,
               contractPricePerMeter: unit.contractPricePerMeter ?? null,
@@ -315,11 +349,12 @@ export default async function UnitProfilePage({
               agentLabel,
               agentId: unit.agentId ?? null,
               area: unit.area ?? null,
-              clientId: unit.clientId ?? null,
-              nationalIdFile: unit.client?.nationalIdFile ?? null,
               canUploadNationalId:
                 session?.user.role != null
-                  ? canUploadClientNationalIdScan(session.user.role)
+                  ? canUploadClientNationalIdOnUnit(
+                      session.user.role,
+                      unit.project
+                    )
                   : false,
               waMessageTemplate,
             }}

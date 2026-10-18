@@ -15,6 +15,11 @@ enum Role {
   ENGINEER
 }
 
+enum UnitClientRole {
+  PRIMARY
+  CO_OWNER
+}
+
 enum UnitType {
   APARTMENT
   DUPLEX
@@ -218,7 +223,8 @@ model Client {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  units     Unit[]
+  units       Unit[]
+  unitLinks   UnitClient[]
   phones    ClientPhone[]
   addresses ClientAddress[]
 
@@ -286,6 +292,25 @@ model Unit {
   @@index([type])
   @@index([clientId])
   @@index([deletedAt])
+
+  unitClients UnitClient[]
+}
+
+model UnitClient {
+  id        String         @id @default(cuid())
+  unitId    String
+  clientId  String
+  role      UnitClientRole @default(CO_OWNER)
+  position  Int            @default(0)
+  createdAt DateTime       @default(now())
+
+  unit   Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([unitId, clientId])
+  @@index([unitId])
+  @@index([clientId])
+  @@index([role])
 }
 
 model ContractWorkflow {

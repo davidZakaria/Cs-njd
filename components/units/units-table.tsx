@@ -48,6 +48,8 @@ export type UnitRow = {
   unitCode: string;
   project: string;
   client: string;
+  extraOwnerCount?: number;
+  searchText?: string;
   type: string;
   area: number | null;
   agent: string;
@@ -146,10 +148,12 @@ export function UnitsTable({
       if (statusFilter !== "all" && row.handoverStatus !== statusFilter) return false;
       if (!globalFilter) return true;
       const q = globalFilter.toLowerCase();
+      const searchBlob = (
+        row.searchText ??
+        `${row.unitCode} ${row.client} ${row.project}`
+      ).toLowerCase();
       return (
-        row.unitCode.toLowerCase().includes(q) ||
-        row.client.toLowerCase().includes(q) ||
-        row.project.toLowerCase().includes(q) ||
+        searchBlob.includes(q) ||
         labels.project(row.project).toLowerCase().includes(q)
       );
     });
@@ -211,7 +215,21 @@ export function UnitsTable({
         header: t("project"),
         cell: ({ row }) => labels.project(row.original.project),
       },
-      { accessorKey: "client", header: t("client") },
+      {
+        accessorKey: "client",
+        header: t("client"),
+        cell: ({ row }) => (
+          <span className="inline-flex flex-wrap items-center gap-1.5">
+            {row.original.client}
+            {row.original.extraOwnerCount != null &&
+            row.original.extraOwnerCount > 0 ? (
+              <Badge variant="secondary" className="text-xs font-normal">
+                {t("owners.extraBadge", { count: row.original.extraOwnerCount })}
+              </Badge>
+            ) : null}
+          </span>
+        ),
+      },
       {
         accessorKey: "type",
         header: t("type"),

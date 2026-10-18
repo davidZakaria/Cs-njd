@@ -33,6 +33,19 @@ export default async function UnitsPage({
         client: true,
         agent: true,
         contractWorkflow: true,
+        unitClients: {
+          where: { role: "CO_OWNER" },
+          include: {
+            client: {
+              select: {
+                name: true,
+                phone1: true,
+                nationalId: true,
+                phones: { select: { phone: true } },
+              },
+            },
+          },
+        },
       },
       orderBy: [{ project: { name: "asc" } }, { unitCode: "asc" }],
     }),
@@ -43,16 +56,39 @@ export default async function UnitsPage({
     }),
   ]);
 
-  const rows = units.map((unit) => ({
-    id: unit.id,
-    unitCode: unit.unitCode,
-    project: unit.project.name,
-    client: unit.client?.name ?? "-",
-    type: unit.type,
-    area: unit.area,
-    agent: unit.agent?.name ?? "-",
-    handoverStatus: unit.contractWorkflow?.handoverStatus ?? "PENDING",
-  }));
+  const rows = units.map((unit) => {
+    const coOwnerNames = unit.unitClients.map((l) => l.client.name);
+    const coOwnerPhones = unit.unitClients.flatMap((l) => [
+      l.client.phone1,
+      ...l.client.phones.map((p) => p.phone),
+    ]);
+    const coOwnerNationalIds = unit.unitClients
+      .map((l) => l.client.nationalId)
+      .filter(Boolean) as string[];
+
+    return {
+      id: unit.id,
+      unitCode: unit.unitCode,
+      project: unit.project.name,
+      client: unit.client?.name ?? "-",
+      extraOwnerCount: unit.unitClients.length,
+      searchText: [
+        unit.unitCode,
+        unit.client?.name,
+        unit.client?.phone1,
+        unit.client?.nationalId,
+        ...coOwnerNames,
+        ...coOwnerPhones,
+        ...coOwnerNationalIds,
+      ]
+        .filter(Boolean)
+        .join(" "),
+      type: unit.type,
+      area: unit.area,
+      agent: unit.agent?.name ?? "-",
+      handoverStatus: unit.contractWorkflow?.handoverStatus ?? "PENDING",
+    };
+  });
 
   const projects = [...new Set(rows.map((r) => r.project))].sort();
   const agents = staffUsers.map((user) => user.name);

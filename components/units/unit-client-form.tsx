@@ -80,6 +80,7 @@ export type UnitClientFormDefaults = {
 export type UnitProfileEditLevel =
   | "none"
   | "communityExtras"
+  | "communityJamila"
   | "phoneAddress"
   | "admin";
 
@@ -90,6 +91,7 @@ export function UnitClientForm({
   contactDisabled = false,
   agentOptions = [],
   showCommunityJamilaHint = false,
+  isPrimaryOwner = true,
 }: {
   defaults: UnitClientFormDefaults;
   profileEditLevel: UnitProfileEditLevel;
@@ -97,13 +99,17 @@ export function UnitClientForm({
   contactDisabled?: boolean;
   agentOptions?: Array<{ id: string; name: string }>;
   showCommunityJamilaHint?: boolean;
+  isPrimaryOwner?: boolean;
 }) {
   const canEditPhonesAndAddresses =
     profileEditLevel === "phoneAddress" || profileEditLevel === "admin";
-  const canEditIdentity = profileEditLevel === "admin";
+  const canEditIdentity =
+    profileEditLevel === "admin" || profileEditLevel === "communityJamila";
   const canEditCommunityExtras = profileEditLevel === "communityExtras";
+  const canEditCommunityJamila = profileEditLevel === "communityJamila";
   const canEditAdmin = profileEditLevel === "admin";
-  const canSubmitProfile = canEditPhonesAndAddresses;
+  const canSubmitProfile =
+    canEditPhonesAndAddresses || canEditCommunityJamila;
   const locale = useLocale();
   const isRtl = locale === "ar";
   const t = useTranslations("units");
@@ -144,6 +150,7 @@ export function UnitClientForm({
   const formDefaults = useMemo(
     (): UnitProfileFormInput => ({
       unitId: defaults.unitId,
+      clientId: defaults.clientId ?? undefined,
       clientName: defaults.clientName === "—" ? "" : defaults.clientName,
       phone1: defaults.phone1 ?? "",
       phone2: "",
@@ -228,11 +235,12 @@ export function UnitClientForm({
     );
   }
 
-  const contactExtrasMode = canEditCommunityExtras
-    ? "communityAddOnly"
-    : canEditPhonesAndAddresses
-      ? "editable"
-      : "readonly";
+  const contactExtrasMode =
+    canEditCommunityExtras || canEditCommunityJamila
+      ? "communityAddOnly"
+      : canEditPhonesAndAddresses
+        ? "editable"
+        : "readonly";
 
   function onConfirmDelete() {
     runAction(async () => {
@@ -254,6 +262,7 @@ export function UnitClientForm({
       noValidate
     >
       <input type="hidden" {...register("unitId")} />
+      <input type="hidden" {...register("clientId")} />
 
       {validationMessage ? (
         <Alert variant="destructive">
@@ -273,6 +282,52 @@ export function UnitClientForm({
               </p>
               <p className="text-xs text-muted-foreground">
                 {t("contactRestrictedHint")}
+              </p>
+            </div>
+          ) : canEditCommunityJamila ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="clientName">{t("client")}</Label>
+                <Input
+                  id="clientName"
+                  disabled={pending}
+                  required
+                  {...register("clientName")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">{tCommon("email")}</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  disabled={pending}
+                  {...register("email")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nationalId">{tFields("nationalId")}</Label>
+                <Input id="nationalId" disabled={pending} {...register("nationalId")} />
+              </div>
+              <NationalIdUpload
+                unitId={defaults.unitId}
+                clientId={defaults.clientId}
+                hasFile={Boolean(defaults.nationalIdFile)}
+                canUpload={defaults.canUploadNationalId}
+                onExtractedId={(nationalId) =>
+                  setValue("nationalId", nationalId, { shouldDirty: true })
+                }
+              />
+              <ClientPhoneRow
+                label={t("phone1")}
+                phone={defaults.phone1}
+                clientName={defaults.clientName}
+                unitCode={defaults.unitCode}
+                projectName={defaults.projectName}
+                messageTemplate={defaults.waMessageTemplate}
+                contactDisabled={contactDisabled}
+              />
+              <p className="text-sm">
+                <strong>{tClient("address1")}:</strong> {defaults.address1 ?? "—"}
               </p>
             </div>
           ) : canEditCommunityExtras ? (
@@ -304,53 +359,57 @@ export function UnitClientForm({
             </div>
           ) : canEditPhonesAndAddresses ? (
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="unitCode">{t("unitCode")}</Label>
-                <Input
-                  id="unitCode"
-                  disabled={pending || !canEditAdmin}
-                  readOnly={!canEditAdmin}
-                  {...register("unitCode")}
-                />
-              </div>
-              {canEditAdmin ? (
-                <div className="space-y-2">
-                  <Label htmlFor="agentId">{t("agent")}</Label>
-                  <Controller
-                    control={control}
-                    name="agentId"
-                    render={({ field }) => {
-                      const raw = field.value ?? "";
-                      const resolved =
-                        raw && agentSelectItems[raw] ? raw : "";
-                      return (
-                      <Select
-                        value={resolved}
-                        onValueChange={field.onChange}
-                        items={agentSelectItems}
-                        disabled={pending}
-                      >
-                        <SelectTrigger id="agentId" className="w-full">
-                          <SelectValue placeholder={labels.unassigned} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">{labels.unassigned}</SelectItem>
-                          {agentOptions.map((agent) => (
-                            <SelectItem key={agent.id} value={agent.id}>
-                              {labels.staffName(agent.name)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      );
-                    }}
-                  />
-                </div>
-              ) : (
-                <p className="text-sm sm:pt-7">
-                  <strong>{t("agent")}:</strong> {defaults.agentLabel}
-                </p>
-              )}
+              {isPrimaryOwner ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="unitCode">{t("unitCode")}</Label>
+                    <Input
+                      id="unitCode"
+                      disabled={pending || !canEditAdmin}
+                      readOnly={!canEditAdmin}
+                      {...register("unitCode")}
+                    />
+                  </div>
+                  {canEditAdmin ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="agentId">{t("agent")}</Label>
+                      <Controller
+                        control={control}
+                        name="agentId"
+                        render={({ field }) => {
+                          const raw = field.value ?? "";
+                          const resolved =
+                            raw && agentSelectItems[raw] ? raw : "";
+                          return (
+                            <Select
+                              value={resolved}
+                              onValueChange={field.onChange}
+                              items={agentSelectItems}
+                              disabled={pending}
+                            >
+                              <SelectTrigger id="agentId" className="w-full">
+                                <SelectValue placeholder={labels.unassigned} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">{labels.unassigned}</SelectItem>
+                                {agentOptions.map((agent) => (
+                                  <SelectItem key={agent.id} value={agent.id}>
+                                    {labels.staffName(agent.name)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          );
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-sm sm:pt-7">
+                      <strong>{t("agent")}:</strong> {defaults.agentLabel}
+                    </p>
+                  )}
+                </>
+              ) : null}
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="clientName">{t("client")}</Label>
                 <Input
@@ -427,6 +486,7 @@ export function UnitClientForm({
             </div>
           )}
 
+          {isPrimaryOwner ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="area">{t("area")}</Label>
@@ -462,6 +522,7 @@ export function UnitClientForm({
               </p>
             ) : null}
           </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -487,7 +548,7 @@ export function UnitClientForm({
         <Card>
           <CardHeader>
             <CardTitle>{tClient("contacts.additionalTitle")}</CardTitle>
-            {canEditCommunityExtras ? (
+            {canEditCommunityExtras || canEditCommunityJamila ? (
               <p className="text-sm text-muted-foreground">{t("communityExtrasHint")}</p>
             ) : showCommunityJamilaHint ? (
               <p className="text-sm text-muted-foreground">
@@ -496,13 +557,16 @@ export function UnitClientForm({
             ) : null}
           </CardHeader>
           <CardContent>
-            {!canEditPhonesAndAddresses && !canEditCommunityExtras ? (
+            {!canEditPhonesAndAddresses &&
+            !canEditCommunityExtras &&
+            !canEditCommunityJamila ? (
               <p className="mb-4 text-sm">
                 <strong>{tClient("address1")}:</strong> {defaults.address1 ?? "—"}
               </p>
             ) : null}
             <ClientContactExtras
               unitId={defaults.unitId}
+              clientId={defaults.clientId}
               clientName={defaults.clientName}
               unitCode={defaults.unitCode}
               projectName={defaults.projectName}
@@ -521,6 +585,7 @@ export function UnitClientForm({
         </Card>
       ) : null}
 
+      {isPrimaryOwner ? (
       <Card>
         <CardHeader>
           <CardTitle>{t("type")}</CardTitle>
@@ -595,10 +660,11 @@ export function UnitClientForm({
           </div>
         </CardContent>
       </Card>
+      ) : null}
 
       {canSubmitProfile ? (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {canEditAdmin ? (
+          {canEditAdmin && isPrimaryOwner ? (
             <>
               <Button
                 type="button"

@@ -32,7 +32,9 @@ export function NationalIdUpload({
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
 
-  const viewHref = `/api/units/${unitId}/national-id`;
+  const viewHref = clientId
+    ? `/api/units/${unitId}/national-id?clientId=${encodeURIComponent(clientId)}`
+    : `/api/units/${unitId}/national-id`;
   const uploadDisabled = !canUpload || !clientId || pending || scanning;
 
   function handleFileChange() {
@@ -46,6 +48,7 @@ export function NationalIdUpload({
 
     const formData = new FormData();
     formData.append("unitId", unitId);
+    if (clientId) formData.append("clientId", clientId);
     formData.append("file", file);
     const isImage = file.type.startsWith("image/");
 
@@ -80,7 +83,7 @@ export function NationalIdUpload({
   function handleRemove() {
     if (!confirm(t("removeConfirm"))) return;
     runAction(async () => {
-      const result = await removeNationalId(unitId);
+      const result = await removeNationalId(unitId, clientId ?? undefined);
       if (result.success) {
         router.refresh();
       }

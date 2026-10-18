@@ -1,7 +1,8 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { canUploadClientNationalIdScan } from "@/lib/auth/role-permissions";
+import { canUploadClientNationalIdOnUnit } from "@/lib/auth/role-permissions";
+import { assertClientLinkedToUnit } from "@/lib/units/assert-unit-client-link";
 import { prisma } from "@/lib/prisma";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { extractEgyptianNationalId } from "@/lib/services/ocr";
@@ -22,11 +23,22 @@ function uploadFail(error: string): Extract<UploadNationalIdResult, { success: f
   return { success: false, error };
 }
 
-async function loadUnitWithClient(unitId: string) {
-  return prisma.unit.findUnique({
+async function loadUnitWithClient(unitId: string, clientId?: string) {
+  const unit = await prisma.unit.findUnique({
     where: { id: unitId },
-    include: { client: true },
+    include: { client: true, project: { select: { id: true, name: true } } },
   });
+  if (!unit) return null;
+
+  const targetId = clientId?.trim() || unit.clientId;
+  if (!targetId) return { unit, client: null };
+
+  if (unit.client?.id === targetId) {
+    return { unit, client: unit.client };
+  }
+
+  const client = await prisma.client.findUnique({ where: { id: targetId } });
+  return { unit, client };
 }
 
 export async function uploadNationalId(
@@ -36,6 +48,7 @@ export async function uploadNationalId(
   if (!session?.user) return uploadFail("Unauthorized");
 
   const unitId = String(formData.get("unitId") ?? "").trim();
+  const clientId = String(formData.get("clientId") ?? "").trim() || undefined;
   const file = formData.get("file");
 
   if (!unitId) return uploadFail("Unit is required");
@@ -48,18 +61,23 @@ export async function uploadNationalId(
     return uploadFail("Only PDF or image files (JPG, PNG, WebP) are allowed");
   }
 
-  const unit = await loadUnitWithClient(unitId);
-  if (!unit) return uploadFail("Unit not found");
-  if (!unit.clientId || !unit.client) {
+  const loaded = await loadUnitWithClient(unitId, clientId);
+  if (!loaded) return uploadFail("Unit not found");
+  const { unit, client } = loaded;
+  if (!client) {
     return uploadFail("Save client profile before uploading an ID scan");
   }
 
-  if (!canUploadClientNationalIdScan(session.user.role)) {
+  if (!(await assertClientLinkedToUnit(unitId, client.id))) {
+    return uploadFail("Client not found");
+  }
+
+  if (!canUploadClientNationalIdOnUnit(session.user.role, unit.project)) {
     return uploadFail("Unauthorized");
   }
 
-  const storedName = buildNationalIdStoredFilename(unit.clientId, file.name);
-  const previousStoredName = unit.client.nationalIdFile;
+  const storedName = buildNationalIdStoredFilename(client.id, file.name);
+  const previousStoredName = client.nationalIdFile;
 
   const extractedId =
     file.type.startsWith("image/")
@@ -70,7 +88,7 @@ export async function uploadNationalId(
   await deleteNationalIdFile(previousStoredName);
 
   await prisma.client.update({
-    where: { id: unit.clientId },
+    where: { id: client.id },
     data: { nationalIdFile: storedName },
   });
 
@@ -79,25 +97,29 @@ export async function uploadNationalId(
   return { success: true, filePath: storedName, extractedId };
 }
 
-export async function removeNationalId(unitId: string): Promise<ActionResult> {
+export async function removeNationalId(
+  unitId: string,
+  clientId?: string
+): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
 
-  const unit = await loadUnitWithClient(unitId);
-  if (!unit) return actionFail("Unit not found");
-  if (!unit.clientId || !unit.client) return actionFail("Client not found");
+  const loaded = await loadUnitWithClient(unitId, clientId);
+  if (!loaded) return actionFail("Unit not found");
+  const { unit, client } = loaded;
+  if (!client) return actionFail("Client not found");
 
-  if (!canUploadClientNationalIdScan(session.user.role)) {
+  if (!canUploadClientNationalIdOnUnit(session.user.role, unit.project)) {
     return actionFail("Unauthorized");
   }
 
-  const storedName = unit.client.nationalIdFile;
+  const storedName = client.nationalIdFile;
   if (!storedName) return actionFail("No ID scan on file");
 
   await deleteNationalIdFile(storedName);
 
   await prisma.client.update({
-    where: { id: unit.clientId },
+    where: { id: client.id },
     data: { nationalIdFile: null },
   });
 

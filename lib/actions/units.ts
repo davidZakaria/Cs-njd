@@ -9,7 +9,12 @@ import {
   isCommunityManagementRole,
   isCsAgentRole,
 } from "@/lib/auth/unit-roles";
-import { canEditClientPhonesAndAddressesOnUnit } from "@/lib/auth/role-permissions";
+import {
+  canEditClientIdentityOnUnit,
+  canEditClientPhonesAndAddressesOnUnit,
+} from "@/lib/auth/role-permissions";
+import { assertClientLinkedToUnit } from "@/lib/units/assert-unit-client-link";
+import { UnitClientRole } from "@prisma/client";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import {
   addressesForCreate,
@@ -130,6 +135,15 @@ export async function createUnit(input: CreateUnitFormInput): Promise<ActionResu
           },
         });
 
+        await tx.unitClient.create({
+          data: {
+            unitId: unit.id,
+            clientId: client.id,
+            role: UnitClientRole.PRIMARY,
+            position: 0,
+          },
+        });
+
         await tx.contractWorkflow.create({ data: { unitId: unit.id } });
         await tx.finishing.create({ data: { unitId: unit.id } });
       });
@@ -156,10 +170,73 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
 
   const role = session.user.role;
   const isAdmin = isAdminUnitManager(role);
-  if (isCommunityManagementRole(role)) {
-    return actionFail("Unauthorized");
-  }
   const isCsAgent = isCsAgentRole(role);
+  const isCommunity = isCommunityManagementRole(role);
+
+  if (isCommunity) {
+    const communityParsed = unitProfileFormSchema.safeParse(input);
+    if (!communityParsed.success) {
+      return actionFail(communityParsed.error.issues[0]?.message ?? "Invalid input");
+    }
+    const { unitId, clientId: communityClientId, clientName, phone1, email, nationalId, address1, extraPhones = [], extraAddresses = [] } =
+      communityParsed.data;
+
+    const unit = await prisma.unit.findUnique({
+      where: { id: unitId },
+      include: { project: { select: { id: true, name: true } } },
+    });
+    if (!unit || unit.deletedAt) return actionFail("Unit not found");
+    if (!canEditClientIdentityOnUnit(role, unit.project)) {
+      return actionFail("Unauthorized");
+    }
+
+    const editClientId = communityClientId?.trim() || unit.clientId;
+    if (!editClientId) return actionFail("Client record not found");
+    if (!(await assertClientLinkedToUnit(unitId, editClientId))) {
+      return actionFail("Client record not found");
+    }
+
+    try {
+      await withAudit(async () => {
+        await prisma.$transaction(async (tx) => {
+          await tx.client.update({
+            where: { id: editClientId },
+            data: {
+              name: clientName,
+              phone1,
+              phone2: null,
+              email,
+              nationalId,
+              address1,
+              address2: null,
+            },
+          });
+          await syncClientExtraPhones(tx, editClientId, phone1, extraPhones);
+          await syncClientExtraAddresses(
+            tx,
+            editClientId,
+            address1,
+            extraAddresses
+          );
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002" &&
+        Array.isArray(error.meta?.target) &&
+        error.meta.target.includes("nationalId")
+      ) {
+        return actionFail("A client with this national ID already exists");
+      }
+      throw error;
+    }
+
+    revalidatePath(`/units/${unitId}`);
+    revalidatePath("/units");
+    return actionOk();
+  }
+
   if (!canEditClientPhonesAndAddressesOnUnit(role)) {
     return actionFail("Unauthorized");
   }
@@ -178,15 +255,25 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
       extraAddresses = [],
     } = csParsed.data;
 
+    const targetClientId = input.clientId?.trim() || undefined;
+
     const unit = await prisma.unit.findUnique({
       where: { id: unitId },
-      include: { client: true },
+      include: { client: true, project: { select: { id: true, name: true } } },
     });
     if (!unit || unit.deletedAt) return actionFail("Unit not found");
-    const existingClient = unit.client;
-    if (!unit.clientId || !existingClient) {
-      return actionFail("Client record not found");
-    }
+
+    const clientId = targetClientId ?? unit.clientId;
+    if (!clientId) return actionFail("Client record not found");
+
+    const linked = await assertClientLinkedToUnit(unitId, clientId);
+    if (!linked) return actionFail("Client record not found");
+
+    const existingClient =
+      unit.clientId === clientId
+        ? unit.client
+        : await prisma.client.findUnique({ where: { id: clientId } });
+    if (!existingClient) return actionFail("Client record not found");
 
     const clientData = {
       name: existingClient.name,
@@ -202,13 +289,13 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
       await withAudit(async () => {
         await prisma.$transaction(async (tx) => {
           await tx.client.update({
-            where: { id: unit.clientId! },
+            where: { id: clientId },
             data: clientData,
           });
-          await syncClientExtraPhones(tx, unit.clientId!, phone1, extraPhones);
+          await syncClientExtraPhones(tx, clientId, phone1, extraPhones);
           await syncClientExtraAddresses(
             tx,
-            unit.clientId!,
+            clientId,
             address1,
             extraAddresses
           );
@@ -238,12 +325,13 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
 
   const unit = await prisma.unit.findUnique({
     where: { id: parsed.data.unitId },
-    include: { client: true },
+    include: { client: true, project: { select: { id: true, name: true } } },
   });
   if (!unit || unit.deletedAt) return actionFail("Unit not found");
 
   const {
     unitId,
+    clientId: targetClientIdInput,
     clientName,
     phone1,
     email,
@@ -260,6 +348,30 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
     extraAddresses = [],
   } = parsed.data;
 
+  const editClientId = targetClientIdInput?.trim() || unit.clientId;
+  if (!editClientId) {
+    return actionFail("Client record not found");
+  }
+  const isPrimaryClient = editClientId === unit.clientId;
+  const linked = await assertClientLinkedToUnit(unitId, editClientId);
+  if (!linked) return actionFail("Client record not found");
+
+  const canEditIdentity = canEditClientIdentityOnUnit(role, unit.project);
+  if (!canEditIdentity && (clientName || email || nationalId)) {
+    const existing =
+      unit.clientId === editClientId
+        ? unit.client
+        : await prisma.client.findUnique({ where: { id: editClientId } });
+    if (
+      existing &&
+      (existing.name !== clientName ||
+        existing.email !== email ||
+        existing.nationalId !== nationalId)
+    ) {
+      return actionFail("Unauthorized");
+    }
+  }
+
   const clientData = {
     name: clientName,
     phone1,
@@ -273,7 +385,7 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
   try {
     await withAudit(async () => {
       await prisma.$transaction(async (tx) => {
-        if (isAdmin) {
+        if (isAdmin && isPrimaryClient) {
           const unitUpdate: Prisma.UnitUpdateInput = {
             deliveryYear,
             gracePeriod,
@@ -311,23 +423,36 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
           });
         }
 
-        let clientId = unit.clientId;
-        if (clientId) {
-          await tx.client.update({
-            where: { id: clientId },
-            data: clientData,
-          });
+        if (isPrimaryClient) {
+          if (unit.clientId) {
+            await tx.client.update({
+              where: { id: unit.clientId },
+              data: clientData,
+            });
+          } else {
+            const client = await tx.client.create({ data: clientData });
+            await tx.unit.update({
+              where: { id: unitId },
+              data: { clientId: client.id },
+            });
+            await tx.unitClient.create({
+              data: {
+                unitId,
+                clientId: client.id,
+                role: UnitClientRole.PRIMARY,
+                position: 0,
+              },
+            });
+          }
         } else {
-          const client = await tx.client.create({ data: clientData });
-          clientId = client.id;
-          await tx.unit.update({
-            where: { id: unitId },
-            data: { clientId: client.id },
+          await tx.client.update({
+            where: { id: editClientId },
+            data: clientData,
           });
         }
 
-        await syncClientExtraPhones(tx, clientId!, phone1, extraPhones);
-        await syncClientExtraAddresses(tx, clientId!, address1, extraAddresses);
+        await syncClientExtraPhones(tx, editClientId, phone1, extraPhones);
+        await syncClientExtraAddresses(tx, editClientId, address1, extraAddresses);
       });
     });
   } catch (error) {

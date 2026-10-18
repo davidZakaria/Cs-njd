@@ -32,9 +32,36 @@ async function loadUnitForContactMutation(unitId: string) {
   });
 }
 
+async function resolveClientForContactMutation(
+  unit: NonNullable<Awaited<ReturnType<typeof loadUnitForContactMutation>>>,
+  clientId?: string
+) {
+  const targetId = clientId?.trim() || unit.clientId;
+  if (!targetId) return null;
+
+  if (unit.client && unit.client.id === targetId) {
+    return unit.client;
+  }
+
+  const linked =
+    targetId === unit.clientId ||
+    (await prisma.unitClient.findUnique({
+      where: { unitId_clientId: { unitId: unit.id, clientId: targetId } },
+    }));
+  if (!linked) return null;
+
+  return prisma.client.findUnique({
+    where: { id: targetId },
+    include: {
+      phones: { orderBy: { sortOrder: "asc" } },
+      addresses: { orderBy: { sortOrder: "asc" } },
+    },
+  });
+}
+
 async function assertCanAddExtraContact(
   role: string,
-  unit: { agentId: string | null }
+  _unit: { agentId: string | null }
 ): Promise<ActionResult | null> {
   if (isAdminUnitManager(role as never)) return null;
   if (isCommunityManagementRole(role as never)) return null;
@@ -46,14 +73,16 @@ async function assertCanAddExtraContact(
 
 export async function addClientExtraPhone(
   unitId: string,
-  phone: string
+  phone: string,
+  clientId?: string
 ): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
 
   const unit = await loadUnitForContactMutation(unitId);
   if (!unit || unit.deletedAt) return actionFail("Unit not found");
-  if (!unit.client) return actionFail("Client record not found");
+  const client = await resolveClientForContactMutation(unit, clientId);
+  if (!client) return actionFail("Client record not found");
 
   const communityAccess = await assertCommunityUnitAccess(session.user, unit);
   if (communityAccess) return communityAccess;
@@ -61,12 +90,12 @@ export async function addClientExtraPhone(
   const accessError = await assertCanAddExtraContact(session.user.role, unit);
   if (accessError) return accessError;
 
-  const parsed = validateCommunityExtraPhoneAdd(unit.client, phone);
+  const parsed = validateCommunityExtraPhoneAdd(client, phone);
   if ("success" in parsed) {
     return parsed;
   }
 
-  const maxOrder = unit.client.phones.reduce(
+  const maxOrder = client.phones.reduce(
     (max, row) => Math.max(max, row.sortOrder),
     -1
   );
@@ -74,7 +103,7 @@ export async function addClientExtraPhone(
   await withAudit(() =>
     prisma.clientPhone.create({
       data: {
-        clientId: unit.client!.id,
+        clientId: client.id,
         phone: parsed.phone,
         sortOrder: maxOrder + 1,
       },
@@ -88,14 +117,16 @@ export async function addClientExtraPhone(
 
 export async function addClientExtraAddress(
   unitId: string,
-  address: string
+  address: string,
+  clientId?: string
 ): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
 
   const unit = await loadUnitForContactMutation(unitId);
   if (!unit || unit.deletedAt) return actionFail("Unit not found");
-  if (!unit.client) return actionFail("Client record not found");
+  const client = await resolveClientForContactMutation(unit, clientId);
+  if (!client) return actionFail("Client record not found");
 
   const communityAccess = await assertCommunityUnitAccess(session.user, unit);
   if (communityAccess) return communityAccess;
@@ -103,12 +134,12 @@ export async function addClientExtraAddress(
   const accessError = await assertCanAddExtraContact(session.user.role, unit);
   if (accessError) return accessError;
 
-  const parsed = validateCommunityExtraAddressAdd(unit.client, address);
+  const parsed = validateCommunityExtraAddressAdd(client, address);
   if ("success" in parsed) {
     return parsed;
   }
 
-  const maxOrder = unit.client.addresses.reduce(
+  const maxOrder = client.addresses.reduce(
     (max, row) => Math.max(max, row.sortOrder),
     -1
   );
@@ -116,7 +147,7 @@ export async function addClientExtraAddress(
   await withAudit(() =>
     prisma.clientAddress.create({
       data: {
-        clientId: unit.client!.id,
+        clientId: client.id,
         address: parsed.address,
         sortOrder: maxOrder + 1,
       },
