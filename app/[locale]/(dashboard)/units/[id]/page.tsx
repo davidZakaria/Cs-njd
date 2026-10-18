@@ -1,9 +1,11 @@
 import { auth } from "@/lib/auth";
+import { isCommunityManagedProject } from "@/lib/auth/community-project-scope";
 import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { prisma, notDeleted } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UnitTimelineCrud } from "@/components/units/unit-timeline-crud";
@@ -31,6 +33,7 @@ import {
   canEditFinishingFinancialsOnUnit,
   canEditCsHandoverChecklist,
   canUploadClientNationalIdScan,
+  canLogCallOnUnit,
   isCsAgentAssignedToUnit,
 } from "@/lib/auth/role-permissions";
 import { getAssignableAgentUsers } from "@/lib/units/assignable-agents";
@@ -115,6 +118,9 @@ export default async function UnitProfilePage({
   const canEditAdmin = session?.user.role
     ? isAdminUnitManager(session.user.role)
     : false;
+  const isCommunityViewer = session?.user.role === "COMMUNITY_MANAGEMENT";
+  const communityCanActOnUnit =
+    !isCommunityViewer || isCommunityManagedProject(unit.project);
   const clientEditMode = session?.user.role
     ? resolveUnitClientEditMode(session.user.role)
     : "none";
@@ -123,10 +129,9 @@ export default async function UnitProfilePage({
       ? "admin"
       : clientEditMode === "phoneAddress"
         ? "phoneAddress"
-        : clientEditMode === "communityExtras"
+        : clientEditMode === "communityExtras" && communityCanActOnUnit
           ? "communityExtras"
           : "none";
-  const isCommunityViewer = session?.user.role === "COMMUNITY_MANAGEMENT";
 
   const canManageTickets = session?.user
     ? canManageUnitTickets(session.user)
@@ -184,6 +189,15 @@ export default async function UnitProfilePage({
   const canCreateCaseOnUnit =
     session?.user != null
       ? canCreateOrUpdateCaseOnUnit(session.user.role, assignment, csScope)
+      : false;
+  const canLogCall =
+    session?.user != null
+      ? canLogCallOnUnit(
+          session.user.role,
+          assignment,
+          csScope,
+          unit.project
+        )
       : false;
   const showLegalHandoverForm =
     canEditAdmin ||
@@ -254,6 +268,12 @@ export default async function UnitProfilePage({
         <PrintProtocolButton unitId={unit.id} locale={locale} projectName={unit.project.name} />
       </div>
 
+      {isCommunityViewer && !communityCanActOnUnit ? (
+        <Alert>
+          <AlertDescription>{t("communityJamilaActionsOnly")}</AlertDescription>
+        </Alert>
+      ) : null}
+
       <Tabs defaultValue={defaultTab}>
         <TabsList>
           <TabsTrigger value="client">{t("clientInfo")}</TabsTrigger>
@@ -267,6 +287,9 @@ export default async function UnitProfilePage({
             profileEditLevel={profileEditLevel}
             agentOptions={assignableAgents}
             contactDisabled={isLegallyBlocked}
+            showCommunityJamilaHint={
+              isCommunityViewer && !communityCanActOnUnit
+            }
             defaults={{
               unitId: unit.id,
               clientName: unit.client?.name ?? "\u2014",
@@ -503,6 +526,7 @@ export default async function UnitProfilePage({
               hideAddFeedback || isCommunityViewer || !canCreateCaseOnUnit
             }
             canBypassGates={session?.user?.role === "SUPER_ADMIN"}
+            canLogCall={canLogCall}
           />
         </TabsContent>
       </Tabs>

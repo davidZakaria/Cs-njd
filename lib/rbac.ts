@@ -39,11 +39,26 @@ const roleRoutes: Record<Role, string[]> = {
     "/audit-logs",
     "/backups",
     "/system",
+    "/notifications",
     "/print",
   ],
-  MANAGEMENT: ["/executive", "/dashboard", "/cases", "/units", "/users", "/print"],
-  CS_AGENT: ["/dashboard", "/cases", "/units", "/print"],
-  COMMUNITY_MANAGEMENT: ["/dashboard", "/cases", "/units", "/print"],
+  MANAGEMENT: [
+    "/executive",
+    "/dashboard",
+    "/cases",
+    "/units",
+    "/notifications",
+    "/users",
+    "/print",
+  ],
+  CS_AGENT: ["/dashboard", "/cases", "/units", "/notifications", "/print"],
+  COMMUNITY_MANAGEMENT: [
+    "/dashboard",
+    "/cases",
+    "/units",
+    "/notifications",
+    "/print",
+  ],
   ENGINEER: ["/engineering"],
 };
 
@@ -75,7 +90,8 @@ export type NavItemKey =
   | "twoFactorRequests"
   | "systemHealth"
   | "systemSettings"
-  | "notificationsLog";
+  | "notificationsLog"
+  | "activityNotifications";
 
 export type NavGroupKey =
   | "usersSecurity"
@@ -104,6 +120,16 @@ export function getCoreNavItems(role: Role) {
       href: "/units",
       key: "units",
       roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
+    },
+    {
+      href: "/notifications",
+      key: "activityNotifications",
+      roles: [
+        "SUPER_ADMIN",
+        "MANAGEMENT",
+        "CS_AGENT",
+        "COMMUNITY_MANAGEMENT",
+      ],
     },
   ];
 
@@ -173,6 +199,16 @@ export function getNavItems(role: Role) {
       href: "/units",
       key: "units",
       roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
+    },
+    {
+      href: "/notifications",
+      key: "activityNotifications",
+      roles: [
+        "SUPER_ADMIN",
+        "MANAGEMENT",
+        "CS_AGENT",
+        "COMMUNITY_MANAGEMENT",
+      ],
     },
     { href: "/users", key: "users", roles: ["MANAGEMENT"] },
     { href: "/imports", key: "imports", roles: ["SUPER_ADMIN"] },

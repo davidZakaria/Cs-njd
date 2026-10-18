@@ -49,10 +49,13 @@ function session(role: Role) {
   };
 }
 
+const jamilaProject = { id: "proj-jamila", name: "JAMILA NORTH COAST" };
+
 const unitWithClient = {
   id: "unit-1",
   deletedAt: null,
   agentId: null,
+  project: jamilaProject,
   client: {
     id: "client-1",
     phone1: "0100",
@@ -103,6 +106,21 @@ describe("community client contact actions", () => {
 
     expect(result.success).toBe(false);
     expect(result).toHaveProperty("error", "Unauthorized");
+  });
+
+  it("denies community management on non-Jamila units", async () => {
+    mockAuth.mockResolvedValue(session("COMMUNITY_MANAGEMENT"));
+    mockPrismaUnit.findUnique.mockResolvedValue({
+      ...unitWithClient,
+      project: { id: "proj-ga", name: "GREEN AVENUE" },
+    });
+
+    const { addClientExtraPhone } = await import("@/lib/actions/client-contacts");
+    const result = await addClientExtraPhone("unit-1", "0111");
+
+    expect(result.success).toBe(false);
+    expect(result).toHaveProperty("error", "Forbidden");
+    expect(mockPrismaClientPhone.create).not.toHaveBeenCalled();
   });
 
   it("rejects duplicate phone on add", async () => {

@@ -42,6 +42,7 @@ import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
 import { AdminNavGroups } from "@/components/layout/admin-nav-groups";
+import { SidebarActivityNotificationsLink } from "@/components/layout/sidebar-activity-notifications-link";
 import { GlobalAnnouncementBanner } from "@/components/layout/global-announcement-banner";
 import { GlobalSpotlight } from "@/components/layout/global-spotlight";
 import { JCommunitiesLogo } from "@/components/brand/j-communities-logo";
@@ -60,6 +61,7 @@ const iconMap = {
   twoFactorRequests: ShieldAlert,
   systemHealth: Gauge,
   notificationsLog: Bell,
+  activityNotifications: Bell,
   systemSettings: Settings,
   system: Settings,
 } as const;
@@ -115,6 +117,9 @@ export function AppSidebar({ role }: { role: Role }) {
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
               {flatItems.map((item) => {
+                if (item.key === "activityNotifications") {
+                  return <SidebarActivityNotificationsLink key={item.href} />;
+                }
                 const Icon = iconMap[item.key];
                 const active =
                   item.href === "/system"

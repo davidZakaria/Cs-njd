@@ -33,10 +33,9 @@ export default async function CasesPage({
     ? canUseManagementOverride(session.user)
     : false;
 
-  const ticketWhere =
-    csScope
-      ? activeTicketWhere(csAgentTicketScope(csScope))
-      : activeTicketWhere({});
+  const ticketWhere = csScope
+    ? activeTicketWhere(csAgentTicketScope(csScope))
+    : activeTicketWhere({});
 
   const [tickets, agents] = await Promise.all([
     prisma.ticket.findMany({

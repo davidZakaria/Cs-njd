@@ -58,6 +58,10 @@ vi.mock("@/lib/notifications/dispatch-ticket-notifications", () => ({
   dispatchTicketWorkflowNotifications: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("@/lib/notifications/dispatch-activity-notifications", () => ({
+  dispatchAnsweredCallLogActivity: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("@/lib/notifications/triggers", () => ({
   notifyUnitAssigned: vi.fn().mockResolvedValue(undefined),
   notifyFinishingUpdatedByAgent: vi.fn().mockResolvedValue(undefined),
@@ -523,6 +527,8 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
         agentId: "agent-1",
         unitCode: "A-1",
         agent: { id: "agent-1" },
+        project: { id: "proj-jamila", name: "JAMILA NORTH COAST" },
+        client: { name: "Client" },
       });
       mockPrismaTicket.create.mockResolvedValue({ id: "call-1" });
 
@@ -543,7 +549,13 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
         role: "CS_AGENT",
       }));
       
-      const unit = { id: "unit-1", agentId, unitCode: "A-101" };
+      const unit = {
+        id: "unit-1",
+        agentId,
+        unitCode: "A-101",
+        project: { id: "proj-jamila", name: "JAMILA NORTH COAST" },
+        client: { name: "Client" },
+      };
       mockPrismaUnit.findUnique.mockResolvedValue(unit);
       mockPrismaTicket.create.mockResolvedValue({
         id: "new-ticket",

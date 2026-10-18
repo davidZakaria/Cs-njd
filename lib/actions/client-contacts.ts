@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
+import { assertCommunityUnitAccess } from "@/lib/auth/abac";
 import { canEditClientContactsOnUnit } from "@/lib/auth/role-permissions";
 import {
   validateCommunityExtraAddressAdd,
@@ -20,6 +21,7 @@ async function loadUnitForContactMutation(unitId: string) {
   return prisma.unit.findUnique({
     where: { id: unitId },
     include: {
+      project: { select: { id: true, name: true } },
       client: {
         include: {
           phones: { orderBy: { sortOrder: "asc" } },
@@ -52,6 +54,9 @@ export async function addClientExtraPhone(
   const unit = await loadUnitForContactMutation(unitId);
   if (!unit || unit.deletedAt) return actionFail("Unit not found");
   if (!unit.client) return actionFail("Client record not found");
+
+  const communityAccess = await assertCommunityUnitAccess(session.user, unit);
+  if (communityAccess) return communityAccess;
 
   const accessError = await assertCanAddExtraContact(session.user.role, unit);
   if (accessError) return accessError;
@@ -91,6 +96,9 @@ export async function addClientExtraAddress(
   const unit = await loadUnitForContactMutation(unitId);
   if (!unit || unit.deletedAt) return actionFail("Unit not found");
   if (!unit.client) return actionFail("Client record not found");
+
+  const communityAccess = await assertCommunityUnitAccess(session.user, unit);
+  if (communityAccess) return communityAccess;
 
   const accessError = await assertCanAddExtraContact(session.user.role, unit);
   if (accessError) return accessError;

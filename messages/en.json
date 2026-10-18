@@ -288,6 +288,12 @@
       "engineeringReturnedMessage": "Eng. {engineerName} updated finishes for Unit {unitCode}. It is back in your queue!"
     }
   },
+  "activityNotifications": {
+    "title": "Activity notifications",
+    "subtitle": "Live feed of answered calls logged across your portfolio.",
+    "markAllRead": "Mark all as read",
+    "empty": "No answered calls yet. When someone logs an answered call, it will appear here."
+  },
   "notificationsLog": {
     "title": "Notifications Log",
     "subtitle": "Audit system notifications — verify triggers fire and reach the right users.",
@@ -394,6 +400,7 @@
     "twoFactorRequests": "2FA Reset Requests",
     "systemHealth": "System Health",
     "notificationsLog": "Notifications Log",
+    "activityNotifications": "Notifications",
     "systemSettings": "General Settings",
     "administration": "Administration",
     "groups": {
@@ -725,6 +732,7 @@
     "contactRestricted": "Restricted",
     "contactRestrictedHint": "Phone numbers, email, and addresses are hidden for CS agents.",
     "communityExtrasHint": "Use + to add more phone numbers or addresses. You cannot edit or remove any contact already on file.",
+    "communityJamilaActionsOnly": "You can view this unit across the portfolio. Logging calls and adding extra phones or addresses is only available on Jamila North Coast units.",
     "formValidationFailed": "Could not save — check the highlighted fields and try again.",
     "address1": "Address 1",
     "address2": "Address 2",
