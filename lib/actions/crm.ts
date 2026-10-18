@@ -831,10 +831,7 @@ export async function updateHandoverChecklist(
   input: HandoverChecklistInput
 ): Promise<ActionResult> {
   const session = await auth();
-  if (
-    !session?.user ||
-    !["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)
-  ) {
+  if (!session?.user) {
     return actionFail("Unauthorized");
   }
 
@@ -847,9 +844,19 @@ export async function updateHandoverChecklist(
 
   const unit = await prisma.unit.findUnique({
     where: { id: unitId },
-    include: { contractWorkflow: true },
+    include: {
+      contractWorkflow: true,
+      project: { select: { id: true, name: true } },
+    },
   });
   if (!unit) return actionFail("Unit not found");
+
+  if (isCommunityManagementRole(session.user.role)) {
+    const communityAccess = await assertCommunityUnitAccess(session.user, unit);
+    if (communityAccess) return communityAccess;
+  } else if (!["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
 
   const lockedWorkflow = applyDhlSiteVisitLock(
     workflowData,
@@ -1020,12 +1027,20 @@ export async function updateFinishing(
   const phases = normalizeFinishingPhases(data.phases);
   const legacyPhase = sortPhases(phases).at(-1) ?? "NOT_STARTED";
 
-  const unit = await prisma.unit.findUnique({ where: { id: unitId } });
+  const unit = await prisma.unit.findUnique({
+    where: { id: unitId },
+    include: { project: { select: { id: true, name: true } } },
+  });
   if (!unit) return actionFail("Unit not found");
 
   const role = session.user.role;
   if (
-    !canEditFinishingFinancialsOnUnit(role, { unitAgentId: unit.agentId })
+    !canEditFinishingFinancialsOnUnit(
+      role,
+      { unitAgentId: unit.agentId },
+      null,
+      unit.project
+    )
   ) {
     return actionFail("Unauthorized");
   }
