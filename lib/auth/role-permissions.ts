@@ -169,12 +169,10 @@ export function canEditFinishingFinancialsOnUnit(
   role: Role,
   _assignment?: UnitAssignment,
   _scope?: CsAgentScope | null,
-  project?: ProjectRef | null
+  _project?: ProjectRef | null
 ): boolean {
   if (isAdminUnitManager(role) || role === "SUPER_ADMIN") return true;
-  if (isCommunityManagementRole(role)) {
-    return project != null && isCommunityManagedProject(project);
-  }
+  if (isCommunityManagementRole(role)) return false;
   if (isCsAgentRole(role)) return true;
   return false;
 }

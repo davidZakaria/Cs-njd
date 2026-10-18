@@ -109,7 +109,7 @@ describe("role-permissions matrix", () => {
           id: "p1",
           name: "JAMILA NORTH COAST",
         })
-      ).toBe(true);
+      ).toBe(false);
       expect(
         canEditFinishingFinancialsOnUnit(role, assigned, csScope, {
           id: "p2",
