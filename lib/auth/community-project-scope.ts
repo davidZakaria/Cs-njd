@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 
 export type ProjectRef = { id: string; name: string };
 
+export type { ProjectRef as CommunityProjectRef };
+
 /** Match Jamila portfolio by configured id or project name hints. */
 export function isCommunityManagedProject(project: ProjectRef): boolean {
   const configuredId = COMMUNITY_MANAGED_CANONICAL_PROJECT.id;

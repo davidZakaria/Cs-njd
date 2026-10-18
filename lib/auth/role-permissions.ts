@@ -3,6 +3,10 @@ import type { Role } from "@prisma/client";
 import type { CsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { canAccessUnitAsCsAgent } from "@/lib/auth/cs-agent-scope";
 import {
+  isCommunityManagedProject,
+  type ProjectRef,
+} from "@/lib/auth/community-project-scope";
+import {
   isAdminUnitManager,
   isCommunityManagementRole,
   isCsAgentRole,
@@ -36,12 +40,19 @@ export function canListAllUnits(role: Role): boolean {
 export function canLogCallOnUnit(
   role: Role,
   _assignment?: UnitAssignment,
-  _scope?: CsAgentScope | null
+  _scope?: CsAgentScope | null,
+  project?: ProjectRef | null
 ): boolean {
-  if (isCommunityManagementRole(role)) return true;
+  if (isCommunityManagementRole(role)) {
+    return project != null && isCommunityManagedProject(project);
+  }
   if (isCsAgentRole(role)) return true;
   if (isAdminUnitManager(role) || role === "SUPER_ADMIN") return true;
   return false;
+}
+
+export function canCommunityActOnUnit(project: ProjectRef): boolean {
+  return isCommunityManagedProject(project);
 }
 
 export function canCreateOrUpdateCaseOnUnit(

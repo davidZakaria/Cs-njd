@@ -8,10 +8,8 @@ import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banne
 import { UnitsTable } from "@/components/units/units-table";
 import {
   isAdminUnitManager,
-  isCommunityManagementRole,
   isLimitedExportRole,
 } from "@/lib/auth/unit-roles";
-import { communityManagedUnitWhere } from "@/lib/auth/community-project-scope";
 import { parseUnitsPageFilters } from "@/lib/units/units-filter-url";
 
 export default async function UnitsPage({
@@ -27,14 +25,9 @@ export default async function UnitsPage({
       ? await resolveCsAgentScope(session.user)
       : null;
 
-  const communityScope = session?.user.role &&
-    isCommunityManagementRole(session.user.role)
-    ? await communityManagedUnitWhere()
-    : {};
-
   const [units, staffUsers, projectRecords] = await Promise.all([
     prisma.unit.findMany({
-      where: activeUnitWhere(communityScope),
+      where: activeUnitWhere({}),
       include: {
         project: true,
         client: true,

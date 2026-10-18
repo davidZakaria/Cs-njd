@@ -732,6 +732,7 @@
     "contactRestricted": "Restricted",
     "contactRestrictedHint": "Phone numbers, email, and addresses are hidden for CS agents.",
     "communityExtrasHint": "Use + to add more phone numbers or addresses. You cannot edit or remove any contact already on file.",
+    "communityJamilaActionsOnly": "You can view this unit across the portfolio. Logging calls and adding extra phones or addresses is only available on Jamila North Coast units.",
     "formValidationFailed": "Could not save — check the highlighted fields and try again.",
     "address1": "Address 1",
     "address2": "Address 2",

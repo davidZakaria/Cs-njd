@@ -75,9 +75,20 @@ describe("role-permissions matrix", () => {
   describe("COMMUNITY_MANAGEMENT", () => {
     const role: Role = "COMMUNITY_MANAGEMENT";
 
-    it("may list units and log calls but not cases, handover, or finishing", () => {
+    it("may list units and log calls on Jamila only", () => {
       expect(canListAllUnits(role)).toBe(true);
-      expect(canLogCallOnUnit(role, assigned)).toBe(true);
+      expect(
+        canLogCallOnUnit(role, assigned, csScope, {
+          id: "p1",
+          name: "JAMILA NORTH COAST",
+        })
+      ).toBe(true);
+      expect(
+        canLogCallOnUnit(role, assigned, csScope, {
+          id: "p2",
+          name: "GREEN AVENUE",
+        })
+      ).toBe(false);
       expect(canCreateOrUpdateCaseOnUnit(role, assigned, csScope)).toBe(false);
       expect(canEditCsHandoverChecklist(role, assigned, csScope)).toBe(false);
       expect(canEditFinishingFinancialsOnUnit(role, assigned, csScope)).toBe(

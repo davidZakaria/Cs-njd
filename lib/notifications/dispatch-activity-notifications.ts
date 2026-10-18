@@ -1,5 +1,4 @@
 import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
-import { isCommunityManagedProject } from "@/lib/auth/community-project-scope";
 import { isCommunityManagementRole } from "@/lib/auth/unit-roles";
 import {
   callOutcomePhrase,
@@ -34,7 +33,6 @@ async function resolveRecipientUserIds(unit: UnitContext): Promise<string[]> {
   });
 
   const recipientIds = new Set<string>();
-  const jamila = isCommunityManagedProject(unit.project);
 
   for (const user of users) {
     if (user.role === "SUPER_ADMIN" || user.role === "MANAGEMENT") {
@@ -43,7 +41,7 @@ async function resolveRecipientUserIds(unit: UnitContext): Promise<string[]> {
     }
 
     if (isCommunityManagementRole(user.role)) {
-      if (jamila) recipientIds.add(user.id);
+      recipientIds.add(user.id);
       continue;
     }
 

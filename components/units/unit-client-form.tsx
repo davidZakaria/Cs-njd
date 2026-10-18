@@ -89,12 +89,14 @@ export function UnitClientForm({
   hideClientContact = false,
   contactDisabled = false,
   agentOptions = [],
+  showCommunityJamilaHint = false,
 }: {
   defaults: UnitClientFormDefaults;
   profileEditLevel: UnitProfileEditLevel;
   hideClientContact?: boolean;
   contactDisabled?: boolean;
   agentOptions?: Array<{ id: string; name: string }>;
+  showCommunityJamilaHint?: boolean;
 }) {
   const canEditPhonesAndAddresses =
     profileEditLevel === "phoneAddress" || profileEditLevel === "admin";
@@ -487,6 +489,10 @@ export function UnitClientForm({
             <CardTitle>{tClient("contacts.additionalTitle")}</CardTitle>
             {canEditCommunityExtras ? (
               <p className="text-sm text-muted-foreground">{t("communityExtrasHint")}</p>
+            ) : showCommunityJamilaHint ? (
+              <p className="text-sm text-muted-foreground">
+                {t("communityJamilaActionsOnly")}
+              </p>
             ) : null}
           </CardHeader>
           <CardContent>

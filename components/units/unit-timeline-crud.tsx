@@ -477,6 +477,7 @@ export function UnitTimelineCrud({
   resolvedTicketId = null,
   gateContext,
   hideAddFeedback = false,
+  canLogCall = true,
 }: {
   unitId: string;
   tickets: TicketRow[];
@@ -493,6 +494,7 @@ export function UnitTimelineCrud({
   resolvedTicketId?: string | null;
   gateContext: SerializedResolutionContext;
   hideAddFeedback?: boolean;
+  canLogCall?: boolean;
 }) {
   const tCases = useTranslations("cases");
   const tCommon = useTranslations("common");
@@ -578,45 +580,52 @@ export function UnitTimelineCrud({
                 disabled={pending}
               />
             ) : null}
-            <Dialog open={logCallOpen} onOpenChange={setLogCallOpen}>
-            <DialogTrigger
-              render={
-                <Button type="button" size="sm" variant="outline" className="h-8" />
-              }
-            >
-              {tWorkflow("logCall")}
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>{tWorkflow("logCall")}</DialogTitle>
-              </DialogHeader>
-              <Field label={tCases("caseNotes")}>
-                <Textarea
-                  value={callNotes}
-                  onChange={(event) => setCallNotes(event.target.value)}
-                  rows={4}
-                  disabled={pending}
-                />
-              </Field>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setLogCallOpen(false)}
-                  disabled={pending}
+            {canLogCall ? (
+              <Dialog open={logCallOpen} onOpenChange={setLogCallOpen}>
+                <DialogTrigger
+                  render={
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8"
+                    />
+                  }
                 >
-                  {tCommon("cancel")}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleLogCall}
-                  disabled={pending || !callNotes.trim()}
-                >
-                  {tActions("logCall")}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                  {tWorkflow("logCall")}
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>{tWorkflow("logCall")}</DialogTitle>
+                  </DialogHeader>
+                  <Field label={tCases("caseNotes")}>
+                    <Textarea
+                      value={callNotes}
+                      onChange={(event) => setCallNotes(event.target.value)}
+                      rows={4}
+                      disabled={pending}
+                    />
+                  </Field>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setLogCallOpen(false)}
+                      disabled={pending}
+                    >
+                      {tCommon("cancel")}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleLogCall}
+                      disabled={pending || !callNotes.trim()}
+                    >
+                      {tActions("logCall")}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            ) : null}
           </div>
         </CardHeader>
         <CardContent className="space-y-3">

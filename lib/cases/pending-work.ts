@@ -7,10 +7,7 @@ import {
   type CaseWorkflowKey,
 } from "@/lib/cases/workflow";
 import { isCaseOwnedByUser } from "@/lib/cases/ownership";
-import type { Prisma, Role } from "@prisma/client";
-
-import { communityManagedUnitWhere } from "@/lib/auth/community-project-scope";
-import { isCommunityManagementRole } from "@/lib/auth/unit-roles";
+import type { Role } from "@prisma/client";
 
 export type PendingWorkUnit = {
   unitId: string;
@@ -39,19 +36,13 @@ export async function getPendingWorkForSession(user: {
   effectiveAgentId?: string;
 }): Promise<PendingWorkUnit[]> {
   const agentId = user.effectiveAgentId ?? user.id;
-  let extraWhere: Prisma.TicketWhereInput = {};
-  if (user.role === "CS_AGENT") {
-    extraWhere = {
-      OR: [{ agentId }, { unit: { agentId } }],
-    };
-  } else if (isCommunityManagementRole(user.role)) {
-    extraWhere = { unit: await communityManagedUnitWhere() };
-  }
-
-  const ticketWhere = activeTicketWhere({
-    status: { in: OPEN_TICKET_STATUSES },
-    ...extraWhere,
-  });
+  const ticketWhere =
+    user.role === "CS_AGENT"
+      ? activeTicketWhere({
+          status: { in: OPEN_TICKET_STATUSES },
+          OR: [{ agentId }, { unit: { agentId } }],
+        })
+      : activeTicketWhere({ status: { in: OPEN_TICKET_STATUSES } });
 
   const tickets = await prisma.ticket.findMany({
     where: ticketWhere,

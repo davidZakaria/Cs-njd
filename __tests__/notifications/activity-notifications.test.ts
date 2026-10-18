@@ -81,7 +81,7 @@ describe("dispatch answered call log activity", () => {
     expect(mockNotificationCreateMany).not.toHaveBeenCalled();
   });
 
-  it("hides non-Jamila answered calls from community users", async () => {
+  it("includes community users for answered calls on any project", async () => {
     mockUserFindMany.mockResolvedValue([
       { id: "mgmt-1", role: "MANAGEMENT", email: "m@njd.com" },
       { id: "community-1", role: "COMMUNITY_MANAGEMENT", email: "c@njd.com" },
@@ -106,6 +106,7 @@ describe("dispatch answered call log activity", () => {
 
     const payload = mockNotificationCreateMany.mock.calls[0][0];
     const userIds = payload.data.map((row: { userId: string }) => row.userId);
-    expect(userIds).toEqual(["mgmt-1"]);
+    expect(userIds).toContain("mgmt-1");
+    expect(userIds).toContain("community-1");
   });
 });
