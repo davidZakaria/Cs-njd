@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { activeUnitWhere } from "@/lib/prisma";
+import { unitMatchesOwnerSearchQuery } from "@/lib/units/unit-owner-search";
 
 export type SpotlightSearchResult = {
   unitId: string;
@@ -21,21 +22,7 @@ export async function searchUnitsSpotlight(
   if (trimmed.length < 2) return [];
 
   const units = await prisma.unit.findMany({
-    where: activeUnitWhere({
-      OR: [
-        { unitCode: { contains: trimmed, mode: "insensitive" } },
-        {
-          client: {
-            OR: [
-              { name: { contains: trimmed, mode: "insensitive" } },
-              { phone1: { contains: trimmed } },
-              { phone2: { contains: trimmed } },
-              { phones: { some: { phone: { contains: trimmed } } } },
-            ],
-          },
-        },
-      ],
-    }),
+    where: activeUnitWhere(unitMatchesOwnerSearchQuery(trimmed)),
     include: {
       project: { select: { name: true } },
       client: { select: { name: true, phone1: true, phones: { select: { phone: true } } } },

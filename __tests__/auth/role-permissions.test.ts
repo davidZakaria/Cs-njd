@@ -11,6 +11,9 @@ import {
   canEditCsHandoverChecklist,
   canEditClientContactsOnUnit,
   canEditClientIdentityFields,
+  canAddUnitCoOwner,
+  canEditClientIdentityOnUnit,
+  canManageUnitCoOwners,
   canEditClientPhonesAndAddressesOnUnit,
   canUploadClientNationalIdScan,
   canListAllUnits,
@@ -114,6 +117,17 @@ describe("role-permissions matrix", () => {
         })
       ).toBe(false);
       expect(canAddCommunityExtraContactsOnly(role)).toBe(true);
+      expect(
+        canAddUnitCoOwner(role, {
+          id: "p1",
+          name: "JAMILA NORTH COAST",
+        })
+      ).toBe(true);
+      expect(
+        canAddUnitCoOwner(role, { id: "p2", name: "GREEN AVENUE" })
+      ).toBe(false);
+      expect(canEditClientIdentityOnUnit(role)).toBe(false);
+      expect(canManageUnitCoOwners(role)).toBe(false);
       expect(canEditClientContactsOnUnit(role, assigned, csScope)).toBe(false);
       expect(canSyncClientExtraContacts(role, assigned, csScope)).toBe(false);
       expect(canAccessEngineeringPortal(role)).toBe(false);

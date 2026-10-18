@@ -52,6 +52,7 @@ const contactExtraLineSchema = z.object({
 
 export const unitProfileFormSchema = z.object({
   unitId: z.string().min(1),
+  clientId: z.string().optional(),
   unitCode: z.string().min(1).optional(),
   agentId: optionalString(),
   clientName: z.string().min(1),

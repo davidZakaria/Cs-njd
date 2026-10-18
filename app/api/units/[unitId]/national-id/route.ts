@@ -12,7 +12,7 @@ import {
 import { NextResponse } from "next/server";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ unitId: string }> }
 ) {
   const session = await auth();
@@ -21,12 +21,27 @@ export async function GET(
   }
 
   const { unitId } = await params;
+  const clientId =
+    new URL(request.url).searchParams.get("clientId")?.trim() || undefined;
+
   const unit = await prisma.unit.findUnique({
     where: { id: unitId },
     include: { client: true },
   });
 
-  if (!unit?.client?.nationalIdFile) {
+  if (!unit) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const targetId = clientId || unit.clientId;
+  const client =
+    unit.client?.id === targetId
+      ? unit.client
+      : targetId
+        ? await prisma.client.findUnique({ where: { id: targetId } })
+        : null;
+
+  if (!client?.nationalIdFile) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -38,9 +53,9 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const storedName = unit.client.nationalIdFile;
+  const storedName = client.nationalIdFile;
   const ext = storedName.includes(".") ? storedName.split(".").pop() : "jpg";
-  const filename = `national-id-${unit.client.name}.${ext}`;
+  const filename = `national-id-${client.name}.${ext}`;
 
   return serveStoredObjectResponse(
     getNationalIdRelativePath(storedName),

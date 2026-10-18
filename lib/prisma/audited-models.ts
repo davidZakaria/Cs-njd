@@ -3,6 +3,7 @@ export const AUDITED_MODELS = [
   "ClientPhone",
   "ClientAddress",
   "Unit",
+  "UnitClient",
   "ContractWorkflow",
   "Finishing",
   "Ticket",

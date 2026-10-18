@@ -30,6 +30,7 @@ type ContactExtrasMode = "readonly" | "editable" | "communityAddOnly";
 
 export function ClientContactExtras({
   unitId,
+  clientId,
   clientName,
   unitCode,
   projectName,
@@ -41,6 +42,7 @@ export function ClientContactExtras({
   onExtrasChange,
 }: {
   unitId: string;
+  clientId?: string | null;
   clientName: string;
   unitCode: string;
   projectName: string;
@@ -117,7 +119,7 @@ export function ClientContactExtras({
 
   function submitNewPhone() {
     runAction(async () => {
-      const result = await addClientExtraPhone(unitId, newPhone);
+      const result = await addClientExtraPhone(unitId, newPhone, clientId ?? undefined);
       if (result.success) {
         setNewPhone("");
         setPhoneDialogOpen(false);
@@ -129,7 +131,11 @@ export function ClientContactExtras({
 
   function submitNewAddress() {
     runAction(async () => {
-      const result = await addClientExtraAddress(unitId, newAddress);
+      const result = await addClientExtraAddress(
+        unitId,
+        newAddress,
+        clientId ?? undefined
+      );
       if (result.success) {
         setNewAddress("");
         setAddressDialogOpen(false);
