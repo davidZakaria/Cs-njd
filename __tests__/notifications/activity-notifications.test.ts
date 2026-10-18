@@ -20,13 +20,22 @@ vi.mock("@/lib/auth/cs-agent-scope", () => ({
   }),
 }));
 
-describe("dispatch activity notifications", () => {
+describe("dispatch answered call log activity", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockNotificationCreateMany.mockResolvedValue({ count: 1 });
   });
 
-  it("notifies management and assigned CS agent for Jamila call logs", async () => {
+  const jamilaUnit = {
+    id: "unit-1",
+    unitCode: "J-101",
+    agentId: "agent-1",
+    projectId: "proj-jamila",
+    project: { id: "proj-jamila", name: "JAMILA NORTH COAST" },
+    client: { name: "Client A" },
+  };
+
+  it("notifies management and assigned CS agent for answered Jamila calls", async () => {
     mockUserFindMany.mockResolvedValue([
       { id: "mgmt-1", role: "MANAGEMENT", email: "m@njd.com" },
       { id: "agent-1", role: "CS_AGENT", email: "a@njd.com" },
@@ -34,22 +43,13 @@ describe("dispatch activity notifications", () => {
       { id: "community-1", role: "COMMUNITY_MANAGEMENT", email: "c@njd.com" },
     ]);
 
-    const { dispatchActivityNotification } = await import(
+    const { dispatchAnsweredCallLogActivity } = await import(
       "@/lib/notifications/dispatch-activity-notifications"
     );
 
-    await dispatchActivityNotification({
-      kind: "call_log",
-      actorUserId: "community-1",
+    await dispatchAnsweredCallLogActivity({
       actorName: "Community Agent",
-      unit: {
-        id: "unit-1",
-        unitCode: "J-101",
-        agentId: "agent-1",
-        projectId: "proj-jamila",
-        project: { id: "proj-jamila", name: "JAMILA NORTH COAST" },
-        client: { name: "Client A" },
-      },
+      unit: jamilaUnit,
       notes: "📞 Answered — follow up tomorrow",
     });
 
@@ -63,19 +63,35 @@ describe("dispatch activity notifications", () => {
     expect(payload.data[0].kind).toBe("ACTIVITY");
   });
 
-  it("hides non-Jamila activity from community users", async () => {
+  it("does not notify for unanswered calls", async () => {
+    mockUserFindMany.mockResolvedValue([
+      { id: "mgmt-1", role: "MANAGEMENT", email: "m@njd.com" },
+    ]);
+
+    const { dispatchAnsweredCallLogActivity } = await import(
+      "@/lib/notifications/dispatch-activity-notifications"
+    );
+
+    await dispatchAnsweredCallLogActivity({
+      actorName: "Agent",
+      unit: jamilaUnit,
+      notes: "📞 Not answered, will retry",
+    });
+
+    expect(mockNotificationCreateMany).not.toHaveBeenCalled();
+  });
+
+  it("hides non-Jamila answered calls from community users", async () => {
     mockUserFindMany.mockResolvedValue([
       { id: "mgmt-1", role: "MANAGEMENT", email: "m@njd.com" },
       { id: "community-1", role: "COMMUNITY_MANAGEMENT", email: "c@njd.com" },
     ]);
 
-    const { dispatchActivityNotification } = await import(
+    const { dispatchAnsweredCallLogActivity } = await import(
       "@/lib/notifications/dispatch-activity-notifications"
     );
 
-    await dispatchActivityNotification({
-      kind: "ticket_created",
-      actorUserId: "mgmt-1",
+    await dispatchAnsweredCallLogActivity({
       actorName: "Manager",
       unit: {
         id: "unit-2",
@@ -85,7 +101,7 @@ describe("dispatch activity notifications", () => {
         project: { id: "proj-ga", name: "GREEN AVENUE" },
         client: { name: "Client B" },
       },
-      notes: "New general case",
+      notes: "📞 Answered",
     });
 
     const payload = mockNotificationCreateMany.mock.calls[0][0];

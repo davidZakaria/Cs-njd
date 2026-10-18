@@ -59,8 +59,7 @@ vi.mock("@/lib/notifications/dispatch-ticket-notifications", () => ({
 }));
 
 vi.mock("@/lib/notifications/dispatch-activity-notifications", () => ({
-  dispatchActivityForTicketCreate: vi.fn().mockResolvedValue(undefined),
-  dispatchActivityNotification: vi.fn().mockResolvedValue(undefined),
+  dispatchAnsweredCallLogActivity: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/notifications/triggers", () => ({

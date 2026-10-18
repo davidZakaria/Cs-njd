@@ -290,9 +290,9 @@
   },
   "activityNotifications": {
     "title": "Activity notifications",
-    "subtitle": "Live feed of calls logged and new cases across your portfolio.",
+    "subtitle": "Live feed of answered calls logged across your portfolio.",
     "markAllRead": "Mark all as read",
-    "empty": "No activity yet. New call logs and cases will appear here."
+    "empty": "No answered calls yet. When someone logs an answered call, it will appear here."
   },
   "notificationsLog": {
     "title": "Notifications Log",

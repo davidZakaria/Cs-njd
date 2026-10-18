@@ -47,7 +47,7 @@ import {
   notifyInboundCall,
   notifyUnitAssigned,
 } from "@/lib/notifications/triggers";
-import { dispatchActivityForTicketCreate } from "@/lib/notifications/dispatch-activity-notifications";
+import { dispatchAnsweredCallLogActivity } from "@/lib/notifications/dispatch-activity-notifications";
 import { sortPhases, normalizeFinishingPhases } from "@/lib/finishing/phases";
 import {
   evaluateResolutionGates,
@@ -450,16 +450,7 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
     actorName,
   });
 
-  await dispatchActivityForTicketCreate({
-    actorUserId: session.user.id,
-    actorName,
-    unit,
-    category,
-    notes: noteBody,
-  });
-
   revalidateTicketPaths(unitId);
-  revalidatePath("/notifications");
   return actionOk();
 }
 
@@ -1210,11 +1201,9 @@ export async function logCallQuickAction(input: {
 
   const actorName =
     session.user.name ?? session.user.email ?? "Agent";
-  await dispatchActivityForTicketCreate({
-    actorUserId: session.user.id,
+  await dispatchAnsweredCallLogActivity({
     actorName,
     unit,
-    category: "FEEDBACK_HISTORY",
     notes,
   });
 
