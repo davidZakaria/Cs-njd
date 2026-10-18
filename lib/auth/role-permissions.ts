@@ -95,6 +95,19 @@ export function canEditClientIdentityFields(role: Role): boolean {
 /** Identity fields (name, national ID, email) on a unit owner card. */
 export function canEditClientIdentityOnUnit(
   role: Role,
+  _project?: ProjectRef | null
+): boolean {
+  return isAdminUnitManager(role);
+}
+
+/** Remove co-owner, make primary, link existing client — management only. */
+export function canManageUnitCoOwners(role: Role): boolean {
+  return isAdminUnitManager(role);
+}
+
+/** Add a new co-owner client on Jamila (community) or any unit (management). */
+export function canAddUnitCoOwner(
+  role: Role,
   project?: ProjectRef | null
 ): boolean {
   if (isAdminUnitManager(role)) return true;
@@ -104,22 +117,15 @@ export function canEditClientIdentityOnUnit(
   return false;
 }
 
-export function canManageUnitCoOwners(
-  role: Role,
-  project?: ProjectRef | null
-): boolean {
-  return canEditClientIdentityOnUnit(role, project);
-}
-
 export function canUploadClientNationalIdScan(role: Role): boolean {
   return isAdminUnitManager(role);
 }
 
 export function canUploadClientNationalIdOnUnit(
   role: Role,
-  project?: ProjectRef | null
+  _project?: ProjectRef | null
 ): boolean {
-  return canEditClientIdentityOnUnit(role, project);
+  return canUploadClientNationalIdScan(role);
 }
 
 /** Full add/edit/remove of extra phones and addresses (unit profile save). */

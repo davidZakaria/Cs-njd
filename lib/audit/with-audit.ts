@@ -12,3 +12,12 @@ export async function withAudit<T>(fn: () => Promise<T>): Promise<T> {
     async () => await fn()
   );
 }
+
+/** Scripts / jobs without a request session (e.g. split-joint-owners --apply). */
+export async function withAuditAsUser<T>(
+  userId: string,
+  fn: () => Promise<T>,
+  ipAddress = "script"
+): Promise<T> {
+  return auditContext.run({ userId, ipAddress }, async () => await fn());
+}

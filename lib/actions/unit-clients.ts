@@ -8,8 +8,10 @@ import { auth } from "@/lib/auth";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { withAudit } from "@/lib/audit/with-audit";
 import {
+  canAddUnitCoOwner,
   canManageUnitCoOwners,
 } from "@/lib/auth/role-permissions";
+import { isCommunityManagementRole } from "@/lib/auth/unit-roles";
 import { prisma } from "@/lib/prisma";
 import { assertClientLinkedToUnit } from "@/lib/units/assert-unit-client-link";
 
@@ -44,7 +46,7 @@ export async function searchClientsForCoOwnerLink(
 
   const unit = await loadUnitForCoOwnerMutation(unitId);
   if (!unit || unit.deletedAt) return { success: false, error: "Unit not found" };
-  if (!canManageUnitCoOwners(session.user.role, unit.project)) {
+  if (!canManageUnitCoOwners(session.user.role)) {
     return { success: false, error: "Unauthorized" };
   }
 
@@ -90,7 +92,14 @@ export async function addUnitCoOwner(
   const { unitId, mode } = parsed.data;
   const unit = await loadUnitForCoOwnerMutation(unitId);
   if (!unit || unit.deletedAt) return actionFail("Unit not found");
-  if (!canManageUnitCoOwners(session.user.role, unit.project)) {
+  if (!canAddUnitCoOwner(session.user.role, unit.project)) {
+    return actionFail("Unauthorized");
+  }
+
+  if (
+    isCommunityManagementRole(session.user.role) &&
+    mode === "link"
+  ) {
     return actionFail("Unauthorized");
   }
 
@@ -178,7 +187,7 @@ export async function removeUnitCoOwner(
 
   const unit = await loadUnitForCoOwnerMutation(unitId);
   if (!unit || unit.deletedAt) return actionFail("Unit not found");
-  if (!canManageUnitCoOwners(session.user.role, unit.project)) {
+  if (!canManageUnitCoOwners(session.user.role)) {
     return actionFail("Unauthorized");
   }
 
@@ -219,7 +228,7 @@ export async function setUnitPrimaryOwner(
     },
   });
   if (!unit || unit.deletedAt) return actionFail("Unit not found");
-  if (!canManageUnitCoOwners(session.user.role, unit.project)) {
+  if (!canManageUnitCoOwners(session.user.role)) {
     return actionFail("Unauthorized");
   }
 
@@ -230,6 +239,14 @@ export async function setUnitPrimaryOwner(
 
   await withAudit(async () => {
     await prisma.$transaction(async (tx) => {
+      const links = await tx.unitClient.findMany({
+        where: { unitId },
+        select: { id: true, clientId: true, role: true, position: true },
+      });
+
+      const newLink = links.find((l) => l.clientId === clientId);
+      const swappedPosition = newLink?.position ?? 0;
+
       await tx.unit.update({
         where: { id: unitId },
         data: { clientId },
@@ -240,12 +257,9 @@ export async function setUnitPrimaryOwner(
         data: { role: UnitClientRole.CO_OWNER },
       });
 
-      const existing = await tx.unitClient.findUnique({
-        where: { unitId_clientId: { unitId, clientId } },
-      });
-      if (existing) {
+      if (newLink) {
         await tx.unitClient.update({
-          where: { id: existing.id },
+          where: { id: newLink.id },
           data: { role: UnitClientRole.PRIMARY, position: 0 },
         });
       } else {
@@ -260,22 +274,22 @@ export async function setUnitPrimaryOwner(
       }
 
       if (previousPrimaryId && previousPrimaryId !== clientId) {
-        const prevLink = await tx.unitClient.findUnique({
-          where: {
-            unitId_clientId: { unitId, clientId: previousPrimaryId },
-          },
-        });
-        if (!prevLink) {
-          const coMax = await tx.unitClient.aggregate({
-            where: { unitId, role: UnitClientRole.CO_OWNER },
-            _max: { position: true },
+        const prevLink = links.find((l) => l.clientId === previousPrimaryId);
+        if (prevLink) {
+          await tx.unitClient.update({
+            where: { id: prevLink.id },
+            data: {
+              role: UnitClientRole.CO_OWNER,
+              position: swappedPosition,
+            },
           });
+        } else {
           await tx.unitClient.create({
             data: {
               unitId,
               clientId: previousPrimaryId,
               role: UnitClientRole.CO_OWNER,
-              position: (coMax._max.position ?? -1) + 1,
+              position: swappedPosition,
             },
           });
         }

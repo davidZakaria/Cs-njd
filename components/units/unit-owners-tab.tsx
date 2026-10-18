@@ -38,6 +38,7 @@ export function UnitOwnersTab({
   owners,
   profileEditLevel,
   canManageCoOwners,
+  canAddCoOwner,
   hideClientContact = false,
   contactDisabled = false,
   agentOptions = [],
@@ -59,6 +60,7 @@ export function UnitOwnersTab({
   owners: UnitOwnerCardData[];
   profileEditLevel: UnitProfileEditLevel;
   canManageCoOwners: boolean;
+  canAddCoOwner: boolean;
   hideClientContact?: boolean;
   contactDisabled?: boolean;
   agentOptions?: Array<{ id: string; name: string }>;
@@ -148,7 +150,7 @@ export function UnitOwnersTab({
         );
       })}
 
-      {canManageCoOwners ? (
+      {canAddCoOwner ? (
         <Button
           type="button"
           variant="secondary"
@@ -163,6 +165,7 @@ export function UnitOwnersTab({
         unitId={unitId}
         open={coOwnerOpen}
         onOpenChange={setCoOwnerOpen}
+        allowLinkExisting={canManageCoOwners}
       />
     </div>
   );

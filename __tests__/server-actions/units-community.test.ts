@@ -55,6 +55,7 @@ const unitWithClient = {
   id: "unit-1",
   deletedAt: null,
   agentId: null,
+  clientId: "client-1",
   project: jamilaProject,
   client: {
     id: "client-1",

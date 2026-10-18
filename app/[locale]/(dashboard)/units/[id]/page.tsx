@@ -33,8 +33,9 @@ import {
   canEditFinishingFinancialsOnUnit,
   canEditLegalHandoverOnUnit,
   canEditCsHandoverChecklist,
+  canAddUnitCoOwner,
   canManageUnitCoOwners,
-  canUploadClientNationalIdOnUnit,
+  canUploadClientNationalIdScan,
   canLogCallOnUnit,
   isCsAgentAssignedToUnit,
 } from "@/lib/auth/role-permissions";
@@ -82,7 +83,7 @@ export default async function UnitProfilePage({
         },
       },
       unitClients: {
-        orderBy: { position: "asc" },
+        orderBy: [{ role: "asc" }, { position: "asc" }],
         include: {
           client: {
             include: {
@@ -144,15 +145,16 @@ export default async function UnitProfilePage({
       : clientEditMode === "phoneAddress"
         ? "phoneAddress"
         : clientEditMode === "communityExtras" && communityCanActOnUnit
-          ? "communityJamila"
-          : clientEditMode === "communityExtras"
-            ? "communityExtras"
-            : "none";
+          ? "communityExtras"
+          : "none";
 
   const canManageCoOwners =
     session?.user.role != null
-      ? canManageUnitCoOwners(session.user.role, unit.project) &&
-        communityCanActOnUnit
+      ? canManageUnitCoOwners(session.user.role)
+      : false;
+  const canAddCoOwner =
+    session?.user.role != null && communityCanActOnUnit
+      ? canAddUnitCoOwner(session.user.role, unit.project)
       : false;
 
   const canManageTickets = session?.user
@@ -333,6 +335,7 @@ export default async function UnitProfilePage({
             owners={owners}
             profileEditLevel={profileEditLevel}
             canManageCoOwners={canManageCoOwners}
+            canAddCoOwner={canAddCoOwner}
             agentOptions={assignableAgents}
             contactDisabled={isLegallyBlocked}
             showCommunityJamilaHint={
@@ -351,10 +354,7 @@ export default async function UnitProfilePage({
               area: unit.area ?? null,
               canUploadNationalId:
                 session?.user.role != null
-                  ? canUploadClientNationalIdOnUnit(
-                      session.user.role,
-                      unit.project
-                    )
+                  ? canUploadClientNationalIdScan(session.user.role)
                   : false,
               waMessageTemplate,
             }}

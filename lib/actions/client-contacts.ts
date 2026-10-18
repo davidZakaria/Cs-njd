@@ -36,7 +36,8 @@ async function resolveClientForContactMutation(
   unit: NonNullable<Awaited<ReturnType<typeof loadUnitForContactMutation>>>,
   clientId?: string
 ) {
-  const targetId = clientId?.trim() || unit.clientId;
+  const targetId =
+    clientId?.trim() || unit.clientId || unit.client?.id || undefined;
   if (!targetId) return null;
 
   if (unit.client && unit.client.id === targetId) {
@@ -81,11 +82,12 @@ export async function addClientExtraPhone(
 
   const unit = await loadUnitForContactMutation(unitId);
   if (!unit || unit.deletedAt) return actionFail("Unit not found");
-  const client = await resolveClientForContactMutation(unit, clientId);
-  if (!client) return actionFail("Client record not found");
 
   const communityAccess = await assertCommunityUnitAccess(session.user, unit);
   if (communityAccess) return communityAccess;
+
+  const client = await resolveClientForContactMutation(unit, clientId);
+  if (!client) return actionFail("Client record not found");
 
   const accessError = await assertCanAddExtraContact(session.user.role, unit);
   if (accessError) return accessError;
@@ -125,11 +127,12 @@ export async function addClientExtraAddress(
 
   const unit = await loadUnitForContactMutation(unitId);
   if (!unit || unit.deletedAt) return actionFail("Unit not found");
-  const client = await resolveClientForContactMutation(unit, clientId);
-  if (!client) return actionFail("Client record not found");
 
   const communityAccess = await assertCommunityUnitAccess(session.user, unit);
   if (communityAccess) return communityAccess;
+
+  const client = await resolveClientForContactMutation(unit, clientId);
+  if (!client) return actionFail("Client record not found");
 
   const accessError = await assertCanAddExtraContact(session.user.role, unit);
   if (accessError) return accessError;

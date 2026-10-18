@@ -32,10 +32,12 @@ export function UnitCoOwnerDialog({
   unitId,
   open,
   onOpenChange,
+  allowLinkExisting = true,
 }: {
   unitId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  allowLinkExisting?: boolean;
 }) {
   const t = useTranslations("units.owners");
   const tCommon = useTranslations("common");
@@ -103,13 +105,18 @@ export function UnitCoOwnerDialog({
           <DialogTitle>{t("addCoOwner")}</DialogTitle>
         </DialogHeader>
         <Tabs
-          value={mode}
-          onValueChange={(v) => setMode(v === "link" ? "link" : "new")}
+          value={allowLinkExisting ? mode : "new"}
+          onValueChange={(v) => {
+            if (!allowLinkExisting) return;
+            setMode(v === "link" ? "link" : "new");
+          }}
         >
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="new">{t("newClientTab")}</TabsTrigger>
-            <TabsTrigger value="link">{t("linkClientTab")}</TabsTrigger>
-          </TabsList>
+          {allowLinkExisting ? (
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="new">{t("newClientTab")}</TabsTrigger>
+              <TabsTrigger value="link">{t("linkClientTab")}</TabsTrigger>
+            </TabsList>
+          ) : null}
           <TabsContent value="new" className="space-y-3 pt-3">
             <div className="space-y-2">
               <Label htmlFor="co-owner-name">{t("name")}</Label>

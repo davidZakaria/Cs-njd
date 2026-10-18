@@ -8,7 +8,7 @@ const clientWithContactsInclude = {
 export const unitOwnersInclude = {
   client: { include: clientWithContactsInclude },
   unitClients: {
-    orderBy: { position: "asc" as const },
+    orderBy: [{ role: "asc" as const }, { position: "asc" as const }],
     include: {
       client: { include: clientWithContactsInclude },
     },
@@ -23,12 +23,21 @@ export type UnitWithOwners = Prisma.UnitGetPayload<{
   include: typeof unitOwnersInclude;
 }>;
 
+function sortOwnerLinks<T extends { role: string; position: number }>(links: T[]) {
+  return [...links].sort((a, b) => {
+    if (a.role !== b.role) {
+      return a.role === "PRIMARY" ? -1 : b.role === "PRIMARY" ? 1 : 0;
+    }
+    return a.position - b.position;
+  });
+}
+
 export function orderedUnitOwners(unit: UnitWithOwners) {
   const links = unit.unitClients;
   if (links.length > 0) {
-    return links.map((link) => ({
+    return sortOwnerLinks(links).map((link) => ({
       linkId: link.id,
-      role: link.role,
+      role: link.role as "PRIMARY" | "CO_OWNER",
       position: link.position,
       client: link.client,
     }));

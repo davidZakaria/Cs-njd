@@ -171,70 +171,8 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
   const role = session.user.role;
   const isAdmin = isAdminUnitManager(role);
   const isCsAgent = isCsAgentRole(role);
-  const isCommunity = isCommunityManagementRole(role);
-
-  if (isCommunity) {
-    const communityParsed = unitProfileFormSchema.safeParse(input);
-    if (!communityParsed.success) {
-      return actionFail(communityParsed.error.issues[0]?.message ?? "Invalid input");
-    }
-    const { unitId, clientId: communityClientId, clientName, phone1, email, nationalId, address1, extraPhones = [], extraAddresses = [] } =
-      communityParsed.data;
-
-    const unit = await prisma.unit.findUnique({
-      where: { id: unitId },
-      include: { project: { select: { id: true, name: true } } },
-    });
-    if (!unit || unit.deletedAt) return actionFail("Unit not found");
-    if (!canEditClientIdentityOnUnit(role, unit.project)) {
-      return actionFail("Unauthorized");
-    }
-
-    const editClientId = communityClientId?.trim() || unit.clientId;
-    if (!editClientId) return actionFail("Client record not found");
-    if (!(await assertClientLinkedToUnit(unitId, editClientId))) {
-      return actionFail("Client record not found");
-    }
-
-    try {
-      await withAudit(async () => {
-        await prisma.$transaction(async (tx) => {
-          await tx.client.update({
-            where: { id: editClientId },
-            data: {
-              name: clientName,
-              phone1,
-              phone2: null,
-              email,
-              nationalId,
-              address1,
-              address2: null,
-            },
-          });
-          await syncClientExtraPhones(tx, editClientId, phone1, extraPhones);
-          await syncClientExtraAddresses(
-            tx,
-            editClientId,
-            address1,
-            extraAddresses
-          );
-        });
-      });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002" &&
-        Array.isArray(error.meta?.target) &&
-        error.meta.target.includes("nationalId")
-      ) {
-        return actionFail("A client with this national ID already exists");
-      }
-      throw error;
-    }
-
-    revalidatePath(`/units/${unitId}`);
-    revalidatePath("/units");
-    return actionOk();
+  if (isCommunityManagementRole(role)) {
+    return actionFail("Unauthorized");
   }
 
   if (!canEditClientPhonesAndAddressesOnUnit(role)) {
