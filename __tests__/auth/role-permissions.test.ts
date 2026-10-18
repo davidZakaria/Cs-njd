@@ -79,7 +79,7 @@ describe("role-permissions matrix", () => {
   describe("COMMUNITY_MANAGEMENT", () => {
     const role: Role = "COMMUNITY_MANAGEMENT";
 
-    it("may list units and log calls on Jamila only", () => {
+    it("may list units and log calls on any project", () => {
       expect(canListAllUnits(role)).toBe(true);
       expect(
         canLogCallOnUnit(role, assigned, csScope, {
@@ -92,7 +92,7 @@ describe("role-permissions matrix", () => {
           id: "p2",
           name: "GREEN AVENUE",
         })
-      ).toBe(false);
+      ).toBe(true);
       expect(canCreateOrUpdateCaseOnUnit(role, assigned, csScope)).toBe(false);
       expect(canEditCsHandoverChecklist(role, assigned, csScope)).toBe(false);
       expect(
