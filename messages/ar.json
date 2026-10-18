@@ -288,6 +288,12 @@
       "engineeringReturnedMessage": "قام المهندس {engineerName} بتحديث تشطيبات الوحدة {unitCode}. عادت إلى قائمتك!"
     }
   },
+  "activityNotifications": {
+    "title": "إشعارات النشاط",
+    "subtitle": "متابعة مباشرة لتسجيل المكالمات والتذاكر الجديدة ضمن نطاق عملك.",
+    "markAllRead": "تعليم الكل كمقروء",
+    "empty": "لا يوجد نشاط بعد. ستظهر هنا المكالمات والتذاكر الجديدة."
+  },
   "notificationsLog": {
     "title": "سجل الإشعارات",
     "subtitle": "مراجعة إشعارات النظام — التحقق من التفعيل ووصولها للمستخدمين الصحيحين.",
@@ -394,6 +400,7 @@
     "twoFactorRequests": "طلبات إعادة ضبط 2FA",
     "systemHealth": "صحة النظام",
     "notificationsLog": "سجل الإشعارات",
+    "activityNotifications": "الإشعارات",
     "systemSettings": "الإعدادات العامة",
     "administration": "الإدارة",
     "groups": {

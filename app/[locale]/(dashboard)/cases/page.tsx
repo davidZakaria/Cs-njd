@@ -12,6 +12,8 @@ import { CasesTable, type CaseRow } from "@/components/cases/cases-table";
 import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
 import { canUseManagementOverride } from "@/lib/workflow/management-override";
 import { parseCasesPageFilters } from "@/lib/cases/cases-filter-url";
+import { communityManagedUnitWhere } from "@/lib/auth/community-project-scope";
+import { isCommunityManagementRole } from "@/lib/auth/unit-roles";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
 
@@ -33,10 +35,14 @@ export default async function CasesPage({
     ? canUseManagementOverride(session.user)
     : false;
 
-  const ticketWhere =
-    csScope
-      ? activeTicketWhere(csAgentTicketScope(csScope))
-      : activeTicketWhere({});
+  const communityScope =
+    session?.user.role && isCommunityManagementRole(session.user.role)
+      ? { unit: await communityManagedUnitWhere() }
+      : {};
+
+  const ticketWhere = csScope
+    ? activeTicketWhere(csAgentTicketScope(csScope))
+    : activeTicketWhere(communityScope);
 
   const [tickets, agents] = await Promise.all([
     prisma.ticket.findMany({

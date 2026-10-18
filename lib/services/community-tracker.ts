@@ -1,6 +1,7 @@
 import type { Role, TicketCategory } from "@prisma/client";
 
 import type { CommunityActivityActionType } from "@/lib/community-tracker/types";
+import { communityManagedUnitWhere } from "@/lib/auth/community-project-scope";
 import { prisma } from "@/lib/prisma";
 
 export type {
@@ -191,10 +192,13 @@ export async function getCommunityDailyActivity(
     return { rangeStart, rangeEnd, agents, kpis, kpisByAgent, activities };
   }
 
+  const jamilaUnitScope = await communityManagedUnitWhere();
+
   const createdTickets = await prisma.ticket.findMany({
     where: {
       createdById: { in: agentIds },
       createdAt: { gte: rangeStart, lte: rangeEnd },
+      unit: jamilaUnitScope,
     },
     select: {
       id: true,

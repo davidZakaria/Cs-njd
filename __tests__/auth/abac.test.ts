@@ -366,4 +366,29 @@ describe("CS Agent Scope Resolution", () => {
       expect(query).toEqual({ agentId: "cs-agent-1" });
     });
   });
+
+  describe("assertCommunityUnitAccess", () => {
+    it("allows community users on Jamila units", async () => {
+      const { assertCommunityUnitAccess } = await import("@/lib/auth/abac");
+
+      const result = await assertCommunityUnitAccess(
+        { id: "cm-1", role: "COMMUNITY_MANAGEMENT" },
+        { project: { id: "p1", name: "JAMILA NORTH COAST" } }
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it("forbids community users on other projects", async () => {
+      const { assertCommunityUnitAccess } = await import("@/lib/auth/abac");
+
+      const result = await assertCommunityUnitAccess(
+        { id: "cm-1", role: "COMMUNITY_MANAGEMENT" },
+        { project: { id: "p2", name: "GREEN AVENUE" } }
+      );
+
+      expect(result?.success).toBe(false);
+      expect(result).toHaveProperty("error", "Forbidden");
+    });
+  });
 });

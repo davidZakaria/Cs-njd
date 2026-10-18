@@ -404,19 +404,26 @@ model Ticket {
   @@index([status, resolvedAt])
 }
 
+enum NotificationKind {
+  GENERAL
+  ACTIVITY
+}
+
 model Notification {
-  id        String   @id @default(cuid())
+  id        String           @id @default(cuid())
   userId    String
   title     String
   message   String
-  isRead    Boolean  @default(false)
+  kind      NotificationKind @default(GENERAL)
+  isRead    Boolean          @default(false)
   link      String?
-  createdAt DateTime @default(now())
+  createdAt DateTime         @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, isRead])
+  @@index([userId, kind, isRead])
   @@index([createdAt])
 }
 

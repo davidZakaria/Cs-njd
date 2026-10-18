@@ -28,6 +28,7 @@ import { format } from "date-fns";
 import { Link } from "@/i18n/navigation";
 import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { buildUnitsFilterUrl } from "@/lib/units/units-filter-url";
+import { communityManagedUnitWhere } from "@/lib/auth/community-project-scope";
 
 export const dynamic = "force-dynamic";
 
@@ -51,27 +52,36 @@ export default async function DashboardPage() {
 
   const isCommunityManagement =
     session?.user.role === "COMMUNITY_MANAGEMENT";
+  const communityUnitScope = isCommunityManagement
+    ? await communityManagedUnitWhere()
+    : {};
   const communityTrackerDate = format(new Date(), "yyyy-MM-dd");
 
   const [totalUnits, pendingTickets, deliveredUnits, legalDisputes, pendingWork, communityDailyActivity] =
     await Promise.all([
       prisma.unit.count({
-        where: activeUnitWhere(csScope ? {} : assignedUnitScope),
+        where: activeUnitWhere(
+          csScope ? {} : isCommunityManagement ? communityUnitScope : assignedUnitScope
+        ),
       }),
       prisma.ticket.count({
         where: activeTicketWhere({
           status: "PENDING",
-          unit: assignedUnitScope.agentId
-            ? { agentId: assignedUnitScope.agentId }
-            : {},
+          unit: isCommunityManagement
+            ? communityUnitScope
+            : assignedUnitScope.agentId
+              ? { agentId: assignedUnitScope.agentId }
+              : {},
         }),
       }),
       prisma.contractWorkflow.count({
         where: activeContractWorkflowWhere({
           handoverStatus: { in: ["DELIVERY_PROTOCOL", "DELIVERED"] },
-          unit: assignedUnitScope.agentId
-            ? { agentId: assignedUnitScope.agentId }
-            : {},
+          unit: isCommunityManagement
+            ? communityUnitScope
+            : assignedUnitScope.agentId
+              ? { agentId: assignedUnitScope.agentId }
+              : {},
         }),
       }),
       prisma.contractWorkflow.count({
@@ -85,9 +95,11 @@ export default async function DashboardPage() {
               "LEGAL_DISPUTE",
             ],
           },
-          unit: assignedUnitScope.agentId
-            ? { agentId: assignedUnitScope.agentId }
-            : {},
+          unit: isCommunityManagement
+            ? communityUnitScope
+            : assignedUnitScope.agentId
+              ? { agentId: assignedUnitScope.agentId }
+              : {},
         }),
       }),
       session?.user

@@ -8,6 +8,7 @@ import {
   type SessionUserForScope,
 } from "@/lib/auth/cs-agent-scope";
 import { canManageUnitTickets } from "@/lib/auth/unit-ticket-access";
+import { isCommunityManagedProject } from "@/lib/auth/community-project-scope";
 import { isCommunityManagementRole } from "@/lib/auth/unit-roles";
 
 export async function assertCsAgentCanMutateTicket(
@@ -58,4 +59,19 @@ export async function assertCsAgentUnitAccess(
 
 export function isPrivilegedRole(role: Role): boolean {
   return role === "SUPER_ADMIN" || role === "MANAGEMENT";
+}
+
+export async function assertCommunityUnitAccess(
+  user: SessionUserForScope,
+  unit: { project: { id: string; name: string } }
+): Promise<ActionResult | null> {
+  if (!isCommunityManagementRole(user.role)) {
+    return null;
+  }
+
+  if (!isCommunityManagedProject(unit.project)) {
+    return actionFail("Forbidden");
+  }
+
+  return null;
 }

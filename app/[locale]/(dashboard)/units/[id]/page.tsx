@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { isCommunityManagedProject } from "@/lib/auth/community-project-scope";
 import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { prisma, notDeleted } from "@/lib/prisma";
 import { notFound } from "next/navigation";
@@ -87,6 +88,13 @@ export default async function UnitProfilePage({
   });
 
   if (!unit) notFound();
+
+  if (
+    session?.user.role === "COMMUNITY_MANAGEMENT" &&
+    !isCommunityManagedProject(unit.project)
+  ) {
+    notFound();
+  }
 
   const rosterAgents = await getAssignableAgentUsers();
 

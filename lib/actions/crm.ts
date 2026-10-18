@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import {
+  assertCommunityUnitAccess,
   assertCsAgentCanMutateTicket,
   assertCsAgentUnitAccess,
 } from "@/lib/auth/abac";
@@ -46,6 +47,7 @@ import {
   notifyInboundCall,
   notifyUnitAssigned,
 } from "@/lib/notifications/triggers";
+import { dispatchActivityForTicketCreate } from "@/lib/notifications/dispatch-activity-notifications";
 import { sortPhases, normalizeFinishingPhases } from "@/lib/finishing/phases";
 import {
   evaluateResolutionGates,
@@ -384,8 +386,17 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
 
   if (!notes.trim()) return actionFail("Notes are required");
 
-  const unit = await prisma.unit.findUnique({ where: { id: unitId } });
+  const unit = await prisma.unit.findUnique({
+    where: { id: unitId },
+    include: {
+      project: { select: { id: true, name: true } },
+      client: { select: { name: true } },
+    },
+  });
   if (!unit) return actionFail("Unit not found");
+
+  const communityAccess = await assertCommunityUnitAccess(session.user, unit);
+  if (communityAccess) return communityAccess;
 
   if (isCsAgentRole(session.user.role)) {
     const scope = await resolveCsAgentScope(session.user);
@@ -439,7 +450,16 @@ export async function createTicket(formData: FormData): Promise<ActionResult> {
     actorName,
   });
 
+  await dispatchActivityForTicketCreate({
+    actorUserId: session.user.id,
+    actorName,
+    unit,
+    category,
+    notes: noteBody,
+  });
+
   revalidateTicketPaths(unitId);
+  revalidatePath("/notifications");
   return actionOk();
 }
 
@@ -1163,9 +1183,16 @@ export async function logCallQuickAction(input: {
 
   const unit = await prisma.unit.findUnique({
     where: { id: input.unitId },
-    include: { agent: true },
+    include: {
+      agent: true,
+      project: { select: { id: true, name: true } },
+      client: { select: { name: true } },
+    },
   });
   if (!unit) return actionFail("Unit not found");
+
+  const communityAccess = await assertCommunityUnitAccess(session.user, unit);
+  if (communityAccess) return communityAccess;
 
   await withAudit(() =>
     prisma.ticket.create({
@@ -1181,6 +1208,16 @@ export async function logCallQuickAction(input: {
     })
   );
 
+  const actorName =
+    session.user.name ?? session.user.email ?? "Agent";
+  await dispatchActivityForTicketCreate({
+    actorUserId: session.user.id,
+    actorName,
+    unit,
+    category: "FEEDBACK_HISTORY",
+    notes,
+  });
+
   if (unit.agentId && unit.agentId !== session.user.id) {
     await notifyInboundCall({
       agentUserId: unit.agentId,
@@ -1193,6 +1230,7 @@ export async function logCallQuickAction(input: {
   revalidatePath(`/units/${unit.id}`);
   revalidatePath("/cases");
   revalidatePath("/dashboard");
+  revalidatePath("/notifications");
   return actionOk();
 }
 

@@ -61,6 +61,11 @@ vi.mock("@/lib/notifications/dispatch-ticket-notifications", () => ({
   dispatchTicketWorkflowNotifications: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("@/lib/notifications/dispatch-activity-notifications", () => ({
+  dispatchActivityForTicketCreate: vi.fn().mockResolvedValue(undefined),
+  dispatchActivityNotification: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("@/lib/notifications/triggers", () => ({
   notifyInboundCall: vi.fn().mockResolvedValue(undefined),
 }));
@@ -128,6 +133,8 @@ describe("server actions write audit context for mutations", () => {
       agentId: "agent-1",
       unitCode: "A-1",
       agent: { id: "agent-1" },
+      project: { id: "proj-jamila", name: "JAMILA NORTH COAST" },
+      client: { name: "Client" },
     });
 
     const { logCallQuickAction } = await import("@/lib/actions/crm");
@@ -175,6 +182,7 @@ describe("server actions write audit context for mutations", () => {
       id: "unit-1",
       deletedAt: null,
       agentId: null,
+      project: { id: "proj-jamila", name: "JAMILA NORTH COAST" },
       client: {
         id: "client-1",
         phone1: "0100",

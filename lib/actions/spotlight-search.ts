@@ -1,6 +1,8 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { communityManagedUnitWhere } from "@/lib/auth/community-project-scope";
+import { isCommunityManagementRole } from "@/lib/auth/unit-roles";
 import { prisma } from "@/lib/prisma";
 import { activeUnitWhere } from "@/lib/prisma";
 
@@ -20,8 +22,14 @@ export async function searchUnitsSpotlight(
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
 
+  const communityScope =
+    isCommunityManagementRole(session.user.role)
+      ? await communityManagedUnitWhere()
+      : {};
+
   const units = await prisma.unit.findMany({
     where: activeUnitWhere({
+      ...communityScope,
       OR: [
         { unitCode: { contains: trimmed, mode: "insensitive" } },
         {
