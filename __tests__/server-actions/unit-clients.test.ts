@@ -121,6 +121,44 @@ describe("unit co-owner actions", () => {
     expect(mockUnitClientDelete).not.toHaveBeenCalled();
   });
 
+  it("allows CS agent to add a new co-owner but not link existing", async () => {
+    mockAuth.mockResolvedValue(session("CS_AGENT"));
+    mockUnitFindUnique.mockResolvedValue({
+      id: "unit-1",
+      deletedAt: null,
+      clientId: "primary-client",
+      project: { id: "proj-ga", name: "GREEN AVENUE" },
+      unitClients: [],
+    });
+    mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<void>) =>
+      fn({
+        client: {
+          create: vi.fn().mockResolvedValue({ id: "new-co" }),
+        },
+        unitClient: {
+          findUnique: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockResolvedValue({ id: "link-new" }),
+        },
+      })
+    );
+
+    const { addUnitCoOwner } = await import("@/lib/actions/unit-clients");
+    const addResult = await addUnitCoOwner({
+      unitId: "unit-1",
+      mode: "new",
+      name: "Second Owner",
+    });
+    expect(addResult.success).toBe(true);
+
+    const linkResult = await addUnitCoOwner({
+      unitId: "unit-1",
+      mode: "link",
+      existingClientId: "other-client",
+    });
+    expect(linkResult.success).toBe(false);
+    expect(linkResult).toHaveProperty("error", "Unauthorized");
+  });
+
   it("allows community on Jamila to add a co-owner", async () => {
     mockAuth.mockResolvedValue(session("COMMUNITY_MANAGEMENT"));
     mockUnitFindUnique.mockResolvedValue({

@@ -60,6 +60,7 @@ import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import {
   canCreateOrUpdateCaseOnUnit,
   canEditFinishingFinancialsOnUnit,
+  canEditLegalHandoverOnUnit,
   canLogCallOnUnit,
 } from "@/lib/auth/role-permissions";
 import { isAdminUnitManager, isCsAgentRole } from "@/lib/auth/unit-roles";
@@ -855,7 +856,9 @@ export async function updateHandoverChecklist(
   if (isCommunityManagementRole(session.user.role)) {
     const communityAccess = await assertCommunityUnitAccess(session.user, unit);
     if (communityAccess) return communityAccess;
-  } else if (!["SUPER_ADMIN", "MANAGEMENT"].includes(session.user.role)) {
+  } else if (
+    !canEditLegalHandoverOnUnit(session.user.role, unit.project)
+  ) {
     return actionFail("Unauthorized");
   }
 

@@ -42,7 +42,7 @@ describe("role-permissions matrix", () => {
       expect(canSubmitEngineeringSiteUpdate(role)).toBe(false);
     });
 
-    it("edits finishing and phone/address contacts on any unit, not identity", () => {
+    it("edits finishing, identity, contacts, legal handover, and co-owner add on any unit", () => {
       expect(canEditFinishingFinancialsOnUnit(role, assigned, csScope)).toBe(
         true
       );
@@ -52,7 +52,15 @@ describe("role-permissions matrix", () => {
       );
       expect(canEditClientContactsOnUnit(role, other, csScope)).toBe(true);
       expect(canSyncClientExtraContacts(role, other, csScope)).toBe(true);
-      expect(canEditClientIdentityFields(role)).toBe(false);
+      expect(canEditClientIdentityFields(role)).toBe(true);
+      expect(canEditClientIdentityOnUnit(role)).toBe(true);
+      expect(
+        canEditLegalHandoverOnUnit(role, { id: "p2", name: "GREEN AVENUE" })
+      ).toBe(true);
+      expect(canAddUnitCoOwner(role, { id: "p2", name: "GREEN AVENUE" })).toBe(
+        true
+      );
+      expect(canManageUnitCoOwners(role)).toBe(false);
       expect(canUploadClientNationalIdScan(role)).toBe(false);
     });
 

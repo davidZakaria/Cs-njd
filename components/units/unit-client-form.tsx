@@ -104,7 +104,9 @@ export function UnitClientForm({
   const canEditPhonesAndAddresses =
     profileEditLevel === "phoneAddress" || profileEditLevel === "admin";
   const canEditIdentity =
-    profileEditLevel === "admin" || profileEditLevel === "communityJamila";
+    profileEditLevel === "admin" ||
+    profileEditLevel === "communityJamila" ||
+    profileEditLevel === "phoneAddress";
   const canEditCommunityExtras = profileEditLevel === "communityExtras";
   const canEditCommunityJamila = profileEditLevel === "communityJamila";
   const canEditAdmin = profileEditLevel === "admin";

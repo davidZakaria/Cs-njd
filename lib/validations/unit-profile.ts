@@ -72,11 +72,11 @@ export const unitProfileFormSchema = z.object({
 });
 
 /**
- * CS agents only edit phones/addresses; identity fields skip strict validation
- * but keep the same output types as unitProfileFormSchema for shared form/action typing.
+ * CS agents edit identity, phones, and addresses on any unit profile.
+ * Email uses loose validation; required identity blanking is enforced server-side.
  */
 export const csAgentUnitProfileFormSchema = unitProfileFormSchema.extend({
-  clientName: z.string(),
+  clientName: z.string().min(1),
   email: optionalEmailLoose(),
 });
 

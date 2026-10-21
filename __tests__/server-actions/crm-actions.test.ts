@@ -714,7 +714,7 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
       expect(result).toHaveProperty("error", "Unauthorized");
     });
 
-    it("denies access for CS_AGENT role", async () => {
+    it("allows CS_AGENT to update handover checklist on any unit", async () => {
       mockAuth.mockResolvedValue(createMockSession({
         id: "cs-agent-1",
         role: "CS_AGENT",
@@ -724,12 +724,16 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
         project: { id: "proj-1", name: "GREEN AVENUE" },
         contractWorkflow: null,
       });
+      mockPrismaContractWorkflow.upsert.mockResolvedValue({
+        unitId: "unit-1",
+        hasPaidFees: true,
+      });
 
       const { updateHandoverChecklist } = await import("@/lib/actions/crm");
       const result = await updateHandoverChecklist(validHandoverInput);
-      
-      expect(result.success).toBe(false);
-      expect(result).toHaveProperty("error", "Unauthorized");
+
+      expect(result.success).toBe(true);
+      expect(mockPrismaContractWorkflow.upsert).toHaveBeenCalled();
     });
 
     it("allows SUPER_ADMIN to update handover checklist", async () => {
