@@ -11,7 +11,7 @@ import {
   canAddUnitCoOwner,
   canManageUnitCoOwners,
 } from "@/lib/auth/role-permissions";
-import { isCommunityManagementRole } from "@/lib/auth/unit-roles";
+import { isCommunityManagementRole, isCsAgentRole } from "@/lib/auth/unit-roles";
 import { prisma } from "@/lib/prisma";
 import { assertClientLinkedToUnit } from "@/lib/units/assert-unit-client-link";
 
@@ -97,7 +97,8 @@ export async function addUnitCoOwner(
   }
 
   if (
-    isCommunityManagementRole(session.user.role) &&
+    (isCommunityManagementRole(session.user.role) ||
+      isCsAgentRole(session.user.role)) &&
     mode === "link"
   ) {
     return actionFail("Unauthorized");

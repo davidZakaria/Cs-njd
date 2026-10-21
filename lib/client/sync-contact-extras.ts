@@ -11,6 +11,11 @@ export type ExtraLineInput = {
   value: string;
 };
 
+export type ContactSyncOptions = {
+  /** Keep persisted rows omitted from the payload; never delete extras. */
+  preserveOmittedPersisted?: boolean;
+};
+
 function uniqueNonEmpty(values: string[]): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
@@ -27,8 +32,10 @@ export async function syncClientExtraPhones(
   tx: ContactSyncClient,
   clientId: string,
   primaryPhone: string | null,
-  lines: ExtraLineInput[]
+  lines: ExtraLineInput[],
+  options?: ContactSyncOptions
 ): Promise<void> {
+  const preserveOmittedPersisted = options?.preserveOmittedPersisted ?? false;
   const primary = normalizeContactValue(primaryPhone);
   const desiredLines = lines
     .map((line) => ({
@@ -54,9 +61,11 @@ export async function syncClientExtraPhones(
     deduped.filter((line) => line.id).map((line) => line.id as string)
   );
 
-  for (const row of existing) {
-    if (!keepIds.has(row.id)) {
-      await tx.clientPhone.delete({ where: { id: row.id } });
+  if (!preserveOmittedPersisted) {
+    for (const row of existing) {
+      if (!keepIds.has(row.id)) {
+        await tx.clientPhone.delete({ where: { id: row.id } });
+      }
     }
   }
 
@@ -80,8 +89,10 @@ export async function syncClientExtraAddresses(
   tx: ContactSyncClient,
   clientId: string,
   primaryAddress: string | null,
-  lines: ExtraLineInput[]
+  lines: ExtraLineInput[],
+  options?: ContactSyncOptions
 ): Promise<void> {
+  const preserveOmittedPersisted = options?.preserveOmittedPersisted ?? false;
   const primary = normalizeContactValue(primaryAddress);
   const desiredLines = lines
     .map((line) => ({
@@ -107,9 +118,11 @@ export async function syncClientExtraAddresses(
     deduped.filter((line) => line.id).map((line) => line.id as string)
   );
 
-  for (const row of existing) {
-    if (!keepIds.has(row.id)) {
-      await tx.clientAddress.delete({ where: { id: row.id } });
+  if (!preserveOmittedPersisted) {
+    for (const row of existing) {
+      if (!keepIds.has(row.id)) {
+        await tx.clientAddress.delete({ where: { id: row.id } });
+      }
     }
   }
 

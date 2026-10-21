@@ -87,7 +87,7 @@ export function canEditClientContactsOnUnit(
 }
 
 export function canEditClientIdentityFields(role: Role): boolean {
-  return isAdminUnitManager(role);
+  return isAdminUnitManager(role) || isCsAgentRole(role);
 }
 
 /** Identity fields (name, national ID, email) on a unit owner card. */
@@ -95,7 +95,7 @@ export function canEditClientIdentityOnUnit(
   role: Role,
   _project?: ProjectRef | null
 ): boolean {
-  return isAdminUnitManager(role);
+  return isAdminUnitManager(role) || isCsAgentRole(role);
 }
 
 /** Remove co-owner, make primary, link existing client — management only. */
@@ -103,12 +103,13 @@ export function canManageUnitCoOwners(role: Role): boolean {
   return isAdminUnitManager(role);
 }
 
-/** Add a new co-owner client on Jamila (community) or any unit (management). */
+/** Add a new co-owner client on Jamila (community), any unit (CS), or management. */
 export function canAddUnitCoOwner(
   role: Role,
   project?: ProjectRef | null
 ): boolean {
   if (isAdminUnitManager(role)) return true;
+  if (isCsAgentRole(role)) return true;
   if (isCommunityManagementRole(role)) {
     return project != null && isCommunityManagedProject(project);
   }
@@ -158,6 +159,7 @@ export function canEditLegalHandoverOnUnit(
   project?: ProjectRef | null
 ): boolean {
   if (isAdminUnitManager(role) || role === "SUPER_ADMIN") return true;
+  if (isCsAgentRole(role)) return true;
   if (isCommunityManagementRole(role)) {
     return project != null && isCommunityManagedProject(project);
   }

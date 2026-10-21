@@ -153,8 +153,9 @@ export default async function UnitProfilePage({
       ? canManageUnitCoOwners(session.user.role)
       : false;
   const canAddCoOwner =
-    session?.user.role != null && communityCanActOnUnit
-      ? canAddUnitCoOwner(session.user.role, unit.project)
+    session?.user.role != null
+      ? canAddUnitCoOwner(session.user.role, unit.project) &&
+        (session.user.role !== "COMMUNITY_MANAGEMENT" || communityCanActOnUnit)
       : false;
 
   const canManageTickets = session?.user

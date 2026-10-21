@@ -3,12 +3,26 @@ import { describe, expect, it } from "vitest";
 import { csAgentUnitProfileFormSchema } from "@/lib/validations/unit-profile";
 
 describe("csAgentUnitProfileFormSchema", () => {
-  it("accepts invalid or empty identity fields CS cannot edit", () => {
+  it("requires a non-empty client name", () => {
     const result = csAgentUnitProfileFormSchema.safeParse({
       unitId: "unit-1",
       clientName: "",
       email: "N/A",
       nationalId: "  ",
+      phone1: "0100",
+      address1: "Street",
+      type: "APARTMENT",
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts identity and contact fields for CS saves", () => {
+    const result = csAgentUnitProfileFormSchema.safeParse({
+      unitId: "unit-1",
+      clientName: "Name",
+      email: "N/A",
+      nationalId: "123",
       phone1: "0100",
       address1: "Street",
       type: "APARTMENT",
