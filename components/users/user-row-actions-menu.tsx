@@ -87,6 +87,8 @@ export function UserRowActionsMenu({
 
   const showEdit = canEditUser(actor, target);
   const showReset2FA = canResetUser2FA(actor, target);
+  const isMidTwoFactorEnrollment =
+    user.hasTwoFactorSecret && !user.is2FAEnabled;
   const showApprove2FAReset = isSuperAdmin && user.hasPending2FAReset;
   const showChangePassword = canAdminChangePassword(actor, target);
   const showForcePassword = canForcePasswordReset(actor, target);
@@ -327,7 +329,9 @@ export function UserRowActionsMenu({
           <DialogHeader>
             <DialogTitle>{t("resetTwoFactorTitle")}</DialogTitle>
             <DialogDescription>
-              {t("resetTwoFactorConfirm", { name: user.name })}
+              {isMidTwoFactorEnrollment
+                ? t("resetTwoFactorMidEnrollmentConfirm", { name: user.name })
+                : t("resetTwoFactorConfirm", { name: user.name })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="border-t-0 bg-transparent p-0 pt-2 sm:justify-end">

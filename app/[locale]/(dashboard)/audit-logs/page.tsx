@@ -20,9 +20,17 @@ export default async function AuditLogsPage() {
   const rows = logs.map((log) => {
     const tableKey = auditTableNameTranslationKey(log.tableName);
     const tableName = tableKey ? t(tableKey) : log.tableName;
+    const actionLabel =
+      log.action === "CREATE" ||
+      log.action === "UPDATE" ||
+      log.action === "DELETE" ||
+      log.action === "TWO_FACTOR_RESET"
+        ? t(`actions.${log.action}`)
+        : log.action;
+
     return {
     id: log.id,
-    action: log.action,
+    action: actionLabel,
     tableName,
     user: log.user?.name ?? t("systemUser"),
     timestamp: formatDateTime(log.timestamp, locale),

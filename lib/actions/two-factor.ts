@@ -2,7 +2,9 @@
 
 import { auth } from "@/lib/auth";
 import { withAudit } from "@/lib/audit/with-audit";
-import { prisma } from "@/lib/prisma";
+import { auditContext } from "@/lib/prisma/audit-context";
+import { basePrisma, prisma } from "@/lib/prisma";
+import { recordAuditLog } from "@/lib/prisma/record-audit-log";
 import {
   resetTwoFactorSetupForSession,
   verifyTwoFactorCode,
@@ -67,10 +69,27 @@ export async function setUserTwoFactorByAdmin(
 
     await withAudit(async () => {
       await cancelPendingTwoFactorResetRequests(userId);
-      await prisma.user.update({
+      await basePrisma.user.update({
         where: { id: userId },
         data: { is2FAEnabled: false, twoFactorSecret: null },
       });
+
+      const ctx = auditContext.getStore();
+      if (ctx?.userId) {
+        await recordAuditLog(basePrisma, ctx, {
+          model: "User",
+          action: "TWO_FACTOR_RESET",
+          recordId: userId,
+          oldData: {
+            is2FAEnabled: user.is2FAEnabled,
+            hadTwoFactorSecret: Boolean(user.twoFactorSecret),
+          },
+          newData: {
+            is2FAEnabled: false,
+            twoFactorSecret: null,
+          },
+        });
+      }
     });
   }
 

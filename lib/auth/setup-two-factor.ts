@@ -95,7 +95,7 @@ export async function confirmSetupTwoFactor(
   }
 
   if (normalizeTotpSecret(dbSecret) !== normalizeTotpSecret(secret)) {
-    return actionFail("SETUP_EXPIRED");
+    return actionFail("SETUP_SECRET_CHANGED");
   }
 
   const normalized = token.replace(/\D/g, "").trim();

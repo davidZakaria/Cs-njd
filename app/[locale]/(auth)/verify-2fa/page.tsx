@@ -9,11 +9,17 @@ import {
   getPostAuthRedirect,
   resolveLocale,
 } from "@/lib/auth-redirect";
+import {
+  fetchTwoFactorResetStatus,
+  postAuthJson,
+  PostAuthRequestError,
+} from "@/lib/auth/post-auth-json";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ActionResult } from "@/lib/actions/result";
+
 type TwoFactorResetStatus =
   | "none"
   | "pending"
@@ -37,33 +43,8 @@ function isVerifyErrorCode(value: string): value is VerifyErrorCode {
   return VERIFY_ERROR_CODES.includes(value as VerifyErrorCode);
 }
 
-async function postAuthJson<T>(url: string, body?: unknown): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    credentials: "include",
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  return (await response.json()) as T;
-}
-
-async function fetchResetStatus(): Promise<{
-  status: TwoFactorResetStatus;
-  needsEnrollment: boolean;
-}> {
-  const response = await fetch("/api/auth/2fa-reset-status", {
-    credentials: "include",
-    cache: "no-store",
-  });
-  const data = (await response.json()) as {
-    status?: TwoFactorResetStatus;
-    needsEnrollment?: boolean;
-  };
-  return {
-    status: data.status ?? "none",
-    needsEnrollment: data.needsEnrollment ?? false,
-  };
+function isEnrollmentRequired(code: string | undefined): boolean {
+  return code === "NOT_CONFIGURED" || code === "SETUP_EXPIRED";
 }
 
 export default function Verify2FAPage() {
@@ -102,12 +83,27 @@ export default function Verify2FAPage() {
     let cancelled = false;
 
     async function poll() {
-      const result = await fetchResetStatus();
-      if (cancelled) return;
-      setResetStatus(result.status);
-      setNeedsEnrollment(result.needsEnrollment);
-      if (result.status === "ready" || result.needsEnrollment) {
-        await goToSetup();
+      try {
+        const result = await fetchTwoFactorResetStatus();
+        if (cancelled) return;
+        setResetStatus(result.status as TwoFactorResetStatus);
+        setNeedsEnrollment(result.needsEnrollment);
+        if (
+          result.status === "ready" ||
+          result.status === "approved" ||
+          result.needsEnrollment
+        ) {
+          await goToSetup();
+        }
+      } catch (pollError) {
+        if (cancelled) return;
+        const message =
+          pollError instanceof PostAuthRequestError
+            ? pollError.message
+            : pollError instanceof Error
+              ? pollError.message
+              : t("resetStatusPollFailed");
+        setError(message);
       }
     }
 
@@ -120,7 +116,7 @@ export default function Verify2FAPage() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [goToSetup]);
+  }, [goToSetup, t]);
 
   function resolveVerifyError(code: string | undefined): string {
     if (!code) return t("verifyFailed");
@@ -144,6 +140,10 @@ export default function Verify2FAPage() {
       });
 
       if (!result.success) {
+        if (isEnrollmentRequired(result.error)) {
+          await goToSetup();
+          return;
+        }
         setError(resolveVerifyError(result.error));
         return;
       }
@@ -164,8 +164,14 @@ export default function Verify2FAPage() {
           role: refreshed.user.role,
         })
       );
-    } catch {
-      setError(t("verifyUnexpectedError"));
+    } catch (submitError) {
+      const message =
+        submitError instanceof PostAuthRequestError
+          ? submitError.message
+          : submitError instanceof Error
+            ? submitError.message
+            : t("verifyUnexpectedError");
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -185,7 +191,7 @@ export default function Verify2FAPage() {
       );
 
       if (!result.success) {
-        if (result.error === "NOT_CONFIGURED") {
+        if (isEnrollmentRequired(result.error)) {
           await goToSetup();
           return;
         }
@@ -193,15 +199,21 @@ export default function Verify2FAPage() {
         return;
       }
 
-      const enrollmentCheck = await fetchResetStatus();
+      const enrollmentCheck = await fetchTwoFactorResetStatus();
       if (enrollmentCheck.needsEnrollment || enrollmentCheck.status === "ready") {
         await goToSetup();
         return;
       }
 
       setResetStatus("pending");
-    } catch {
-      setError(t("resetAuthenticatorFailed"));
+    } catch (resetError) {
+      const message =
+        resetError instanceof PostAuthRequestError
+          ? resetError.message
+          : resetError instanceof Error
+            ? resetError.message
+            : t("resetAuthenticatorFailed");
+      setError(message);
     } finally {
       setRequestingReset(false);
     }

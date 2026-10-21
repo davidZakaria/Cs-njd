@@ -6,18 +6,41 @@ const mockPrismaUser = {
   findUnique: vi.fn(),
   update: vi.fn(),
 };
+const mockAuditLogCreate = vi.fn();
+const { mockAuditContext } = vi.hoisted(() => ({
+  mockAuditContext: {
+    run: <T>(_ctx: unknown, fn: () => Promise<T>) => fn(),
+    getStore: () => ({ userId: "super-admin-1", ipAddress: "127.0.0.1" }),
+  },
+}));
 
 vi.mock("@/lib/auth", () => ({
   auth: () => mockAuth(),
+}));
+
+vi.mock("@/lib/auth/two-factor-reset-request", () => ({
+  approveTwoFactorResetRequest: vi.fn(),
+  rejectTwoFactorResetRequest: vi.fn(),
+  cancelPendingTwoFactorResetRequests: vi.fn().mockResolvedValue(undefined),
+  getTwoFactorResetStatusForSession: vi.fn(),
+  requestTwoFactorResetForSession: vi.fn(),
+}));
+
+vi.mock("@/lib/prisma/audit-context", () => ({
+  auditContext: mockAuditContext,
 }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: mockPrismaUser,
   },
-  auditContext: {
-    run: <T>(_ctx: unknown, fn: () => T) => fn(),
+  basePrisma: {
+    user: mockPrismaUser,
+    auditLog: {
+      create: (...args: unknown[]) => mockAuditLogCreate(...args),
+    },
   },
+  auditContext: mockAuditContext,
 }));
 
 vi.mock("next/headers", () => ({
@@ -386,6 +409,14 @@ describe("Two-Factor Authentication Server Actions", () => {
       expect(mockPrismaUser.update).toHaveBeenCalledWith({
         where: { id: "user-1" },
         data: { is2FAEnabled: false, twoFactorSecret: null },
+      });
+      expect(mockAuditLogCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: "TWO_FACTOR_RESET",
+          tableName: "User",
+          recordId: "user-1",
+          userId: "super-admin-1",
+        }),
       });
     });
 
