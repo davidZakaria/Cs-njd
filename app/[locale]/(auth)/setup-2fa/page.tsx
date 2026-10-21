@@ -196,8 +196,8 @@ export default function Setup2FAPage() {
 
       if (!result.success) {
         if (result.error && QR_RESET_SETUP_ERRORS.has(result.error)) {
-          setInfoMessage(t("qrWasResetScanAgain"));
           await loadSetup(false);
+          setInfoMessage(t("qrWasResetScanAgain"));
           return;
         }
         setError(resolveSetupError(result.error));
