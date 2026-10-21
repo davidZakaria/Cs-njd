@@ -13,7 +13,11 @@ import {
   canEditClientIdentityOnUnit,
   canEditClientPhonesAndAddressesOnUnit,
 } from "@/lib/auth/role-permissions";
-import { validateCsClientIdentityUpdate } from "@/lib/clients/cs-identity-guard";
+import {
+  validateCsClientIdentityUpdate,
+  validateCsClientPrimaryContactUpdate,
+  validateCsExtraContactLines,
+} from "@/lib/clients/cs-identity-guard";
 import { assertClientLinkedToUnit } from "@/lib/units/assert-unit-client-link";
 import { UnitClientRole } from "@prisma/client";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
@@ -225,10 +229,47 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
       {
         name: existingClient.name,
         nationalId: existingClient.nationalId,
+        email: existingClient.email,
       },
-      { name: clientName, nationalId }
+      { name: clientName, nationalId, email }
     );
     if (identityError) return actionFail(identityError);
+
+    const primaryContactError = validateCsClientPrimaryContactUpdate(
+      {
+        phone1: existingClient.phone1,
+        address1: existingClient.address1,
+      },
+      { phone1, address1 }
+    );
+    if (primaryContactError) return actionFail(primaryContactError);
+
+    const [existingPhones, existingAddresses] = await Promise.all([
+      prisma.clientPhone.findMany({
+        where: { clientId },
+        orderBy: { sortOrder: "asc" },
+      }),
+      prisma.clientAddress.findMany({
+        where: { clientId },
+        orderBy: { sortOrder: "asc" },
+      }),
+    ]);
+
+    const extraPhoneError = validateCsExtraContactLines(
+      existingPhones.map((row) => ({ id: row.id, value: row.phone })),
+      extraPhones,
+      "phone"
+    );
+    if (extraPhoneError) return actionFail(extraPhoneError);
+
+    const extraAddressError = validateCsExtraContactLines(
+      existingAddresses.map((row) => ({ id: row.id, value: row.address })),
+      extraAddresses,
+      "address"
+    );
+    if (extraAddressError) return actionFail(extraAddressError);
+
+    const csContactSyncOptions = { preserveOmittedPersisted: true };
 
     const clientData = {
       name: clientName,
@@ -247,12 +288,19 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
             where: { id: clientId },
             data: clientData,
           });
-          await syncClientExtraPhones(tx, clientId, phone1, extraPhones);
+          await syncClientExtraPhones(
+            tx,
+            clientId,
+            phone1,
+            extraPhones,
+            csContactSyncOptions
+          );
           await syncClientExtraAddresses(
             tx,
             clientId,
             address1,
-            extraAddresses
+            extraAddresses,
+            csContactSyncOptions
           );
         });
       });

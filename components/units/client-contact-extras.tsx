@@ -9,7 +9,10 @@ import {
   addClientExtraAddress,
   addClientExtraPhone,
 } from "@/lib/actions/client-contacts";
-import type { ContactExtraLine } from "@/lib/client/contact-lines";
+import {
+  isPersistedExtraId,
+  type ContactExtraLine,
+} from "@/lib/client/contact-lines";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { ClientPhoneRow } from "@/components/units/client-phone-row";
 import { Button } from "@/components/ui/button";
@@ -39,6 +42,7 @@ export function ClientContactExtras({
   extraAddresses,
   mode,
   contactDisabled = false,
+  allowRemovePersistedExtras = true,
   onExtrasChange,
 }: {
   unitId: string;
@@ -51,6 +55,8 @@ export function ClientContactExtras({
   extraAddresses: ContactExtraLine[];
   mode: ContactExtrasMode;
   contactDisabled?: boolean;
+  /** When false, remove is only allowed for unsaved (non-persisted) rows. */
+  allowRemovePersistedExtras?: boolean;
   onExtrasChange?: (next: {
     phones: ContactExtraLine[];
     addresses: ContactExtraLine[];
@@ -68,6 +74,13 @@ export function ClientContactExtras({
 
   const canEdit = mode === "editable";
   const canAddOnly = mode === "communityAddOnly";
+
+  function canRemoveRow(row: ContactExtraLine): boolean {
+    if (!canEdit) return false;
+    if (allowRemovePersistedExtras) return true;
+    const id = row.id?.trim() ?? "";
+    return !id || !isPersistedExtraId(id);
+  }
 
   function updatePhone(index: number, value: string) {
     if (!onExtrasChange) return;
@@ -191,16 +204,18 @@ export function ClientContactExtras({
                       disabled={pending}
                       onChange={(event) => updatePhone(index, event.target.value)}
                     />
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      disabled={pending}
-                      onClick={() => removePhone(index)}
-                      aria-label={t("removePhone")}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
+                    {canRemoveRow(row) ? (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        disabled={pending}
+                        onClick={() => removePhone(index)}
+                        aria-label={t("removePhone")}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    ) : null}
                   </>
                 ) : (
                   <ClientPhoneRow
@@ -261,16 +276,18 @@ export function ClientContactExtras({
                       disabled={pending}
                       onChange={(event) => updateAddress(index, event.target.value)}
                     />
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      disabled={pending}
-                      onClick={() => removeAddress(index)}
-                      aria-label={t("removeAddress")}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
+                    {canRemoveRow(row) ? (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        disabled={pending}
+                        onClick={() => removeAddress(index)}
+                        aria-label={t("removeAddress")}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    ) : null}
                   </div>
                 ) : (
                   <p className="text-sm">

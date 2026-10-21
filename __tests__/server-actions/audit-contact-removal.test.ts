@@ -33,10 +33,19 @@ vi.mock("@/lib/auth", () => ({
   auth: () => mockAuth(),
 }));
 
+const mockClientPhoneFindMany = vi.fn();
+const mockClientAddressFindMany = vi.fn();
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     unit: {
       findUnique: (...args: unknown[]) => mockUnitFindUnique(...args),
+    },
+    clientPhone: {
+      findMany: (...args: unknown[]) => mockClientPhoneFindMany(...args),
+    },
+    clientAddress: {
+      findMany: (...args: unknown[]) => mockClientAddressFindMany(...args),
     },
     $transaction: (fn: (tx: typeof mockTx) => Promise<void>) => fn(mockTx),
   },
@@ -73,6 +82,7 @@ const baseUnit = {
   id: "unit-1",
   deletedAt: null,
   projectId: "project-1",
+  project: { id: "project-1", name: "GREEN AVENUE" },
   unitCode: "A-101",
   clientId: "client-1",
   agentId: "cs-agent-1",
@@ -93,6 +103,8 @@ describe("updateUnit contact removal audit context", () => {
     mockAuth.mockResolvedValue(csSession());
     mockUnitFindUnique.mockResolvedValue(baseUnit);
     mockClientUpdate.mockResolvedValue({});
+    mockClientPhoneFindMany.mockResolvedValue([]);
+    mockClientAddressFindMany.mockResolvedValue([]);
 
     mockTx.clientPhone.delete.mockImplementation(async () => {
       recordAuditRowIfContext("ClientPhone", "DELETE", auditRows);
@@ -102,10 +114,12 @@ describe("updateUnit contact removal audit context", () => {
     });
   });
 
-  it("records audit context when an extra phone is removed from the profile", async () => {
-    mockTx.clientPhone.findMany.mockResolvedValue([
+  it("does not delete extra phones when CS omits them from the payload", async () => {
+    const phoneRows = [
       { id: "phone-extra", phone: "0111", sortOrder: 0, clientId: "client-1" },
-    ]);
+    ];
+    mockClientPhoneFindMany.mockResolvedValue(phoneRows);
+    mockTx.clientPhone.findMany.mockResolvedValue(phoneRows);
     mockTx.clientAddress.findMany.mockResolvedValue([]);
 
     const { updateUnit } = await import("@/lib/actions/units");
@@ -123,26 +137,55 @@ describe("updateUnit contact removal audit context", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(mockTx.clientPhone.delete).toHaveBeenCalledWith({
-      where: { id: "phone-extra" },
-    });
-    expect(auditRows).toContainEqual({
+    expect(mockTx.clientPhone.delete).not.toHaveBeenCalled();
+    expect(auditRows).not.toContainEqual({
       userId: "cs-agent-1",
       tableName: "ClientPhone",
       action: "DELETE",
     });
   });
 
-  it("records audit context when an extra address is removed from the profile", async () => {
-    mockTx.clientPhone.findMany.mockResolvedValue([]);
-    mockTx.clientAddress.findMany.mockResolvedValue([
+  it("rejects CS blanking a persisted extra phone", async () => {
+    const phoneRows = [
+      { id: "phone-extra", phone: "0111", sortOrder: 0, clientId: "client-1" },
+    ];
+    mockClientPhoneFindMany.mockResolvedValue(phoneRows);
+    mockTx.clientPhone.findMany.mockResolvedValue(phoneRows);
+    mockTx.clientAddress.findMany.mockResolvedValue([]);
+
+    const { updateUnit } = await import("@/lib/actions/units");
+    const result = await updateUnit({
+      unitId: "unit-1",
+      clientName: "Client Name",
+      phone1: "0100",
+      email: "client@test.com",
+      nationalId: "123",
+      address1: "Street 1",
+      type: unitType,
+      unitCode: "A-101",
+      extraPhones: [{ id: "phone-extra", value: "" }],
+      extraAddresses: [],
+    });
+
+    expect(result.success).toBe(false);
+    expect(result).toHaveProperty("error", "Extra phone number cannot be cleared");
+    expect(mockTx.clientPhone.delete).not.toHaveBeenCalled();
+    expect(mockClientUpdate).not.toHaveBeenCalled();
+  });
+
+  it("does not delete extra addresses when CS omits them from the payload", async () => {
+    const addressRows = [
       {
         id: "address-extra",
         address: "Extra street",
         sortOrder: 0,
         clientId: "client-1",
       },
-    ]);
+    ];
+    mockClientPhoneFindMany.mockResolvedValue([]);
+    mockClientAddressFindMany.mockResolvedValue(addressRows);
+    mockTx.clientPhone.findMany.mockResolvedValue([]);
+    mockTx.clientAddress.findMany.mockResolvedValue(addressRows);
 
     const { updateUnit } = await import("@/lib/actions/units");
     const result = await updateUnit({
@@ -159,13 +202,6 @@ describe("updateUnit contact removal audit context", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(mockTx.clientAddress.delete).toHaveBeenCalledWith({
-      where: { id: "address-extra" },
-    });
-    expect(auditRows).toContainEqual({
-      userId: "cs-agent-1",
-      tableName: "ClientAddress",
-      action: "DELETE",
-    });
+    expect(mockTx.clientAddress.delete).not.toHaveBeenCalled();
   });
 });

@@ -4,6 +4,8 @@ import type { Role, UnitType } from "@prisma/client";
 const mockAuth = vi.fn();
 const mockClientUpdate = vi.fn();
 const mockUnitFindUnique = vi.fn();
+const mockClientPhoneFindMany = vi.fn();
+const mockClientAddressFindMany = vi.fn();
 
 const mockTx = {
   unit: { update: vi.fn(), findUnique: vi.fn() },
@@ -12,12 +14,14 @@ const mockTx = {
     findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
     update: vi.fn(),
+    delete: vi.fn(),
     deleteMany: vi.fn(),
   },
   clientAddress: {
     findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
     update: vi.fn(),
+    delete: vi.fn(),
     deleteMany: vi.fn(),
   },
 };
@@ -30,6 +34,12 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     unit: {
       findUnique: (...args: unknown[]) => mockUnitFindUnique(...args),
+    },
+    clientPhone: {
+      findMany: (...args: unknown[]) => mockClientPhoneFindMany(...args),
+    },
+    clientAddress: {
+      findMany: (...args: unknown[]) => mockClientAddressFindMany(...args),
     },
     $transaction: (fn: (tx: typeof mockTx) => Promise<void>) => fn(mockTx),
   },
@@ -107,6 +117,8 @@ describe("updateUnit — CS_AGENT", () => {
     mockAuth.mockResolvedValue(csSession());
     mockUnitFindUnique.mockResolvedValue(baseUnit);
     mockClientUpdate.mockResolvedValue({});
+    mockClientPhoneFindMany.mockResolvedValue([]);
+    mockClientAddressFindMany.mockResolvedValue([]);
   });
 
   it("updates phone, address, and identity on any unit", async () => {
@@ -144,6 +156,19 @@ describe("updateUnit — CS_AGENT", () => {
 
     expect(result.success).toBe(false);
     expect(result).toHaveProperty("error", "Client name cannot be cleared");
+    expect(mockClientUpdate).not.toHaveBeenCalled();
+  });
+
+  it("rejects clearing an existing email", async () => {
+    const { updateUnit } = await import("@/lib/actions/units");
+    const result = await updateUnit(
+      validCsInput({
+        email: null,
+      })
+    );
+
+    expect(result.success).toBe(false);
+    expect(result).toHaveProperty("error", "Email cannot be cleared");
     expect(mockClientUpdate).not.toHaveBeenCalled();
   });
 
@@ -186,6 +211,21 @@ describe("updateUnit — CS_AGENT", () => {
         phone1: "0111",
       }),
     });
+  });
+
+  it("does not delete omitted extra phones on save", async () => {
+    mockClientPhoneFindMany.mockResolvedValue([
+      { id: "phone-extra", phone: "0111", sortOrder: 0, clientId: "client-1" },
+    ]);
+    mockTx.clientPhone.findMany.mockResolvedValue([
+      { id: "phone-extra", phone: "0111", sortOrder: 0, clientId: "client-1" },
+    ]);
+
+    const { updateUnit } = await import("@/lib/actions/units");
+    const result = await updateUnit(validCsInput({ extraPhones: [] }));
+
+    expect(result.success).toBe(true);
+    expect(mockTx.clientPhone.delete).not.toHaveBeenCalled();
   });
 
   it("rejects units without a client record", async () => {
