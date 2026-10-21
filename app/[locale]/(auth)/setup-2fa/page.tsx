@@ -261,14 +261,19 @@ export default function Setup2FAPage() {
               </p>
             </div>
           ) : qrDataUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={qrDataUrl}
-              alt={t("qrAlt")}
-              width={220}
-              height={220}
-              className="mx-auto rounded-md border bg-white p-2"
-            />
+            <div className="mx-auto w-full max-w-sm rounded-xl border bg-white p-4 shadow-sm sm:p-6">
+              <p className="mb-3 text-center text-sm text-muted-foreground">
+                {t("scanQrLargeHint")}
+              </p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={qrDataUrl}
+                alt={t("qrAlt")}
+                width={336}
+                height={336}
+                className="mx-auto block h-auto w-full max-w-[336px] min-w-[min(100%,280px)]"
+              />
+            </div>
           ) : (
             <div className="space-y-2 text-center">
               <div

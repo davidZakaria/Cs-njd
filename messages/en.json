@@ -461,6 +461,7 @@
     "setup2fa": "Set up two-factor authentication",
     "verify2fa": "Verify authentication code",
     "scanQr": "Scan this QR code with your authenticator app",
+    "scanQrLargeHint": "Hold your phone steady; the code is sized for laptop screens and phones.",
     "enterCode": "Enter the 6-digit code",
     "verify2faHint": "Open your authenticator app (Google Authenticator, Authy, etc.) and enter the current 6-digit code.",
     "verifyTipsTitle": "Code not working?",
