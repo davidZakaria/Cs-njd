@@ -469,7 +469,9 @@
     "verifyTip3": "Open the NJD CRM entry in your app — not an old or duplicate account.",
     "verifying": "Verifying code…",
     "verifyFailed": "Verification failed. Please try again.",
-    "verifyUnexpectedError": "Something went wrong while verifying. Check your connection and try again.",
+    "verifyUnexpectedError": "Something went wrong while verifying. Try again or contact your administrator.",
+    "resetStatusPollFailed": "Could not refresh your reset status. We will keep trying automatically.",
+    "qrWasResetScanAgain": "Your QR was reset — scan the new code below.",
     "verifyErrors": {
       "SESSION_EXPIRED": "Your sign-in session expired. Please sign in again with your email and password.",
       "CODE_REQUIRED": "Enter the 6-digit code from your authenticator app.",
@@ -478,7 +480,8 @@
       "INVALID_CODE": "That code was rejected. Wait for the next code in your app, confirm the NJD CRM account is selected, and try again.",
       "RATE_LIMITED": "Too many login attempts. Please try again later.",
       "USER_NOT_FOUND": "Account not found. Sign in again or contact your administrator.",
-      "QR_GENERATION_FAILED": "Could not generate the QR code. Tap Start over to retry."
+      "QR_GENERATION_FAILED": "Could not generate the QR code. Tap Start over to retry.",
+      "SETUP_SECRET_CHANGED": "Your authenticator secret changed. Scan the new QR code."
     },
     "lostAuthenticatorTitle": "Lost access to your authenticator?",
     "lostAuthenticatorDescription": "Request a reset from your Super Admin. After they approve, this page will refresh automatically with a new QR code to scan.",
@@ -832,6 +835,7 @@
     "resetTwoFactor": "Reset 2FA",
     "resetTwoFactorTitle": "Reset two-factor authentication",
     "resetTwoFactorConfirm": "Are you sure you want to disable 2FA for {name}? They will be forced to re-enroll on next login.",
+    "resetTwoFactorMidEnrollmentConfirm": "{name} is still enrolling in 2FA (QR scanned but not confirmed). Resetting now clears their in-progress setup and they must scan a new QR on next login.",
     "resetTwoFactorAction": "Reset 2FA",
     "approve2FAResetRequest": "Approve 2FA reset request",
     "approve2FAResetTitle": "Approve authenticator reset",
@@ -1084,6 +1088,12 @@
     "ip": "IP Address",
     "empty": "No audit entries yet. Actions on cases, units, and users will appear here.",
     "systemUser": "System",
+    "actions": {
+      "CREATE": "Create",
+      "UPDATE": "Update",
+      "DELETE": "Delete",
+      "TWO_FACTOR_RESET": "2FA reset"
+    },
     "tables": {
       "Client": "Client",
       "ClientPhone": "Client phone",

@@ -129,6 +129,7 @@ enum AuditAction {
   CREATE
   UPDATE
   DELETE
+  TWO_FACTOR_RESET
 }
 
 enum BackupStatus {

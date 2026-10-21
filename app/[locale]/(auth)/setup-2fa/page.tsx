@@ -10,6 +10,11 @@ import {
   resolveLocale,
 } from "@/lib/auth-redirect";
 import type { ActionResult } from "@/lib/actions/result";
+import {
+  postAuthJson,
+  readJsonResponse,
+  PostAuthRequestError,
+} from "@/lib/auth/post-auth-json";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,21 +22,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type SetupData = ActionResult & { secret?: string; qrDataUrl?: string };
 
+const QR_RESET_SETUP_ERRORS = new Set(["SETUP_SECRET_CHANGED", "SETUP_EXPIRED"]);
+
 const SETUP_ERROR_CODES = [
   "SESSION_EXPIRED",
   "USER_NOT_FOUND",
   "QR_GENERATION_FAILED",
   "SETUP_EXPIRED",
+  "SETUP_SECRET_CHANGED",
   "INVALID_CODE",
   "Unauthorized",
 ] as const;
 
 async function fetchSetupData(resetFirst = false): Promise<SetupData> {
   if (resetFirst) {
-    await fetch("/api/auth/reset-2fa-setup", {
+    const resetResponse = await fetch("/api/auth/reset-2fa-setup", {
       method: "POST",
       credentials: "include",
     });
+    if (!resetResponse.ok) {
+      const body = await readJsonResponse<ActionResult>(resetResponse);
+      return body;
+    }
   }
 
   const response = await fetch("/api/auth/setup-2fa", {
@@ -39,7 +51,19 @@ async function fetchSetupData(resetFirst = false): Promise<SetupData> {
     cache: "no-store",
   });
 
-  return (await response.json()) as SetupData;
+  const data = await readJsonResponse<SetupData>(response);
+  if (!response.ok && data.success === false) {
+    return data;
+  }
+  if (!response.ok) {
+    const failure = data as ActionResult;
+    return {
+      success: false,
+      error: (!failure.success && failure.error) || `Request failed (${response.status})`,
+    };
+  }
+
+  return data;
 }
 
 async function waitForVerifiedSession(
@@ -78,6 +102,7 @@ export default function Setup2FAPage() {
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [needsSignIn, setNeedsSignIn] = useState(false);
+  const [infoMessage, setInfoMessage] = useState("");
   const initialLoadDone = useRef(false);
 
   const resolveSetupError = useCallback(
@@ -103,6 +128,7 @@ export default function Setup2FAPage() {
     async (forceReset = false) => {
       setLoading(true);
       setError("");
+      setInfoMessage("");
       setNeedsSignIn(false);
 
       try {
@@ -122,8 +148,14 @@ export default function Setup2FAPage() {
         setSecret(result.secret ?? "");
         setQrDataUrl(result.qrDataUrl ?? "");
         setToken("");
-      } catch {
-        setError(t("qrLoadFailed"));
+      } catch (loadError) {
+        const message =
+          loadError instanceof PostAuthRequestError
+            ? loadError.message
+            : loadError instanceof Error
+              ? loadError.message
+              : t("qrLoadFailed");
+        setError(message);
         setSecret("");
         setQrDataUrl("");
       } finally {
@@ -157,15 +189,17 @@ export default function Setup2FAPage() {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/confirm-setup-2fa", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ secret, token }),
-      });
+      const result = await postAuthJson<ActionResult>(
+        "/api/auth/confirm-setup-2fa",
+        { secret, token }
+      );
 
-      const result = (await response.json()) as ActionResult;
       if (!result.success) {
+        if (result.error && QR_RESET_SETUP_ERRORS.has(result.error)) {
+          await loadSetup(false);
+          setInfoMessage(t("qrWasResetScanAgain"));
+          return;
+        }
         setError(resolveSetupError(result.error));
         return;
       }
@@ -186,8 +220,14 @@ export default function Setup2FAPage() {
           role: refreshed.user.role,
         })
       );
-    } catch {
-      setError(t("verifyUnexpectedError"));
+    } catch (submitError) {
+      const message =
+        submitError instanceof PostAuthRequestError
+          ? submitError.message
+          : submitError instanceof Error
+            ? submitError.message
+            : t("verifyUnexpectedError");
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -203,6 +243,15 @@ export default function Setup2FAPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">{t("scanQr")}</p>
+
+          {infoMessage ? (
+            <div
+              role="status"
+              className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm text-foreground"
+            >
+              {infoMessage}
+            </div>
+          ) : null}
 
           {loading ? (
             <div className="flex flex-col items-center gap-2 py-6">
