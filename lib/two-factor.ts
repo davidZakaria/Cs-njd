@@ -19,11 +19,9 @@ export function normalizeTotpSecret(secret: string): string {
 
 export function buildOtpAuthUrl(email: string, secret: string) {
   const label = encodeURIComponent(email.trim());
-  const params = new URLSearchParams({
-    secret: normalizeTotpSecret(secret),
-    issuer: TOTP_ISSUER,
-  });
-  return `otpauth://totp/${label}?${params.toString()}`;
+  const normalizedSecret = normalizeTotpSecret(secret);
+  const query = `secret=${encodeURIComponent(normalizedSecret)}&issuer=${encodeURIComponent(TOTP_ISSUER)}`;
+  return `otpauth://totp/${label}?${query}`;
 }
 
 export function generateTwoFactorSecret(email: string) {

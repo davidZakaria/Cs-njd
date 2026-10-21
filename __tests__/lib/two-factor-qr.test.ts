@@ -10,7 +10,6 @@ import {
   buildOtpAuthUrl,
   generateQrDataUrl,
   qrModulePixelSize,
-  TOTP_ISSUER,
   TOTP_QR_RENDER_OPTIONS,
 } from "@/lib/two-factor";
 
@@ -22,9 +21,11 @@ describe("2FA QR encoding", () => {
 
   it("uses a short label with issuer only in query params", () => {
     expect(sampleUri).toMatch(/^otpauth:\/\/totp\/agent%40njd\.example\?/);
-    const parsed = new URL(sampleUri);
-    expect(parsed.searchParams.get("issuer")).toBe(TOTP_ISSUER);
-    expect(decodeURIComponent(parsed.pathname.slice(1))).toBe("agent@njd.example");
+    expect(sampleUri).toContain("issuer=NJD%20CRM");
+    expect(sampleUri).not.toContain("issuer=NJD+CRM");
+    expect(decodeURIComponent(sampleUri.split("?")[0].replace("otpauth://totp/", ""))).toBe(
+      "agent@njd.example"
+    );
     expect(sampleUri).not.toContain("NJD%20CRM%3A");
     expect(sampleUri).not.toContain("NJD CRM:agent");
   });
