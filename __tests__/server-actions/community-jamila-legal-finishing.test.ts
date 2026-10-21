@@ -136,7 +136,7 @@ describe("community Jamila legal & finishing mutations", () => {
     expect(mockPrismaContractWorkflow.upsert).not.toHaveBeenCalled();
   });
 
-  it("allows community to update finishing on Jamila units", async () => {
+  it("forbids community finishing updates on Jamila units", async () => {
     mockAuth.mockResolvedValue(session("COMMUNITY_MANAGEMENT"));
     mockPrismaUnit.findUnique.mockResolvedValue({
       id: "unit-1",
@@ -147,8 +147,9 @@ describe("community Jamila legal & finishing mutations", () => {
     const { updateFinishing } = await import("@/lib/actions/crm");
     const result = await updateFinishing(finishingInput);
 
-    expect(result.success).toBe(true);
-    expect(mockPrismaFinishing.upsert).toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(result).toHaveProperty("error", "Unauthorized");
+    expect(mockPrismaFinishing.upsert).not.toHaveBeenCalled();
   });
 
   it("forbids community finishing updates on non-Jamila units", async () => {

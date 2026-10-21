@@ -542,6 +542,30 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
       expect(mockPrismaTicket.create).toHaveBeenCalled();
     });
 
+    it("allows COMMUNITY_MANAGEMENT to log calls on non-Jamila units", async () => {
+      mockAuth.mockResolvedValue(
+        createMockSession({ id: "community-1", role: "COMMUNITY_MANAGEMENT" })
+      );
+      mockPrismaUnit.findUnique.mockResolvedValue({
+        id: "unit-ga",
+        agentId: null,
+        unitCode: "GA-1",
+        agent: null,
+        project: { id: "proj-ga", name: "GREEN AVENUE" },
+        client: { name: "Client" },
+      });
+      mockPrismaTicket.create.mockResolvedValue({ id: "call-2" });
+
+      const { logCallQuickAction } = await import("@/lib/actions/crm");
+      const result = await logCallQuickAction({
+        unitId: "unit-ga",
+        notes: "📞 Answered",
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockPrismaTicket.create).toHaveBeenCalled();
+    });
+
     it("allows authenticated user to create ticket for their unit", async () => {
       const agentId = "cs-agent-1";
       mockAuth.mockResolvedValue(createMockSession({
