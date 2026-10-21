@@ -439,6 +439,37 @@ describe("Two-Factor Authentication Server Actions", () => {
       expect(mockPrismaUser.update).not.toHaveBeenCalled();
     });
 
+    it("records TWO_FACTOR_RESET when approving a user's reset request", async () => {
+      const { approveTwoFactorResetRequest } = await import(
+        "@/lib/auth/two-factor-reset-request"
+      );
+
+      mockAuth.mockResolvedValue(
+        createMockSession({
+          id: "super-admin-1",
+          role: "SUPER_ADMIN",
+        })
+      );
+      mockPrismaUser.findUnique.mockResolvedValue({
+        is2FAEnabled: true,
+        twoFactorSecret: "secret",
+      });
+      vi.mocked(approveTwoFactorResetRequest).mockResolvedValue({ success: true });
+
+      const { approveUser2FAResetRequest } = await import("@/lib/actions/two-factor");
+      const result = await approveUser2FAResetRequest("user-1");
+
+      expect(result.success).toBe(true);
+      expect(mockAuditLogCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: "TWO_FACTOR_RESET",
+          tableName: "User",
+          recordId: "user-1",
+          userId: "super-admin-1",
+        }),
+      });
+    });
+
     it("returns success when already disabled and no secret", async () => {
       mockAuth.mockResolvedValue(createMockSession({
         id: "super-admin-1",

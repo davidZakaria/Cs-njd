@@ -34,6 +34,22 @@ describe("confirmSetupTwoFactor", () => {
     });
   });
 
+  it("returns SETUP_SECRET_CHANGED when admin cleared the secret during enrollment", async () => {
+    mockPrismaUser.findUnique.mockResolvedValue({
+      twoFactorSecret: null,
+      is2FAEnabled: false,
+    });
+
+    const { confirmSetupTwoFactor } = await import("@/lib/auth/setup-two-factor");
+    const result = await confirmSetupTwoFactor("OLDSECRET", "123456");
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBe("SETUP_SECRET_CHANGED");
+    }
+    expect(mockVerifyTotp).not.toHaveBeenCalled();
+  });
+
   it("returns SETUP_SECRET_CHANGED when submitted secret no longer matches the database", async () => {
     mockPrismaUser.findUnique.mockResolvedValue({
       twoFactorSecret: "NEWSECRET",

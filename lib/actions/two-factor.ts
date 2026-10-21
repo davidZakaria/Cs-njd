@@ -23,6 +23,28 @@ import {
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { revalidatePath } from "next/cache";
 
+async function recordTwoFactorResetAudit(
+  userId: string,
+  userBefore: { is2FAEnabled: boolean; twoFactorSecret: string | null }
+) {
+  const ctx = auditContext.getStore();
+  if (!ctx?.userId) return;
+
+  await recordAuditLog(basePrisma, ctx, {
+    model: "User",
+    action: "TWO_FACTOR_RESET",
+    recordId: userId,
+    oldData: {
+      is2FAEnabled: userBefore.is2FAEnabled,
+      hadTwoFactorSecret: Boolean(userBefore.twoFactorSecret),
+    },
+    newData: {
+      is2FAEnabled: false,
+      twoFactorSecret: null,
+    },
+  });
+}
+
 /** Super Admin: enable or reset a user's 2FA (disable clears secret — user re-enrolls on login). */
 export async function setUserTwoFactorByAdmin(
   userId: string,
@@ -74,22 +96,7 @@ export async function setUserTwoFactorByAdmin(
         data: { is2FAEnabled: false, twoFactorSecret: null },
       });
 
-      const ctx = auditContext.getStore();
-      if (ctx?.userId) {
-        await recordAuditLog(basePrisma, ctx, {
-          model: "User",
-          action: "TWO_FACTOR_RESET",
-          recordId: userId,
-          oldData: {
-            is2FAEnabled: user.is2FAEnabled,
-            hadTwoFactorSecret: Boolean(user.twoFactorSecret),
-          },
-          newData: {
-            is2FAEnabled: false,
-            twoFactorSecret: null,
-          },
-        });
-      }
+      await recordTwoFactorResetAudit(userId, user);
     });
   }
 
@@ -112,12 +119,26 @@ export async function getMy2FAResetStatus() {
 export async function approveUser2FAResetRequest(
   userId: string
 ): Promise<ActionResult> {
-  const result = await approveTwoFactorResetRequest(userId);
-  if (result.success) {
-    revalidatePath("/users");
-    revalidatePath("/users/2fa-requests");
-    revalidatePath(`/users/2fa-reset/${userId}`);
+  const userBefore = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { is2FAEnabled: true, twoFactorSecret: true },
+  });
+  if (!userBefore) {
+    return actionFail("User not found");
   }
+
+  const result = await approveTwoFactorResetRequest(userId);
+  if (!result.success) {
+    return result;
+  }
+
+  await withAudit(async () => {
+    await recordTwoFactorResetAudit(userId, userBefore);
+  });
+
+  revalidatePath("/users");
+  revalidatePath("/users/2fa-requests");
+  revalidatePath(`/users/2fa-reset/${userId}`);
   return result;
 }
 

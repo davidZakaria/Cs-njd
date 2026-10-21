@@ -89,7 +89,15 @@ export async function confirmSetupTwoFactor(
     select: { twoFactorSecret: true, is2FAEnabled: true },
   });
 
-  const dbSecret = user?.twoFactorSecret;
+  if (!user) {
+    return actionFail("SESSION_EXPIRED");
+  }
+
+  const dbSecret = user.twoFactorSecret;
+  if (!dbSecret && !user.is2FAEnabled) {
+    return actionFail("SETUP_SECRET_CHANGED");
+  }
+
   if (!dbSecret || user.is2FAEnabled) {
     return actionFail("SETUP_EXPIRED");
   }

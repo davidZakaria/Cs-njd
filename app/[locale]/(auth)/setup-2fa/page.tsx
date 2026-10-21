@@ -22,6 +22,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type SetupData = ActionResult & { secret?: string; qrDataUrl?: string };
 
+const QR_RESET_SETUP_ERRORS = new Set(["SETUP_SECRET_CHANGED", "SETUP_EXPIRED"]);
+
 const SETUP_ERROR_CODES = [
   "SESSION_EXPIRED",
   "USER_NOT_FOUND",
@@ -193,7 +195,7 @@ export default function Setup2FAPage() {
       );
 
       if (!result.success) {
-        if (result.error === "SETUP_SECRET_CHANGED") {
+        if (result.error && QR_RESET_SETUP_ERRORS.has(result.error)) {
           setInfoMessage(t("qrWasResetScanAgain"));
           await loadSetup(false);
           return;
