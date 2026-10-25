@@ -46,6 +46,9 @@
     }
   },
   "client": {
+    "phoneCountry": {
+      "unknown": "غير معروف"
+    },
     "contacts": {
       "additionalTitle": "أرقام وعناوين إضافية",
       "extraPhones": "أرقام هاتف إضافية",

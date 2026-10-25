@@ -8,6 +8,12 @@ import {
   addUnitCoOwner,
   searchClientsForCoOwnerLink,
 } from "@/lib/actions/unit-clients";
+import { PhoneCountryBadge } from "@/components/phone/phone-country-badge";
+import {
+  mergePhoneInputClassName,
+  PhoneLtrText,
+  phoneLtrInputDir,
+} from "@/components/phone/phone-ltr";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -138,12 +144,17 @@ export function UnitCoOwnerDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="co-owner-phone">{t("phoneOptional")}</Label>
-              <Input
-                id="co-owner-phone"
-                value={phone}
-                disabled={pending}
-                onChange={(e) => setPhone(e.target.value)}
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  id="co-owner-phone"
+                  dir={phoneLtrInputDir}
+                  className={mergePhoneInputClassName("min-w-[12rem] flex-1")}
+                  value={phone}
+                  disabled={pending}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+                <PhoneCountryBadge phone={phone} />
+              </div>
             </div>
           </TabsContent>
           <TabsContent value="link" className="space-y-3 pt-3">
@@ -178,9 +189,12 @@ export function UnitCoOwnerDialog({
                       </span>
                     ) : null}
                     {client.phone1 ? (
-                      <span className="text-muted-foreground">
-                        {" · "}
-                        {client.phone1}
+                      <span className="inline-flex flex-wrap items-center gap-1 text-muted-foreground">
+                        <span>
+                          {" · "}
+                          <PhoneLtrText>{client.phone1}</PhoneLtrText>
+                        </span>
+                        <PhoneCountryBadge phone={client.phone1} />
                       </span>
                     ) : null}
                   </button>

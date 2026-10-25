@@ -15,6 +15,11 @@ import {
 } from "@/lib/validations/unit-profile";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
+import { PhoneCountryBadge } from "@/components/phone/phone-country-badge";
+import {
+  mergePhoneInputClassName,
+  phoneLtrInputDir,
+} from "@/components/phone/phone-ltr";
 import { ClientPhoneRow } from "@/components/units/client-phone-row";
 import {
   ClientContactExtras,
@@ -187,6 +192,7 @@ export function UnitClientForm({
     control,
     handleSubmit,
     setValue,
+    watch,
   } = useForm<UnitProfileFormInput>({
     resolver: formResolver,
     defaultValues: formDefaults,
@@ -218,6 +224,7 @@ export function UnitClientForm({
   }, [agentSelectItems, defaults.agentId, setValue]);
 
   const currencyLabel = currencySuffix(locale);
+  const phone1Value = watch("phone1");
 
   function onSubmit(values: UnitProfileFormInput) {
     setValidationMessage(null);
@@ -425,7 +432,16 @@ export function UnitClientForm({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone1">{t("phone1")}</Label>
-                <Input id="phone1" disabled={pending} {...register("phone1")} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    id="phone1"
+                    dir={phoneLtrInputDir}
+                    className={mergePhoneInputClassName("min-w-[12rem] flex-1")}
+                    disabled={pending}
+                    {...register("phone1")}
+                  />
+                  <PhoneCountryBadge phone={phone1Value} />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">{tCommon("email")}</Label>
