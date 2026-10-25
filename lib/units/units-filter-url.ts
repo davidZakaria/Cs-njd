@@ -1,5 +1,6 @@
 /** Handover status sets aligned with dashboard stat cards. */
 
+import { projectNameToSlug } from "@/lib/cases/cases-filter-url";
 import {
   AT_RISK_HANDOVER_STATUSES,
   DELIVERED_HANDOVER_STATUSES,
@@ -20,6 +21,40 @@ export type UnitsFilterParams = {
   agent?: "unassigned";
   project?: string;
 };
+
+export function buildUnitsPageUrl(filters: UnitsPageFilters): string {
+  const params: UnitsFilterParams = {};
+  if (filters.handover !== "all") params.handover = filters.handover;
+  if (filters.delivery === "overdue") params.delivery = "overdue";
+  if (filters.fees === "outstanding") params.fees = "outstanding";
+  if (filters.signedProtocol === "missing") params.signedProtocol = "missing";
+  if (filters.agent === "unassigned") params.agent = "unassigned";
+  if (filters.project !== "all") params.project = filters.project;
+  return buildUnitsFilterUrl(params);
+}
+
+export function isUnitsFilterActive(filters: UnitsPageFilters): boolean {
+  return (
+    filters.handover !== "all" ||
+    filters.delivery !== "overdue" ||
+    filters.fees !== "outstanding" ||
+    filters.signedProtocol !== "missing" ||
+    filters.agent === "unassigned" ||
+    filters.project !== "all"
+  );
+}
+
+export function resolveUnitsProjectFilterParam(
+  param: string,
+  projectNames: string[]
+): string {
+  if (param === "all") return "all";
+  if (projectNames.some((name) => projectNameToSlug(name) === param)) {
+    return param;
+  }
+  const byName = projectNames.find((name) => name === param);
+  return byName ? projectNameToSlug(byName) : param;
+}
 
 export function buildUnitsFilterUrl(params: UnitsFilterParams = {}): string {
   const search = new URLSearchParams();

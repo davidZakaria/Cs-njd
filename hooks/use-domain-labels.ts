@@ -16,7 +16,6 @@ function enumLabel(
 export function useDomainLabels() {
   const locale = useLocale();
   const tEnums = useTranslations("enums");
-  const tProjects = useTranslations("projects");
   const tStaff = useTranslations("staff");
   const tCommon = useTranslations("common");
 
@@ -42,12 +41,8 @@ export function useDomainLabels() {
         enumLabel(tEnums, "finishingPhase", value),
       pendingParty: (value: string) =>
         enumLabel(tEnums, "pendingParty", value),
-      project: (value: string) => {
-        if (!value) return value;
-        return tProjects.has(value as Parameters<typeof tProjects>[0])
-          ? tProjects(value as Parameters<typeof tProjects>[0])
-          : value;
-      },
+      /** Project names are shown exactly as stored in the database. */
+      project: (value: string) => value,
       staffName: (name: string) => {
         if (!name || name === "—" || name === "-") return tCommon("unassigned");
         if (locale === "en") return name;
@@ -58,6 +53,6 @@ export function useDomainLabels() {
       areaWithUnit: (area: number | null) =>
         area == null ? "—" : `${area} ${tEnums("areaSqm")}`,
     }),
-    [locale, tCommon, tEnums, tProjects, tStaff]
+    [locale, tCommon, tEnums, tStaff]
   );
 }

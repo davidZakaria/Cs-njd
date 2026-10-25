@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   buildUnitsFilterUrl,
+  buildUnitsPageUrl,
   matchesUnitsHandoverGroup,
   parseUnitsPageFilters,
+  resolveUnitsProjectFilterParam,
 } from "@/lib/units/units-filter-url";
 
 describe("units-filter-url", () => {
@@ -52,6 +54,20 @@ describe("units-filter-url", () => {
       agent: "all",
       project: "all",
     });
+  });
+
+  it("round-trips page filters through the units URL", () => {
+    const filters = parseUnitsPageFilters({
+      handover: "delivered",
+      project: "green-avenue",
+      agent: "unassigned",
+    });
+    expect(buildUnitsPageUrl(filters)).toBe(
+      "/units?handover=delivered&agent=unassigned&project=green-avenue"
+    );
+    expect(
+      resolveUnitsProjectFilterParam("GREEN AVENUE", ["GREEN AVENUE", "JURA"])
+    ).toBe("green-avenue");
   });
 
   it("matches handover groups used on the dashboard", () => {
