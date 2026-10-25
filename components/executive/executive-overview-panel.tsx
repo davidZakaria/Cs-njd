@@ -25,6 +25,9 @@ import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
 import type { ExecutivePortfolioMetrics } from "@/lib/executive/portfolio-analytics";
 import type { ExecutiveFinancials } from "@/lib/executive/financial-analytics";
 import type { ExecutiveKpiKey } from "@/components/executive/executive-kpi-grid";
+import { ExecutiveProjectSummaryTable } from "@/components/executive/executive-project-summary-table";
+import { buildUnitsFilterUrl } from "@/lib/units/units-filter-url";
+import type { ExecutiveProjectUnitSummary } from "@/lib/executive/project-unit-summaries";
 
 type WorkloadLabels = {
   openTotal: string;
@@ -36,6 +39,7 @@ type WorkloadLabels = {
 export function ExecutiveOverviewPanel({
   data,
   portfolio,
+  projectSummaries,
   financials,
   kpiLabels,
   workloadLabels,
@@ -43,12 +47,14 @@ export function ExecutiveOverviewPanel({
 }: {
   data: ExecutiveDashboardData;
   portfolio: ExecutivePortfolioMetrics;
+  projectSummaries: ExecutiveProjectUnitSummary[];
   financials: ExecutiveFinancials | null;
   kpiLabels: Record<ExecutiveKpiKey, string>;
   workloadLabels: WorkloadLabels;
   canUseManagementOverride?: boolean;
 }) {
   const t = useTranslations("executive");
+  const tMetric = useTranslations("executive.metricDescriptions");
   const tCases = useTranslations("cases");
   const labels = useDomainLabels();
   const [query, setQuery] = useState("");
@@ -56,6 +62,12 @@ export function ExecutiveOverviewPanel({
   const overviewKpis = useMemo((): StatItem[] => {
     const signedProtocolMissing =
       portfolio.signedProtocol.find((row) => row.key === "missing")?.count ?? 0;
+    const totalUnits = portfolio.totalUnits;
+    const openTotal = data.global.stats.openTotal;
+    const pctOfUnits = (n: number) =>
+      totalUnits > 0 ? (n / totalUnits) * 100 : undefined;
+    const pctOfOpen = (n: number) =>
+      openTotal > 0 ? (n / openTotal) * 100 : undefined;
 
     return [
       {
@@ -63,75 +75,97 @@ export function ExecutiveOverviewPanel({
         label: t("stats.totalUnits"),
         value: portfolio.totalUnits,
         href: "/units",
+        description: tMetric("totalUnits"),
       },
       {
         key: "openTotal",
         label: kpiLabels.openTotal,
         value: data.global.stats.openTotal,
         href: buildCasesFilterUrl({ status: "open" }),
+        description: tMetric("openTotal"),
+        percentOfTotal: pctOfUnits(openTotal),
       },
       {
         key: "unassigned",
         label: kpiLabels.unassigned,
         value: data.global.stats.unassigned,
         href: buildCasesFilterUrl({ status: "open", agent: "unassigned" }),
+        description: tMetric("unassigned"),
+        percentOfTotal: pctOfOpen(data.global.stats.unassigned),
       },
       {
         key: "legal",
         label: kpiLabels.legal,
         value: data.global.stats.legal,
         href: buildCasesFilterUrl({ status: "LEGAL" }),
+        description: tMetric("legal"),
+        percentOfTotal: pctOfOpen(data.global.stats.legal),
       },
       {
         key: "engineering",
         label: kpiLabels.engineering,
         value: data.global.stats.engineering,
         href: buildCasesFilterUrl({ status: "ENGINEERING" }),
+        description: tMetric("engineering"),
+        percentOfTotal: pctOfOpen(data.global.stats.engineering),
       },
       {
         key: "pendingWithParty",
         label: t("stats.pendingWithParty"),
         value: data.global.stats.pendingWithParty,
         href: buildCasesFilterUrl({ status: "open" }),
+        description: tMetric("pendingWithParty"),
+        percentOfTotal: pctOfOpen(data.global.stats.pendingWithParty),
       },
       {
         key: "followUpDue",
         label: t("stats.followUpDue"),
         value: portfolio.followUpDueToday + portfolio.followUpOverdue,
         href: buildCasesFilterUrl({ status: "open", followUp: "due" }),
+        description: tMetric("followUpDue"),
       },
       {
         key: "deliveredUnits",
         label: t("stats.deliveredUnits"),
         value: portfolio.deliveredUnits,
-        href: "/units",
+        href: buildUnitsFilterUrl({ handover: "delivered" }),
+        description: tMetric("deliveredUnits"),
+        percentOfTotal: pctOfUnits(portfolio.deliveredUnits),
       },
       {
         key: "deliveryOverdue",
         label: t("stats.deliveryOverdue"),
         value: portfolio.deliveryOverdue,
-        href: "/units",
+        href: buildUnitsFilterUrl({ delivery: "overdue" }),
+        description: tMetric("deliveryOverdue"),
+        percentOfTotal: pctOfUnits(portfolio.deliveryOverdue),
       },
       {
         key: "legalRiskUnits",
         label: t("stats.legalRiskUnits"),
         value: portfolio.legalRiskUnits,
-        href: "/units",
+        href: buildUnitsFilterUrl({ handover: "atRisk" }),
+        description: tMetric("legalRiskUnits"),
+        percentOfTotal: pctOfUnits(portfolio.legalRiskUnits),
       },
       {
         key: "signedProtocolMissing",
         label: t("stats.signedProtocolMissing"),
         value: signedProtocolMissing,
-        href: "/units",
+        href: buildUnitsFilterUrl({ signedProtocol: "missing" }),
+        description: tMetric("signedProtocolMissing"),
+        percentOfTotal: pctOfUnits(signedProtocolMissing),
       },
       {
         key: "feesOutstanding",
         label: t("stats.feesOutstanding"),
         value: portfolio.feesOutstanding,
-        href: "/units",
+        href: buildUnitsFilterUrl({ fees: "outstanding" }),
+        description: tMetric("feesOutstanding"),
+        percentOfTotal: pctOfUnits(portfolio.feesOutstanding),
       },
     ];
-  }, [data.global.stats, kpiLabels, portfolio, t]);
+  }, [data.global.stats, kpiLabels, portfolio, t, tMetric]);
 
   const searchContext = useMemo(
     () => ({
@@ -172,6 +206,12 @@ export function ExecutiveOverviewPanel({
         </div>
         <ExecutiveKpiGrid items={overviewKpis} />
       </div>
+
+      <ExecutiveProjectSummaryTable
+        summaries={projectSummaries}
+        byProject={data.byProject}
+        portfolioTotalUnits={portfolio.totalUnits}
+      />
 
       {financials ? <ExecutiveFinancialsPanel financials={financials} /> : null}
 

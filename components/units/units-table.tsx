@@ -38,9 +38,14 @@ import { ExportCsvButton } from "@/components/export/export-csv-button";
 import { CreateUnitDialog } from "@/components/units/create-unit-dialog";
 
 import {
+  isDeliveredHandover,
+} from "@/lib/executive/handover-status-groups";
+import {
   matchesUnitsHandoverGroup,
   type UnitsHandoverGroup,
+  type UnitsPageFilters,
 } from "@/lib/units/units-filter-url";
+import { projectNameToSlug } from "@/lib/cases/cases-filter-url";
 import { cn } from "@/lib/utils";
 
 export type UnitRow = {
@@ -54,6 +59,10 @@ export type UnitRow = {
   area: number | null;
   agent: string;
   handoverStatus: string;
+  deliveryDate?: Date | string | null;
+  missingSignedProtocol?: boolean;
+  feesOutstanding?: boolean;
+  agentUnassigned?: boolean;
 };
 
 const COLUMN_WIDTHS: Record<string, string> = {
@@ -76,6 +85,8 @@ export function UnitsTable({
   createUnitProjects = [],
   createUnitAgents = [],
   defaultHandoverGroupFilter = "all",
+  defaultFilters,
+  filterTodayStartIso,
 }: {
   data: UnitRow[];
   projects: string[];
@@ -86,15 +97,34 @@ export function UnitsTable({
   createUnitProjects?: Array<{ id: string; name: string }>;
   createUnitAgents?: Array<{ id: string; name: string }>;
   defaultHandoverGroupFilter?: UnitsHandoverGroup;
+  defaultFilters?: UnitsPageFilters;
+  filterTodayStartIso?: string;
 }) {
   const t = useTranslations("units");
   const tCommon = useTranslations("common");
   const labels = useDomainLabels();
   const [globalFilter, setGlobalFilter] = useState("");
-  const [projectFilter, setProjectFilter] = useState("all");
-  const [agentFilter, setAgentFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState(
+    defaultFilters?.project && defaultFilters.project !== "all"
+      ? defaultFilters.project
+      : "all"
+  );
+  const [agentFilter, setAgentFilter] = useState(
+    defaultFilters?.agent === "unassigned" ? UNASSIGNED_AGENT_FILTER : "all"
+  );
   const [statusFilter, setStatusFilter] = useState("all");
-  const handoverGroupFilter = defaultHandoverGroupFilter;
+  const handoverGroupFilter =
+    defaultHandoverGroupFilter && defaultHandoverGroupFilter !== "all"
+      ? defaultHandoverGroupFilter
+      : defaultFilters?.handover && defaultFilters.handover !== "all"
+        ? defaultFilters.handover
+        : "all";
+  const deliveryOverdueOnly = defaultFilters?.delivery === "overdue";
+  const feesOutstandingOnly = defaultFilters?.fees === "outstanding";
+  const signedProtocolMissingOnly = defaultFilters?.signedProtocol === "missing";
+  const filterTodayStart = filterTodayStartIso
+    ? new Date(filterTodayStartIso)
+    : null;
 
   const projectItems = useMemo(() => {
     const items: Record<string, string> = { all: labels.all };
@@ -134,15 +164,37 @@ export function UnitsTable({
 
   const filteredData = useMemo(() => {
     return data.filter((row) => {
-      if (projectFilter !== "all" && row.project !== projectFilter) return false;
+      if (projectFilter !== "all") {
+        const slug = projectNameToSlug(row.project);
+        if (projectFilter !== row.project && projectFilter !== slug) return false;
+      }
       if (agentFilter === UNASSIGNED_AGENT_FILTER) {
         if (!isUnassignedAgentName(row.agent)) return false;
       } else if (agentFilter !== "all" && row.agent !== agentFilter) {
         return false;
       }
       if (
+        handoverGroupFilter !== "all" &&
         !matchesUnitsHandoverGroup(row.handoverStatus, handoverGroupFilter)
       ) {
+        return false;
+      }
+      if (deliveryOverdueOnly) {
+        const deliveryDate = row.deliveryDate
+          ? new Date(row.deliveryDate)
+          : null;
+        if (
+          !deliveryDate ||
+          !filterTodayStart ||
+          deliveryDate >= filterTodayStart ||
+          isDeliveredHandover(row.handoverStatus)
+        ) {
+          return false;
+        }
+      }
+      if (feesOutstandingOnly && !row.feesOutstanding) return false;
+      if (signedProtocolMissingOnly && !row.missingSignedProtocol) return false;
+      if (defaultFilters?.agent === "unassigned" && !row.agentUnassigned) {
         return false;
       }
       if (statusFilter !== "all" && row.handoverStatus !== statusFilter) return false;
@@ -163,6 +215,11 @@ export function UnitsTable({
     agentFilter,
     statusFilter,
     handoverGroupFilter,
+    deliveryOverdueOnly,
+    feesOutstandingOnly,
+    signedProtocolMissingOnly,
+    defaultFilters?.agent,
+    filterTodayStart,
     globalFilter,
     labels,
   ]);

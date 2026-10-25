@@ -7,6 +7,12 @@ import {
 } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export type ExecutiveKpiKey =
   | "openTotal"
@@ -21,6 +27,8 @@ export type StatItem = {
   label: string;
   value: number;
   href?: string;
+  description?: string;
+  percentOfTotal?: number;
 };
 
 const KPI_TONE_CLASS: Record<ExecutiveKpiKey, string> = {
@@ -74,6 +82,7 @@ export function buildExecutiveKpiItems(
 
 export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
   return (
+    <TooltipProvider>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
       {items.map((stat, index) => {
         const toneClass =
@@ -97,14 +106,30 @@ export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
             )}
           >
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.label}
-              </CardTitle>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <CardTitle className="cursor-help text-sm font-medium text-muted-foreground">
+                      {stat.label}
+                    </CardTitle>
+                  }
+                />
+                {stat.description ? (
+                  <TooltipContent side="top" className="max-w-xs text-start">
+                    {stat.description}
+                  </TooltipContent>
+                ) : null}
+              </Tooltip>
             </CardHeader>
             <CardContent>
               <div className="font-heading text-3xl font-bold tabular-nums tracking-tight transition-transform duration-300 group-hover:scale-[1.02]">
                 {stat.value.toLocaleString()}
               </div>
+              {stat.percentOfTotal != null && stat.percentOfTotal > 0 ? (
+                <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+                  {stat.percentOfTotal.toFixed(1)}%
+                </p>
+              ) : null}
             </CardContent>
           </Card>
         );
@@ -118,5 +143,6 @@ export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
         );
       })}
     </div>
+    </TooltipProvider>
   );
 }

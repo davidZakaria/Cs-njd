@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import type { AgentKPIRow } from "@/lib/cases/kpi-types";
 import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
 import type { ExecutivePortfolioMetrics } from "@/lib/executive/portfolio-analytics";
+import type { ExecutiveProjectUnitSummary } from "@/lib/executive/project-unit-summaries";
 import type { ExecutiveFinancials } from "@/lib/executive/financial-analytics";
 import { CommunityDailyTracker } from "@/components/dashboard/CommunityDailyTracker";
 import type {
@@ -47,6 +48,7 @@ function TabCountBadge({
 export function ExecutiveCommandCenter({
   data,
   portfolio,
+  projectSummaries,
   financials,
   kpis,
   communityDailyActivity,
@@ -56,6 +58,7 @@ export function ExecutiveCommandCenter({
 }: {
   data: ExecutiveDashboardData;
   portfolio: ExecutivePortfolioMetrics;
+  projectSummaries: ExecutiveProjectUnitSummary[];
   financials: ExecutiveFinancials | null;
   kpis: AgentKPIRow[];
   communityDailyActivity: SerializedCommunityDailyActivity;
@@ -229,6 +232,7 @@ export function ExecutiveCommandCenter({
         <ExecutiveOverviewPanel
           data={data}
           portfolio={portfolio}
+          projectSummaries={projectSummaries}
           financials={financials}
           kpiLabels={kpiLabels}
           workloadLabels={workloadLabels}

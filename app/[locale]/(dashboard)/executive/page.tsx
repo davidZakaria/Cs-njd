@@ -5,6 +5,7 @@ import { getExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
 import { getAgentKPIs, getDefaultKpiPeriod } from "@/lib/cases/kpis";
 import { canUseManagementOverride } from "@/lib/workflow/management-override";
 import { getExecutivePortfolioMetrics } from "@/lib/executive/portfolio-analytics";
+import { getExecutiveProjectUnitSummaries } from "@/lib/executive/project-unit-summaries";
 import {
   EXECUTIVE_FINANCIALS_ENABLED,
   getExecutiveFinancials,
@@ -38,10 +39,11 @@ export default async function ExecutiveDashboardPage() {
 
   const communityTrackerDate = format(new Date(), "yyyy-MM-dd");
 
-  const [data, portfolio, financials, kpis, communityDailyActivity] =
+  const [data, portfolio, projectSummaries, financials, kpis, communityDailyActivity] =
     await Promise.all([
       getExecutiveDashboardData(session.user.id),
       getExecutivePortfolioMetrics(),
+      getExecutiveProjectUnitSummaries(),
       EXECUTIVE_FINANCIALS_ENABLED
         ? getExecutiveFinancials()
         : Promise.resolve(null),
@@ -80,6 +82,7 @@ export default async function ExecutiveDashboardPage() {
         <ExecutiveCommandCenter
           data={data}
           portfolio={portfolio}
+          projectSummaries={projectSummaries}
           financials={financials}
           kpis={kpis}
           communityDailyActivity={communityDailyActivity}

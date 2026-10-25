@@ -8,6 +8,10 @@ import {
   type CanonicalProject,
 } from "@/lib/projects";
 import { assignableAgentUserWhere } from "@/lib/units/assignable-agents";
+import {
+  computeResolvedStats,
+  countUniqueUnits,
+} from "@/lib/executive/executive-stats";
 
 export type ExecutiveCaseRow = {
   id: string;
@@ -124,19 +128,6 @@ function queuePriority(row: ExecutiveCaseRow) {
 
 function sortQueue(items: ExecutiveCaseRow[]) {
   return [...items].sort((a, b) => queuePriority(a) - queuePriority(b));
-}
-
-function countUniqueUnits(
-  rows: ExecutiveCaseRow[],
-  predicate?: (row: ExecutiveCaseRow) => boolean
-): number {
-  const unitIds = new Set<string>();
-  for (const row of rows) {
-    if (!predicate || predicate(row)) {
-      unitIds.add(row.unitId);
-    }
-  }
-  return unitIds.size;
 }
 
 function toExecutiveRow(
@@ -333,14 +324,6 @@ function computeAgentWorkload(
     .sort((a, b) => b.openCount - a.openCount);
 }
 
-function computeResolvedStats(rows: ExecutiveCaseRow[]): ResolvedStats {
-  return {
-    resolvedTotal: rows.length,
-    myResolved: rows.filter((row) => row.isMine).length,
-    teamResolved: rows.filter((row) => !row.isMine).length,
-  };
-}
-
 function buildResolvedProjectCounts(
   rows: ExecutiveCaseRow[],
   orderedProjectNames: string[]
@@ -348,7 +331,7 @@ function buildResolvedProjectCounts(
   return orderedProjectNames.map((project) => ({
     project,
     slug: projectSlug(project),
-    count: rows.filter((row) => row.project === project).length,
+    count: countUniqueUnits(rows, (row) => row.project === project),
   }));
 }
 

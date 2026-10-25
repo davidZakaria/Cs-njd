@@ -20,6 +20,8 @@ export default async function UnitsPage({
   const session = await auth();
   const t = await getTranslations("units");
   const filters = parseUnitsPageFilters(await searchParams);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
   const csScope =
     session?.user.role === "CS_AGENT"
       ? await resolveCsAgentScope(session.user)
@@ -33,6 +35,7 @@ export default async function UnitsPage({
         client: true,
         agent: true,
         contractWorkflow: true,
+        finishing: { select: { doorFees: true, aluminumFees: true } },
         unitClients: {
           where: { role: "CO_OWNER" },
           include: {
@@ -87,6 +90,13 @@ export default async function UnitsPage({
       area: unit.area,
       agent: unit.agent?.name ?? "-",
       handoverStatus: unit.contractWorkflow?.handoverStatus ?? "PENDING",
+      deliveryDate: unit.contractWorkflow?.deliveryDate ?? null,
+      missingSignedProtocol: !unit.contractWorkflow?.signedProtocolStoredName,
+      feesOutstanding:
+        unit.contractWorkflow?.hasPaidFees === false &&
+        ((unit.finishing?.doorFees ?? 0) > 0 ||
+          (unit.finishing?.aluminumFees ?? 0) > 0),
+      agentUnassigned: unit.agentId == null,
     };
   });
 
@@ -106,6 +116,8 @@ export default async function UnitsPage({
         agents={agents}
         statuses={statuses}
         defaultHandoverGroupFilter={filters.handover}
+        defaultFilters={filters}
+        filterTodayStartIso={todayStart.toISOString()}
         canExport={
           session?.user.role ? !isLimitedExportRole(session.user.role) : true
         }

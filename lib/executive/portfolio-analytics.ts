@@ -10,6 +10,10 @@ import {
   normalizeFinishingPhases,
 } from "@/lib/finishing/phases";
 import type { FinishingPhase, HandoverStatus } from "@prisma/client";
+import {
+  AT_RISK_HANDOVER_STATUSES,
+  DELIVERED_HANDOVER_STATUSES,
+} from "@/lib/executive/handover-status-groups";
 
 export type HandoverPipelineBucket =
   | "pending"
@@ -58,17 +62,6 @@ const IN_PROGRESS_HANDOVER: HandoverStatus[] = [
   "EXTENSION",
 ];
 
-const DELIVERED_HANDOVER: HandoverStatus[] = ["DELIVERY_PROTOCOL", "DELIVERED"];
-
-const AT_RISK_HANDOVER: HandoverStatus[] = [
-  "REFUSED_DELIVERY",
-  "REFUSED_EXTENSION",
-  "INSTALLMENT_STOP_WARNING",
-  "DELIVERY_WARNING",
-  "LEGAL_DISPUTE",
-  "CANCELLED",
-];
-
 function startOfDay(date: Date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -85,8 +78,10 @@ function classifyHandover(
   status: HandoverStatus | null | undefined
 ): HandoverPipelineBucket {
   if (!status || status === "PENDING") return "pending";
-  if (DELIVERED_HANDOVER.includes(status)) return "delivered";
-  if (AT_RISK_HANDOVER.includes(status)) return "atRisk";
+  if ((DELIVERED_HANDOVER_STATUSES as readonly string[]).includes(status))
+    return "delivered";
+  if ((AT_RISK_HANDOVER_STATUSES as readonly string[]).includes(status))
+    return "atRisk";
   if (IN_PROGRESS_HANDOVER.includes(status)) return "inProgress";
   return "inProgress";
 }
@@ -134,12 +129,12 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
     prisma.unit.count({ where: activeUnitWhere() }),
     prisma.contractWorkflow.count({
       where: activeContractWorkflowWhere({
-        handoverStatus: { in: DELIVERED_HANDOVER },
+        handoverStatus: { in: [...DELIVERED_HANDOVER_STATUSES] },
       }),
     }),
     prisma.contractWorkflow.count({
       where: activeContractWorkflowWhere({
-        handoverStatus: { in: AT_RISK_HANDOVER },
+        handoverStatus: { in: [...AT_RISK_HANDOVER_STATUSES] },
       }),
     }),
     prisma.contractWorkflow.count({
@@ -148,13 +143,13 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
     prisma.contractWorkflow.count({
       where: activeContractWorkflowWhere({
         deliveryDate: { lt: todayStart },
-        handoverStatus: { notIn: DELIVERED_HANDOVER },
+        handoverStatus: { notIn: [...DELIVERED_HANDOVER_STATUSES] },
       }),
     }),
     prisma.contractWorkflow.count({
       where: activeContractWorkflowWhere({
         deliveryDate: { gte: todayStart, lte: monthEnd },
-        handoverStatus: { notIn: DELIVERED_HANDOVER },
+        handoverStatus: { notIn: [...DELIVERED_HANDOVER_STATUSES] },
       }),
     }),
     prisma.ticket.count({
@@ -189,7 +184,6 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
     }),
     prisma.unit.count({
       where: activeUnitWhere({
-        tickets: { some: activeTicketWhere({ status: "RESOLVED" }) },
         contractWorkflow: {
           deletedAt: null,
           signedProtocolStoredName: { not: null },
@@ -198,7 +192,6 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
     }),
     prisma.unit.count({
       where: activeUnitWhere({
-        tickets: { some: activeTicketWhere({ status: "RESOLVED" }) },
         OR: [
           { contractWorkflow: null },
           {
