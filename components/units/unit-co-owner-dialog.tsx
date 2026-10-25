@@ -9,6 +9,11 @@ import {
   searchClientsForCoOwnerLink,
 } from "@/lib/actions/unit-clients";
 import { PhoneCountryBadge } from "@/components/phone/phone-country-badge";
+import {
+  mergePhoneInputClassName,
+  PhoneLtrText,
+  phoneLtrInputDir,
+} from "@/components/phone/phone-ltr";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -142,7 +147,8 @@ export function UnitCoOwnerDialog({
               <div className="flex flex-wrap items-center gap-2">
                 <Input
                   id="co-owner-phone"
-                  className="min-w-[12rem] flex-1"
+                  dir={phoneLtrInputDir}
+                  className={mergePhoneInputClassName("min-w-[12rem] flex-1")}
                   value={phone}
                   disabled={pending}
                   onChange={(e) => setPhone(e.target.value)}
@@ -184,7 +190,10 @@ export function UnitCoOwnerDialog({
                     ) : null}
                     {client.phone1 ? (
                       <span className="inline-flex flex-wrap items-center gap-1 text-muted-foreground">
-                        <span>{" · "}{client.phone1}</span>
+                        <span>
+                          {" · "}
+                          <PhoneLtrText>{client.phone1}</PhoneLtrText>
+                        </span>
                         <PhoneCountryBadge phone={client.phone1} />
                       </span>
                     ) : null}

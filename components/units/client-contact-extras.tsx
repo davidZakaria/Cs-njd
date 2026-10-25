@@ -15,6 +15,10 @@ import {
 } from "@/lib/client/contact-lines";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { PhoneCountryBadge } from "@/components/phone/phone-country-badge";
+import {
+  mergePhoneInputClassName,
+  phoneLtrInputDir,
+} from "@/components/phone/phone-ltr";
 import { ClientPhoneRow } from "@/components/units/client-phone-row";
 import { Button } from "@/components/ui/button";
 import {
@@ -201,7 +205,8 @@ export function ClientContactExtras({
                   <>
                     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                       <Input
-                        className="min-w-[12rem] flex-1"
+                        dir={phoneLtrInputDir}
+                        className={mergePhoneInputClassName("min-w-[12rem] flex-1")}
                         value={row.value}
                         disabled={pending}
                         onChange={(event) => updatePhone(index, event.target.value)}
@@ -313,6 +318,8 @@ export function ClientContactExtras({
                 <DialogTitle>{t("addPhone")}</DialogTitle>
               </DialogHeader>
               <Input
+                dir={phoneLtrInputDir}
+                className={mergePhoneInputClassName()}
                 value={newPhone}
                 onChange={(event) => setNewPhone(event.target.value)}
                 disabled={pending}

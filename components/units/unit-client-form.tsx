@@ -16,6 +16,10 @@ import {
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { PhoneCountryBadge } from "@/components/phone/phone-country-badge";
+import {
+  mergePhoneInputClassName,
+  phoneLtrInputDir,
+} from "@/components/phone/phone-ltr";
 import { ClientPhoneRow } from "@/components/units/client-phone-row";
 import {
   ClientContactExtras,
@@ -431,7 +435,8 @@ export function UnitClientForm({
                 <div className="flex flex-wrap items-center gap-2">
                   <Input
                     id="phone1"
-                    className="min-w-[12rem] flex-1"
+                    dir={phoneLtrInputDir}
+                    className={mergePhoneInputClassName("min-w-[12rem] flex-1")}
                     disabled={pending}
                     {...register("phone1")}
                   />

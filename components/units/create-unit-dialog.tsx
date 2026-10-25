@@ -8,6 +8,10 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 
 import { PhoneCountryBadge } from "@/components/phone/phone-country-badge";
+import {
+  mergePhoneInputClassName,
+  phoneLtrInputDir,
+} from "@/components/phone/phone-ltr";
 import { createUnit } from "@/lib/actions/units";
 import {
   createUnitFormSchema,
@@ -203,7 +207,8 @@ export function CreateUnitDialog({
               <div className="flex flex-wrap items-center gap-2">
                 <Input
                   id="create-phone1"
-                  className="min-w-[12rem] flex-1"
+                  dir={phoneLtrInputDir}
+                  className={mergePhoneInputClassName("min-w-[12rem] flex-1")}
                   disabled={pending}
                   {...register("phone1")}
                 />
@@ -215,7 +220,8 @@ export function CreateUnitDialog({
               <div className="flex flex-wrap items-center gap-2">
                 <Input
                   id="create-phone2"
-                  className="min-w-[12rem] flex-1"
+                  dir={phoneLtrInputDir}
+                  className={mergePhoneInputClassName("min-w-[12rem] flex-1")}
                   disabled={pending}
                   {...register("phone2")}
                 />
