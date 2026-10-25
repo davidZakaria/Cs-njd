@@ -193,6 +193,7 @@ export function ExecutiveOverviewPanel({
         description: tMetric("signedProtocolMissingDetail", {
           fileUploaded: portfolio.signedProtocolDetail.fileUploaded,
           dateMarked: portfolio.signedProtocolDetail.dateMarked,
+          checkboxMarked: portfolio.signedProtocolDetail.checkboxMarked,
         }),
         percentOfTotal: pctOfUnits(signedProtocolMissing),
       },

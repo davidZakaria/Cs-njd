@@ -40,6 +40,7 @@ export type SignedProtocolSlice = {
 export type SignedProtocolDetailCounts = {
   fileUploaded: number;
   dateMarked: number;
+  checkboxMarked: number;
   missingUpload: number;
 };
 
@@ -134,6 +135,7 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
     signedUploadedResolved,
     signedMissingResolved,
     signedDateMarkedResolved,
+    signedCheckboxMarkedResolved,
   ] = await Promise.all([
     prisma.unit.count({ where: activeUnitWhere() }),
     prisma.contractWorkflow.count({
@@ -220,6 +222,14 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
         },
       }),
     }),
+    prisma.unit.count({
+      where: activeUnitWhere({
+        contractWorkflow: {
+          deletedAt: null,
+          hasSignedProtocol: true,
+        },
+      }),
+    }),
   ]);
 
   const handoverCounts: Record<HandoverPipelineBucket, number> = {
@@ -286,6 +296,7 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
     signedProtocolDetail: {
       fileUploaded: signedUploadedResolved,
       dateMarked: signedDateMarkedResolved,
+      checkboxMarked: signedCheckboxMarkedResolved,
       missingUpload: signedMissingResolved,
     },
   };

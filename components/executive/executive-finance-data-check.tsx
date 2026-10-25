@@ -84,9 +84,19 @@ export function ExecutiveFinanceDataCheck({
                           {tReasons(reason)}
                         </Badge>
                       ))}
-                      {row.excludeFromTotals ? (
+                      {!row.includeTotalInSum ? (
                         <Badge variant="secondary" className="text-xs">
-                          {t("excludedFromTotals")}
+                          {t("excludedFromFinishingTotal")}
+                        </Badge>
+                      ) : null}
+                      {!row.includeDoorInSum && (row.doorFees ?? 0) > 0 ? (
+                        <Badge variant="secondary" className="text-xs">
+                          {t("excludedFromDoorFees")}
+                        </Badge>
+                      ) : null}
+                      {!row.includeAluminumInSum && (row.aluminumFees ?? 0) > 0 ? (
+                        <Badge variant="secondary" className="text-xs">
+                          {t("excludedFromAluminumFees")}
                         </Badge>
                       ) : null}
                     </div>

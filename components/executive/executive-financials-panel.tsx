@@ -26,6 +26,7 @@ export function ExecutiveFinancialsPanel({
   const { grandTotal } = financials;
   const included = grandTotal.pricedUnitCount;
   const flagged = grandTotal.flaggedUnitCount;
+  const noData = grandTotal.noFinishingDataCount;
 
   if (financials.byProject.length === 0) {
     return (
@@ -56,6 +57,11 @@ export function ExecutiveFinancialsPanel({
         <p className="text-xs font-medium text-muted-foreground">
           {t("qualitySummary", { included, flagged })}
         </p>
+        {noData > 0 ? (
+          <p className="text-xs text-muted-foreground">
+            {t("noFinishingDataCount", { count: noData })}
+          </p>
+        ) : null}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -76,6 +82,11 @@ export function ExecutiveFinancialsPanel({
               <p className="text-xs text-muted-foreground">
                 {t("pricedUnitCount", { count: row.pricedUnitCount })}
               </p>
+              {row.noFinishingDataCount > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {t("noFinishingDataCount", { count: row.noFinishingDataCount })}
+                </p>
+              ) : null}
               {row.flaggedUnitCount > 0 ? (
                 <p className="text-xs text-amber-600 dark:text-amber-400">
                   {t("projectFlagged", { count: row.flaggedUnitCount })}
@@ -89,18 +100,29 @@ export function ExecutiveFinancialsPanel({
                   {formatCurrency(row.totalFinishingPrice, locale)}
                 </span>
               </div>
+              <p className="text-xs text-muted-foreground">
+                {t("pricedUnitCount", { count: row.pricedUnitCount })}
+              </p>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-muted-foreground">{t("doorFees")}</span>
                 <span className="font-medium tabular-nums">
                   {formatCurrency(row.doorFees, locale)}
                 </span>
               </div>
+              <p className="text-xs text-muted-foreground">
+                {t("doorFeesFromUnits", { count: row.doorFeesUnitCount })}
+              </p>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-muted-foreground">{t("aluminumFees")}</span>
                 <span className="font-medium tabular-nums">
                   {formatCurrency(row.aluminumFees, locale)}
                 </span>
               </div>
+              <p className="text-xs text-muted-foreground">
+                {t("aluminumFeesFromUnits", {
+                  count: row.aluminumFeesUnitCount,
+                })}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -115,9 +137,6 @@ export function ExecutiveFinancialsPanel({
         >
           <CardHeader className="pb-2">
             <CardTitle className="font-heading text-base">{t("grandTotal")}</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              {t("pricedUnitCount", { count: grandTotal.pricedUnitCount })}
-            </p>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-3">
             <div>
@@ -125,17 +144,28 @@ export function ExecutiveFinancialsPanel({
               <p className="font-heading text-2xl font-bold tabular-nums">
                 {formatCurrency(grandTotal.totalFinishingPrice, locale)}
               </p>
+              <p className="text-xs text-muted-foreground">
+                {t("pricedUnitCount", { count: grandTotal.pricedUnitCount })}
+              </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{t("doorFees")}</p>
               <p className="font-heading text-2xl font-bold tabular-nums">
                 {formatCurrency(grandTotal.doorFees, locale)}
               </p>
+              <p className="text-xs text-muted-foreground">
+                {t("doorFeesFromUnits", { count: grandTotal.doorFeesUnitCount })}
+              </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{t("aluminumFees")}</p>
               <p className="font-heading text-2xl font-bold tabular-nums">
                 {formatCurrency(grandTotal.aluminumFees, locale)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t("aluminumFeesFromUnits", {
+                  count: grandTotal.aluminumFeesUnitCount,
+                })}
               </p>
             </div>
           </CardContent>

@@ -15,8 +15,10 @@ export type ProjectFinancialTotals = {
   totalFinishingPrice: number;
   doorFees: number;
   aluminumFees: number;
-  /** Units included in summed totals (clean or priced-without-area only). */
   pricedUnitCount: number;
+  doorFeesUnitCount: number;
+  aluminumFeesUnitCount: number;
+  noFinishingDataCount: number;
   flaggedUnitCount: number;
 };
 
@@ -26,11 +28,14 @@ export type FlaggedFinishingUnit = {
   project: string;
   slug: string;
   area: number | null;
+  pricePerMeter: number | null;
   totalFinishingPrice: number | null;
   doorFees: number | null;
   aluminumFees: number | null;
   reasons: FinishingDataQualityReason[];
-  excludeFromTotals: boolean;
+  includeTotalInSum: boolean;
+  includeDoorInSum: boolean;
+  includeAluminumInSum: boolean;
 };
 
 export type ExecutiveFinancials = {
@@ -40,6 +45,9 @@ export type ExecutiveFinancials = {
     doorFees: number;
     aluminumFees: number;
     pricedUnitCount: number;
+    doorFeesUnitCount: number;
+    aluminumFeesUnitCount: number;
+    noFinishingDataCount: number;
     flaggedUnitCount: number;
   };
   flaggedUnits: FlaggedFinishingUnit[];
@@ -56,6 +64,21 @@ function projectSlug(name: string): string {
   return name.toLowerCase().replace(/\s+/g, "-");
 }
 
+function emptyProjectTotals(projectName: string): ProjectFinancialTotals {
+  return {
+    project: projectName,
+    slug: projectSlug(projectName),
+    totalFinishingPrice: 0,
+    doorFees: 0,
+    aluminumFees: 0,
+    pricedUnitCount: 0,
+    doorFeesUnitCount: 0,
+    aluminumFeesUnitCount: 0,
+    noFinishingDataCount: 0,
+    flaggedUnitCount: 0,
+  };
+}
+
 export async function getExecutiveFinancials(): Promise<ExecutiveFinancials> {
   const finishings = await prisma.finishing.findMany({
     where: {
@@ -66,6 +89,7 @@ export async function getExecutiveFinancials(): Promise<ExecutiveFinancials> {
       totalFinishingPrice: true,
       doorFees: true,
       aluminumFees: true,
+      pricePerMeter: true,
       unit: {
         select: {
           id: true,
@@ -82,24 +106,24 @@ export async function getExecutiveFinancials(): Promise<ExecutiveFinancials> {
 
   for (const finishing of finishings) {
     const projectName = finishing.unit.project.name;
-    const quality = assessFinishingFinancialData({
+    const assessment = assessFinishingFinancialData({
       totalFinishingPrice: finishing.totalFinishingPrice,
       doorFees: finishing.doorFees,
       aluminumFees: finishing.aluminumFees,
       area: finishing.unit.area,
+      pricePerMeter: finishing.pricePerMeter,
     });
 
-    const existing = byProjectMap.get(projectName) ?? {
-      project: projectName,
-      slug: projectSlug(projectName),
-      totalFinishingPrice: 0,
-      doorFees: 0,
-      aluminumFees: 0,
-      pricedUnitCount: 0,
-      flaggedUnitCount: 0,
-    };
+    const existing =
+      byProjectMap.get(projectName) ?? emptyProjectTotals(projectName);
 
-    if (quality.flagged) {
+    if (assessment.isEmpty) {
+      existing.noFinishingDataCount += 1;
+      byProjectMap.set(projectName, existing);
+      continue;
+    }
+
+    if (assessment.showInFinanceDataCheck) {
       existing.flaggedUnitCount += 1;
       flaggedUnits.push({
         unitId: finishing.unit.id,
@@ -107,27 +131,34 @@ export async function getExecutiveFinancials(): Promise<ExecutiveFinancials> {
         project: projectName,
         slug: projectSlug(projectName),
         area: finishing.unit.area,
+        pricePerMeter: finishing.pricePerMeter,
         totalFinishingPrice: finishing.totalFinishingPrice,
         doorFees: finishing.doorFees,
         aluminumFees: finishing.aluminumFees,
-        reasons: quality.reasons,
-        excludeFromTotals: quality.excludeFromTotals,
+        reasons: assessment.financeCheckReasons,
+        includeTotalInSum: assessment.includeTotalInSum,
+        includeDoorInSum: assessment.includeDoorInSum,
+        includeAluminumInSum: assessment.includeAluminumInSum,
       });
     }
 
-    if (!quality.excludeFromTotals) {
+    if (assessment.includeTotalInSum) {
       existing.totalFinishingPrice = sumField(
         finishing.totalFinishingPrice,
         existing.totalFinishingPrice
       );
+      existing.pricedUnitCount += 1;
+    }
+    if (assessment.includeDoorInSum) {
       existing.doorFees = sumField(finishing.doorFees, existing.doorFees);
+      existing.doorFeesUnitCount += 1;
+    }
+    if (assessment.includeAluminumInSum) {
       existing.aluminumFees = sumField(
         finishing.aluminumFees,
         existing.aluminumFees
       );
-      if ((finishing.totalFinishingPrice ?? 0) > 0) {
-        existing.pricedUnitCount += 1;
-      }
+      existing.aluminumFeesUnitCount += 1;
     }
 
     byProjectMap.set(projectName, existing);
@@ -153,6 +184,10 @@ export async function getExecutiveFinancials(): Promise<ExecutiveFinancials> {
       doorFees: acc.doorFees + row.doorFees,
       aluminumFees: acc.aluminumFees + row.aluminumFees,
       pricedUnitCount: acc.pricedUnitCount + row.pricedUnitCount,
+      doorFeesUnitCount: acc.doorFeesUnitCount + row.doorFeesUnitCount,
+      aluminumFeesUnitCount:
+        acc.aluminumFeesUnitCount + row.aluminumFeesUnitCount,
+      noFinishingDataCount: acc.noFinishingDataCount + row.noFinishingDataCount,
       flaggedUnitCount: acc.flaggedUnitCount + row.flaggedUnitCount,
     }),
     {
@@ -160,6 +195,9 @@ export async function getExecutiveFinancials(): Promise<ExecutiveFinancials> {
       doorFees: 0,
       aluminumFees: 0,
       pricedUnitCount: 0,
+      doorFeesUnitCount: 0,
+      aluminumFeesUnitCount: 0,
+      noFinishingDataCount: 0,
       flaggedUnitCount: 0,
     }
   );
