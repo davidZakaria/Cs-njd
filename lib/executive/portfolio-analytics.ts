@@ -13,6 +13,7 @@ import type { FinishingPhase, HandoverStatus } from "@prisma/client";
 import {
   AT_RISK_HANDOVER_STATUSES,
   DELIVERED_HANDOVER_STATUSES,
+  OVERDUE_DELIVERY_EXCLUDED_STATUSES,
 } from "@/lib/executive/handover-status-groups";
 
 export type HandoverPipelineBucket =
@@ -36,6 +37,13 @@ export type SignedProtocolSlice = {
   count: number;
 };
 
+export type SignedProtocolDetailCounts = {
+  fileUploaded: number;
+  dateMarked: number;
+  checkboxMarked: number;
+  missingUpload: number;
+};
+
 export type ExecutivePortfolioMetrics = {
   totalUnits: number;
   deliveredUnits: number;
@@ -51,6 +59,7 @@ export type ExecutivePortfolioMetrics = {
   handoverPipeline: HandoverPipelineSlice[];
   finishingPhases: FinishingPhaseSlice[];
   signedProtocol: SignedProtocolSlice[];
+  signedProtocolDetail: SignedProtocolDetailCounts;
 };
 
 const IN_PROGRESS_HANDOVER: HandoverStatus[] = [
@@ -125,6 +134,8 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
     workflows,
     signedUploadedResolved,
     signedMissingResolved,
+    signedDateMarkedResolved,
+    signedCheckboxMarkedResolved,
   ] = await Promise.all([
     prisma.unit.count({ where: activeUnitWhere() }),
     prisma.contractWorkflow.count({
@@ -143,13 +154,13 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
     prisma.contractWorkflow.count({
       where: activeContractWorkflowWhere({
         deliveryDate: { lt: todayStart },
-        handoverStatus: { notIn: [...DELIVERED_HANDOVER_STATUSES] },
+        handoverStatus: { notIn: [...OVERDUE_DELIVERY_EXCLUDED_STATUSES] },
       }),
     }),
     prisma.contractWorkflow.count({
       where: activeContractWorkflowWhere({
         deliveryDate: { gte: todayStart, lte: monthEnd },
-        handoverStatus: { notIn: [...DELIVERED_HANDOVER_STATUSES] },
+        handoverStatus: { notIn: [...OVERDUE_DELIVERY_EXCLUDED_STATUSES] },
       }),
     }),
     prisma.ticket.count({
@@ -201,6 +212,22 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
             },
           },
         ],
+      }),
+    }),
+    prisma.unit.count({
+      where: activeUnitWhere({
+        contractWorkflow: {
+          deletedAt: null,
+          signedProtocolDate: { not: null },
+        },
+      }),
+    }),
+    prisma.unit.count({
+      where: activeUnitWhere({
+        contractWorkflow: {
+          deletedAt: null,
+          hasSignedProtocol: true,
+        },
       }),
     }),
   ]);
@@ -266,5 +293,11 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
       { key: "uploaded", count: signedUploadedResolved },
       { key: "missing", count: signedMissingResolved },
     ],
+    signedProtocolDetail: {
+      fileUploaded: signedUploadedResolved,
+      dateMarked: signedDateMarkedResolved,
+      checkboxMarked: signedCheckboxMarkedResolved,
+      missingUpload: signedMissingResolved,
+    },
   };
 }
