@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 
+import { PhoneCountryBadge } from "@/components/phone/phone-country-badge";
 import { createUnit } from "@/lib/actions/units";
 import {
   createUnitFormSchema,
@@ -70,6 +71,7 @@ export function CreateUnitDialog({
     control,
     handleSubmit,
     reset,
+    watch,
   } = useForm<CreateUnitFormInput>({
     resolver: zodResolver(createUnitFormSchema),
     defaultValues,
@@ -198,11 +200,27 @@ export function CreateUnitDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="create-phone1">{t("phone1")}</Label>
-              <Input id="create-phone1" disabled={pending} {...register("phone1")} />
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  id="create-phone1"
+                  className="min-w-[12rem] flex-1"
+                  disabled={pending}
+                  {...register("phone1")}
+                />
+                <PhoneCountryBadge phone={watch("phone1")} />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="create-phone2">{t("phone2")}</Label>
-              <Input id="create-phone2" disabled={pending} {...register("phone2")} />
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  id="create-phone2"
+                  className="min-w-[12rem] flex-1"
+                  disabled={pending}
+                  {...register("phone2")}
+                />
+                <PhoneCountryBadge phone={watch("phone2")} />
+              </div>
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="create-address1">{t("address1")}</Label>

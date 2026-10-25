@@ -1,5 +1,6 @@
 "use client";
 
+import { PhoneCountryBadge } from "@/components/phone/phone-country-badge";
 import { WhatsAppButton } from "@/components/units/whatsapp-button";
 
 export function ClientPhoneRow({
@@ -25,6 +26,11 @@ export function ClientPhoneRow({
     <div className="flex flex-wrap items-center gap-2">
       <p className="min-w-0 flex-1">
         <strong>{label}:</strong> {display}
+        {phone?.trim() ? (
+          <span className="ms-2 inline-flex align-middle">
+            <PhoneCountryBadge phone={phone} />
+          </span>
+        ) : null}
       </p>
       {phone?.trim() && !contactDisabled ? (
         <WhatsAppButton

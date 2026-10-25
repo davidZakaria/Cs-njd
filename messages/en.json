@@ -46,6 +46,9 @@
     }
   },
   "client": {
+    "phoneCountry": {
+      "unknown": "Unknown"
+    },
     "contacts": {
       "additionalTitle": "Additional phones & addresses",
       "extraPhones": "Additional phone numbers",
