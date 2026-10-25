@@ -159,6 +159,69 @@ describe("unit co-owner actions", () => {
     expect(linkResult).toHaveProperty("error", "Unauthorized");
   });
 
+  it("stores optional email and address1 when creating a new co-owner client", async () => {
+    const mockClientCreate = vi.fn().mockResolvedValue({ id: "new-co" });
+    mockAuth.mockResolvedValue(session("MANAGEMENT"));
+    mockUnitFindUnique.mockResolvedValue({
+      id: "unit-1",
+      deletedAt: null,
+      clientId: "primary-client",
+      project: jamilaProject,
+      unitClients: [],
+    });
+    mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<void>) =>
+      fn({
+        client: { create: mockClientCreate },
+        unitClient: {
+          findUnique: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockResolvedValue({ id: "link-new" }),
+        },
+      })
+    );
+
+    const { addUnitCoOwner } = await import("@/lib/actions/unit-clients");
+    const result = await addUnitCoOwner({
+      unitId: "unit-1",
+      mode: "new",
+      name: "Second Owner",
+      email: "owner@example.com",
+      address: "  12 Nile Street  ",
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockClientCreate).toHaveBeenCalledWith({
+      data: {
+        name: "Second Owner",
+        nationalId: null,
+        phone1: null,
+        email: "owner@example.com",
+        address1: "12 Nile Street",
+      },
+    });
+  });
+
+  it("rejects invalid email when adding a new co-owner", async () => {
+    mockAuth.mockResolvedValue(session("MANAGEMENT"));
+    mockUnitFindUnique.mockResolvedValue({
+      id: "unit-1",
+      deletedAt: null,
+      clientId: "primary-client",
+      project: jamilaProject,
+      unitClients: [],
+    });
+
+    const { addUnitCoOwner } = await import("@/lib/actions/unit-clients");
+    const result = await addUnitCoOwner({
+      unitId: "unit-1",
+      mode: "new",
+      name: "Second Owner",
+      email: "not-an-email",
+    });
+
+    expect(result.success).toBe(false);
+    expect(mockTransaction).not.toHaveBeenCalled();
+  });
+
   it("allows community on Jamila to add a co-owner", async () => {
     mockAuth.mockResolvedValue(session("COMMUNITY_MANAGEMENT"));
     mockUnitFindUnique.mockResolvedValue({

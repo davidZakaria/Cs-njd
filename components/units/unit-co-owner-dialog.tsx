@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type LinkResult = {
@@ -54,6 +55,8 @@ export function UnitCoOwnerDialog({
   const [name, setName] = useState("");
   const [nationalId, setNationalId] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<LinkResult[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -64,6 +67,8 @@ export function UnitCoOwnerDialog({
       setName("");
       setNationalId("");
       setPhone("");
+      setEmail("");
+      setAddress("");
       setSearchQuery("");
       setSearchResults([]);
       setSelectedClientId(null);
@@ -89,6 +94,8 @@ export function UnitCoOwnerDialog({
         name: mode === "new" ? name : undefined,
         nationalId: mode === "new" ? nationalId : undefined,
         phone: mode === "new" ? phone : undefined,
+        email: mode === "new" ? email : undefined,
+        address: mode === "new" ? address : undefined,
         existingClientId: mode === "link" ? selectedClientId ?? undefined : undefined,
       });
       if (result.success) {
@@ -155,6 +162,29 @@ export function UnitCoOwnerDialog({
                 />
                 <PhoneCountryBadge phone={phone} />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="co-owner-email">{t("emailOptional")}</Label>
+              <Input
+                id="co-owner-email"
+                type="email"
+                dir={phoneLtrInputDir}
+                className={mergePhoneInputClassName()}
+                value={email}
+                disabled={pending}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="co-owner-address">{t("addressOptional")}</Label>
+              <Textarea
+                id="co-owner-address"
+                rows={2}
+                value={address}
+                disabled={pending}
+                onChange={(e) => setAddress(e.target.value)}
+              />
             </div>
           </TabsContent>
           <TabsContent value="link" className="space-y-3 pt-3">

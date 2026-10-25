@@ -736,6 +736,8 @@
       "name": "الاسم الكامل",
       "nationalIdOptional": "الرقم القومي (اختياري)",
       "phoneOptional": "الهاتف (اختياري)",
+      "emailOptional": "البريد الإلكتروني (اختياري)",
+      "addressOptional": "العنوان (اختياري)",
       "searchHint": "بحث بالرقم القومي أو الاسم أو الهاتف",
       "searchPlaceholder": "ابدأ الكتابة…",
       "noSearchResults": "لا يوجد عملاء مطابقون",
