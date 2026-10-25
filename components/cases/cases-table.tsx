@@ -8,10 +8,11 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { RemovableFilterChip } from "@/components/filters/removable-filter-chip";
 import { formatDateTime } from "@/lib/format/datetime";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { updateTicketStatus } from "@/lib/actions/crm";
 import { useCrudToast } from "@/hooks/use-crud-toast";
 import { isAwaitingResponseNote } from "@/lib/import/master-cases";
@@ -23,9 +24,13 @@ import {
   UNASSIGNED_AGENT_FILTER,
 } from "@/lib/filters";
 import {
+  buildCasesPageUrl,
+  isCasesFilterActive,
+  type CasesPageFilters,
   projectNameToSlug,
   resolveAgentFilterParam,
 } from "@/lib/cases/cases-filter-url";
+import { PENDING_PARTY_CHART_KEYS } from "@/lib/executive/chart-theme";
 import { isFollowUpDue } from "@/lib/cases/follow-up-sprint";
 import {
   confirmManagementOverride,
@@ -73,6 +78,15 @@ export type CaseRow = {
 
 const TICKET_STATUSES = ["PENDING", "ENGINEERING", "LEGAL", "RESOLVED"] as const;
 /** Category filter dropdown order — Current Status immediately after “All categories”. */
+const DEFAULT_CASES_FILTERS: CasesPageFilters = {
+  status: "all",
+  project: "all",
+  category: "all",
+  agent: "all",
+  followUp: "all",
+  pendingParty: "all",
+};
+
 const CATEGORY_FILTER_ORDER = [
   "CUSTOMER_SERVICE",
   "FEEDBACK_HISTORY",
@@ -203,19 +217,55 @@ export function CasesTable({
   const tCommon = useTranslations("common");
   const tFilters = useTranslations("filters");
   const labels = useDomainLabels();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState(defaultStatusFilter);
-  const [projectFilter, setProjectFilter] = useState(defaultProjectFilter);
-  const [categoryFilter, setCategoryFilter] = useState(defaultCategoryFilter);
-  const [agentFilter, setAgentFilter] = useState(() => {
-    const resolved = resolveAgentFilterParam(defaultAgentFilter, agents);
-    return resolved === "unassigned" ? UNASSIGNED_AGENT_FILTER : resolved;
-  });
-  const [followUpFilter, setFollowUpFilter] = useState(defaultFollowUpFilter);
-  const [pendingPartyFilter, _setPendingPartyFilter] = useState(
-    defaultPendingPartyFilter
+  const [urlFilters, setUrlFilters] = useState<CasesPageFilters>(() => ({
+    ...DEFAULT_CASES_FILTERS,
+    status: defaultStatusFilter,
+    project: defaultProjectFilter,
+    category: defaultCategoryFilter,
+    agent: defaultAgentFilter,
+    followUp: defaultFollowUpFilter,
+    pendingParty: defaultPendingPartyFilter,
+  }));
+
+  useEffect(() => {
+    setUrlFilters({
+      ...DEFAULT_CASES_FILTERS,
+      status: defaultStatusFilter,
+      project: defaultProjectFilter,
+      category: defaultCategoryFilter,
+      agent: defaultAgentFilter,
+      followUp: defaultFollowUpFilter,
+      pendingParty: defaultPendingPartyFilter,
+    });
+  }, [
+    defaultAgentFilter,
+    defaultCategoryFilter,
+    defaultFollowUpFilter,
+    defaultPendingPartyFilter,
+    defaultProjectFilter,
+    defaultStatusFilter,
+  ]);
+
+  const pushUrlFilters = useCallback(
+    (next: CasesPageFilters) => {
+      setUrlFilters(next);
+      router.push(buildCasesPageUrl(next));
+    },
+    [router]
   );
+
+  const statusFilter = urlFilters.status;
+  const projectFilter = urlFilters.project;
+  const categoryFilter = urlFilters.category;
+  const followUpFilter = urlFilters.followUp;
+  const pendingPartyFilter = urlFilters.pendingParty;
+  const agentFilter = useMemo(() => {
+    const resolved = resolveAgentFilterParam(urlFilters.agent, agents);
+    return resolved === "unassigned" ? UNASSIGNED_AGENT_FILTER : resolved;
+  }, [agents, urlFilters.agent]);
 
   const statusItems = useMemo(() => {
     const items: Record<string, string> = {
@@ -345,6 +395,72 @@ export function CasesTable({
       (a, b) => categoryFilterRank(a.category) - categoryFilterRank(b.category)
     );
   }, [data, statusFilter, projectFilter, categoryFilter, agentFilter, followUpFilter, pendingPartyFilter, query, agents]);
+
+  const activeFilterChips = useMemo(() => {
+    const chips: Array<{ key: string; label: string; clear: () => void }> = [];
+    if (urlFilters.status !== "all") {
+      const statusLabel =
+        urlFilters.status === "open"
+          ? t("openCases")
+          : labels.ticketStatus(urlFilters.status);
+      chips.push({
+        key: "status",
+        label: t("filters.statusLabel", { value: statusLabel }),
+        clear: () => pushUrlFilters({ ...urlFilters, status: "all" }),
+      });
+    }
+    if (urlFilters.project !== "all") {
+      const name =
+        data.find(
+          (row) => projectNameToSlug(row.project) === urlFilters.project
+        )?.project ?? urlFilters.project;
+      chips.push({
+        key: "project",
+        label: t("filters.projectLabel", { value: name }),
+        clear: () => pushUrlFilters({ ...urlFilters, project: "all" }),
+      });
+    }
+    if (urlFilters.category !== "all") {
+      chips.push({
+        key: "category",
+        label: t("filters.categoryLabel", {
+          value: labels.ticketCategory(urlFilters.category),
+        }),
+        clear: () => pushUrlFilters({ ...urlFilters, category: "all" }),
+      });
+    }
+    if (urlFilters.agent !== "all") {
+      const agentLabel =
+        urlFilters.agent === "unassigned"
+          ? t("unassigned")
+          : labels.staffName(
+              agents.find((a) => a.id === urlFilters.agent)?.name ??
+                urlFilters.agent
+            );
+      chips.push({
+        key: "agent",
+        label: t("filters.agentLabel", { value: agentLabel }),
+        clear: () => pushUrlFilters({ ...urlFilters, agent: "all" }),
+      });
+    }
+    if (urlFilters.followUp === "due") {
+      chips.push({
+        key: "followUp",
+        label: t("filters.followUpLabel"),
+        clear: () => pushUrlFilters({ ...urlFilters, followUp: "all" }),
+      });
+    }
+    if (urlFilters.pendingParty !== "all") {
+      chips.push({
+        key: "pendingParty",
+        label: t("filters.pendingPartyLabel", {
+          value: labels.pendingParty(urlFilters.pendingParty),
+        }),
+        clear: () => pushUrlFilters({ ...urlFilters, pendingParty: "all" }),
+      });
+    }
+    return chips;
+  }, [agents, data, labels, pushUrlFilters, t, urlFilters]);
 
   const exportHeaders = useMemo(
     () => [
@@ -543,7 +659,10 @@ export function CasesTable({
         <Select
           value={projectFilter}
           onValueChange={(value) => {
-            setProjectFilter(value ?? "all");
+            pushUrlFilters({
+              ...urlFilters,
+              project: value ?? "all",
+            });
             table.setPageIndex(0);
           }}
           items={projectItems}
@@ -565,7 +684,10 @@ export function CasesTable({
         <Select
           value={categoryFilter}
           onValueChange={(value) => {
-            setCategoryFilter(value ?? "all");
+            pushUrlFilters({
+              ...urlFilters,
+              category: value ?? "all",
+            });
             table.setPageIndex(0);
           }}
           items={categoryItems}
@@ -585,7 +707,10 @@ export function CasesTable({
         <Select
           value={statusFilter}
           onValueChange={(value) => {
-            setStatusFilter(value ?? "all");
+            pushUrlFilters({
+              ...urlFilters,
+              status: (value ?? "all") as CasesPageFilters["status"],
+            });
             table.setPageIndex(0);
           }}
           items={statusItems}
@@ -607,7 +732,13 @@ export function CasesTable({
           value={agentFilter}
           onValueChange={(value) => {
             if (value == null) return;
-            setAgentFilter(value);
+            const agent =
+              value === UNASSIGNED_AGENT_FILTER
+                ? "unassigned"
+                : value === "all"
+                  ? "all"
+                  : agents.find((a) => a.name === value)?.id ?? value;
+            pushUrlFilters({ ...urlFilters, agent });
             table.setPageIndex(0);
           }}
           items={agentFilterItems}
@@ -626,7 +757,10 @@ export function CasesTable({
         <Select
           value={followUpFilter}
           onValueChange={(value) => {
-            setFollowUpFilter(value === "due" ? "due" : "all");
+            pushUrlFilters({
+              ...urlFilters,
+              followUp: value === "due" ? "due" : "all",
+            });
             table.setPageIndex(0);
           }}
           items={{ all: t("allFollowUps"), due: tFilters("dueToday") }}
@@ -639,7 +773,67 @@ export function CasesTable({
             <SelectItem value="due">{tFilters("dueToday")}</SelectItem>
           </SelectContent>
         </Select>
+        <Select
+          value={pendingPartyFilter}
+          onValueChange={(value) => {
+            pushUrlFilters({
+              ...urlFilters,
+              pendingParty: value ?? "all",
+            });
+            table.setPageIndex(0);
+          }}
+          items={{
+            all: t("allPendingParties"),
+            ...Object.fromEntries(
+              PENDING_PARTY_CHART_KEYS.map((party) => [
+                party,
+                labels.pendingParty(party),
+              ])
+            ),
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={t("pendingParty")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("allPendingParties")}</SelectItem>
+            {PENDING_PARTY_CHART_KEYS.map((party) => (
+              <SelectItem key={party} value={party}>
+                {labels.pendingParty(party)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      {activeFilterChips.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">
+            {t("filters.activeLabel")}
+          </span>
+          {activeFilterChips.map((chip) => (
+            <RemovableFilterChip
+              key={chip.key}
+              label={chip.label}
+              onRemove={chip.clear}
+            />
+          ))}
+          {isCasesFilterActive(urlFilters) ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => {
+                pushUrlFilters(DEFAULT_CASES_FILTERS);
+                table.setPageIndex(0);
+              }}
+            >
+              {t("filters.clearAll")}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
 
       {canExport ? (
         <div className="flex justify-end">

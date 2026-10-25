@@ -59,6 +59,28 @@ export function resolveAgentFilterParam(
   return param;
 }
 
+export function buildCasesPageUrl(filters: CasesPageFilters): string {
+  const params: CasesFilterParams = {};
+  if (filters.status !== "all") params.status = filters.status;
+  if (filters.project !== "all") params.project = filters.project;
+  if (filters.category !== "all") params.category = filters.category;
+  if (filters.agent !== "all") params.agent = filters.agent;
+  if (filters.followUp === "due") params.followUp = "due";
+  if (filters.pendingParty !== "all") params.pendingParty = filters.pendingParty;
+  return buildCasesFilterUrl(params);
+}
+
+export function isCasesFilterActive(filters: CasesPageFilters): boolean {
+  return (
+    filters.status !== "all" ||
+    filters.project !== "all" ||
+    filters.category !== "all" ||
+    filters.agent !== "all" ||
+    filters.followUp === "due" ||
+    filters.pendingParty !== "all"
+  );
+}
+
 export function parseCasesPageFilters(
   searchParams: Record<string, string | string[] | undefined>
 ): CasesPageFilters {

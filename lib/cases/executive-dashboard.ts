@@ -8,6 +8,15 @@ import {
   type CanonicalProject,
 } from "@/lib/projects";
 import { assignableAgentUserWhere } from "@/lib/units/assignable-agents";
+import {
+  computeResolvedStats,
+  countUniqueUnits,
+} from "@/lib/executive/executive-stats";
+import { computeOpenWorkPrimaryStatusBreakdown } from "@/lib/executive/open-work-status";
+import {
+  computePrimaryPendingPartyBreakdown,
+  type PrimaryPendingPartyBreakdown,
+} from "@/lib/executive/pending-party-primary";
 
 export type ExecutiveCaseRow = {
   id: string;
@@ -34,6 +43,12 @@ export type AgentWorkload = {
   engineeringCount: number;
 };
 
+export type OpenWorkByPrimaryStatus = {
+  pending: number;
+  engineering: number;
+  legal: number;
+};
+
 export type ExecutiveStats = {
   openTotal: number;
   unassigned: number;
@@ -43,6 +58,7 @@ export type ExecutiveStats = {
   teamOpen: number;
   pending: number;
   pendingWithParty: number;
+  openWorkByPrimaryStatus: OpenWorkByPrimaryStatus;
 };
 
 export type CategoryBreakdown = {
@@ -59,14 +75,7 @@ export type ProjectOpenCount = {
   count: number;
 };
 
-export type PendingPartyBreakdown = {
-  CLIENT: number;
-  ENGINEERING: number;
-  LEGAL: number;
-  FINANCE: number;
-  MANAGEMENT: number;
-  LOGISTICS: number;
-};
+export type PendingPartyBreakdown = PrimaryPendingPartyBreakdown;
 
 export type ProjectDashboardSlice = {
   project: string;
@@ -126,19 +135,6 @@ function sortQueue(items: ExecutiveCaseRow[]) {
   return [...items].sort((a, b) => queuePriority(a) - queuePriority(b));
 }
 
-function countUniqueUnits(
-  rows: ExecutiveCaseRow[],
-  predicate?: (row: ExecutiveCaseRow) => boolean
-): number {
-  const unitIds = new Set<string>();
-  for (const row of rows) {
-    if (!predicate || predicate(row)) {
-      unitIds.add(row.unitId);
-    }
-  }
-  return unitIds.size;
-}
-
 function toExecutiveRow(
   ticket: {
     id: string;
@@ -190,6 +186,7 @@ function toExecutiveRow(
 function computeStats(rows: ExecutiveCaseRow[]): ExecutiveStats {
   const teamRows = rows.filter((row) => !row.isMine);
   const myRows = rows.filter((row) => row.isMine);
+  const primary = computeOpenWorkPrimaryStatusBreakdown(rows);
 
   return {
     openTotal: countUniqueUnits(rows),
@@ -197,21 +194,20 @@ function computeStats(rows: ExecutiveCaseRow[]): ExecutiveStats {
       teamRows,
       (row) => !row.agentId && !row.unitAgentId
     ),
-    legal: countUniqueUnits(
-      rows,
-      (row) => row.status === "LEGAL" || row.category === "LEGAL"
-    ),
-    engineering: countUniqueUnits(
-      rows,
-      (row) => row.status === "ENGINEERING"
-    ),
+    legal: primary.LEGAL,
+    engineering: primary.ENGINEERING,
     myOpen: countUniqueUnits(myRows),
     teamOpen: countUniqueUnits(teamRows),
-    pending: countUniqueUnits(rows, (row) => row.status === "PENDING"),
+    pending: primary.PENDING,
     pendingWithParty: countUniqueUnits(
       rows,
       (row) => row.pendingParty !== "NONE"
     ),
+    openWorkByPrimaryStatus: {
+      pending: primary.PENDING,
+      engineering: primary.ENGINEERING,
+      legal: primary.LEGAL,
+    },
   };
 }
 
@@ -240,30 +236,7 @@ function computeCategoryBreakdown(rows: ExecutiveCaseRow[]): CategoryBreakdown {
 function computePendingPartyBreakdown(
   rows: ExecutiveCaseRow[]
 ): PendingPartyBreakdown {
-  const buckets: Record<keyof PendingPartyBreakdown, Set<string>> = {
-    CLIENT: new Set(),
-    ENGINEERING: new Set(),
-    LEGAL: new Set(),
-    FINANCE: new Set(),
-    MANAGEMENT: new Set(),
-    LOGISTICS: new Set(),
-  };
-
-  for (const row of rows) {
-    const party = row.pendingParty as keyof PendingPartyBreakdown;
-    if (party in buckets) {
-      buckets[party].add(row.unitId);
-    }
-  }
-
-  return {
-    CLIENT: buckets.CLIENT.size,
-    ENGINEERING: buckets.ENGINEERING.size,
-    LEGAL: buckets.LEGAL.size,
-    FINANCE: buckets.FINANCE.size,
-    MANAGEMENT: buckets.MANAGEMENT.size,
-    LOGISTICS: buckets.LOGISTICS.size,
-  };
+  return computePrimaryPendingPartyBreakdown(rows);
 }
 
 function computeAgentWorkload(
@@ -333,14 +306,6 @@ function computeAgentWorkload(
     .sort((a, b) => b.openCount - a.openCount);
 }
 
-function computeResolvedStats(rows: ExecutiveCaseRow[]): ResolvedStats {
-  return {
-    resolvedTotal: rows.length,
-    myResolved: rows.filter((row) => row.isMine).length,
-    teamResolved: rows.filter((row) => !row.isMine).length,
-  };
-}
-
 function buildResolvedProjectCounts(
   rows: ExecutiveCaseRow[],
   orderedProjectNames: string[]
@@ -348,7 +313,7 @@ function buildResolvedProjectCounts(
   return orderedProjectNames.map((project) => ({
     project,
     slug: projectSlug(project),
-    count: rows.filter((row) => row.project === project).length,
+    count: countUniqueUnits(rows, (row) => row.project === project),
   }));
 }
 

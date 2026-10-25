@@ -98,12 +98,13 @@ export function projectBarFill(index: number): string {
 }
 
 export const PENDING_PARTY_CHART_KEYS = [
-  "CLIENT",
-  "ENGINEERING",
   "LEGAL",
   "FINANCE",
+  "ENGINEERING",
   "MANAGEMENT",
   "LOGISTICS",
+  "CLIENT",
+  "CUSTOMER_SERVICE",
 ] as const;
 
 export type PendingPartyChartKey = (typeof PENDING_PARTY_CHART_KEYS)[number];
