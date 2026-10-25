@@ -13,6 +13,10 @@ import {
   countUniqueUnits,
 } from "@/lib/executive/executive-stats";
 import { computeOpenWorkPrimaryStatusBreakdown } from "@/lib/executive/open-work-status";
+import {
+  computePrimaryPendingPartyBreakdown,
+  type PrimaryPendingPartyBreakdown,
+} from "@/lib/executive/pending-party-primary";
 
 export type ExecutiveCaseRow = {
   id: string;
@@ -71,14 +75,7 @@ export type ProjectOpenCount = {
   count: number;
 };
 
-export type PendingPartyBreakdown = {
-  CLIENT: number;
-  ENGINEERING: number;
-  LEGAL: number;
-  FINANCE: number;
-  MANAGEMENT: number;
-  LOGISTICS: number;
-};
+export type PendingPartyBreakdown = PrimaryPendingPartyBreakdown;
 
 export type ProjectDashboardSlice = {
   project: string;
@@ -239,30 +236,7 @@ function computeCategoryBreakdown(rows: ExecutiveCaseRow[]): CategoryBreakdown {
 function computePendingPartyBreakdown(
   rows: ExecutiveCaseRow[]
 ): PendingPartyBreakdown {
-  const buckets: Record<keyof PendingPartyBreakdown, Set<string>> = {
-    CLIENT: new Set(),
-    ENGINEERING: new Set(),
-    LEGAL: new Set(),
-    FINANCE: new Set(),
-    MANAGEMENT: new Set(),
-    LOGISTICS: new Set(),
-  };
-
-  for (const row of rows) {
-    const party = row.pendingParty as keyof PendingPartyBreakdown;
-    if (party in buckets) {
-      buckets[party].add(row.unitId);
-    }
-  }
-
-  return {
-    CLIENT: buckets.CLIENT.size,
-    ENGINEERING: buckets.ENGINEERING.size,
-    LEGAL: buckets.LEGAL.size,
-    FINANCE: buckets.FINANCE.size,
-    MANAGEMENT: buckets.MANAGEMENT.size,
-    LOGISTICS: buckets.LOGISTICS.size,
-  };
+  return computePrimaryPendingPartyBreakdown(rows);
 }
 
 function computeAgentWorkload(

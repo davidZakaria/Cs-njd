@@ -607,7 +607,7 @@
       "unassigned": "Distinct units with open work where neither the ticket nor the unit has a CS agent assigned (team queue only). Not the same as units without a CS agent on the unit record.",
       "legal": "Units whose primary open status is Legal (same Legal slice as under Units with open work). Includes units where Legal is the most advanced open ticket status, including Legal category tickets.",
       "engineering": "Units whose primary open status is Engineering (same Engineering slice as under Units with open work).",
-      "waitingOnAnotherParty": "Distinct units with an open ticket waiting on another party (pending party is not None). Breakdown counts units per party; a unit can appear in more than one row if it has multiple open tickets with different parties.",
+      "waitingOnAnotherParty": "Distinct units with an open ticket waiting on another party (pending party is not None). The breakdown assigns each unit one primary party (highest precedence among its open tickets): Legal → Finance → Engineering → Management → Logistics → Client → Customer Service. The party lines always sum to this total.",
       "pendingWithParty": "Distinct units with an open ticket whose pending party is not None (waiting on client, legal, etc.).",
       "followUpDue": "Open tickets with a follow-up date today or in the past (server local midnight). Excludes resolved tickets.",
       "deliveredUnits": "Units whose handover status is Delivered or Delivery Protocol (active contract workflow).",

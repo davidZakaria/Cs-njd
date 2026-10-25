@@ -9,6 +9,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
+import { parseUnitsFilterTodayStart } from "@/lib/units/filter-today-start";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { RemovableFilterChip } from "@/components/filters/removable-filter-chip";
@@ -138,9 +139,10 @@ export function UnitsTable({
     };
   });
 
-  const filterTodayStart = filterTodayStartIso
-    ? new Date(filterTodayStartIso)
-    : null;
+  const filterTodayStart = useMemo(
+    () => parseUnitsFilterTodayStart(filterTodayStartIso),
+    [filterTodayStartIso]
+  );
 
   const pushPageFilters = (next: UnitsPageFilters) => {
     setPageFilters(next);

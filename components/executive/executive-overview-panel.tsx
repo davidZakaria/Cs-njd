@@ -28,7 +28,7 @@ import type { ExecutiveKpiKey } from "@/components/executive/executive-kpi-grid"
 import { ExecutiveProjectSummaryTable } from "@/components/executive/executive-project-summary-table";
 import { buildUnitsFilterUrl } from "@/lib/units/units-filter-url";
 import type { ExecutiveProjectUnitSummary } from "@/lib/executive/project-unit-summaries";
-import { PENDING_PARTY_CHART_KEYS } from "@/lib/executive/chart-theme";
+import { PENDING_PARTY_PRECEDENCE } from "@/lib/executive/pending-party-primary";
 
 type WorkloadLabels = {
   openTotal: string;
@@ -62,7 +62,7 @@ export function ExecutiveOverviewPanel({
 
   const partyBreakdownLines = useMemo(() => {
     const breakdown = data.global.pendingPartyBreakdown;
-    return PENDING_PARTY_CHART_KEYS
+    return PENDING_PARTY_PRECEDENCE
       .map((party) => ({
         key: party,
         label: labels.pendingParty(party),
