@@ -40,6 +40,7 @@ import { ExportCsvButton } from "@/components/export/export-csv-button";
 import { CreateUnitDialog } from "@/components/units/create-unit-dialog";
 
 import {
+  isCancelledHandover,
   isDeliveredHandover,
 } from "@/lib/executive/handover-status-groups";
 import {
@@ -254,7 +255,8 @@ export function UnitsTable({
           !deliveryDate ||
           !filterTodayStart ||
           deliveryDate >= filterTodayStart ||
-          isDeliveredHandover(row.handoverStatus)
+          isDeliveredHandover(row.handoverStatus) ||
+          isCancelledHandover(row.handoverStatus)
         ) {
           return false;
         }

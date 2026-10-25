@@ -174,7 +174,7 @@ export function ExecutiveOverviewPanel({
         label: t("stats.deliveryOverdue"),
         value: portfolio.deliveryOverdue,
         href: buildUnitsFilterUrl({ delivery: "overdue" }),
-        description: tMetric("deliveryOverdue"),
+        description: tMetric("deliveryOverdueDetail"),
         percentOfTotal: pctOfUnits(portfolio.deliveryOverdue),
       },
       {
@@ -182,7 +182,7 @@ export function ExecutiveOverviewPanel({
         label: t("stats.legalRiskUnits"),
         value: portfolio.legalRiskUnits,
         href: buildUnitsFilterUrl({ handover: "atRisk" }),
-        description: tMetric("legalRiskUnits"),
+        description: tMetric("legalRiskUnitsDetail"),
         percentOfTotal: pctOfUnits(portfolio.legalRiskUnits),
       },
       {
@@ -190,7 +190,10 @@ export function ExecutiveOverviewPanel({
         label: t("stats.signedProtocolMissing"),
         value: signedProtocolMissing,
         href: buildUnitsFilterUrl({ signedProtocol: "missing" }),
-        description: tMetric("signedProtocolMissing"),
+        description: tMetric("signedProtocolMissingDetail", {
+          fileUploaded: portfolio.signedProtocolDetail.fileUploaded,
+          dateMarked: portfolio.signedProtocolDetail.dateMarked,
+        }),
         percentOfTotal: pctOfUnits(signedProtocolMissing),
       },
       {

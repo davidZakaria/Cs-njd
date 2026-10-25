@@ -18,6 +18,12 @@ export const AT_RISK_HANDOVER_STATUSES: readonly HandoverStatus[] = [
 export const LEGAL_DISPUTE_HANDOVER_STATUSES: readonly HandoverStatus[] =
   AT_RISK_HANDOVER_STATUSES.filter((s) => s !== "CANCELLED");
 
+/** Overdue delivery counts exclude delivered and cancelled contracts. */
+export const OVERDUE_DELIVERY_EXCLUDED_STATUSES: readonly HandoverStatus[] = [
+  ...DELIVERED_HANDOVER_STATUSES,
+  "CANCELLED",
+];
+
 export function isDeliveredHandover(
   status: HandoverStatus | string | null | undefined
 ): boolean {
@@ -34,4 +40,10 @@ export function isAtRiskHandover(
     status != null &&
     (AT_RISK_HANDOVER_STATUSES as readonly string[]).includes(status)
   );
+}
+
+export function isCancelledHandover(
+  status: HandoverStatus | string | null | undefined
+): boolean {
+  return status === "CANCELLED";
 }

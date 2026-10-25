@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { activeContractWorkflowWhere, activeUnitWhere } from "@/lib/prisma";
 import {
   DELIVERED_HANDOVER_STATUSES,
+  OVERDUE_DELIVERY_EXCLUDED_STATUSES,
 } from "@/lib/executive/handover-status-groups";
 import { projectNameToSlug } from "@/lib/cases/cases-filter-url";
 
@@ -49,7 +50,7 @@ export async function getExecutiveProjectUnitSummaries(): Promise<
             where: activeContractWorkflowWhere({
               unit: unitScope,
               deliveryDate: { lt: todayStart },
-              handoverStatus: { notIn: [...DELIVERED_HANDOVER_STATUSES] },
+              handoverStatus: { notIn: [...OVERDUE_DELIVERY_EXCLUDED_STATUSES] },
             }),
           }),
         ]);

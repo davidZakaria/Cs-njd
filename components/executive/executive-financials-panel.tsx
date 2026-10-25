@@ -12,6 +12,7 @@ import {
 } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ExecutiveFinanceDataCheck } from "@/components/executive/executive-finance-data-check";
 
 export function ExecutiveFinancialsPanel({
   financials,
@@ -21,6 +22,10 @@ export function ExecutiveFinancialsPanel({
   const locale = useLocale();
   const t = useTranslations("executive.financials");
   const { project: projectLabel } = useDomainLabels();
+
+  const { grandTotal } = financials;
+  const included = grandTotal.pricedUnitCount;
+  const flagged = grandTotal.flaggedUnitCount;
 
   if (financials.byProject.length === 0) {
     return (
@@ -47,6 +52,10 @@ export function ExecutiveFinancialsPanel({
           {t("title")}
         </h2>
         <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t("feesNote")}</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          {t("qualitySummary", { included, flagged })}
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -65,8 +74,13 @@ export function ExecutiveFinancialsPanel({
                 {projectLabel(row.project)}
               </CardTitle>
               <p className="text-xs text-muted-foreground">
-                {t("unitCount", { count: row.unitCount })}
+                {t("pricedUnitCount", { count: row.pricedUnitCount })}
               </p>
+              {row.flaggedUnitCount > 0 ? (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  {t("projectFlagged", { count: row.flaggedUnitCount })}
+                </p>
+              ) : null}
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="flex items-center justify-between gap-2">
@@ -102,31 +116,33 @@ export function ExecutiveFinancialsPanel({
           <CardHeader className="pb-2">
             <CardTitle className="font-heading text-base">{t("grandTotal")}</CardTitle>
             <p className="text-xs text-muted-foreground">
-              {t("unitCount", { count: financials.grandTotal.unitCount })}
+              {t("pricedUnitCount", { count: grandTotal.pricedUnitCount })}
             </p>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-3">
             <div>
               <p className="text-xs text-muted-foreground">{t("totalFinishing")}</p>
               <p className="font-heading text-2xl font-bold tabular-nums">
-                {formatCurrency(financials.grandTotal.totalFinishingPrice, locale)}
+                {formatCurrency(grandTotal.totalFinishingPrice, locale)}
               </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{t("doorFees")}</p>
               <p className="font-heading text-2xl font-bold tabular-nums">
-                {formatCurrency(financials.grandTotal.doorFees, locale)}
+                {formatCurrency(grandTotal.doorFees, locale)}
               </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{t("aluminumFees")}</p>
               <p className="font-heading text-2xl font-bold tabular-nums">
-                {formatCurrency(financials.grandTotal.aluminumFees, locale)}
+                {formatCurrency(grandTotal.aluminumFees, locale)}
               </p>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <ExecutiveFinanceDataCheck flaggedUnits={financials.flaggedUnits} />
     </section>
   );
 }
