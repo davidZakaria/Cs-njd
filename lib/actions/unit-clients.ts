@@ -28,12 +28,14 @@ function optionalTrimmedString() {
 
 function optionalCoOwnerEmail() {
   return z
-    .union([z.string().email(), z.literal(""), z.null(), z.undefined()])
+    .union([z.string(), z.literal(""), z.null(), z.undefined()])
     .optional()
     .transform((value) => {
-      if (value == null || value === "") return null;
-      return value.trim();
-    });
+      if (value == null) return null;
+      const trimmed = value.trim();
+      return trimmed === "" ? null : trimmed;
+    })
+    .pipe(z.union([z.string().email(), z.null()]));
 }
 
 const newCoOwnerSchema = z.object({
@@ -46,6 +48,8 @@ const newCoOwnerSchema = z.object({
   address: optionalTrimmedString(),
   existingClientId: z.string().optional(),
 });
+
+export type AddUnitCoOwnerInput = z.input<typeof newCoOwnerSchema>;
 
 async function loadUnitForCoOwnerMutation(unitId: string) {
   return prisma.unit.findUnique({
@@ -102,7 +106,7 @@ export async function searchClientsForCoOwnerLink(
 }
 
 export async function addUnitCoOwner(
-  input: z.infer<typeof newCoOwnerSchema>
+  input: AddUnitCoOwnerInput
 ): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");

@@ -200,6 +200,40 @@ describe("unit co-owner actions", () => {
     });
   });
 
+  it("trims email before validating and storing", async () => {
+    const mockClientCreate = vi.fn().mockResolvedValue({ id: "new-co" });
+    mockAuth.mockResolvedValue(session("MANAGEMENT"));
+    mockUnitFindUnique.mockResolvedValue({
+      id: "unit-1",
+      deletedAt: null,
+      clientId: "primary-client",
+      project: jamilaProject,
+      unitClients: [],
+    });
+    mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<void>) =>
+      fn({
+        client: { create: mockClientCreate },
+        unitClient: {
+          findUnique: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockResolvedValue({ id: "link-new" }),
+        },
+      })
+    );
+
+    const { addUnitCoOwner } = await import("@/lib/actions/unit-clients");
+    const result = await addUnitCoOwner({
+      unitId: "unit-1",
+      mode: "new",
+      name: "Second Owner",
+      email: "  owner@example.com  ",
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockClientCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ email: "owner@example.com" }),
+    });
+  });
+
   it("rejects invalid email when adding a new co-owner", async () => {
     mockAuth.mockResolvedValue(session("MANAGEMENT"));
     mockUnitFindUnique.mockResolvedValue({
