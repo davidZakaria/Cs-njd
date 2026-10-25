@@ -15,14 +15,41 @@ import { isCommunityManagementRole, isCsAgentRole } from "@/lib/auth/unit-roles"
 import { prisma } from "@/lib/prisma";
 import { assertClientLinkedToUnit } from "@/lib/units/assert-unit-client-link";
 
+function optionalTrimmedString() {
+  return z
+    .union([z.string(), z.literal(""), z.null(), z.undefined()])
+    .optional()
+    .transform((value) => {
+      if (value == null) return null;
+      const trimmed = value.trim();
+      return trimmed === "" ? null : trimmed;
+    });
+}
+
+function optionalCoOwnerEmail() {
+  return z
+    .union([z.string(), z.literal(""), z.null(), z.undefined()])
+    .optional()
+    .transform((value) => {
+      if (value == null) return null;
+      const trimmed = value.trim();
+      return trimmed === "" ? null : trimmed;
+    })
+    .pipe(z.union([z.string().email(), z.null()]));
+}
+
 const newCoOwnerSchema = z.object({
   unitId: z.string().min(1),
   mode: z.enum(["new", "link"]),
   name: z.string().optional(),
   nationalId: z.string().optional(),
   phone: z.string().optional(),
+  email: optionalCoOwnerEmail(),
+  address: optionalTrimmedString(),
   existingClientId: z.string().optional(),
 });
+
+export type AddUnitCoOwnerInput = z.input<typeof newCoOwnerSchema>;
 
 async function loadUnitForCoOwnerMutation(unitId: string) {
   return prisma.unit.findUnique({
@@ -79,7 +106,7 @@ export async function searchClientsForCoOwnerLink(
 }
 
 export async function addUnitCoOwner(
-  input: z.infer<typeof newCoOwnerSchema>
+  input: AddUnitCoOwnerInput
 ): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
@@ -132,6 +159,8 @@ export async function addUnitCoOwner(
               name,
               nationalId: parsed.data.nationalId?.trim() || null,
               phone1: parsed.data.phone?.trim() || null,
+              email: parsed.data.email,
+              address1: parsed.data.address,
             },
           });
           clientId = client.id;

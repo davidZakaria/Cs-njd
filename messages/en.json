@@ -736,6 +736,8 @@
       "name": "Full name",
       "nationalIdOptional": "National ID (optional)",
       "phoneOptional": "Phone (optional)",
+      "emailOptional": "Email (optional)",
+      "addressOptional": "Address (optional)",
       "searchHint": "Search by national ID, name, or phone",
       "searchPlaceholder": "Start typing…",
       "noSearchResults": "No matching clients",
