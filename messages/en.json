@@ -722,7 +722,7 @@
     },
     "financeDataCheck": {
       "title": "Finance data check",
-      "subtitle": "These units have finishing values that fail data-quality rules and are excluded from totals (except priced-without-area, which stays in totals). Fix them in the unit profile.",
+      "subtitle": "Units with finishing values that fail data-quality rules. Only the flagged field is left out of its total—door fees, aluminum, and finishing total are summed independently. Priced-without-area still counts toward the finishing total. Fix values in the unit profile.",
       "project": "Project",
       "unitCode": "Unit",
       "area": "Area (m²)",

@@ -65,6 +65,7 @@ export function FinishingPipelineChart({
   );
 
   const total = chartData.reduce((sum, item) => sum + item.count, 0);
+  const chartHeightPx = Math.max(320, chartData.length * 36);
 
   return (
     <Card className={cn(premiumCardHoverClass, className)}>
@@ -80,7 +81,8 @@ export function FinishingPipelineChart({
         ) : (
           <ChartContainer
             config={chartConfig}
-            className="aspect-auto h-[320px] w-full"
+            className="aspect-auto w-full"
+            style={{ height: chartHeightPx }}
             dir={isRtl ? "rtl" : "ltr"}
           >
             <BarChart
@@ -89,8 +91,8 @@ export function FinishingPipelineChart({
               layout="vertical"
               margin={{
                 top: 8,
-                right: isRtl ? 12 : 24,
-                left: isRtl ? 24 : 12,
+                right: isRtl ? 8 : 24,
+                left: isRtl ? 20 : 12,
                 bottom: 8,
               }}
             >
@@ -107,8 +109,13 @@ export function FinishingPipelineChart({
                 dataKey="label"
                 tickLine={false}
                 axisLine={false}
-                width={isRtl ? 140 : 120}
+                width={isRtl ? 176 : 120}
                 orientation={isRtl ? "right" : "left"}
+                tickMargin={isRtl ? 6 : 8}
+                tick={{
+                  fontSize: 11,
+                  textAnchor: isRtl ? "start" : "end",
+                }}
                 className="text-[11px]"
               />
               <ChartTooltip
