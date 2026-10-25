@@ -28,6 +28,7 @@ import type { ExecutiveKpiKey } from "@/components/executive/executive-kpi-grid"
 import { ExecutiveProjectSummaryTable } from "@/components/executive/executive-project-summary-table";
 import { buildUnitsFilterUrl } from "@/lib/units/units-filter-url";
 import type { ExecutiveProjectUnitSummary } from "@/lib/executive/project-unit-summaries";
+import { PENDING_PARTY_CHART_KEYS } from "@/lib/executive/chart-theme";
 
 type WorkloadLabels = {
   openTotal: string;
@@ -59,6 +60,18 @@ export function ExecutiveOverviewPanel({
   const labels = useDomainLabels();
   const [query, setQuery] = useState("");
 
+  const partyBreakdownLines = useMemo(() => {
+    const breakdown = data.global.pendingPartyBreakdown;
+    return PENDING_PARTY_CHART_KEYS
+      .map((party) => ({
+        key: party,
+        label: labels.pendingParty(party),
+        value: breakdown[party],
+        href: buildCasesFilterUrl({ status: "open", pendingParty: party }),
+      }))
+      .filter((line) => line.value > 0);
+  }, [data.global.pendingPartyBreakdown, labels]);
+
   const overviewKpis = useMemo((): StatItem[] => {
     const signedProtocolMissing =
       portfolio.signedProtocol.find((row) => row.key === "missing")?.count ?? 0;
@@ -68,6 +81,28 @@ export function ExecutiveOverviewPanel({
       totalUnits > 0 ? (n / totalUnits) * 100 : undefined;
     const pctOfOpen = (n: number) =>
       openTotal > 0 ? (n / openTotal) * 100 : undefined;
+
+    const primary = data.global.stats.openWorkByPrimaryStatus;
+    const openStatusBreakdown = [
+      {
+        key: "PENDING",
+        label: labels.ticketStatus("PENDING"),
+        value: primary.pending,
+        href: buildCasesFilterUrl({ status: "PENDING" }),
+      },
+      {
+        key: "ENGINEERING",
+        label: labels.ticketStatus("ENGINEERING"),
+        value: primary.engineering,
+        href: buildCasesFilterUrl({ status: "ENGINEERING" }),
+      },
+      {
+        key: "LEGAL",
+        label: labels.ticketStatus("LEGAL"),
+        value: primary.legal,
+        href: buildCasesFilterUrl({ status: "LEGAL" }),
+      },
+    ];
 
     return [
       {
@@ -84,6 +119,7 @@ export function ExecutiveOverviewPanel({
         href: buildCasesFilterUrl({ status: "open" }),
         description: tMetric("openTotal"),
         percentOfTotal: pctOfUnits(openTotal),
+        breakdown: openStatusBreakdown,
       },
       {
         key: "unassigned",
@@ -110,12 +146,13 @@ export function ExecutiveOverviewPanel({
         percentOfTotal: pctOfOpen(data.global.stats.engineering),
       },
       {
-        key: "pendingWithParty",
-        label: t("stats.pendingWithParty"),
+        key: "waitingOnAnotherParty",
+        label: t("stats.waitingOnAnotherParty"),
         value: data.global.stats.pendingWithParty,
         href: buildCasesFilterUrl({ status: "open" }),
-        description: tMetric("pendingWithParty"),
+        description: tMetric("waitingOnAnotherParty"),
         percentOfTotal: pctOfOpen(data.global.stats.pendingWithParty),
+        breakdown: partyBreakdownLines,
       },
       {
         key: "followUpDue",
@@ -165,7 +202,16 @@ export function ExecutiveOverviewPanel({
         percentOfTotal: pctOfUnits(portfolio.feesOutstanding),
       },
     ];
-  }, [data.global.stats, kpiLabels, portfolio, t, tMetric]);
+  }, [
+    data.global.stats,
+    data.global.pendingPartyBreakdown,
+    kpiLabels,
+    labels,
+    partyBreakdownLines,
+    portfolio,
+    t,
+    tMetric,
+  ]);
 
   const searchContext = useMemo(
     () => ({

@@ -12,6 +12,7 @@ import {
   computeResolvedStats,
   countUniqueUnits,
 } from "@/lib/executive/executive-stats";
+import { computeOpenWorkPrimaryStatusBreakdown } from "@/lib/executive/open-work-status";
 
 export type ExecutiveCaseRow = {
   id: string;
@@ -38,6 +39,12 @@ export type AgentWorkload = {
   engineeringCount: number;
 };
 
+export type OpenWorkByPrimaryStatus = {
+  pending: number;
+  engineering: number;
+  legal: number;
+};
+
 export type ExecutiveStats = {
   openTotal: number;
   unassigned: number;
@@ -47,6 +54,7 @@ export type ExecutiveStats = {
   teamOpen: number;
   pending: number;
   pendingWithParty: number;
+  openWorkByPrimaryStatus: OpenWorkByPrimaryStatus;
 };
 
 export type CategoryBreakdown = {
@@ -181,6 +189,7 @@ function toExecutiveRow(
 function computeStats(rows: ExecutiveCaseRow[]): ExecutiveStats {
   const teamRows = rows.filter((row) => !row.isMine);
   const myRows = rows.filter((row) => row.isMine);
+  const primary = computeOpenWorkPrimaryStatusBreakdown(rows);
 
   return {
     openTotal: countUniqueUnits(rows),
@@ -188,21 +197,20 @@ function computeStats(rows: ExecutiveCaseRow[]): ExecutiveStats {
       teamRows,
       (row) => !row.agentId && !row.unitAgentId
     ),
-    legal: countUniqueUnits(
-      rows,
-      (row) => row.status === "LEGAL" || row.category === "LEGAL"
-    ),
-    engineering: countUniqueUnits(
-      rows,
-      (row) => row.status === "ENGINEERING"
-    ),
+    legal: primary.LEGAL,
+    engineering: primary.ENGINEERING,
     myOpen: countUniqueUnits(myRows),
     teamOpen: countUniqueUnits(teamRows),
-    pending: countUniqueUnits(rows, (row) => row.status === "PENDING"),
+    pending: primary.PENDING,
     pendingWithParty: countUniqueUnits(
       rows,
       (row) => row.pendingParty !== "NONE"
     ),
+    openWorkByPrimaryStatus: {
+      pending: primary.PENDING,
+      engineering: primary.ENGINEERING,
+      legal: primary.LEGAL,
+    },
   };
 }
 
