@@ -157,7 +157,8 @@ export function UnitFinishingForm({
   canEditManagement = false,
   canEditFinishing = false,
   canEdit,
-  canUploadDocuments = false,
+  canUploadFinishingContract = false,
+  canManageFinishingContractFiles = false,
   packageDisplayLabel,
   companyDisplayLabel,
 }: {
@@ -166,7 +167,8 @@ export function UnitFinishingForm({
   canEditFinishing?: boolean;
   /** @deprecated Use canEditManagement */
   canEdit?: boolean;
-  canUploadDocuments?: boolean;
+  canUploadFinishingContract?: boolean;
+  canManageFinishingContractFiles?: boolean;
   packageDisplayLabel: string;
   companyDisplayLabel: string;
 }) {
@@ -438,7 +440,13 @@ export function UnitFinishingForm({
                 unitId={defaults.unitId}
                 documentType="finishingContract"
                 existingFile={defaults.finishingContractFile}
-                canUpload={canUploadDocuments}
+                canUploadWhenEmpty={canUploadFinishingContract}
+                canManageFiles={canManageFinishingContractFiles}
+                canView={
+                  canUploadFinishingContract ||
+                  canManageFinishingContractFiles ||
+                  Boolean(defaults.finishingContractFile)
+                }
               />
             </div>
           </CardContent>

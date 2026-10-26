@@ -79,6 +79,7 @@ export type UnitClientFormDefaults = {
   clientId: string | null;
   nationalIdFile: string | null;
   canUploadNationalId: boolean;
+  canManageNationalIdFile: boolean;
   waMessageTemplate: string;
 };
 
@@ -323,6 +324,7 @@ export function UnitClientForm({
                 clientId={defaults.clientId}
                 hasFile={Boolean(defaults.nationalIdFile)}
                 canUpload={defaults.canUploadNationalId}
+                canManageFiles={defaults.canManageNationalIdFile}
                 onExtractedId={(nationalId) =>
                   setValue("nationalId", nationalId, { shouldDirty: true })
                 }
@@ -467,6 +469,7 @@ export function UnitClientForm({
                 clientId={defaults.clientId}
                 hasFile={Boolean(defaults.nationalIdFile)}
                 canUpload={canEditIdentity && defaults.canUploadNationalId}
+                canManageFiles={defaults.canManageNationalIdFile}
                 onExtractedId={
                   canEditIdentity
                     ? (nationalId) =>
@@ -501,6 +504,7 @@ export function UnitClientForm({
                 clientId={defaults.clientId}
                 hasFile={Boolean(defaults.nationalIdFile)}
                 canUpload={defaults.canUploadNationalId}
+                canManageFiles={defaults.canManageNationalIdFile}
               />
             </div>
           )}

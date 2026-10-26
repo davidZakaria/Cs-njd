@@ -15,7 +15,14 @@ export async function GET(
   });
 
   if (!unit) {
-    return serveUnitDocument(session, { id: unitId, agentId: null }, null, "finishingContract", "finishing-contract");
+    return serveUnitDocument(
+      session,
+      { id: unitId, agentId: null },
+      null,
+      "finishingContract",
+      "finishing-contract",
+      "csPortfolio"
+    );
   }
 
   return serveUnitDocument(
@@ -23,6 +30,7 @@ export async function GET(
     unit,
     unit.finishing?.finishingContractFile,
     "finishingContract",
-    `finishing-contract-${unitId}`
+    `finishing-contract-${unitId}`,
+    "csPortfolio"
   );
 }

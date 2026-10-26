@@ -127,19 +127,21 @@
       "missing": "Signed sales contract has not been uploaded yet."
     },
     "extensionAnnex": {
-      "title": "Signed extension annex (optional)",
-      "upload": "Upload extension annex",
+      "title": "Grace Period Annex",
+      "upload": "Upload grace period annex",
       "view": "View annex",
       "replace": "Replace annex",
-      "missing": "Extension annex has not been uploaded."
+      "missing": "Grace period annex has not been uploaded.",
+      "gracePeriodHint": "Signed addendum extending the delivery grace period (ملحق المد)."
     },
     "finishingContract": {
-      "title": "Signed finishing contract / annex (optional)",
+      "title": "Finishing contract (عقد التشطيبات)",
       "upload": "Upload finishing contract",
       "view": "View contract",
       "replace": "Replace contract",
       "missing": "Finishing contract has not been uploaded."
-    }
+    },
+    "uploadLocked": "A file is already on record. Only management can replace or remove it."
   },
   "security": {
     "actionBlocked": "Action not allowed for security reasons."
@@ -167,7 +169,7 @@
     "checklist": {
       "title": "Handover & financial checklist",
       "signedProtocol": "Delivery protocol signed",
-      "signedExtension": "Extension annex signed",
+      "signedExtension": "Grace period annex signed",
       "paidFees": "Fees paid (door / aluminum)",
       "papersReceived": "All original papers received",
       "csAgentHint": "You can update handover items you verified on site. Fees and legal block require management.",
@@ -176,7 +178,7 @@
     "contractsHandover": {
       "contractsTitle": "Contracts",
       "preliminarySaleContract": "Preliminary sale contract",
-      "saleContractAnnex": "Sale contract annex",
+      "saleContractAnnex": "Grace Period Annex",
       "handoverRecord": "Handover record",
       "finalSaleContract": "Final sale contract",
       "datedOn": "Dated",

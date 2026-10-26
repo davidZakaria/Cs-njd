@@ -61,7 +61,7 @@ describe("role-permissions matrix", () => {
         true
       );
       expect(canManageUnitCoOwners(role)).toBe(false);
-      expect(canUploadClientNationalIdScan(role)).toBe(false);
+      expect(canUploadClientNationalIdScan(role)).toBe(true);
     });
 
     it("keeps cases and handover checklist assignment-scoped", () => {
