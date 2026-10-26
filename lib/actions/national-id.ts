@@ -1,10 +1,19 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
+import { withAudit } from "@/lib/audit/with-audit";
 import { auth } from "@/lib/auth";
-import { canUploadClientNationalIdOnUnit } from "@/lib/auth/role-permissions";
+import {
+  canManageClientNationalIdFile,
+  canUploadClientNationalIdOnUnit,
+} from "@/lib/auth/role-permissions";
 import { assertClientLinkedToUnit } from "@/lib/units/assert-unit-client-link";
 import { prisma } from "@/lib/prisma";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
+import { auditContext } from "@/lib/prisma/audit-context";
+import { basePrisma } from "@/lib/prisma";
+import { recordAuditLog } from "@/lib/prisma/record-audit-log";
 import { extractEgyptianNationalId } from "@/lib/services/ocr";
 import {
   buildNationalIdStoredFilename,
@@ -13,7 +22,6 @@ import {
   NATIONAL_ID_MAX_BYTES,
   writeNationalIdFile,
 } from "@/lib/uploads/national-id-storage";
-import { revalidatePath } from "next/cache";
 
 export type UploadNationalIdResult =
   | { success: true; filePath: string; extractedId: string | null }
@@ -76,25 +84,57 @@ export async function uploadNationalId(
     return uploadFail("Unauthorized");
   }
 
-  const storedName = buildNationalIdStoredFilename(client.id, file.name);
+  const canReplace = canManageClientNationalIdFile(session.user.role);
   const previousStoredName = client.nationalIdFile;
+  if (previousStoredName && !canReplace) {
+    return uploadFail(
+      "A file is already on record. Only management can replace or remove it."
+    );
+  }
+
+  const storedName = buildNationalIdStoredFilename(client.id, file.name);
 
   const extractedId =
     file.type.startsWith("image/")
       ? await extractEgyptianNationalId(Buffer.from(await file.arrayBuffer()))
       : null;
 
-  await writeNationalIdFile(storedName, file);
-  await deleteNationalIdFile(previousStoredName);
+  try {
+    return await withAudit(async () => {
+      await writeNationalIdFile(storedName, file);
+      if (canReplace) {
+        await deleteNationalIdFile(previousStoredName);
+      }
 
-  await prisma.client.update({
-    where: { id: client.id },
-    data: { nationalIdFile: storedName },
-  });
+      await prisma.client.update({
+        where: { id: client.id },
+        data: { nationalIdFile: storedName },
+      });
 
-  revalidatePath(`/units/${unitId}`);
-  revalidatePath("/units");
-  return { success: true, filePath: storedName, extractedId };
+      const ctx = auditContext.getStore();
+      if (ctx?.userId) {
+        await recordAuditLog(basePrisma, ctx, {
+          model: "Client",
+          action: "UPDATE",
+          recordId: client.id,
+          newData: {
+            documentType: "nationalIdFile",
+            unitId,
+            storedName,
+            operation: previousStoredName
+              ? "national_id_replace"
+              : "national_id_upload",
+          },
+        });
+      }
+
+      revalidatePath(`/units/${unitId}`);
+      revalidatePath("/units");
+      return { success: true, filePath: storedName, extractedId };
+    });
+  } catch {
+    return uploadFail("Upload failed");
+  }
 }
 
 export async function removeNationalId(
@@ -104,26 +144,39 @@ export async function removeNationalId(
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
 
+  if (!canManageClientNationalIdFile(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
+
   const loaded = await loadUnitWithClient(unitId, clientId);
   if (!loaded) return actionFail("Unit not found");
   const { unit, client } = loaded;
   if (!client) return actionFail("Client not found");
 
-  if (!canUploadClientNationalIdOnUnit(session.user.role, unit.project)) {
-    return actionFail("Unauthorized");
-  }
-
   const storedName = client.nationalIdFile;
   if (!storedName) return actionFail("No ID scan on file");
 
-  await deleteNationalIdFile(storedName);
+  return withAudit(async () => {
+    await deleteNationalIdFile(storedName);
 
-  await prisma.client.update({
-    where: { id: client.id },
-    data: { nationalIdFile: null },
+    await prisma.client.update({
+      where: { id: client.id },
+      data: { nationalIdFile: null },
+    });
+
+    const ctx = auditContext.getStore();
+    if (ctx?.userId) {
+      await recordAuditLog(basePrisma, ctx, {
+        model: "Client",
+        action: "DELETE",
+        recordId: client.id,
+        oldData: { documentType: "nationalIdFile", storedName, unitId: unit.id },
+        newData: { nationalIdFile: null },
+      });
+    }
+
+    revalidatePath(`/units/${unitId}`);
+    revalidatePath("/units");
+    return actionOk();
   });
-
-  revalidatePath(`/units/${unitId}`);
-  revalidatePath("/units");
-  return actionOk();
 }

@@ -16,15 +16,20 @@ export function NationalIdUpload({
   clientId,
   hasFile,
   canUpload,
+  canManageFiles = false,
   onExtractedId,
 }: {
   unitId: string;
   clientId: string | null;
   hasFile: boolean;
+  /** May upload when no file is on record. */
   canUpload: boolean;
+  /** Replace or remove an existing scan (management). */
+  canManageFiles?: boolean;
   onExtractedId?: (nationalId: string) => void;
 }) {
   const t = useTranslations("client");
+  const tDocs = useTranslations("documents");
   const tCommon = useTranslations("common");
   const router = useRouter();
   const { pending, runAction } = useCrudToast();
@@ -32,10 +37,14 @@ export function NationalIdUpload({
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
 
+  const mayUploadNew = canUpload && !hasFile;
+  const mayManage = canManageFiles;
+  const canView = hasFile && (canUpload || canManageFiles);
+
   const viewHref = clientId
     ? `/api/units/${unitId}/national-id?clientId=${encodeURIComponent(clientId)}`
     : `/api/units/${unitId}/national-id`;
-  const uploadDisabled = !canUpload || !clientId || pending || scanning;
+  const uploadDisabled = !mayUploadNew && !mayManage || !clientId || pending || scanning;
 
   function handleFileChange() {
     const file = inputRef.current?.files?.[0];
@@ -45,6 +54,7 @@ export function NationalIdUpload({
   async function handleUpload() {
     const file = inputRef.current?.files?.[0];
     if (!file || !clientId) return;
+    if (!mayUploadNew && !mayManage) return;
 
     const formData = new FormData();
     formData.append("unitId", unitId);
@@ -97,7 +107,7 @@ export function NationalIdUpload({
       ? t("uploading")
       : t("uploadId");
 
-  if (!canUpload && !hasFile) {
+  if (!canView && !mayUploadNew && !mayManage) {
     return null;
   }
 
@@ -106,7 +116,7 @@ export function NationalIdUpload({
       <p className="text-xs font-medium text-muted-foreground">
         {t("nationalIdFile")}
       </p>
-      {hasFile ? (
+      {canView ? (
         <div className="flex flex-wrap items-center gap-2">
           <a
             href={viewHref}
@@ -117,12 +127,12 @@ export function NationalIdUpload({
             <ExternalLink className="size-4" />
             {t("viewId")}
           </a>
-          {canUpload ? (
+          {mayManage ? (
             <>
               <input
                 ref={inputRef}
                 type="file"
-                accept="application/pdf,image/jpeg,image/png,image/webp"
+                accept="application/pdf,image/jpeg,image/png,.jpg,.png"
                 className="hidden"
                 onChange={handleFileChange}
               />
@@ -155,21 +165,23 @@ export function NationalIdUpload({
                 type="button"
                 variant="destructive"
                 size="sm"
-                disabled={uploadDisabled}
+                disabled={pending}
                 onClick={handleRemove}
               >
                 <Trash2 className="size-4" />
                 {t("removeId")}
               </Button>
             </>
+          ) : canUpload ? (
+            <p className="text-xs text-muted-foreground">{tDocs("uploadLocked")}</p>
           ) : null}
         </div>
-      ) : canUpload ? (
+      ) : mayUploadNew ? (
         <div className="flex flex-wrap items-center gap-2">
           <input
             ref={inputRef}
             type="file"
-            accept="application/pdf,image/jpeg,image/png,image/webp"
+            accept="application/pdf,image/jpeg,image/png,.jpg,.png"
             className="hidden"
             onChange={handleFileChange}
           />

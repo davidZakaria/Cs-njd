@@ -36,9 +36,14 @@ import {
   canAddUnitCoOwner,
   canManageUnitCoOwners,
   canUploadClientNationalIdScan,
+  canManageClientNationalIdFile,
   canLogCallOnUnit,
   isCsAgentAssignedToUnit,
 } from "@/lib/auth/role-permissions";
+import {
+  canAccessCsPortfolioDocuments,
+  canManageCsPortfolioDocumentFiles,
+} from "@/lib/auth/cs-portfolio-document-access";
 import { orderedUnitOwners } from "@/lib/units/unit-owners";
 import { getAssignableAgentUsers } from "@/lib/units/assignable-agents";
 import type { SerializedResolutionContext } from "@/lib/workflow/resolution-checklist";
@@ -241,6 +246,15 @@ export default async function UnitProfilePage({
   const signedProtocolAccess = session?.user
     ? await resolveSignedProtocolAccess(session.user, unit.agentId)
     : { canUpload: false, csScope: null };
+  const role = session?.user.role;
+  const canCsPortfolioDocs =
+    role != null ? canAccessCsPortfolioDocuments(role) : false;
+  const canManagePortfolioDocFiles =
+    role != null ? canManageCsPortfolioDocumentFiles(role) : false;
+  const canUploadNationalId =
+    role != null ? canUploadClientNationalIdScan(role) : false;
+  const canManageNationalIdFile =
+    role != null ? canManageClientNationalIdFile(role) : false;
 
   const workflow = unit.contractWorkflow;
   const signedProtocolUploader = workflow?.signedProtocolUploadedById
@@ -353,10 +367,8 @@ export default async function UnitProfilePage({
               agentLabel,
               agentId: unit.agentId ?? null,
               area: unit.area ?? null,
-              canUploadNationalId:
-                session?.user.role != null
-                  ? canUploadClientNationalIdScan(session.user.role)
-                  : false,
+              canUploadNationalId,
+              canManageNationalIdFile,
               waMessageTemplate,
             }}
           />
@@ -392,7 +404,8 @@ export default async function UnitProfilePage({
               finishingType: unit.finishing?.finishingType ?? null,
               finishingContractFile: unit.finishing?.finishingContractFile ?? null,
             }}
-            canUploadDocuments={signedProtocolAccess.canUpload}
+            canUploadFinishingContract={canCsPortfolioDocs}
+            canManageFinishingContractFiles={canManagePortfolioDocFiles}
             packageDisplayLabel={finishingLabel}
             companyDisplayLabel={companyLabel}
           />
@@ -403,8 +416,11 @@ export default async function UnitProfilePage({
             <UnitLegalHandoverForm
               canEditManagement={canEditAdmin || canEditLegalHandover}
               canEditCsChecklist={canEditCsChecklist}
+              canUploadGracePeriodAnnex={canCsPortfolioDocs}
+              canManageGracePeriodAnnexFiles={canManagePortfolioDocFiles}
               defaults={{
                 unitId: unit.id,
+                extensionAnnexFile: workflow?.extensionAnnexFile ?? null,
                 handoverStatus: unit.contractWorkflow?.handoverStatus ?? "PENDING",
                 actionLabel: unit.contractWorkflow?.actionLabel ?? null,
                 contractDate:
@@ -492,6 +508,20 @@ export default async function UnitProfilePage({
               </CardContent>
             </Card>
           )}
+          {!showLegalHandoverForm ? (
+            <UnitDocumentUpload
+              unitId={unit.id}
+              documentType="extensionAnnex"
+              existingFile={workflow?.extensionAnnexFile ?? null}
+              canUploadWhenEmpty={canCsPortfolioDocs}
+              canManageFiles={canManagePortfolioDocFiles}
+              canView={
+                canCsPortfolioDocs ||
+                canManagePortfolioDocFiles ||
+                Boolean(workflow?.extensionAnnexFile)
+              }
+            />
+          ) : null}
           <SignedProtocolUpload
             info={signedProtocolInfo}
             canUpload={signedProtocolAccess.canUpload}
@@ -503,12 +533,6 @@ export default async function UnitProfilePage({
             existingFile={workflow?.signedContractFile ?? null}
             canUpload={signedProtocolAccess.canUpload}
             required
-          />
-          <UnitDocumentUpload
-            unitId={unit.id}
-            documentType="extensionAnnex"
-            existingFile={workflow?.extensionAnnexFile ?? null}
-            canUpload={signedProtocolAccess.canUpload}
           />
         </TabsContent>
 

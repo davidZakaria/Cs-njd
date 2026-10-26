@@ -6,6 +6,7 @@ import {
   isCommunityManagedProject,
   type ProjectRef,
 } from "@/lib/auth/community-project-scope";
+import { canAccessCsPortfolioDocuments } from "@/lib/auth/cs-portfolio-document-access";
 import {
   isAdminUnitManager,
   isCommunityManagementRole,
@@ -117,7 +118,7 @@ export function canAddUnitCoOwner(
 }
 
 export function canUploadClientNationalIdScan(role: Role): boolean {
-  return isAdminUnitManager(role);
+  return canAccessCsPortfolioDocuments(role);
 }
 
 export function canUploadClientNationalIdOnUnit(
@@ -125,6 +126,10 @@ export function canUploadClientNationalIdOnUnit(
   _project?: ProjectRef | null
 ): boolean {
   return canUploadClientNationalIdScan(role);
+}
+
+export function canManageClientNationalIdFile(role: Role): boolean {
+  return isAdminUnitManager(role) || role === "SUPER_ADMIN";
 }
 
 /** Full add/edit/remove of extra phones and addresses (unit profile save). */

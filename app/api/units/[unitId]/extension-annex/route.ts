@@ -15,7 +15,14 @@ export async function GET(
   });
 
   if (!unit) {
-    return serveUnitDocument(session, { id: unitId, agentId: null }, null, "extensionAnnex", "extension-annex");
+    return serveUnitDocument(
+      session,
+      { id: unitId, agentId: null },
+      null,
+      "extensionAnnex",
+      "grace-period-annex",
+      "csPortfolio"
+    );
   }
 
   return serveUnitDocument(
@@ -23,6 +30,7 @@ export async function GET(
     unit,
     unit.contractWorkflow?.extensionAnnexFile,
     "extensionAnnex",
-    `extension-annex-${unitId}`
+    `grace-period-annex-${unitId}`,
+    "csPortfolio"
   );
 }

@@ -34,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { UnitDocumentUpload } from "@/components/units/unit-document-upload";
 import { cn } from "@/lib/utils";
 
 export type UnitLegalHandoverDefaults = {
@@ -67,6 +68,7 @@ export type UnitLegalHandoverDefaults = {
   paperHandoverOriginalProtocol: boolean;
   paperHandoverFinishingPapers: boolean;
   paperHandoverKeyReceived: boolean;
+  extensionAnnexFile: string | null;
 };
 
 function toDateInput(value: string | null | undefined): string {
@@ -136,11 +138,15 @@ export function UnitLegalHandoverForm({
   defaults,
   canEditManagement = false,
   canEditCsChecklist = false,
+  canUploadGracePeriodAnnex = false,
+  canManageGracePeriodAnnexFiles = false,
   canEdit,
 }: {
   defaults: UnitLegalHandoverDefaults;
   canEditManagement?: boolean;
   canEditCsChecklist?: boolean;
+  canUploadGracePeriodAnnex?: boolean;
+  canManageGracePeriodAnnexFiles?: boolean;
   /** @deprecated Use canEditManagement */
   canEdit?: boolean;
 }) {
@@ -420,6 +426,19 @@ export function UnitLegalHandoverForm({
             onCheckChange={(value) => form.setValue("hasSignedExtension", value)}
             onDateChange={(value) => form.setValue("signedExtensionDate", value)}
             disabled={fieldDisabled("hasSignedExtension")}
+          />
+          <UnitDocumentUpload
+            unitId={defaults.unitId}
+            documentType="extensionAnnex"
+            existingFile={defaults.extensionAnnexFile}
+            variant="embedded"
+            canView={
+              canUploadGracePeriodAnnex ||
+              canManageGracePeriodAnnexFiles ||
+              Boolean(defaults.extensionAnnexFile)
+            }
+            canUploadWhenEmpty={canUploadGracePeriodAnnex}
+            canManageFiles={canManageGracePeriodAnnexFiles}
           />
           <ContractRow
             id="hasSignedProtocol"

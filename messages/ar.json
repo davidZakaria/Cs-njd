@@ -127,19 +127,21 @@
       "missing": "لم يتم رفع عقد البيع بعد."
     },
     "extensionAnnex": {
-      "title": "ملحق المد المُوقَّع (اختياري)",
+      "title": "ملحق المد",
       "upload": "رفع ملحق المد",
       "view": "عرض الملحق",
       "replace": "استبدال الملحق",
-      "missing": "لم يتم رفع ملحق مد."
+      "missing": "لم يتم رفع ملحق المد بعد.",
+      "gracePeriodHint": "ملحق موقّع يمدّ فترة السماح للتسليم."
     },
     "finishingContract": {
-      "title": "عقد / ملحق التشطيب المُوقَّع (اختياري)",
-      "upload": "رفع عقد التشطيب",
+      "title": "عقد التشطيبات",
+      "upload": "رفع عقد التشطيبات",
       "view": "عرض العقد",
       "replace": "استبدال العقد",
-      "missing": "لم يتم رفع عقد تشطيب."
-    }
+      "missing": "لم يتم رفع عقد التشطيبات بعد."
+    },
+    "uploadLocked": "يوجد ملف مسجّل بالفعل. الاستبدال أو الحذف للإدارة فقط."
   },
   "security": {
     "actionBlocked": "⚠️ إجراء غير مسموح لدواعي أمنية."
@@ -176,7 +178,7 @@
     "contractsHandover": {
       "contractsTitle": "العقود",
       "preliminarySaleContract": "عقد بيع ابتدائي",
-      "saleContractAnnex": "ملحق عقد البيع",
+      "saleContractAnnex": "ملحق المد",
       "handoverRecord": "محضر استلام",
       "finalSaleContract": "عقد بيع نهائي",
       "datedOn": "مؤرخ في",

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { canAccessCsPortfolioDocuments } from "@/lib/auth/cs-portfolio-document-access";
 import {
   canDownloadSignedProtocol,
   resolveSignedProtocolAccess,
@@ -22,7 +23,8 @@ export async function serveUnitDocument(
   unit: { id: string; agentId: string | null },
   storedName: string | null | undefined,
   kind: UnitDocumentKind,
-  downloadLabel: string
+  downloadLabel: string,
+  access: "assignmentScoped" | "csPortfolio" = "assignmentScoped"
 ) {
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -32,12 +34,18 @@ export async function serveUnitDocument(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const { csScope } = await resolveSignedProtocolAccess(
-    session.user,
-    unit.agentId
-  );
-  if (!canDownloadSignedProtocol(session.user, unit.agentId, csScope)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (access === "csPortfolio") {
+    if (!canAccessCsPortfolioDocuments(session.user.role)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  } else {
+    const { csScope } = await resolveSignedProtocolAccess(
+      session.user,
+      unit.agentId
+    );
+    if (!canDownloadSignedProtocol(session.user, unit.agentId, csScope)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   const ext = storedName.includes(".") ? storedName.split(".").pop() : "pdf";
