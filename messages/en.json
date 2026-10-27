@@ -835,6 +835,42 @@
       }
     },
     "profile": "Unit 360 Profile",
+    "swap": {
+      "action": "Swap client to another unit",
+      "title": "Swap client to another unit",
+      "description": "Move the primary owner, co-owners, contacts, cases, documents, finishing, and legal data to an empty target unit in one step. Nothing is deleted.",
+      "searchLabel": "Target unit",
+      "searchPlaceholder": "Search by unit code or project…",
+      "noResults": "No empty units match your search.",
+      "targetBlocked": "That unit already has an owner. Choose an empty unit.",
+      "confirmTitle": "Confirm unit swap",
+      "confirmBody": "The following will move to {targetUnit} ({targetProject}):",
+      "summaryClient": "Primary client: {name}",
+      "summaryCoOwners": "Co-owners: {count}",
+      "summaryTickets": "Cases / call log entries: {count}",
+      "summaryContracts": "Contracts flagged for re-upload on the new unit: {count}",
+      "confirmButton": "Swap client",
+      "back": "Back",
+      "success": "Client moved to the new unit.",
+      "historySource": "Swap history",
+      "historyTarget": "Swapped from another unit",
+      "historyOutgoing": {
+        "outgoingMessage": "Client {clientName} swapped to unit {unitCode} ({project}) on {date} by {user}."
+      },
+      "historyIncoming": {
+        "incomingMessage": "Swapped from unit {unitCode} ({project}) on {date} by {user}."
+      }
+    },
+    "contractUpdate": {
+      "bannerTitle": "Contracts need update for new unit",
+      "needsUpdate": "Needs update for new unit",
+      "preliminary": "Preliminary sale contract",
+      "saleAnnex": "Sale contract annex",
+      "gracePeriodAnnex": "Grace Period Annex",
+      "handoverRecord": "Handover record",
+      "finalSale": "Final sale contract",
+      "finishingContract": "Finishing contract (عقد التشطيبات)"
+    },
     "clientInfo": "Client Info",
     "financials": "Finishing Financials",
     "finishingDetails": "Finishing Details",

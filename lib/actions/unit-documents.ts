@@ -14,6 +14,11 @@ import { auditContext } from "@/lib/prisma/audit-context";
 import { basePrisma, prisma } from "@/lib/prisma";
 import { recordAuditLog } from "@/lib/prisma/record-audit-log";
 import {
+  clearContractFlagAfterUpload,
+  clearFinishingContractFlagAfterUpload,
+  flagsClearedByUnitDocumentUpload,
+} from "@/lib/units/clear-contract-flag-on-upload";
+import {
   buildUnitDocumentStoredFilename,
   deleteUnitDocumentFile,
   isAllowedUnitDocumentMime,
@@ -187,6 +192,14 @@ export async function uploadUnitDocument(
     }
 
     await recordDocumentUploadAudit(unitId, documentType, storedName, replaced);
+
+    if (documentType === "finishingContract") {
+      await clearFinishingContractFlagAfterUpload(prisma, unitId);
+    } else {
+      for (const flag of flagsClearedByUnitDocumentUpload(documentType)) {
+        await clearContractFlagAfterUpload(prisma, unitId, flag);
+      }
+    }
 
     revalidatePath(`/units/${unitId}`);
     revalidatePath("/units");

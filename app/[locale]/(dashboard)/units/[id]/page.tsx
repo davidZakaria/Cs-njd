@@ -13,6 +13,8 @@ import { UnitLegalHandoverForm } from "@/components/units/unit-legal-handover-fo
 import { UnitFinishingForm } from "@/components/units/unit-finishing-form";
 import { UnitOwnersTab } from "@/components/units/unit-owners-tab";
 import { PrintProtocolButton } from "@/components/units/print-protocol-button";
+import { UnitSwapDialog } from "@/components/units/unit-swap-dialog";
+import { UnitContractUpdateFlags } from "@/components/units/unit-contract-update-flags";
 import { SignedProtocolUpload } from "@/components/units/signed-protocol-upload";
 import { UnitDocumentUpload } from "@/components/units/unit-document-upload";
 import { LegalBlockBanner } from "@/components/units/legal-block-banner";
@@ -35,6 +37,7 @@ import {
   canEditCsHandoverChecklist,
   canAddUnitCoOwner,
   canManageUnitCoOwners,
+  canSwapUnitClient,
   canUploadClientNationalIdScan,
   canManageClientNationalIdFile,
   canLogCallOnUnit,
@@ -53,6 +56,7 @@ import {
   listClientExtraPhones,
 } from "@/lib/client/contact-lines";
 import { toContactExtraLines } from "@/lib/client/contact-lines";
+import { formatUnitSwapHistoryMessage } from "@/lib/units/unit-swap-history";
 
 export default async function UnitProfilePage({
   params,
@@ -65,6 +69,8 @@ export default async function UnitProfilePage({
   const { tab } = await searchParams;
   const session = await auth();
   const t = await getTranslations("units");
+  const tSwapOutgoing = await getTranslations("units.swap.historyOutgoing");
+  const tSwapIncoming = await getTranslations("units.swap.historyIncoming");
   const tCases = await getTranslations("cases");
   const tWorkflowEdge = await getTranslations("workflow.edgeCases");
   const labels = await getDomainLabels(locale);
@@ -255,8 +261,13 @@ export default async function UnitProfilePage({
     role != null ? canUploadClientNationalIdScan(role) : false;
   const canManageNationalIdFile =
     role != null ? canManageClientNationalIdFile(role) : false;
+  const canSwapClient =
+    role != null ? canSwapUnitClient(role) : false;
 
   const workflow = unit.contractWorkflow;
+  const contractUpdateFlags = workflow?.contractUnitUpdateFlags ?? [];
+  const finishingContractNeedsUpdate =
+    unit.finishing?.finishingContractNeedsUnitUpdate ?? false;
   const signedProtocolUploader = workflow?.signedProtocolUploadedById
     ? await prisma.user.findUnique({
         where: { id: workflow.signedProtocolUploadedById },
@@ -312,6 +323,29 @@ export default async function UnitProfilePage({
     };
   });
 
+  const swapHistoryMessage = formatUnitSwapHistoryMessage({
+    locale,
+    tOutgoing: (key, values) => tSwapOutgoing(key, values),
+    tIncoming: (key, values) => tSwapIncoming(key, values),
+    unit: {
+      swapHistoryNote: unit.swapHistoryNote,
+      swapOutgoingUnitId: unit.swapOutgoingUnitId,
+      swapOutgoingUnitCode: unit.swapOutgoingUnitCode,
+      swapOutgoingProjectName: unit.swapOutgoingProjectName,
+      swapOutgoingAt: unit.swapOutgoingAt,
+      swapOutgoingByName: unit.swapOutgoingByName,
+      swapOutgoingClientName: unit.swapOutgoingClientName,
+      swappedFromUnitId: unit.swappedFromUnitId,
+      swappedFromUnitCode: unit.swappedFromUnitCode,
+      swappedFromProjectName: unit.swappedFromProjectName,
+      swappedFromAt: unit.swappedFromAt,
+      swappedFromByName: unit.swappedFromByName,
+    },
+  });
+  const swapHistoryIsIncoming = Boolean(
+    unit.swappedFromUnitId && unit.swappedFromAt
+  );
+
   return (
     <div className="space-y-6">
       {isLegallyBlocked ? <LegalBlockBanner /> : null}
@@ -327,8 +361,35 @@ export default async function UnitProfilePage({
             {unit.unitCode}
           </p>
         </div>
-        <PrintProtocolButton unitId={unit.id} locale={locale} projectName={unit.project.name} />
+        <div className="flex flex-wrap items-center gap-2">
+          {canSwapClient ? (
+            <UnitSwapDialog
+              sourceUnitId={unit.id}
+              sourceUnitCode={unit.unitCode}
+              hasClient={Boolean(unit.clientId || owners.length > 0)}
+            />
+          ) : null}
+          <PrintProtocolButton unitId={unit.id} locale={locale} projectName={unit.project.name} />
+        </div>
       </div>
+
+      {swapHistoryMessage ? (
+        <Alert>
+          <AlertDescription>
+            <strong>
+              {swapHistoryIsIncoming
+                ? t("swap.historyTarget")
+                : t("swap.historySource")}
+              :
+            </strong>{" "}
+            {swapHistoryMessage}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      <UnitContractUpdateFlags
+        contractFlags={contractUpdateFlags}
+        finishingNeedsUpdate={finishingContractNeedsUpdate}
+      />
 
       {isCommunityViewer && !communityCanActOnUnit ? (
         <Alert>
