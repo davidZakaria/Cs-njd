@@ -4,7 +4,11 @@ import {
   computeContractUpdateFlagsFromWorkflow,
   CONTRACT_UNIT_UPDATE_FLAG,
 } from "@/lib/units/contract-unit-update-flags";
-import { assertTargetUnitEmpty } from "@/lib/units/unit-swap";
+import {
+  assertTargetUnitEmpty,
+  buildTargetWorkflowAfterSwap,
+  TARGET_HANDOVER_STATUS_AFTER_UNIT_SWAP,
+} from "@/lib/units/unit-swap";
 
 describe("unit-swap", () => {
   it("blocks target units that already have a primary client", () => {
@@ -43,5 +47,20 @@ describe("unit-swap", () => {
     expect(contractFlags).toContain(CONTRACT_UNIT_UPDATE_FLAG.gracePeriodAnnex);
     expect(contractFlags).toContain(CONTRACT_UNIT_UPDATE_FLAG.handoverRecord);
     expect(finishingNeedsUpdate).toBe(true);
+  });
+
+  it("sets target handover status to UNIT_SWAP after swap", () => {
+    expect(TARGET_HANDOVER_STATUS_AFTER_UNIT_SWAP).toBe("UNIT_SWAP");
+    const payload = buildTargetWorkflowAfterSwap(
+      {
+        id: "wf1",
+        unitId: "src",
+        handoverStatus: "DELIVERY_PROTOCOL",
+        contractUnitUpdateFlags: [],
+      } as import("@prisma/client").ContractWorkflow,
+      ["preliminary"]
+    );
+    expect(payload.handoverStatus).toBe("UNIT_SWAP");
+    expect(payload.contractUnitUpdateFlags).toEqual(["preliminary"]);
   });
 });

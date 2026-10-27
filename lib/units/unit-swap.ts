@@ -1,4 +1,9 @@
-import type { ContractWorkflow, Finishing, Prisma } from "@prisma/client";
+import type {
+  ContractWorkflow,
+  Finishing,
+  HandoverStatus,
+  Prisma,
+} from "@prisma/client";
 
 import type { prisma as DbClient } from "@/lib/prisma";
 
@@ -23,6 +28,20 @@ function workflowTransferPayload(
     ...rest
   } = workflow;
   return { ...rest, contractUnitUpdateFlags };
+}
+
+/** Handover status applied to the target unit after a client swap. */
+export const TARGET_HANDOVER_STATUS_AFTER_UNIT_SWAP: HandoverStatus =
+  "UNIT_SWAP";
+
+export function buildTargetWorkflowAfterSwap(
+  workflow: ContractWorkflow,
+  contractUnitUpdateFlags: string[]
+) {
+  return {
+    ...workflowTransferPayload(workflow, contractUnitUpdateFlags),
+    handoverStatus: TARGET_HANDOVER_STATUS_AFTER_UNIT_SWAP,
+  };
 }
 
 function finishingTransferPayload(
@@ -200,7 +219,7 @@ export async function executeUnitSwapTransaction(
     });
 
     if (source.contractWorkflow) {
-      const workflowData = workflowTransferPayload(
+      const workflowData = buildTargetWorkflowAfterSwap(
         source.contractWorkflow,
         contractFlags
       );
