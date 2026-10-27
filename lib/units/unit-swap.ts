@@ -115,15 +115,25 @@ export function assertTargetUnitEmpty(target: {
   return null;
 }
 
+export type UnitSwapHistoryRecord = {
+  sourceUnitId: string;
+  sourceUnitCode: string;
+  sourceProjectName: string;
+  targetUnitId: string;
+  targetUnitCode: string;
+  targetProjectName: string;
+  clientName: string;
+  actorUserId: string;
+  actorName: string;
+  swappedAt: Date;
+};
+
 export async function executeUnitSwapTransaction(
   db: Db,
   params: {
     sourceUnitId: string;
     targetUnitId: string;
-    actorUserId: string;
-    actorName: string;
-    swapNoteSource: string;
-    swapNoteTarget: string;
+    history: UnitSwapHistoryRecord;
     legalTaskNotes: string;
   }
 ): Promise<void> {
@@ -165,14 +175,27 @@ export async function executeUnitSwapTransaction(
       category: source.category,
     };
 
+    const { history } = params;
+
     await tx.unit.update({
       where: { id: target.id },
       data: {
         ...unitFields,
         clientId: source.clientId,
-        swappedFromUnitId: source.id,
-        swappedFromAt: new Date(),
-        swapHistoryNote: params.swapNoteTarget,
+        swappedFromUnitId: history.sourceUnitId,
+        swappedFromUnitCode: history.sourceUnitCode,
+        swappedFromProjectName: history.sourceProjectName,
+        swappedFromAt: history.swappedAt,
+        swappedFromByUserId: history.actorUserId,
+        swappedFromByName: history.actorName,
+        swapOutgoingUnitId: null,
+        swapOutgoingUnitCode: null,
+        swapOutgoingProjectName: null,
+        swapOutgoingAt: null,
+        swapOutgoingByUserId: null,
+        swapOutgoingByName: null,
+        swapOutgoingClientName: null,
+        swapHistoryNote: null,
       },
     });
 
@@ -276,9 +299,20 @@ export async function executeUnitSwapTransaction(
         contractPricePerMeter: null,
         agentId: null,
         category: null,
-        swapHistoryNote: params.swapNoteSource,
+        swapOutgoingUnitId: history.targetUnitId,
+        swapOutgoingUnitCode: history.targetUnitCode,
+        swapOutgoingProjectName: history.targetProjectName,
+        swapOutgoingAt: history.swappedAt,
+        swapOutgoingByUserId: history.actorUserId,
+        swapOutgoingByName: history.actorName,
+        swapOutgoingClientName: history.clientName,
         swappedFromUnitId: null,
+        swappedFromUnitCode: null,
+        swappedFromProjectName: null,
         swappedFromAt: null,
+        swappedFromByUserId: null,
+        swappedFromByName: null,
+        swapHistoryNote: null,
       },
     });
 
@@ -286,7 +320,7 @@ export async function executeUnitSwapTransaction(
       await tx.ticket.create({
         data: {
           unitId: target.id,
-          createdById: params.actorUserId,
+          createdById: history.actorUserId,
           notes: `${UNIT_SWAP_LEGAL_TASK_MARKER}\n${params.legalTaskNotes}`,
           status: "LEGAL",
           category: "LEGAL",

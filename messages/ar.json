@@ -853,7 +853,13 @@
       "back": "رجوع",
       "success": "تم نقل العميل إلى الوحدة الجديدة.",
       "historySource": "سجل النقل",
-      "historyTarget": "منقول من وحدة أخرى"
+      "historyTarget": "منقول من وحدة أخرى",
+      "historyOutgoing": {
+        "outgoingMessage": "نُقل العميل {clientName} إلى الوحدة {unitCode} ({project}) بتاريخ {date} بواسطة {user}."
+      },
+      "historyIncoming": {
+        "incomingMessage": "منقول من الوحدة {unitCode} ({project}) بتاريخ {date} بواسطة {user}."
+      }
     },
     "contractUpdate": {
       "bannerTitle": "عقود تحتاج تحديث للوحدة الجديدة",

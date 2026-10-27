@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { ArrowLeftRight, Loader2, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { toast } from "sonner";
 
 import {
   getUnitSwapPreview,
@@ -12,7 +13,6 @@ import {
   type SwapTargetUnitResult,
 } from "@/lib/actions/unit-swap";
 import type { UnitSwapPreview } from "@/lib/units/unit-swap";
-import { useCrudToast } from "@/hooks/use-crud-toast";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -37,8 +37,9 @@ export function UnitSwapDialog({
   hasClient: boolean;
 }) {
   const t = useTranslations("units.swap");
+  const tCommon = useTranslations("common");
   const router = useRouter();
-  const { pending, runAction } = useCrudToast();
+  const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"search" | "confirm">("search");
   const [query, setQuery] = useState("");
@@ -93,15 +94,17 @@ export function UnitSwapDialog({
 
   function handleConfirm() {
     if (!selected) return;
-    runAction(async () => {
+    startTransition(async () => {
       const result = await swapUnitClient(sourceUnitId, selected.unitId);
       if (result.success) {
+        toast.success(t("success"));
         setOpen(false);
         router.push(`/units/${selected.unitId}`);
         router.refresh();
+      } else {
+        toast.error(result.error || tCommon("actionFailed"));
       }
-      return result;
-    }, "saved", t("success"));
+    });
   }
 
   if (!hasClient) return null;

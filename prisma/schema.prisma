@@ -273,9 +273,21 @@ model Unit {
   agentId              String?
   assignedEngineerId   String?
   category             String?
+  /** @deprecated Legacy English note — use structured swap fields */
   swapHistoryNote      String?
-  swappedFromUnitId    String?
-  swappedFromAt        DateTime?
+  swapOutgoingUnitId       String?
+  swapOutgoingUnitCode     String?
+  swapOutgoingProjectName  String?
+  swapOutgoingAt           DateTime?
+  swapOutgoingByUserId     String?
+  swapOutgoingByName       String?
+  swapOutgoingClientName   String?
+  swappedFromUnitId        String?
+  swappedFromUnitCode      String?
+  swappedFromProjectName   String?
+  swappedFromAt            DateTime?
+  swappedFromByUserId      String?
+  swappedFromByName        String?
   deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt

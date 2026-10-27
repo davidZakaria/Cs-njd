@@ -853,7 +853,13 @@
       "back": "Back",
       "success": "Client moved to the new unit.",
       "historySource": "Swap history",
-      "historyTarget": "Swapped from another unit"
+      "historyTarget": "Swapped from another unit",
+      "historyOutgoing": {
+        "outgoingMessage": "Client {clientName} swapped to unit {unitCode} ({project}) on {date} by {user}."
+      },
+      "historyIncoming": {
+        "incomingMessage": "Swapped from unit {unitCode} ({project}) on {date} by {user}."
+      }
     },
     "contractUpdate": {
       "bannerTitle": "Contracts need update for new unit",

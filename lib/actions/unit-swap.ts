@@ -112,20 +112,25 @@ export async function swapUnitClient(
 
   const actorName = session.user.name ?? session.user.email ?? "Management";
   const clientName = source.client?.name ?? "Client";
-  const swappedAt = new Date().toISOString();
-
-  const swapNoteSource = `Client ${clientName} swapped to unit ${target.unitCode} (${target.project.name}) on ${swappedAt} by ${actorName}.`;
-  const swapNoteTarget = `Swapped from unit ${source.unitCode} (${source.project.name}) on ${swappedAt} by ${actorName}.`;
+  const swappedAt = new Date();
   const legalTaskNotes = `Review and re-upload contracts for the new unit after client swap from ${source.unitCode}.`;
 
   return withAudit(async () => {
     await executeUnitSwapTransaction(prisma, {
       sourceUnitId,
       targetUnitId,
-      actorUserId: session.user.id,
-      actorName,
-      swapNoteSource,
-      swapNoteTarget,
+      history: {
+        sourceUnitId: source.id,
+        sourceUnitCode: source.unitCode,
+        sourceProjectName: source.project.name,
+        targetUnitId: target.id,
+        targetUnitCode: target.unitCode,
+        targetProjectName: target.project.name,
+        clientName,
+        actorUserId: session.user.id,
+        actorName,
+        swappedAt,
+      },
       legalTaskNotes,
     });
 

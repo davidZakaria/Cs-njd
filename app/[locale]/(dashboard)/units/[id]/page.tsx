@@ -56,6 +56,7 @@ import {
   listClientExtraPhones,
 } from "@/lib/client/contact-lines";
 import { toContactExtraLines } from "@/lib/client/contact-lines";
+import { formatUnitSwapHistoryMessage } from "@/lib/units/unit-swap-history";
 
 export default async function UnitProfilePage({
   params,
@@ -68,6 +69,8 @@ export default async function UnitProfilePage({
   const { tab } = await searchParams;
   const session = await auth();
   const t = await getTranslations("units");
+  const tSwapOutgoing = await getTranslations("units.swap.historyOutgoing");
+  const tSwapIncoming = await getTranslations("units.swap.historyIncoming");
   const tCases = await getTranslations("cases");
   const tWorkflowEdge = await getTranslations("workflow.edgeCases");
   const labels = await getDomainLabels(locale);
@@ -320,6 +323,29 @@ export default async function UnitProfilePage({
     };
   });
 
+  const swapHistoryMessage = formatUnitSwapHistoryMessage({
+    locale,
+    tOutgoing: (key, values) => tSwapOutgoing(key, values),
+    tIncoming: (key, values) => tSwapIncoming(key, values),
+    unit: {
+      swapHistoryNote: unit.swapHistoryNote,
+      swapOutgoingUnitId: unit.swapOutgoingUnitId,
+      swapOutgoingUnitCode: unit.swapOutgoingUnitCode,
+      swapOutgoingProjectName: unit.swapOutgoingProjectName,
+      swapOutgoingAt: unit.swapOutgoingAt,
+      swapOutgoingByName: unit.swapOutgoingByName,
+      swapOutgoingClientName: unit.swapOutgoingClientName,
+      swappedFromUnitId: unit.swappedFromUnitId,
+      swappedFromUnitCode: unit.swappedFromUnitCode,
+      swappedFromProjectName: unit.swappedFromProjectName,
+      swappedFromAt: unit.swappedFromAt,
+      swappedFromByName: unit.swappedFromByName,
+    },
+  });
+  const swapHistoryIsIncoming = Boolean(
+    unit.swappedFromUnitId && unit.swappedFromAt
+  );
+
   return (
     <div className="space-y-6">
       {isLegallyBlocked ? <LegalBlockBanner /> : null}
@@ -347,18 +373,16 @@ export default async function UnitProfilePage({
         </div>
       </div>
 
-      {unit.swapHistoryNote ? (
+      {swapHistoryMessage ? (
         <Alert>
           <AlertDescription>
-            {unit.swappedFromUnitId ? (
-              <>
-                <strong>{t("swap.historyTarget")}:</strong> {unit.swapHistoryNote}
-              </>
-            ) : (
-              <>
-                <strong>{t("swap.historySource")}:</strong> {unit.swapHistoryNote}
-              </>
-            )}
+            <strong>
+              {swapHistoryIsIncoming
+                ? t("swap.historyTarget")
+                : t("swap.historySource")}
+              :
+            </strong>{" "}
+            {swapHistoryMessage}
           </AlertDescription>
         </Alert>
       ) : null}
