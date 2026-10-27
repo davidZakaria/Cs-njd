@@ -273,6 +273,9 @@ model Unit {
   agentId              String?
   assignedEngineerId   String?
   category             String?
+  swapHistoryNote      String?
+  swappedFromUnitId    String?
+  swappedFromAt        DateTime?
   deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -354,6 +357,8 @@ model ContractWorkflow {
   signedProtocolUploadedById   String?
   signedContractFile           String?
   extensionAnnexFile           String?
+  /** Set after unit swap — contract types needing re-upload for the new unit */
+  contractUnitUpdateFlags      String[]       @default([])
   deletedAt          DateTime?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
@@ -386,6 +391,7 @@ model Finishing {
   customModifications     String?
   modificationsCompleted  Boolean           @default(true)
   finishingContractFile   String?
+  finishingContractNeedsUnitUpdate Boolean @default(false)
   deletedAt               DateTime?
   createdAt               DateTime          @default(now())
   updatedAt               DateTime          @updatedAt

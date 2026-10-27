@@ -13,6 +13,8 @@ import { UnitLegalHandoverForm } from "@/components/units/unit-legal-handover-fo
 import { UnitFinishingForm } from "@/components/units/unit-finishing-form";
 import { UnitOwnersTab } from "@/components/units/unit-owners-tab";
 import { PrintProtocolButton } from "@/components/units/print-protocol-button";
+import { UnitSwapDialog } from "@/components/units/unit-swap-dialog";
+import { UnitContractUpdateFlags } from "@/components/units/unit-contract-update-flags";
 import { SignedProtocolUpload } from "@/components/units/signed-protocol-upload";
 import { UnitDocumentUpload } from "@/components/units/unit-document-upload";
 import { LegalBlockBanner } from "@/components/units/legal-block-banner";
@@ -35,6 +37,7 @@ import {
   canEditCsHandoverChecklist,
   canAddUnitCoOwner,
   canManageUnitCoOwners,
+  canSwapUnitClient,
   canUploadClientNationalIdScan,
   canManageClientNationalIdFile,
   canLogCallOnUnit,
@@ -255,8 +258,13 @@ export default async function UnitProfilePage({
     role != null ? canUploadClientNationalIdScan(role) : false;
   const canManageNationalIdFile =
     role != null ? canManageClientNationalIdFile(role) : false;
+  const canSwapClient =
+    role != null ? canSwapUnitClient(role) : false;
 
   const workflow = unit.contractWorkflow;
+  const contractUpdateFlags = workflow?.contractUnitUpdateFlags ?? [];
+  const finishingContractNeedsUpdate =
+    unit.finishing?.finishingContractNeedsUnitUpdate ?? false;
   const signedProtocolUploader = workflow?.signedProtocolUploadedById
     ? await prisma.user.findUnique({
         where: { id: workflow.signedProtocolUploadedById },
@@ -327,8 +335,37 @@ export default async function UnitProfilePage({
             {unit.unitCode}
           </p>
         </div>
-        <PrintProtocolButton unitId={unit.id} locale={locale} projectName={unit.project.name} />
+        <div className="flex flex-wrap items-center gap-2">
+          {canSwapClient ? (
+            <UnitSwapDialog
+              sourceUnitId={unit.id}
+              sourceUnitCode={unit.unitCode}
+              hasClient={Boolean(unit.clientId || owners.length > 0)}
+            />
+          ) : null}
+          <PrintProtocolButton unitId={unit.id} locale={locale} projectName={unit.project.name} />
+        </div>
       </div>
+
+      {unit.swapHistoryNote ? (
+        <Alert>
+          <AlertDescription>
+            {unit.swappedFromUnitId ? (
+              <>
+                <strong>{t("swap.historyTarget")}:</strong> {unit.swapHistoryNote}
+              </>
+            ) : (
+              <>
+                <strong>{t("swap.historySource")}:</strong> {unit.swapHistoryNote}
+              </>
+            )}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      <UnitContractUpdateFlags
+        contractFlags={contractUpdateFlags}
+        finishingNeedsUpdate={finishingContractNeedsUpdate}
+      />
 
       {isCommunityViewer && !communityCanActOnUnit ? (
         <Alert>

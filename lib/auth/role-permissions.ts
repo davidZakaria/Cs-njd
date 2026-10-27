@@ -104,6 +104,11 @@ export function canManageUnitCoOwners(role: Role): boolean {
   return isAdminUnitManager(role);
 }
 
+/** Move a client (and related data) from one unit to an empty unit. */
+export function canSwapUnitClient(role: Role): boolean {
+  return isAdminUnitManager(role);
+}
+
 /** Add a new co-owner client on Jamila (community), any unit (CS), or management. */
 export function canAddUnitCoOwner(
   role: Role,

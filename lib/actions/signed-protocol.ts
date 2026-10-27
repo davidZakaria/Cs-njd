@@ -14,6 +14,8 @@ import {
 import { revalidatePath } from "next/cache";
 
 import { notifyHandoverChecklistUpdatedByAgent } from "@/lib/notifications/triggers";
+import { clearContractFlagAfterUpload } from "@/lib/units/clear-contract-flag-on-upload";
+import { CONTRACT_UNIT_UPDATE_FLAG } from "@/lib/units/contract-unit-update-flags";
 
 async function loadUnitForUpload(unitId: string) {
   return prisma.unit.findUnique({
@@ -80,6 +82,12 @@ export async function uploadSignedProtocol(
       papersReceived: true,
     },
   });
+
+  await clearContractFlagAfterUpload(
+    prisma,
+    unitId,
+    CONTRACT_UNIT_UPDATE_FLAG.handoverRecord
+  );
 
   if (session.user.role === "CS_AGENT") {
     await notifyHandoverChecklistUpdatedByAgent({
