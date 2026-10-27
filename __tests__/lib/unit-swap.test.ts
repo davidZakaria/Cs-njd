@@ -1,3 +1,4 @@
+import type { ContractWorkflow } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -57,7 +58,7 @@ describe("unit-swap", () => {
         unitId: "src",
         handoverStatus: "DELIVERY_PROTOCOL",
         contractUnitUpdateFlags: [],
-      } as import("@prisma/client").ContractWorkflow,
+      } as unknown as ContractWorkflow,
       ["preliminary"]
     );
     expect(payload.handoverStatus).toBe("UNIT_SWAP");

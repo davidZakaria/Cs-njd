@@ -70,15 +70,20 @@ export function UnitSwapDialog({
     return () => window.clearTimeout(handle);
   }, [open, query, runSearch]);
 
-  useEffect(() => {
-    if (!open) {
-      setStep("search");
-      setQuery("");
-      setSelected(null);
-      setPreview(null);
-      setPreviewError(null);
+  function resetDialogState() {
+    setStep("search");
+    setQuery("");
+    setSelected(null);
+    setPreview(null);
+    setPreviewError(null);
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      resetDialogState();
     }
-  }, [open]);
+  }
 
   async function goToConfirm(target: SwapTargetUnitResult) {
     setSelected(target);
@@ -98,7 +103,7 @@ export function UnitSwapDialog({
       const result = await swapUnitClient(sourceUnitId, selected.unitId);
       if (result.success) {
         toast.success(t("success"));
-        setOpen(false);
+        handleOpenChange(false);
         router.push(`/units/${selected.unitId}`);
         router.refresh();
       } else {
@@ -113,7 +118,7 @@ export function UnitSwapDialog({
     (preview?.contractFlags.length ?? 0) + (preview?.finishingNeedsUpdate ? 1 : 0);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
         render={
           <Button type="button" variant="outline" size="sm" className="gap-2" />
