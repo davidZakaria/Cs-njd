@@ -17,12 +17,18 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     unit: { findUnique: (...args: unknown[]) => mockFindUnique(...args) },
     finishing: {
+      findUnique: vi.fn().mockResolvedValue(null),
       upsert: (...args: unknown[]) => mockUpsert(...args),
       update: (...args: unknown[]) => mockUpdate(...args),
     },
     contractWorkflow: {
+      findUnique: vi.fn().mockResolvedValue(null),
       upsert: (...args: unknown[]) => mockUpsert(...args),
       update: (...args: unknown[]) => mockUpdate(...args),
+    },
+    ticket: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      update: vi.fn(),
     },
   },
   basePrisma: {
