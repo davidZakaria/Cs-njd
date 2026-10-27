@@ -271,6 +271,17 @@ export async function executeUnitSwapTransaction(
           contractUnitUpdateFlags: [],
         },
       });
+    } else {
+      await tx.contractWorkflow.upsert({
+        where: { unitId: target.id },
+        create: {
+          unitId: target.id,
+          handoverStatus: TARGET_HANDOVER_STATUS_AFTER_UNIT_SWAP,
+        },
+        update: {
+          handoverStatus: TARGET_HANDOVER_STATUS_AFTER_UNIT_SWAP,
+        },
+      });
     }
 
     if (source.finishing) {
