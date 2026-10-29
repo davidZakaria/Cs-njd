@@ -123,6 +123,10 @@ describe("RBAC Role Access Control", () => {
       expect(getHomeRoute("SUPER_ADMIN")).toBe("/dashboard");
     });
 
+    it("returns /operations for OPERATIONS role", () => {
+      expect(getHomeRoute("OPERATIONS")).toBe("/operations");
+    });
+
     it("returns /dashboard for CS_AGENT role", () => {
       expect(getHomeRoute("CS_AGENT")).toBe("/dashboard");
     });
@@ -259,6 +263,29 @@ describe("RBAC Role Access Control", () => {
     });
   });
 
+  describe("canAccessRoute - OPERATIONS", () => {
+    const role = "OPERATIONS" as const;
+
+    it("can access operations progress and unit subpaths", () => {
+      expect(canAccessRoute(role, "/operations")).toBe(true);
+      expect(canAccessRoute(role, "/operations/units/abc")).toBe(true);
+    });
+
+    it("can access units for read-only archive work", () => {
+      expect(canAccessRoute(role, "/units")).toBe(true);
+      expect(canAccessRoute(role, "/units/123")).toBe(true);
+    });
+
+    it("cannot access cases, dashboard, executive, or admin routes", () => {
+      expect(canAccessRoute(role, "/dashboard")).toBe(false);
+      expect(canAccessRoute(role, "/cases")).toBe(false);
+      expect(canAccessRoute(role, "/executive")).toBe(false);
+      expect(canAccessRoute(role, "/users")).toBe(false);
+      expect(canAccessRoute(role, "/imports")).toBe(false);
+      expect(canAccessRoute(role, "/notifications")).toBe(false);
+    });
+  });
+
   describe("canAccessRoute - ENGINEER", () => {
     const role = "ENGINEER" as const;
 
@@ -299,6 +326,12 @@ describe("RBAC Navigation Items", () => {
       expect(hrefs).not.toContain("/dashboard");
     });
 
+    it("returns operations and units only for OPERATIONS", () => {
+      const items = getCoreNavItems("OPERATIONS");
+      const hrefs = items.map((i) => i.href);
+      expect(hrefs).toEqual(["/operations", "/units"]);
+    });
+
     it("returns dashboard but not engineering or executive for CS_AGENT", () => {
       const items = getCoreNavItems("CS_AGENT");
       const hrefs = items.map((i) => i.href);
@@ -322,6 +355,12 @@ describe("RBAC Navigation Items", () => {
       expect(keys).toContain("auditLogs");
       expect(keys).toContain("backups");
       expect(keys).toContain("system");
+    });
+
+    it("returns operations and units for OPERATIONS in full nav", () => {
+      const items = getNavItems("OPERATIONS");
+      const keys = items.map((i) => i.key);
+      expect(keys).toEqual(["operations", "units"]);
     });
 
     it("excludes admin items for MANAGEMENT", () => {

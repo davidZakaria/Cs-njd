@@ -16,6 +16,11 @@ describe("cs-portfolio-document-access", () => {
     expect(canManageCsPortfolioDocumentFiles("MANAGEMENT")).toBe(true);
   });
 
+  it("allows operations to upload but not replace portfolio files", () => {
+    expect(canAccessCsPortfolioDocuments("OPERATIONS")).toBe(true);
+    expect(canManageCsPortfolioDocumentFiles("OPERATIONS")).toBe(false);
+  });
+
   it("denies engineers", () => {
     expect(canAccessCsPortfolioDocuments("ENGINEER")).toBe(false);
   });

@@ -1,13 +1,18 @@
 import type { Role } from "@prisma/client";
 
-import { isAdminUnitManager, isCsAgentRole } from "@/lib/auth/unit-roles";
+import {
+  isAdminUnitManager,
+  isCsAgentRole,
+  isOperationsRole,
+} from "@/lib/auth/unit-roles";
 
-/** Client ID scan, finishing contract, and ملحق المد — CS on any unit; management/super admin. */
+/** Client ID scan, finishing contract, and ملحق المد — CS on any unit; management/super admin; operations archive upload. */
 export function canAccessCsPortfolioDocuments(role: Role): boolean {
   return (
     isCsAgentRole(role) ||
     isAdminUnitManager(role) ||
-    role === "SUPER_ADMIN"
+    role === "SUPER_ADMIN" ||
+    isOperationsRole(role)
   );
 }
 

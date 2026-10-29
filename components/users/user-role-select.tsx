@@ -41,6 +41,7 @@ export function UserRoleSelect({
           {t("roles.communityManagement")}
         </SelectItem>
         <SelectItem value="ENGINEER">{t("roles.engineer")}</SelectItem>
+        <SelectItem value="OPERATIONS">{t("roles.operations")}</SelectItem>
         {isSuperAdmin ? (
           <>
             <SelectItem value="MANAGEMENT">{t("roles.management")}</SelectItem>

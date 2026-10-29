@@ -19,6 +19,10 @@ export async function resolveSignedProtocolAccess(
     return { canUpload: true, csScope: null };
   }
 
+  if (user.role === "OPERATIONS") {
+    return { canUpload: true, csScope: null };
+  }
+
   if (user.role === "CS_AGENT") {
     const csScope = await resolveCsAgentScope(user);
     return {
@@ -36,6 +40,9 @@ export function canDownloadSignedProtocol(
   csScope: CsAgentScope | null
 ): boolean {
   if (user.role === "SUPER_ADMIN" || user.role === "MANAGEMENT") {
+    return true;
+  }
+  if (user.role === "OPERATIONS") {
     return true;
   }
   if (user.role === "CS_AGENT" && csScope) {

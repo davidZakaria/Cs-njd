@@ -28,6 +28,7 @@ import { canManageUnitTickets } from "@/lib/auth/unit-ticket-access";
 import {
   isAdminUnitManager,
   isCsAgentRole,
+  isOperationsRole,
   resolveUnitClientEditMode,
 } from "@/lib/auth/unit-roles";
 import {
@@ -35,6 +36,7 @@ import {
   canEditFinishingFinancialsOnUnit,
   canEditLegalHandoverOnUnit,
   canEditCsHandoverChecklist,
+  canEditOperationsArchiveFilingOnUnit,
   canAddUnitCoOwner,
   canManageUnitCoOwners,
   canSwapUnitClient,
@@ -240,10 +242,18 @@ export default async function UnitProfilePage({
           unit.project
         )
       : false;
+  const canEditOperationsArchiveFiling =
+    session?.user.role != null
+      ? canEditOperationsArchiveFilingOnUnit(session.user.role)
+      : false;
+  const isOperationsViewer =
+    session?.user.role != null && isOperationsRole(session.user.role);
   const showLegalHandoverForm =
     canEditAdmin ||
     canEditCsChecklist ||
     canEditLegalHandover ||
+    canEditOperationsArchiveFiling ||
+    isOperationsViewer ||
     (session?.user.role != null && isCsAgentRole(session.user.role));
   const defaultTab =
     tab === "timeline" || tab === "legal" || tab === "financials"
@@ -257,6 +267,7 @@ export default async function UnitProfilePage({
     role != null ? canAccessCsPortfolioDocuments(role) : false;
   const canManagePortfolioDocFiles =
     role != null ? canManageCsPortfolioDocumentFiles(role) : false;
+  const canManageSignedProtocolFiles = canManagePortfolioDocFiles;
   const canUploadNationalId =
     role != null ? canUploadClientNationalIdScan(role) : false;
   const canManageNationalIdFile =
@@ -477,6 +488,7 @@ export default async function UnitProfilePage({
             <UnitLegalHandoverForm
               canEditManagement={canEditAdmin || canEditLegalHandover}
               canEditCsChecklist={canEditCsChecklist}
+              canEditOperationsArchiveFiling={canEditOperationsArchiveFiling}
               canUploadGracePeriodAnnex={canCsPortfolioDocs}
               canManageGracePeriodAnnexFiles={canManagePortfolioDocFiles}
               defaults={{
@@ -586,13 +598,20 @@ export default async function UnitProfilePage({
           <SignedProtocolUpload
             info={signedProtocolInfo}
             canUpload={signedProtocolAccess.canUpload}
+            canManageFiles={canManageSignedProtocolFiles}
             hasResolvedCase={hasResolvedCase}
           />
           <UnitDocumentUpload
             unitId={unit.id}
             documentType="signedContract"
             existingFile={workflow?.signedContractFile ?? null}
-            canUpload={signedProtocolAccess.canUpload}
+            canUploadWhenEmpty={signedProtocolAccess.canUpload}
+            canManageFiles={canManageSignedProtocolFiles}
+            canView={
+              signedProtocolAccess.canUpload ||
+              canManageSignedProtocolFiles ||
+              Boolean(workflow?.signedContractFile)
+            }
             required
           />
         </TabsContent>
@@ -602,6 +621,7 @@ export default async function UnitProfilePage({
             <SignedProtocolUpload
               info={signedProtocolInfo}
               canUpload={signedProtocolAccess.canUpload}
+              canManageFiles={canManageSignedProtocolFiles}
               hasResolvedCase={hasResolvedCase}
             />
           ) : null}
@@ -630,6 +650,7 @@ export default async function UnitProfilePage({
                     : ticket.notes,
                   canEdit:
                     !isCommunityViewer &&
+                    !isOperationsViewer &&
                     (session?.user.role !== "CS_AGENT" ||
                       canCreateCaseOnUnit),
                 }))
@@ -651,10 +672,13 @@ export default async function UnitProfilePage({
             resolvedTicketId={resolvedTicket?.id ?? null}
             gateContext={gateContext}
             hideAddFeedback={
-              hideAddFeedback || isCommunityViewer || !canCreateCaseOnUnit
+              hideAddFeedback ||
+              isCommunityViewer ||
+              isOperationsViewer ||
+              !canCreateCaseOnUnit
             }
             canBypassGates={session?.user?.role === "SUPER_ADMIN"}
-            canLogCall={canLogCall}
+            canLogCall={canLogCall && !isOperationsViewer}
           />
         </TabsContent>
       </Tabs>

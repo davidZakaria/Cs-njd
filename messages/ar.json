@@ -1021,7 +1021,8 @@
       "management": "إدارة",
       "csAgent": "موظف خدمة العملاء",
       "communityManagement": "إدارة المجتمع",
-      "engineer": "مهندس موقع"
+      "engineer": "مهندس موقع",
+      "operations": "العمليات"
     },
     "twoFactor": "المصادقة الثنائية",
     "twoFactorSecured": "مؤمّن",
@@ -1624,7 +1625,9 @@
       "CS_AGENT": "موظف خدمة العملاء",
       "MANAGEMENT": "إدارة",
       "SUPER_ADMIN": "مدير النظام",
-      "ENGINEER": "مهندس موقع"
+      "ENGINEER": "مهندس موقع",
+      "COMMUNITY_MANAGEMENT": "إدارة المجتمع",
+      "OPERATIONS": "العمليات"
     },
     "finishingType": {
       "CORE_AND_SHELL": "على العظم",

@@ -1021,7 +1021,8 @@
       "management": "Management",
       "csAgent": "CS Agent",
       "communityManagement": "Community Management",
-      "engineer": "Site Engineer"
+      "engineer": "Site Engineer",
+      "operations": "Operations"
     },
     "twoFactor": "2FA",
     "twoFactorSecured": "Secured",
@@ -1624,7 +1625,9 @@
       "CS_AGENT": "CS Agent",
       "MANAGEMENT": "Management",
       "SUPER_ADMIN": "Super Admin",
-      "ENGINEER": "Site Engineer"
+      "ENGINEER": "Site Engineer",
+      "COMMUNITY_MANAGEMENT": "Community Management",
+      "OPERATIONS": "Operations"
     },
     "finishingType": {
       "CORE_AND_SHELL": "Core & Shell",

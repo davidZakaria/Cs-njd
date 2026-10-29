@@ -25,10 +25,13 @@ export type SignedProtocolInfo = {
 export function SignedProtocolUpload({
   info,
   canUpload,
+  canManageFiles = true,
   hasResolvedCase = false,
 }: {
   info: SignedProtocolInfo;
   canUpload: boolean;
+  /** Replace or delete an existing handover protocol file. */
+  canManageFiles?: boolean;
   hasResolvedCase?: boolean;
 }) {
   const t = useTranslations("workflow.signedProtocol");
@@ -38,7 +41,8 @@ export function SignedProtocolUpload({
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
   const downloadHref = `/api/units/${info.unitId}/signed-protocol`;
-  const showUploadControls = canUpload;
+  const showUploadControls =
+    canUpload && (!info.hasFile || canManageFiles);
 
   function handleFileChange() {
     const file = inputRef.current?.files?.[0];
@@ -121,7 +125,7 @@ export function SignedProtocolUpload({
               >
                 {t("viewDownload")}
               </a>
-              {canUpload ? (
+              {canManageFiles ? (
                 <Button
                   type="button"
                   variant="ghost"

@@ -61,6 +61,7 @@ import {
   canCreateOrUpdateCaseOnUnit,
   canEditFinishingFinancialsOnUnit,
   canEditLegalHandoverOnUnit,
+  canEditOperationsArchiveFilingOnUnit,
   canLogCallOnUnit,
 } from "@/lib/auth/role-permissions";
 import { isAdminUnitManager, isCsAgentRole } from "@/lib/auth/unit-roles";
@@ -108,10 +109,11 @@ export async function createUser(input: CreateUserInput): Promise<ActionResult> 
     session.user.role === "MANAGEMENT" &&
     role !== "CS_AGENT" &&
     role !== "ENGINEER" &&
-    role !== "COMMUNITY_MANAGEMENT"
+    role !== "COMMUNITY_MANAGEMENT" &&
+    role !== "OPERATIONS"
   ) {
     return actionFail(
-      "Management can only create CS agents, community management, or site engineers"
+      "Management can only create CS agents, community management, site engineers, or operations staff"
     );
   }
 
@@ -166,10 +168,11 @@ export async function updateUser(input: UpdateUserInput): Promise<ActionResult> 
     session.user.role === "MANAGEMENT" &&
     role !== "CS_AGENT" &&
     role !== "ENGINEER" &&
-    role !== "COMMUNITY_MANAGEMENT"
+    role !== "COMMUNITY_MANAGEMENT" &&
+    role !== "OPERATIONS"
   ) {
     return actionFail(
-      "Management can only assign CS agent, community management, or site engineer role"
+      "Management can only assign CS agent, community management, site engineer, or operations role"
     );
   }
 
@@ -881,6 +884,47 @@ export async function updateHandoverChecklist(
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/units");
   revalidatePath("/dashboard");
+  revalidatePath("/operations");
+  return actionOk();
+}
+
+export async function updateOperationsArchiveFiling(input: {
+  unitId: string;
+  papersReceived: boolean;
+}): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) {
+    return actionFail("Unauthorized");
+  }
+
+  if (!canEditOperationsArchiveFilingOnUnit(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
+
+  const unitId = input.unitId?.trim();
+  if (!unitId) return actionFail("Unit is required");
+
+  const unit = await prisma.unit.findUnique({
+    where: { id: unitId },
+    select: { id: true },
+  });
+  if (!unit) return actionFail("Unit not found");
+
+  await withAudit(() =>
+    prisma.contractWorkflow.upsert({
+      where: { unitId },
+      update: { papersReceived: input.papersReceived },
+      create: {
+        unitId,
+        papersReceived: input.papersReceived,
+      },
+    })
+  );
+
+  revalidatePath(`/units/${unitId}`);
+  revalidatePath("/units");
+  revalidatePath("/operations");
+  revalidatePath(`/operations/units/${unitId}`);
   return actionOk();
 }
 

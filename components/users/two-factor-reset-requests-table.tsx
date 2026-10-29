@@ -32,13 +32,19 @@ export type TwoFactorResetRequestRow = {
 
 const roleKeyMap: Record<
   Role,
-  "superAdmin" | "management" | "csAgent" | "communityManagement" | "engineer"
+  | "superAdmin"
+  | "management"
+  | "csAgent"
+  | "communityManagement"
+  | "engineer"
+  | "operations"
 > = {
   SUPER_ADMIN: "superAdmin",
   MANAGEMENT: "management",
   CS_AGENT: "csAgent",
   COMMUNITY_MANAGEMENT: "communityManagement",
   ENGINEER: "engineer",
+  OPERATIONS: "operations",
 };
 
 export function TwoFactorResetRequestsTable({
