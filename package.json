@@ -24,7 +24,8 @@
     "backfill:unit-cycle-green-avenue": "tsx scripts/backfill-unit-cycle-green-avenue.ts",
     "cleanup:import-users": "tsx scripts/cleanup-bogus-users.ts",
     "purge:imported-users": "tsx scripts/purge-imported-users.ts",
-    "backup:cron": "tsx scripts/cron.ts"
+    "backup:cron": "tsx scripts/cron.ts",
+    "verify:cron-imports": "tsx scripts/cron-imports.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

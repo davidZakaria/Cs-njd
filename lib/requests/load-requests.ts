@@ -1,5 +1,3 @@
-import "server-only";
-
 import type { PrismaClient } from "@prisma/client";
 
 import type { UnitRequestListRow } from "@/lib/requests/types";
