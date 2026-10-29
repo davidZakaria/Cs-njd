@@ -6,6 +6,7 @@ import type { BackupSource } from "@prisma/client";
 import {
   getBackupDirectory,
   runDatabaseBackup,
+  toBackupFailureMessage,
 } from "@/lib/backup/run-database-backup";
 import {
   SYSTEM_BACKUP_DIR_SPECS,
@@ -211,11 +212,17 @@ export async function runFullBackup(
     await pruneOldBackups(prisma, backupDir);
     return { logId: log.id, manifest };
   } catch (error) {
+    const errorMessage = toBackupFailureMessage(
+      error,
+      process.env.DATABASE_URL?.trim()
+    );
     await prisma.backupLog.update({
       where: { id: log.id },
-      data: { status: "FAILED" },
+      data: { status: "FAILED", errorMessage },
     });
-    throw error;
+    throw new Error(errorMessage, {
+      cause: error instanceof Error ? error : undefined,
+    });
   } finally {
     await rm(stagingDir, { recursive: true, force: true });
   }
