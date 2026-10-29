@@ -15,8 +15,6 @@ ADD COLUMN     "unitCycleLegalHandoverDeadlineDays" INTEGER NOT NULL DEFAULT 7;
 CREATE TABLE "UnitCycle" (
     "id" TEXT NOT NULL,
     "unitId" TEXT NOT NULL,
-    "engineeringCsApprovedAt" TIMESTAMP(3),
-    "engineeringCsApprovedByUserId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

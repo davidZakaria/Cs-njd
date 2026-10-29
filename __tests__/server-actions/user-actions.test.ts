@@ -195,6 +195,31 @@ describe("User Management Server Actions - RBAC", () => {
       expect(result.success).toBe(true);
     });
 
+    it("allows MANAGEMENT to create OPERATIONS", async () => {
+      mockAuth.mockResolvedValue(createMockSession({
+        id: "management-1",
+        role: "MANAGEMENT",
+      }));
+
+      mockPrismaUser.findUnique.mockResolvedValue(null);
+      mockPrismaUser.create.mockResolvedValue({
+        id: "new-user-id",
+        name: "Archive Ops",
+        email: "ops@test.com",
+        role: "OPERATIONS",
+      });
+
+      const { createUser } = await import("@/lib/actions/crm");
+      const result = await createUser({
+        name: "Archive Ops",
+        email: "ops@test.com",
+        password: "password123",
+        role: "OPERATIONS",
+      });
+
+      expect(result.success).toBe(true);
+    });
+
     it("denies MANAGEMENT from creating SUPER_ADMIN", async () => {
       mockAuth.mockResolvedValue(createMockSession({
         id: "management-1",
@@ -212,7 +237,7 @@ describe("User Management Server Actions - RBAC", () => {
       expect(result.success).toBe(false);
       expect(result).toHaveProperty(
         "error",
-        "Management can only create CS agents, community management, or site engineers"
+        "Management can only create CS agents, community management, site engineers, or operations staff"
       );
     });
 
@@ -233,7 +258,7 @@ describe("User Management Server Actions - RBAC", () => {
       expect(result.success).toBe(false);
       expect(result).toHaveProperty(
         "error",
-        "Management can only create CS agents, community management, or site engineers"
+        "Management can only create CS agents, community management, site engineers, or operations staff"
       );
     });
 
@@ -398,7 +423,7 @@ describe("User Management Server Actions - RBAC", () => {
       expect(result.success).toBe(false);
       expect(result).toHaveProperty(
         "error",
-        "Management can only assign CS agent, community management, or site engineer role"
+        "Management can only assign CS agent, community management, site engineer, or operations role"
       );
     });
 

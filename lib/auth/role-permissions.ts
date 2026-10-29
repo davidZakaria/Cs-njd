@@ -11,6 +11,7 @@ import {
   isAdminUnitManager,
   isCommunityManagementRole,
   isCsAgentRole,
+  isOperationsRole,
 } from "@/lib/auth/unit-roles";
 
 export type UnitAssignment = {
@@ -24,9 +25,10 @@ export function isCsAgentAssignedToUnit(
   return canAccessUnitAsCsAgent(scope, unit.unitAgentId);
 }
 
-/** CS agents may open any unit profile; other roles use route RBAC. */
+/** CS agents may open any unit profile; operations has read-only unit access. */
 export function canViewUnitProfile(role: Role): boolean {
   if (isCsAgentRole(role) || isCommunityManagementRole(role)) return true;
+  if (isOperationsRole(role)) return true;
   return (
     isAdminUnitManager(role) ||
     role === "SUPER_ADMIN" ||
@@ -35,7 +37,11 @@ export function canViewUnitProfile(role: Role): boolean {
 }
 
 export function canListAllUnits(role: Role): boolean {
-  return isCsAgentRole(role) || isCommunityManagementRole(role);
+  return (
+    isCsAgentRole(role) ||
+    isCommunityManagementRole(role) ||
+    isOperationsRole(role)
+  );
 }
 
 export function canLogCallOnUnit(
@@ -206,6 +212,51 @@ export function canDeleteRecords(role: Role): boolean {
   return isAdminUnitManager(role) || role === "SUPER_ADMIN";
 }
 
+/** Operations staff may toggle archive filing (papers received) only. */
+export function canEditOperationsArchiveFilingOnUnit(role: Role): boolean {
+  return isOperationsRole(role);
+}
+
+export function canUploadOperationsArchiveDocuments(role: Role): boolean {
+  return isOperationsRole(role);
+}
+
 export function canAccessImportsOrUserAdmin(role: Role): boolean {
   return role === "SUPER_ADMIN" || role === "MANAGEMENT";
+}
+
+/** Operations contract archive progress tracker (/operations). */
+export const OPERATIONS_PROGRESS_ROLES: Role[] = [
+  "SUPER_ADMIN",
+  "MANAGEMENT",
+  "OPERATIONS",
+  "CS_AGENT",
+];
+
+export function canAccessOperationsProgressTracker(role: Role): boolean {
+  return OPERATIONS_PROGRESS_ROLES.includes(role);
+}
+
+/** Engineering sign-offs on Unit 360 (any unit for CS agents). */
+export function canApproveEngineeringSiteVisitOnUnit(role: Role): boolean {
+  return (
+    isCsAgentRole(role) || isAdminUnitManager(role) || role === "SUPER_ADMIN"
+  );
+}
+
+export function canApproveEngineeringSnagDefectOnUnit(role: Role): boolean {
+  return canApproveEngineeringSiteVisitOnUnit(role);
+}
+
+export function canSignOffEngineeringReadinessOnUnit(role: Role): boolean {
+  return canApproveEngineeringSiteVisitOnUnit(role);
+}
+
+/** Phases / site notes — same gate as engineer portal updates, without /engineering route. */
+export function canEnterEngineeringDataOnUnit(role: Role): boolean {
+  return canApproveEngineeringSiteVisitOnUnit(role);
+}
+
+export function canUseUnitEngineeringApprovalsPanel(role: Role): boolean {
+  return canApproveEngineeringSiteVisitOnUnit(role);
 }

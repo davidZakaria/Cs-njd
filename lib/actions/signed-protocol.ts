@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { resolveSignedProtocolAccess } from "@/lib/auth/signed-protocol-access";
+import { isOperationsRole } from "@/lib/auth/unit-roles";
 import { prisma } from "@/lib/prisma";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import {
@@ -52,8 +53,14 @@ export async function uploadSignedProtocol(
   );
   if (!canUpload) return actionFail("Unauthorized");
 
-  const storedName = buildStoredFilename(file.name);
   const previousStoredName = unit.contractWorkflow?.signedProtocolStoredName;
+  if (previousStoredName && isOperationsRole(session.user.role)) {
+    return actionFail(
+      "A file is already on record. Operations cannot replace existing files."
+    );
+  }
+
+  const storedName = buildStoredFilename(file.name);
 
   await writeSignedProtocolFile(unitId, storedName, file);
   await deleteSignedProtocolFile(unitId, previousStoredName);
@@ -102,12 +109,17 @@ export async function uploadSignedProtocol(
   revalidatePath("/units");
   revalidatePath("/cases");
   revalidatePath("/dashboard");
+  revalidatePath("/operations");
   return actionOk();
 }
 
 export async function removeSignedProtocol(unitId: string): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
+
+  if (isOperationsRole(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
 
   const unit = await loadUnitForUpload(unitId);
   if (!unit) return actionFail("Unit not found");

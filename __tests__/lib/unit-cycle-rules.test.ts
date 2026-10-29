@@ -17,7 +17,7 @@ const emptySnapshot: UnitOperationsSnapshot = {
   unit: { contractPricePerMeter: null, area: 100 },
   contractWorkflow: null,
   finishing: null,
-  engineeringCsApproved: false,
+  engineeringReadinessSignedOff: false,
 };
 
 describe("operations-progress", () => {

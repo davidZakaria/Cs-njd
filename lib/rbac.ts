@@ -32,6 +32,7 @@ const roleRoutes: Record<Role, string[]> = {
   SUPER_ADMIN: [
     "/dashboard",
     "/executive",
+    "/operations",
     "/cases",
     "/units",
     "/users",
@@ -44,6 +45,7 @@ const roleRoutes: Record<Role, string[]> = {
   ],
   MANAGEMENT: [
     "/executive",
+    "/operations",
     "/dashboard",
     "/cases",
     "/units",
@@ -51,7 +53,14 @@ const roleRoutes: Record<Role, string[]> = {
     "/users",
     "/print",
   ],
-  CS_AGENT: ["/dashboard", "/cases", "/units", "/notifications", "/print"],
+  CS_AGENT: [
+    "/dashboard",
+    "/operations",
+    "/cases",
+    "/units",
+    "/notifications",
+    "/print",
+  ],
   COMMUNITY_MANAGEMENT: [
     "/dashboard",
     "/cases",
@@ -60,11 +69,13 @@ const roleRoutes: Record<Role, string[]> = {
     "/print",
   ],
   ENGINEER: ["/engineering"],
+  OPERATIONS: ["/operations", "/units", "/print"],
 };
 
 export function getHomeRoute(role: Role): string {
   if (role === "MANAGEMENT") return "/executive";
   if (role === "ENGINEER") return "/engineering";
+  if (role === "OPERATIONS") return "/operations";
   return "/dashboard";
 }
 
@@ -78,6 +89,7 @@ export function canAccessRoute(role: Role, path: string): boolean {
 export type NavItemKey =
   | "dashboard"
   | "executive"
+  | "operations"
   | "cases"
   | "units"
   | "engineering"
@@ -107,6 +119,11 @@ export function getCoreNavItems(role: Role) {
   const items: Array<{ href: string; key: NavItemKey; roles: Role[] }> = [
     { href: "/executive", key: "executive", roles: ["SUPER_ADMIN", "MANAGEMENT"] },
     {
+      href: "/operations",
+      key: "operations",
+      roles: ["SUPER_ADMIN", "MANAGEMENT", "OPERATIONS", "CS_AGENT"],
+    },
+    {
       href: "/dashboard",
       key: "dashboard",
       roles: ["SUPER_ADMIN", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
@@ -119,7 +136,13 @@ export function getCoreNavItems(role: Role) {
     {
       href: "/units",
       key: "units",
-      roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
+      roles: [
+        "SUPER_ADMIN",
+        "MANAGEMENT",
+        "CS_AGENT",
+        "COMMUNITY_MANAGEMENT",
+        "OPERATIONS",
+      ],
     },
     {
       href: "/notifications",
@@ -186,6 +209,11 @@ export function getNavItems(role: Role) {
   }> = [
     { href: "/executive", key: "executive", roles: ["SUPER_ADMIN", "MANAGEMENT"] },
     {
+      href: "/operations",
+      key: "operations",
+      roles: ["SUPER_ADMIN", "MANAGEMENT", "OPERATIONS", "CS_AGENT"],
+    },
+    {
       href: "/dashboard",
       key: "dashboard",
       roles: ["SUPER_ADMIN", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
@@ -198,7 +226,13 @@ export function getNavItems(role: Role) {
     {
       href: "/units",
       key: "units",
-      roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
+      roles: [
+        "SUPER_ADMIN",
+        "MANAGEMENT",
+        "CS_AGENT",
+        "COMMUNITY_MANAGEMENT",
+        "OPERATIONS",
+      ],
     },
     {
       href: "/notifications",

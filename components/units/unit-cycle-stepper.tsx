@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
-  approveUnitCycleEngineeringAction,
   blockUnitCycleStageAction,
   completeUnitCycleStageAction,
   unblockUnitCycleStageAction,
@@ -29,13 +28,11 @@ export function UnitCycleStepper({
   activeStageKey,
   stages,
   canManageStage,
-  canApproveEngineering,
 }: {
   unitId: string;
   activeStageKey: string | null;
   stages: StagePayload[];
   canManageStage: boolean;
-  canApproveEngineering: boolean;
 }) {
   const t = useTranslations("unitCycle");
   const locale = useLocale();
@@ -164,16 +161,6 @@ export function UnitCycleStepper({
                 {t("actions.completeStage")}
               </Button>
             </div>
-          ) : null}
-          {canApproveEngineering && activeStage.stageKey === "ENGINEERING" ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={pending}
-              onClick={() => run(() => approveUnitCycleEngineeringAction({ unitId }))}
-            >
-              {t("actions.approveEngineering")}
-            </Button>
           ) : null}
         </div>
       ) : null}

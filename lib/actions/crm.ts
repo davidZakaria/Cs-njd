@@ -37,8 +37,10 @@ import {
   type CsHandoverChecklistInput,
   type TicketWorkflowInput,
 } from "@/lib/validations/workflow";
-import { collectCsHandoverChanges } from "@/lib/workflow/cs-handover-fields";
+import { collectCsHandoverChanges, CS_HANDOVER_CHECKLIST_FIELDS } from "@/lib/workflow/cs-handover-fields";
 import { applyDhlSiteVisitLock } from "@/lib/workflow/handover-dhl-gate";
+import { recordUnitEngineeringApproval } from "@/lib/workflow/engineering-approval-log";
+import { isEngineeringSiteVisitField } from "@/lib/workflow/handover-field-access";
 import { isCommunityManagementRole } from "@/lib/auth/unit-roles";
 import { applyCsFinishingAdditions } from "@/lib/workflow/cs-finishing-fields";
 import {
@@ -61,6 +63,8 @@ import {
   canCreateOrUpdateCaseOnUnit,
   canEditFinishingFinancialsOnUnit,
   canEditLegalHandoverOnUnit,
+  canEditOperationsArchiveFilingOnUnit,
+  canApproveEngineeringSiteVisitOnUnit,
   canLogCallOnUnit,
 } from "@/lib/auth/role-permissions";
 import { isAdminUnitManager, isCsAgentRole } from "@/lib/auth/unit-roles";
@@ -108,10 +112,11 @@ export async function createUser(input: CreateUserInput): Promise<ActionResult> 
     session.user.role === "MANAGEMENT" &&
     role !== "CS_AGENT" &&
     role !== "ENGINEER" &&
-    role !== "COMMUNITY_MANAGEMENT"
+    role !== "COMMUNITY_MANAGEMENT" &&
+    role !== "OPERATIONS"
   ) {
     return actionFail(
-      "Management can only create CS agents, community management, or site engineers"
+      "Management can only create CS agents, community management, site engineers, or operations staff"
     );
   }
 
@@ -166,10 +171,11 @@ export async function updateUser(input: UpdateUserInput): Promise<ActionResult> 
     session.user.role === "MANAGEMENT" &&
     role !== "CS_AGENT" &&
     role !== "ENGINEER" &&
-    role !== "COMMUNITY_MANAGEMENT"
+    role !== "COMMUNITY_MANAGEMENT" &&
+    role !== "OPERATIONS"
   ) {
     return actionFail(
-      "Management can only assign CS agent, community management, or site engineer role"
+      "Management can only assign CS agent, community management, site engineer, or operations role"
     );
   }
 
@@ -881,6 +887,47 @@ export async function updateHandoverChecklist(
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/units");
   revalidatePath("/dashboard");
+  revalidatePath("/operations");
+  return actionOk();
+}
+
+export async function updateOperationsArchiveFiling(input: {
+  unitId: string;
+  papersReceived: boolean;
+}): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) {
+    return actionFail("Unauthorized");
+  }
+
+  if (!canEditOperationsArchiveFilingOnUnit(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
+
+  const unitId = input.unitId?.trim();
+  if (!unitId) return actionFail("Unit is required");
+
+  const unit = await prisma.unit.findUnique({
+    where: { id: unitId },
+    select: { id: true },
+  });
+  if (!unit) return actionFail("Unit not found");
+
+  await withAudit(() =>
+    prisma.contractWorkflow.upsert({
+      where: { unitId },
+      update: { papersReceived: input.papersReceived },
+      create: {
+        unitId,
+        papersReceived: input.papersReceived,
+      },
+    })
+  );
+
+  revalidatePath(`/units/${unitId}`);
+  revalidatePath("/units");
+  revalidatePath("/operations");
+  revalidatePath(`/operations/units/${unitId}`);
   return actionOk();
 }
 
@@ -900,9 +947,6 @@ export async function updateCsHandoverChecklist(
     include: { contractWorkflow: true },
   });
   if (!unit) return actionFail("Unit not found");
-
-  const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
-  if (accessError) return accessError;
 
   if (isCommunityManagementRole(session.user.role)) {
     return actionFail("Unauthorized");
@@ -932,6 +976,20 @@ export async function updateCsHandoverChecklist(
     paperHandoverKeyReceived: existing?.paperHandoverKeyReceived ?? false,
   };
 
+  const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
+  const canSiteVisitAnyUnit = canApproveEngineeringSiteVisitOnUnit(
+    session.user.role
+  );
+  if (accessError) {
+    if (!canSiteVisitAnyUnit) return accessError;
+    for (const field of CS_HANDOVER_CHECKLIST_FIELDS) {
+      if (isEngineeringSiteVisitField(field)) continue;
+      if (parsed.data[field] !== previousSnapshot[field]) {
+        return accessError;
+      }
+    }
+  }
+
   const { unitId, ...workflowData } = parsed.data;
   const lockedWorkflow = applyDhlSiteVisitLock(workflowData, existing);
   const changes = collectCsHandoverChanges(previousSnapshot, lockedWorkflow);
@@ -953,6 +1011,20 @@ export async function updateCsHandoverChecklist(
     })
   );
 
+  if (lockedWorkflow.siteVisitDone && !previousSnapshot.siteVisitDone) {
+    await recordUnitEngineeringApproval({
+      unitId: unit.id,
+      kind: "SITE_VISIT_COMPLETION",
+      approvedById: session.user.id,
+      summary: "Site visit marked complete (handover checklist)",
+      payload: {
+        siteVisitDate1: lockedWorkflow.siteVisitDate1,
+        siteVisitDate2: lockedWorkflow.siteVisitDate2,
+        siteVisitDate3: lockedWorkflow.siteVisitDate3,
+      },
+    });
+  }
+
   await notifyHandoverChecklistUpdatedByAgent({
     unitCode: unit.unitCode,
     unitId: unit.id,
@@ -963,6 +1035,8 @@ export async function updateCsHandoverChecklist(
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/units");
   revalidatePath("/dashboard");
+  revalidatePath("/operations");
+  revalidatePath(`/operations/units/${unitId}`);
   return actionOk();
 }
 

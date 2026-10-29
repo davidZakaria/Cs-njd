@@ -393,6 +393,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "executive": "Executive",
+    "operations": "Operations progress",
     "cases": "Cases",
     "units": "Units",
     "engineering": "Engineering Portal",
@@ -780,6 +781,73 @@
       }
     }
   },
+  "operations": {
+    "title": "Operations progress",
+    "subtitle": "Contract archive checklist by unit — read-only for CS agents; operations staff can file papers from the unit Legal tab.",
+    "search": "Search",
+    "searchPlaceholder": "Unit, client, or project…",
+    "progressLabel": "{done} of {total} done",
+    "empty": "No units match the current filters.",
+    "status": {
+      "done": "Done",
+      "missing": "Missing",
+      "needs_update": "Needs update",
+      "not_applicable": "Not applicable"
+    },
+    "items": {
+      "primaryOwnerId": "Primary owner ID uploaded",
+      "coOwnerIds": "Co-owner IDs uploaded",
+      "preliminaryContract": "Preliminary sale contract",
+      "finalContract": "Final sale contract",
+      "handoverRecord": "Handover record contract",
+      "finishingContract": "Finishing contract",
+      "gracePeriodAnnex": "Grace period annex",
+      "archiveFiling": "Archive filing (papers received)",
+      "finishingFinancials": "Finishing financials present and valid",
+      "siteVisit": "Site visit completed",
+      "paperHandoverChecks": "Paper handover checks"
+    },
+    "filters": {
+      "project": "Project",
+      "allProjects": "All projects",
+      "handover": "Handover status",
+      "handoverGroup": {
+        "all": "All",
+        "delivered": "Delivered",
+        "atRisk": "At risk",
+        "legal": "Legal / dispute"
+      },
+      "missingItem": "Missing item",
+      "anyItem": "Any item",
+      "agent": "CS agent",
+      "allAgents": "All agents",
+      "unassigned": "Unassigned",
+      "searchChip": "Search: {q}"
+    },
+    "table": {
+      "project": "Project",
+      "unit": "Unit",
+      "client": "Client",
+      "agent": "CS agent",
+      "progress": "Progress",
+      "unassigned": "Unassigned"
+    },
+    "summary": {
+      "title": "Progress by project",
+      "unitCount": "{count, plural, one {# unit} other {# units}}",
+      "percentComplete": "{percent}% complete"
+    },
+    "detail": {
+      "back": "Back to operations list",
+      "overall": "Overall progress",
+      "percent": "{percent}% complete",
+      "item": "Checklist item",
+      "status": "Status",
+      "action": "Fix in unit profile",
+      "openTab": "Open tab",
+      "openUnitProfile": "Open full unit profile"
+    }
+  },
   "units": {
     "title": "Units",
     "addUnit": "Add unit",
@@ -872,6 +940,54 @@
       "finalSale": "Final sale contract",
       "finishingContract": "Finishing contract (عقد التشطيبات)"
     },
+    "engineeringApprovals": {
+      "title": "Engineering approvals",
+      "subtitle": "Complete site visits, close snag/defect items, sign off readiness, and enter phase progress on any unit. Each action is recorded with your name and time.",
+      "siteVisit": {
+        "title": "Site visit approval",
+        "done": "Site visit completed",
+        "siteVisitDate1": "1st visit date",
+        "siteVisitDate2": "2nd visit date",
+        "siteVisitDate3": "3rd visit date",
+        "save": "Save site visit"
+      },
+      "snagDefect": {
+        "title": "Snag / defect closure",
+        "hint": "Mark custom modification / snag work as complete after engineering verification.",
+        "noMods": "No custom modifications are recorded on this unit.",
+        "notePlaceholder": "Optional note for the audit trail…",
+        "approve": "Approve snag / defect closure",
+        "alreadyClosed": "Already marked complete"
+      },
+      "readiness": {
+        "title": "Engineering readiness sign-off",
+        "hint": "Marks all nine engineering finishing phases complete (same as a full site readiness sign-off).",
+        "notePlaceholder": "Optional sign-off note…",
+        "signOff": "Sign off readiness"
+      },
+      "dataEntry": {
+        "title": "Engineering data entry",
+        "hint": "Update the phase checklist and append finishing notes or modifications (existing text cannot be removed).",
+        "phases": "Finishing phases",
+        "phasesHint": "Select completed engineering steps.",
+        "phasesDisabled": "Phase checklist is disabled for this package type.",
+        "selectAllPhases": "Select all phases",
+        "addNote": "Append finishing note",
+        "addModification": "Append custom modification",
+        "save": "Save engineering data"
+      },
+      "history": {
+        "title": "Approval history",
+        "empty": "No engineering approvals recorded yet.",
+        "line": "{name} · {date}"
+      },
+      "kinds": {
+        "SITE_VISIT_COMPLETION": "Site visit completed",
+        "SNAG_DEFECT_CLOSURE": "Snag / defect closed",
+        "READINESS_SIGN_OFF": "Engineering readiness signed off",
+        "DATA_ENTRY": "Engineering data updated"
+      }
+    },
     "clientInfo": "Client Info",
     "financials": "Finishing Financials",
     "finishingDetails": "Finishing Details",
@@ -954,7 +1070,8 @@
       "management": "Management",
       "csAgent": "CS Agent",
       "communityManagement": "Community Management",
-      "engineer": "Site Engineer"
+      "engineer": "Site Engineer",
+      "operations": "Operations"
     },
     "twoFactor": "2FA",
     "twoFactorSecured": "Secured",
@@ -1557,7 +1674,9 @@
       "CS_AGENT": "CS Agent",
       "MANAGEMENT": "Management",
       "SUPER_ADMIN": "Super Admin",
-      "ENGINEER": "Site Engineer"
+      "ENGINEER": "Site Engineer",
+      "COMMUNITY_MANAGEMENT": "Community Management",
+      "OPERATIONS": "Operations"
     },
     "finishingType": {
       "CORE_AND_SHELL": "Core & Shell",

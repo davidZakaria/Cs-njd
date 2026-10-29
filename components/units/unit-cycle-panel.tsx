@@ -34,9 +34,6 @@ export async function UnitCyclePanel({
     roleCanOwnStage(userRole, activeKey) &&
     (userRole !== "CS_AGENT" || unitAgentId === userId);
 
-  const canApproveEngineering =
-    userRole === "CS_AGENT" && unitAgentId === userId && activeKey === "ENGINEERING";
-
   const showAudit = userRole != null && managementRolesForCycle().includes(userRole);
 
   return (
@@ -53,7 +50,6 @@ export async function UnitCyclePanel({
           checklistComplete: stage.checklistComplete,
         }))}
         canManageStage={canManageStage}
-        canApproveEngineering={canApproveEngineering}
       />
       {showAudit && cycle.events.length > 0 ? (
         <Card>

@@ -8,6 +8,7 @@ import {
   canAccessCsPortfolioDocuments,
   canManageCsPortfolioDocumentFiles,
 } from "@/lib/auth/cs-portfolio-document-access";
+import { isOperationsRole } from "@/lib/auth/unit-roles";
 import { resolveSignedProtocolAccess } from "@/lib/auth/signed-protocol-access";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { auditContext } from "@/lib/prisma/audit-context";
@@ -88,7 +89,17 @@ async function assertCanUpload(
       unit.agentId
     );
     if (!canUpload) return { ok: false, result: actionFail("Unauthorized") };
-    return { ok: true, unit, canReplace: true };
+    const canReplace =
+      canManageCsPortfolioDocumentFiles(role) && !isOperationsRole(role);
+    if (previous && !canReplace) {
+      return {
+        ok: false,
+        result: actionFail(
+          "A file is already on record. Only management can replace or remove it."
+        ),
+      };
+    }
+    return { ok: true, unit, canReplace };
   }
 
   if (!canAccessCsPortfolioDocuments(role)) {
@@ -213,6 +224,10 @@ export async function removeUnitDocument(
 ): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
+
+  if (isOperationsRole(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
 
   const unit = await loadUnit(unitId);
   if (!unit) return actionFail("Unit not found");

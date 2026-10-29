@@ -1,15 +1,15 @@
-import type { ContractWorkflow, Finishing, Unit, UnitCycle } from "@prisma/client";
+import type { ContractWorkflow, Finishing, Unit } from "@prisma/client";
 
-import type { UnitOperationsSnapshot } from "@/lib/operations/operations-progress";
+import {
+  hasEngineeringCycleApproval,
+  type UnitOperationsSnapshot,
+} from "@/lib/operations/unit-cycle-progress";
 
 export function buildUnitOperationsSnapshot(input: {
   unit: Pick<Unit, "contractPricePerMeter" | "area">;
   contractWorkflow: ContractWorkflow | null;
   finishing: Finishing | null;
-  unitCycle: Pick<
-    UnitCycle,
-    "engineeringCsApprovedAt" | "engineeringCsApprovedByUserId"
-  > | null;
+  engineeringApprovals: { kind: import("@prisma/client").EngineeringApprovalKind }[];
 }): UnitOperationsSnapshot {
   return {
     unit: {
@@ -18,6 +18,8 @@ export function buildUnitOperationsSnapshot(input: {
     },
     contractWorkflow: input.contractWorkflow,
     finishing: input.finishing,
-    engineeringCsApproved: Boolean(input.unitCycle?.engineeringCsApprovedAt),
+    engineeringReadinessSignedOff: hasEngineeringCycleApproval(
+      input.engineeringApprovals
+    ),
   };
 }

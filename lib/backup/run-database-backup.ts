@@ -28,15 +28,21 @@ export function parseDatabaseUrl(databaseUrl: string): ParsedDatabaseUrl {
   };
 }
 
-export function getBackupDirectory(): string {
-  return process.env.BACKUP_DIR?.trim() || path.join(process.cwd(), "backups");
+export function redactSensitiveText(text: string, secrets: string[]): string {
+  let result = text;
+  for (const secret of secrets) {
+    if (!secret) continue;
+    result = result.split(secret).join("[REDACTED]");
+  }
+  result = result.replace(/PGPASSWORD=[^\s'"]+/gi, "PGPASSWORD=[REDACTED]");
+  result = result.replace(
+    /postgresql:\/\/([^:@/]*):([^@/]*)@/gi,
+    "postgresql://$1:[REDACTED]@"
+  );
+  return result;
 }
 
-export function getBackupFilePath(filename: string): string {
-  return path.join(getBackupDirectory(), filename);
-}
-
-function formatExecError(error: unknown): string {
+function formatExecError(error: unknown, secrets: string[] = []): string {
   if (!(error instanceof Error)) {
     return "pg_dump failed";
   }
@@ -47,7 +53,52 @@ function formatExecError(error: unknown): string {
     .filter(Boolean)
     .join(" — ");
 
-  return detail || "pg_dump failed";
+  return redactSensitiveText(detail || "pg_dump failed", secrets);
+}
+
+/** Docker CLI args for `docker exec … pg_dump` (no `-T`; unsupported on Docker 29+). */
+export function buildDockerPgDumpExecArgs(
+  container: string,
+  db: ParsedDatabaseUrl
+): string[] {
+  return [
+    "exec",
+    ...(db.password ? ["-e", `PGPASSWORD=${db.password}`] : []),
+    container,
+    "pg_dump",
+    "-U",
+    db.user,
+    "-d",
+    db.database,
+    "--no-owner",
+    "--no-acl",
+  ];
+}
+
+export function getBackupDirectory(): string {
+  return process.env.BACKUP_DIR?.trim() || path.join(process.cwd(), "backups");
+}
+
+export function getBackupFilePath(filename: string): string {
+  return path.join(getBackupDirectory(), filename);
+}
+
+export function toBackupFailureMessage(
+  error: unknown,
+  databaseUrl?: string
+): string {
+  const raw =
+    error instanceof Error ? error.message : "Unknown backup failure";
+  const secrets: string[] = [];
+  if (databaseUrl) {
+    secrets.push(databaseUrl);
+    try {
+      secrets.push(parseDatabaseUrl(databaseUrl).password);
+    } catch {
+      // ignore invalid URL
+    }
+  }
+  return redactSensitiveText(raw, secrets);
 }
 
 /** Run pg_dump into `filepath`. Uses Docker when BACKUP_DOCKER_CONTAINER is set. */
@@ -59,21 +110,10 @@ export async function runDatabaseBackup(filepath: string): Promise<void> {
 
   const container = process.env.BACKUP_DOCKER_CONTAINER?.trim();
   const db = parseDatabaseUrl(databaseUrl);
+  const redactionSecrets = [db.password, databaseUrl].filter(Boolean);
 
   if (container) {
-    const dockerArgs = [
-      "exec",
-      "-T",
-      ...(db.password ? ["-e", `PGPASSWORD=${db.password}`] : []),
-      container,
-      "pg_dump",
-      "-U",
-      db.user,
-      "-d",
-      db.database,
-      "--no-owner",
-      "--no-acl",
-    ];
+    const dockerArgs = buildDockerPgDumpExecArgs(container, db);
 
     try {
       const { stdout } = await execFileAsync("docker", dockerArgs, {
@@ -90,7 +130,7 @@ export async function runDatabaseBackup(filepath: string): Promise<void> {
       return;
     } catch (error) {
       throw new Error(
-        `Docker pg_dump failed (${container}): ${formatExecError(error)}`
+        `Docker pg_dump failed (${container}): ${formatExecError(error, redactionSecrets)}`
       );
     }
   }
@@ -101,7 +141,7 @@ export async function runDatabaseBackup(filepath: string): Promise<void> {
     });
   } catch (error) {
     throw new Error(
-      `${formatExecError(error)}. On Docker Postgres set BACKUP_DOCKER_CONTAINER in .env (e.g. njd-crm-postgres-prod).`
+      `${formatExecError(error, redactionSecrets)}. On Docker Postgres set BACKUP_DOCKER_CONTAINER in .env (e.g. njd-crm-postgres-prod).`
     );
   }
 }

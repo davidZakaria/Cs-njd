@@ -393,6 +393,7 @@
   "nav": {
     "dashboard": "لوحة التحكم",
     "executive": "لوحة الإدارة",
+    "operations": "متابعة العمليات",
     "cases": "بلاغات العملاء",
     "units": "الوحدات",
     "engineering": "بوابة الهندسة",
@@ -780,6 +781,73 @@
       }
     }
   },
+  "operations": {
+    "title": "متابعة العمليات",
+    "subtitle": "قائمة متابعة أرشيف العقود لكل وحدة — عرض للقراءة لوكلاء خدمة العملاء؛ فريق العمليات يحدّث الأرشفة من تبويب القانوني في الوحدة.",
+    "search": "بحث",
+    "searchPlaceholder": "رمز الوحدة أو العميل أو المشروع…",
+    "progressLabel": "{done} من {total} مكتمل",
+    "empty": "لا توجد وحدات مطابقة للفلاتر الحالية.",
+    "status": {
+      "done": "مكتمل",
+      "missing": "ناقص",
+      "needs_update": "يحتاج تحديث",
+      "not_applicable": "غير مطبّق"
+    },
+    "items": {
+      "primaryOwnerId": "رفع هوية المالك الأساسي",
+      "coOwnerIds": "رفع هويات الملاك المشاركين",
+      "preliminaryContract": "عقد البيع المبدئي",
+      "finalContract": "عقد البيع النهائي",
+      "handoverRecord": "محضر التسليم",
+      "finishingContract": "عقد التشطيبات",
+      "gracePeriodAnnex": "ملحق المد",
+      "archiveFiling": "الأرشفة (استلام الأوراق)",
+      "finishingFinancials": "البيانات المالية للتشطيب صحيحة",
+      "siteVisit": "زيارة الموقع",
+      "paperHandoverChecks": "خطوات التسليم الورقي"
+    },
+    "filters": {
+      "project": "المشروع",
+      "allProjects": "كل المشاريع",
+      "handover": "حالة التسليم",
+      "handoverGroup": {
+        "all": "الكل",
+        "delivered": "تم التسليم",
+        "atRisk": "معرض للخطر",
+        "legal": "قانوني / نزاع"
+      },
+      "missingItem": "بند ناقص",
+      "anyItem": "أي بند",
+      "agent": "موظف خدمة العملاء",
+      "allAgents": "كل الموظفين",
+      "unassigned": "غير معيّن",
+      "searchChip": "بحث: {q}"
+    },
+    "table": {
+      "project": "المشروع",
+      "unit": "الوحدة",
+      "client": "العميل",
+      "agent": "موظف CS",
+      "progress": "التقدم",
+      "unassigned": "غير معيّن"
+    },
+    "summary": {
+      "title": "التقدم حسب المشروع",
+      "unitCount": "{count, plural, one {وحدة واحدة} two {وحدتان} few {# وحدات} many {# وحدة} other {# وحدة}}",
+      "percentComplete": "{percent}% مكتمل"
+    },
+    "detail": {
+      "back": "العودة لقائمة العمليات",
+      "overall": "التقدم الإجمالي",
+      "percent": "{percent}% مكتمل",
+      "item": "البند",
+      "status": "الحالة",
+      "action": "إصلاح من ملف الوحدة",
+      "openTab": "فتح التبويب",
+      "openUnitProfile": "فتح ملف الوحدة الكامل"
+    }
+  },
   "units": {
     "title": "الوحدات",
     "addUnit": "إضافة وحدة",
@@ -872,6 +940,54 @@
       "finalSale": "عقد البيع النهائي",
       "finishingContract": "عقد التشطيبات"
     },
+    "engineeringApprovals": {
+      "title": "اعتمادات الهندسة",
+      "subtitle": "إكمال معاينات الموقع، إغلاق العيوب/الملاحظات، اعتماد الجاهزية، وإدخال تقدم المراحل على أي وحدة. يُسجَّل كل إجراء باسمك ووقت التنفيذ.",
+      "siteVisit": {
+        "title": "اعتماد معاينة الموقع",
+        "done": "تمت معاينة الموقع",
+        "siteVisitDate1": "تاريخ المعاينة الأولى",
+        "siteVisitDate2": "تاريخ المعاينة الثانية",
+        "siteVisitDate3": "تاريخ المعاينة الثالثة",
+        "save": "حفظ معاينة الموقع"
+      },
+      "snagDefect": {
+        "title": "إغلاق العيوب / الملاحظات",
+        "hint": "تأكيد اكتمال أعمال التعديلات أو الملاحظات بعد التحقق الهندسي.",
+        "noMods": "لا توجد تعديلات مخصصة مسجلة على هذه الوحدة.",
+        "notePlaceholder": "ملاحظة اختيارية لسجل التدقيق…",
+        "approve": "اعتماد إغلاق العيوب",
+        "alreadyClosed": "مُعلَّم كمكتمل مسبقاً"
+      },
+      "readiness": {
+        "title": "اعتماد جاهزية الهندسة",
+        "hint": "يُعلِّم جميع مراحل التشطيب الهندسية التسع كمكتملة (اعتماد جاهزية كامل).",
+        "notePlaceholder": "ملاحظة اختيارية للاعتماد…",
+        "signOff": "اعتماد الجاهزية"
+      },
+      "dataEntry": {
+        "title": "إدخال بيانات الهندسة",
+        "hint": "تحديث قائمة المراحل وإضافة ملاحظات أو تعديلات (لا يمكن حذف النص الحالي).",
+        "phases": "مراحل التشطيب",
+        "phasesHint": "اختر خطوات الهندسة المكتملة.",
+        "phasesDisabled": "قائمة المراحل غير متاحة لهذا النوع من الباقة.",
+        "selectAllPhases": "تحديد كل المراحل",
+        "addNote": "إضافة ملاحظة تشطيب",
+        "addModification": "إضافة تعديل مخصص",
+        "save": "حفظ بيانات الهندسة"
+      },
+      "history": {
+        "title": "سجل الاعتمادات",
+        "empty": "لا توجد اعتمادات هندسية مسجلة بعد.",
+        "line": "{name} · {date}"
+      },
+      "kinds": {
+        "SITE_VISIT_COMPLETION": "اكتمال معاينة الموقع",
+        "SNAG_DEFECT_CLOSURE": "إغلاق عيوب / ملاحظات",
+        "READINESS_SIGN_OFF": "اعتماد جاهزية الهندسة",
+        "DATA_ENTRY": "تحديث بيانات الهندسة"
+      }
+    },
     "clientInfo": "بيانات العميل",
     "financials": "التشطيبات والماليات",
     "finishingDetails": "تفاصيل التشطيب",
@@ -954,7 +1070,8 @@
       "management": "إدارة",
       "csAgent": "موظف خدمة العملاء",
       "communityManagement": "إدارة المجتمع",
-      "engineer": "مهندس موقع"
+      "engineer": "مهندس موقع",
+      "operations": "العمليات"
     },
     "twoFactor": "المصادقة الثنائية",
     "twoFactorSecured": "مؤمّن",
@@ -1557,7 +1674,9 @@
       "CS_AGENT": "موظف خدمة العملاء",
       "MANAGEMENT": "إدارة",
       "SUPER_ADMIN": "مدير النظام",
-      "ENGINEER": "مهندس موقع"
+      "ENGINEER": "مهندس موقع",
+      "COMMUNITY_MANAGEMENT": "إدارة المجتمع",
+      "OPERATIONS": "العمليات"
     },
     "finishingType": {
       "CORE_AND_SHELL": "على العظم",

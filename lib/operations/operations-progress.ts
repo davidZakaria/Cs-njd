@@ -1,233 +1,313 @@
-import type {
-  ContractWorkflow,
-  Finishing,
-  FinishingPhase,
-  Unit,
-} from "@prisma/client";
-import type { UnitCycleStageKey } from "@prisma/client";
-
-import { assessFinishingFinancialData } from "@/lib/finishing/financial-data-quality";
+import { CONTRACT_UNIT_UPDATE_FLAG } from "@/lib/units/contract-unit-update-flags";
 import {
-  hasTrackedFinishingWork,
-  isFinishingChecklistEnabled,
-  isFinishingWorkComplete,
-  isFullyFinishedPackage,
-} from "@/lib/finishing/phases";
+  assessFinishingFinancialData,
+  isEmptyFinishingFinancialRow,
+  type FinishingFinancialInput,
+} from "@/lib/finishing/financial-data-quality";
 
-export const UNIT_CYCLE_STAGE_ORDER = [
-  "CONTRACT",
-  "FINANCE",
-  "ENGINEERING",
-  "LEGAL_HANDOVER",
-] as const satisfies readonly UnitCycleStageKey[];
+export const OPERATIONS_PROGRESS_ITEM = {
+  primaryOwnerId: "primaryOwnerId",
+  coOwnerIds: "coOwnerIds",
+  preliminaryContract: "preliminaryContract",
+  finalContract: "finalContract",
+  handoverRecord: "handoverRecord",
+  finishingContract: "finishingContract",
+  gracePeriodAnnex: "gracePeriodAnnex",
+  archiveFiling: "archiveFiling",
+  finishingFinancials: "finishingFinancials",
+  siteVisit: "siteVisit",
+  paperHandoverChecks: "paperHandoverChecks",
+} as const;
 
-export type UnitCycleChecklistItemKey =
-  | "contract_date_recorded"
-  | "sale_contract_flagged"
-  | "signed_contract_uploaded"
-  | "delivery_date_recorded"
-  | "fees_paid_when_due"
-  | "finishing_finance_clear"
-  | "finishing_work_complete"
-  | "modifications_complete"
-  | "cs_engineering_approval"
-  | "handover_papers_complete"
-  | "not_legally_blocked"
-  | "handover_protocol_signed"
-  | "paper_handover_complete";
+export type OperationsProgressItemKey =
+  (typeof OPERATIONS_PROGRESS_ITEM)[keyof typeof OPERATIONS_PROGRESS_ITEM];
 
-export type UnitCycleChecklistItem = {
-  key: UnitCycleChecklistItemKey;
-  passed: boolean;
+export const OPERATIONS_PROGRESS_ITEM_KEYS: OperationsProgressItemKey[] =
+  Object.values(OPERATIONS_PROGRESS_ITEM);
+
+export type OperationsItemStatus =
+  | "done"
+  | "missing"
+  | "needs_update"
+  | "not_applicable";
+
+export type OperationsOwnerSnapshot = {
+  role: "PRIMARY" | "CO_OWNER";
+  nationalIdFile: string | null;
 };
 
-export type UnitOperationsSnapshot = {
-  unit: Pick<Unit, "contractPricePerMeter" | "area">;
-  contractWorkflow: Pick<
-    ContractWorkflow,
-    | "contractDate"
-    | "deliveryDate"
-    | "hasPreliminarySaleContract"
-    | "hasFinalSaleContract"
-    | "signedContractFile"
-    | "hasPaidFees"
-    | "hasSignedProtocol"
-    | "hasSignedExtension"
-    | "papersReceived"
-    | "handoverStatus"
-    | "isLegallyBlocked"
-    | "paperHandoverOriginalProtocol"
-    | "paperHandoverKeyReceived"
-  > | null;
-  finishing: Pick<
-    Finishing,
-    | "phases"
-    | "phase"
-    | "packageType"
-    | "doorFees"
-    | "aluminumFees"
-    | "customModifications"
-    | "modificationsCompleted"
-    | "totalFinishingPrice"
-    | "pricePerMeter"
-  > | null;
-  engineeringCsApproved: boolean;
+export type OperationsProgressInput = {
+  gracePeriod: string | null;
+  owners: OperationsOwnerSnapshot[];
+  workflow: {
+    handoverStatus: string;
+    hasPreliminarySaleContract: boolean;
+    hasFinalSaleContract: boolean;
+    hasSignedExtension: boolean;
+    hasSignedProtocol: boolean;
+    signedContractFile: string | null;
+    extensionAnnexFile: string | null;
+    signedProtocolStoredName: string | null;
+    papersReceived: boolean;
+    siteVisitDone: boolean;
+    paperHandoverPreliminaryCopy: boolean;
+    paperHandoverOriginalProtocol: boolean;
+    paperHandoverFinishingPapers: boolean;
+    paperHandoverKeyReceived: boolean;
+    contractUnitUpdateFlags: string[];
+  } | null;
+  finishing: {
+    packageType: string | null;
+    finishingContractFile: string | null;
+    finishingContractNeedsUnitUpdate: boolean;
+    totalFinishingPrice: number | null;
+    doorFees: number | null;
+    aluminumFees: number | null;
+    pricePerMeter: number | null;
+  } | null;
+  unitArea: number | null;
 };
 
-const STAGE_CHECKLIST_KEYS: Record<UnitCycleStageKey, UnitCycleChecklistItemKey[]> =
-  {
-    CONTRACT: [
-      "contract_date_recorded",
-      "sale_contract_flagged",
-      "signed_contract_uploaded",
-      "delivery_date_recorded",
-    ],
-    FINANCE: ["fees_paid_when_due", "finishing_finance_clear"],
-    ENGINEERING: [
-      "finishing_work_complete",
-      "modifications_complete",
-      "cs_engineering_approval",
-    ],
-    LEGAL_HANDOVER: [
-      "handover_papers_complete",
-      "not_legally_blocked",
-      "handover_protocol_signed",
-      "paper_handover_complete",
-    ],
-  };
+export type OperationsProgressItem = {
+  key: OperationsProgressItemKey;
+  status: OperationsItemStatus;
+};
 
-function finishingPhases(snapshot: UnitOperationsSnapshot): FinishingPhase[] {
-  if (snapshot.finishing?.phases?.length) {
-    return snapshot.finishing.phases;
-  }
-  if (snapshot.finishing?.phase) {
-    return [snapshot.finishing.phase];
-  }
-  return [];
+export type OperationsProgressSummary = {
+  items: OperationsProgressItem[];
+  applicableCount: number;
+  doneCount: number;
+  percentComplete: number;
+};
+
+function flagSet(flags: string[]): Set<string> {
+  return new Set(flags);
 }
 
-function evaluateChecklistItem(
-  key: UnitCycleChecklistItemKey,
-  snapshot: UnitOperationsSnapshot
+function primaryOwner(input: OperationsProgressInput): OperationsOwnerSnapshot | null {
+  return input.owners.find((o) => o.role === "PRIMARY") ?? null;
+}
+
+function coOwners(input: OperationsProgressInput): OperationsOwnerSnapshot[] {
+  return input.owners.filter((o) => o.role === "CO_OWNER");
+}
+
+export function isGracePeriodAnnexApplicable(
+  input: OperationsProgressInput
 ): boolean {
-  const workflow = snapshot.contractWorkflow;
-  const finishing = snapshot.finishing;
-
-  switch (key) {
-    case "contract_date_recorded":
-      return Boolean(workflow?.contractDate);
-    case "sale_contract_flagged":
-      return Boolean(
-        workflow?.hasPreliminarySaleContract || workflow?.hasFinalSaleContract
-      );
-    case "signed_contract_uploaded":
-      return Boolean(workflow?.signedContractFile);
-    case "delivery_date_recorded":
-      return Boolean(workflow?.deliveryDate);
-    case "fees_paid_when_due": {
-      const doorFees = finishing?.doorFees ?? 0;
-      const aluminumFees = finishing?.aluminumFees ?? 0;
-      if (doorFees <= 0 && aluminumFees <= 0) return true;
-      return Boolean(workflow?.hasPaidFees);
-    }
-    case "finishing_finance_clear": {
-      const assessment = assessFinishingFinancialData({
-        totalFinishingPrice: finishing?.totalFinishingPrice,
-        doorFees: finishing?.doorFees,
-        aluminumFees: finishing?.aluminumFees,
-        area: snapshot.unit.area,
-        pricePerMeter: finishing?.pricePerMeter,
-      });
-      return !assessment.showInFinanceDataCheck;
-    }
-    case "finishing_work_complete": {
-      const packageType = finishing?.packageType ?? null;
-      const phases = finishingPhases(snapshot);
-      if (!isFinishingChecklistEnabled(packageType)) {
-        if (isFullyFinishedPackage(packageType)) {
-          return isFinishingWorkComplete(phases);
-        }
-        if (hasTrackedFinishingWork(phases)) {
-          return isFinishingWorkComplete(phases);
-        }
-        return true;
-      }
-      return isFinishingWorkComplete(phases);
-    }
-    case "modifications_complete": {
-      const customMods = finishing?.customModifications?.trim();
-      if (!customMods) return true;
-      return finishing?.modificationsCompleted !== false;
-    }
-    case "cs_engineering_approval":
-      return snapshot.engineeringCsApproved;
-    case "handover_papers_complete": {
-      if (!workflow) return false;
-      const needsExtension = workflow.handoverStatus === "DELIVERY_EXTENSION";
-      return (
-        workflow.hasSignedProtocol &&
-        workflow.papersReceived &&
-        (!needsExtension || workflow.hasSignedExtension)
-      );
-    }
-    case "not_legally_blocked":
-      return workflow?.isLegallyBlocked !== true;
-    case "handover_protocol_signed":
-      return Boolean(workflow?.hasSignedProtocol);
-    case "paper_handover_complete":
-      return Boolean(
-        workflow?.paperHandoverOriginalProtocol && workflow?.paperHandoverKeyReceived
-      );
-    default:
-      return false;
-  }
+  if (input.gracePeriod?.trim()) return true;
+  const workflow = input.workflow;
+  if (!workflow) return false;
+  if (workflow.hasSignedExtension) return true;
+  if (workflow.handoverStatus === "DELIVERY_EXTENSION") return true;
+  if (workflow.extensionAnnexFile) return true;
+  return false;
 }
 
-export function checklistKeysForStage(
-  stageKey: UnitCycleStageKey
-): UnitCycleChecklistItemKey[] {
-  return STAGE_CHECKLIST_KEYS[stageKey];
+export function isFinishingTrackApplicable(
+  input: OperationsProgressInput
+): boolean {
+  const finishing = input.finishing;
+  if (!finishing) return false;
+  if (finishing.packageType) return true;
+  if (finishing.finishingContractFile) return true;
+  return !isEmptyFinishingFinancialRow({
+    totalFinishingPrice: finishing.totalFinishingPrice,
+    doorFees: finishing.doorFees,
+    aluminumFees: finishing.aluminumFees,
+    area: input.unitArea,
+    pricePerMeter: finishing.pricePerMeter,
+  });
 }
 
-export function buildStageChecklist(
-  stageKey: UnitCycleStageKey,
-  snapshot: UnitOperationsSnapshot
-): UnitCycleChecklistItem[] {
-  return checklistKeysForStage(stageKey).map((key) => ({
+function finishingFinancialInput(
+  input: OperationsProgressInput
+): FinishingFinancialInput {
+  const finishing = input.finishing;
+  return {
+    totalFinishingPrice: finishing?.totalFinishingPrice,
+    doorFees: finishing?.doorFees,
+    aluminumFees: finishing?.aluminumFees,
+    area: input.unitArea,
+    pricePerMeter: finishing?.pricePerMeter,
+  };
+}
+
+export function statusPrimaryOwnerId(
+  input: OperationsProgressInput
+): OperationsItemStatus {
+  const owner = primaryOwner(input);
+  if (!owner) return "missing";
+  return owner.nationalIdFile ? "done" : "missing";
+}
+
+export function statusCoOwnerIds(
+  input: OperationsProgressInput
+): OperationsItemStatus {
+  const owners = coOwners(input);
+  if (owners.length === 0) return "not_applicable";
+  return owners.every((o) => Boolean(o.nationalIdFile)) ? "done" : "missing";
+}
+
+export function statusPreliminaryContract(
+  input: OperationsProgressInput
+): OperationsItemStatus {
+  const workflow = input.workflow;
+  const flags = flagSet(workflow?.contractUnitUpdateFlags ?? []);
+  if (flags.has(CONTRACT_UNIT_UPDATE_FLAG.preliminary)) return "needs_update";
+  if (workflow?.signedContractFile) return "done";
+  return "missing";
+}
+
+export function statusFinalContract(
+  input: OperationsProgressInput
+): OperationsItemStatus {
+  const workflow = input.workflow;
+  const flags = flagSet(workflow?.contractUnitUpdateFlags ?? []);
+  if (flags.has(CONTRACT_UNIT_UPDATE_FLAG.finalSale)) return "needs_update";
+  if (workflow?.hasFinalSaleContract) return "done";
+  return "missing";
+}
+
+export function statusHandoverRecord(
+  input: OperationsProgressInput
+): OperationsItemStatus {
+  const workflow = input.workflow;
+  const flags = flagSet(workflow?.contractUnitUpdateFlags ?? []);
+  if (flags.has(CONTRACT_UNIT_UPDATE_FLAG.handoverRecord)) return "needs_update";
+  if (workflow?.signedProtocolStoredName) return "done";
+  return "missing";
+}
+
+export function statusFinishingContract(
+  input: OperationsProgressInput
+): OperationsItemStatus {
+  if (!isFinishingTrackApplicable(input)) return "not_applicable";
+  const finishing = input.finishing;
+  if (finishing?.finishingContractNeedsUnitUpdate) return "needs_update";
+  if (finishing?.finishingContractFile) return "done";
+  return "missing";
+}
+
+export function statusGracePeriodAnnex(
+  input: OperationsProgressInput
+): OperationsItemStatus {
+  if (!isGracePeriodAnnexApplicable(input)) return "not_applicable";
+  const workflow = input.workflow;
+  const flags = flagSet(workflow?.contractUnitUpdateFlags ?? []);
+  if (flags.has(CONTRACT_UNIT_UPDATE_FLAG.gracePeriodAnnex)) return "needs_update";
+  if (workflow?.extensionAnnexFile) return "done";
+  return "missing";
+}
+
+export function statusArchiveFiling(
+  input: OperationsProgressInput
+): OperationsItemStatus {
+  if (input.workflow?.papersReceived) return "done";
+  return "missing";
+}
+
+export function statusFinishingFinancials(
+  input: OperationsProgressInput
+): OperationsItemStatus {
+  if (!isFinishingTrackApplicable(input)) return "not_applicable";
+  const assessment = assessFinishingFinancialData(finishingFinancialInput(input));
+  if (assessment.isEmpty) return "missing";
+  if (assessment.financeCheckReasons.length === 0) return "done";
+  return "missing";
+}
+
+export function statusSiteVisit(
+  input: OperationsProgressInput
+): OperationsItemStatus {
+  if (input.workflow?.siteVisitDone) return "done";
+  return "missing";
+}
+
+export function statusPaperHandoverChecks(
+  input: OperationsProgressInput
+): OperationsItemStatus {
+  const workflow = input.workflow;
+  if (!workflow) return "missing";
+  const complete =
+    workflow.paperHandoverPreliminaryCopy &&
+    workflow.paperHandoverOriginalProtocol &&
+    workflow.paperHandoverFinishingPapers &&
+    workflow.paperHandoverKeyReceived;
+  return complete ? "done" : "missing";
+}
+
+const STATUS_BY_KEY: Record<
+  OperationsProgressItemKey,
+  (input: OperationsProgressInput) => OperationsItemStatus
+> = {
+  primaryOwnerId: statusPrimaryOwnerId,
+  coOwnerIds: statusCoOwnerIds,
+  preliminaryContract: statusPreliminaryContract,
+  finalContract: statusFinalContract,
+  handoverRecord: statusHandoverRecord,
+  finishingContract: statusFinishingContract,
+  gracePeriodAnnex: statusGracePeriodAnnex,
+  archiveFiling: statusArchiveFiling,
+  finishingFinancials: statusFinishingFinancials,
+  siteVisit: statusSiteVisit,
+  paperHandoverChecks: statusPaperHandoverChecks,
+};
+
+export function buildOperationsProgressItems(
+  input: OperationsProgressInput
+): OperationsProgressItem[] {
+  return OPERATIONS_PROGRESS_ITEM_KEYS.map((key) => ({
     key,
-    passed: evaluateChecklistItem(key, snapshot),
+    status: STATUS_BY_KEY[key](input),
   }));
 }
 
-export function isStageChecklistComplete(
-  stageKey: UnitCycleStageKey,
-  snapshot: UnitOperationsSnapshot
+export function summarizeOperationsProgress(
+  items: OperationsProgressItem[]
+): OperationsProgressSummary {
+  const applicable = items.filter((i) => i.status !== "not_applicable");
+  const doneCount = applicable.filter((i) => i.status === "done").length;
+  const applicableCount = applicable.length;
+  const percentComplete =
+    applicableCount === 0
+      ? 100
+      : Math.round((doneCount / applicableCount) * 100);
+
+  return {
+    items,
+    applicableCount,
+    doneCount,
+    percentComplete,
+  };
+}
+
+export function computeOperationsProgress(
+  input: OperationsProgressInput
+): OperationsProgressSummary {
+  return summarizeOperationsProgress(buildOperationsProgressItems(input));
+}
+
+export function isOperationsItemIncomplete(
+  status: OperationsItemStatus
 ): boolean {
-  return buildStageChecklist(stageKey, snapshot).every((item) => item.passed);
+  return status === "missing" || status === "needs_update";
 }
 
-export function deriveCompletedStageKeys(
-  snapshot: UnitOperationsSnapshot
-): UnitCycleStageKey[] {
-  const completed: UnitCycleStageKey[] = [];
-  for (const stageKey of UNIT_CYCLE_STAGE_ORDER) {
-    if (isStageChecklistComplete(stageKey, snapshot)) {
-      completed.push(stageKey);
-    } else {
-      break;
-    }
+export function unitTabHrefForProgressItem(
+  key: OperationsProgressItemKey,
+  unitId: string
+): string {
+  if (
+    key === "primaryOwnerId" ||
+    key === "coOwnerIds"
+  ) {
+    return `/units/${unitId}?tab=client`;
   }
-  return completed;
+  if (key === "finishingContract" || key === "finishingFinancials") {
+    return `/units/${unitId}?tab=financials`;
+  }
+  return `/units/${unitId}?tab=legal`;
 }
 
-export function resolveActiveStageKey(
-  stages: { stageKey: UnitCycleStageKey; status: string }[]
-): UnitCycleStageKey | null {
-  for (const stageKey of UNIT_CYCLE_STAGE_ORDER) {
-    const row = stages.find((stage) => stage.stageKey === stageKey);
-    if (!row || row.status !== "DONE") {
-      return stageKey;
-    }
-  }
-  return null;
-}
+export * from "@/lib/operations/unit-cycle-progress";

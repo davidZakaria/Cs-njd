@@ -75,6 +75,10 @@ export async function getMyStageTasks(input: {
           project: true,
           contractWorkflow: true,
           finishing: true,
+          engineeringApprovals: {
+            where: { kind: "READINESS_SIGN_OFF" },
+            select: { kind: true },
+          },
         },
       },
       stages: { orderBy: { sortOrder: "asc" } },
@@ -98,7 +102,7 @@ export async function getMyStageTasks(input: {
       unit: cycle.unit,
       contractWorkflow: cycle.unit.contractWorkflow,
       finishing: cycle.unit.finishing,
-      unitCycle: cycle,
+      engineeringApprovals: cycle.unit.engineeringApprovals,
     });
 
     const checklist = buildStageChecklist(activeStage.stageKey, snapshot);
@@ -157,6 +161,10 @@ export async function getOverdueStagesForManagement(
           project: true,
           contractWorkflow: true,
           finishing: true,
+          engineeringApprovals: {
+            where: { kind: "READINESS_SIGN_OFF" },
+            select: { kind: true },
+          },
         },
       },
       stages: { orderBy: { sortOrder: "asc" } },
@@ -187,7 +195,7 @@ export async function getOverdueStagesForManagement(
       unit: cycle.unit,
       contractWorkflow: cycle.unit.contractWorkflow,
       finishing: cycle.unit.finishing,
-      unitCycle: cycle,
+      engineeringApprovals: cycle.unit.engineeringApprovals,
     });
     const checklist = buildStageChecklist(activeStage.stageKey, snapshot);
     const msPerDay = 86_400_000;

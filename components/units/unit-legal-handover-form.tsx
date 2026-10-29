@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import {
   updateCsHandoverChecklist,
   updateHandoverChecklist,
+  updateOperationsArchiveFiling,
 } from "@/lib/actions/crm";
 import {
   HANDOVER_STATUS_OPTIONS,
@@ -138,6 +139,8 @@ export function UnitLegalHandoverForm({
   defaults,
   canEditManagement = false,
   canEditCsChecklist = false,
+  canEditOperationsArchiveFiling = false,
+  canEngineeringApproveSiteVisit = false,
   canUploadGracePeriodAnnex = false,
   canManageGracePeriodAnnexFiles = false,
   canEdit,
@@ -145,6 +148,8 @@ export function UnitLegalHandoverForm({
   defaults: UnitLegalHandoverDefaults;
   canEditManagement?: boolean;
   canEditCsChecklist?: boolean;
+  canEditOperationsArchiveFiling?: boolean;
+  canEngineeringApproveSiteVisit?: boolean;
   canUploadGracePeriodAnnex?: boolean;
   canManageGracePeriodAnnexFiles?: boolean;
   /** @deprecated Use canEditManagement */
@@ -159,7 +164,11 @@ export function UnitLegalHandoverForm({
   const labels = useDomainLabels();
   const { pending, runAction } = useCrudToast();
 
-  const canSubmit = managementEdit || canEditCsChecklist;
+  const canSubmit =
+    managementEdit ||
+    canEditCsChecklist ||
+    canEditOperationsArchiveFiling ||
+    canEngineeringApproveSiteVisit;
 
   const handoverStatusItems = useMemo(() => {
     const items: Record<string, string> = {};
@@ -209,9 +218,16 @@ export function UnitLegalHandoverForm({
   const dhlActive = isDhlSectionActive(siteVisitDone);
 
   function fieldDisabled(field: string) {
+    if (field === "papersReceived" && canEditOperationsArchiveFiling) {
+      return pending;
+    }
     return (
-      !canEditHandoverChecklistField(field, managementEdit, canEditCsChecklist) ||
-      pending
+      !canEditHandoverChecklistField(
+        field,
+        managementEdit,
+        canEditCsChecklist,
+        canEngineeringApproveSiteVisit
+      ) || pending
     );
   }
 
@@ -224,7 +240,7 @@ export function UnitLegalHandoverForm({
       return;
     }
 
-    if (canEditCsChecklist) {
+    if (canEditCsChecklist || canEngineeringApproveSiteVisit) {
       const parsed = csHandoverChecklistSchema.parse({
         unitId: values.unitId,
         hasSignedProtocol: values.hasSignedProtocol,
@@ -249,6 +265,18 @@ export function UnitLegalHandoverForm({
         paperHandoverKeyReceived: values.paperHandoverKeyReceived,
       });
       runAction(() => updateCsHandoverChecklist(parsed), "saved");
+      return;
+    }
+
+    if (canEditOperationsArchiveFiling) {
+      runAction(
+        () =>
+          updateOperationsArchiveFiling({
+            unitId: values.unitId,
+            papersReceived: values.papersReceived,
+          }),
+        "saved"
+      );
     }
   }
 

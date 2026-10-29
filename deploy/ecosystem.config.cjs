@@ -17,8 +17,9 @@ module.exports = {
     {
       name: "cs-njd-backup-cron",
       cwd: "/var/www/cs-njd",
-      script: "npm",
-      args: "run backup:cron",
+      script: "npx",
+      args: "tsx scripts/cron.ts",
+      exec_mode: "fork",
       instances: 1,
       autorestart: true,
       max_memory_restart: "512M",

@@ -28,8 +28,6 @@ import {
   canCompleteStage,
   nextStageKey,
 } from "@/lib/unit-cycle/stage-rules";
-import { isCsAgentAssignedToUnit } from "@/lib/auth/role-permissions";
-import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 
 const projectSettingsSchema = z.object({
   projectId: z.string().min(1),
@@ -158,6 +156,10 @@ export async function completeUnitCycleStageAction(input: {
       project: true,
       contractWorkflow: true,
       finishing: true,
+      engineeringApprovals: {
+        where: { kind: "READINESS_SIGN_OFF" },
+        select: { kind: true },
+      },
       unitCycle: { include: { stages: { orderBy: { sortOrder: "asc" } } } },
     },
   });
@@ -183,7 +185,7 @@ export async function completeUnitCycleStageAction(input: {
     unit,
     contractWorkflow: unit.contractWorkflow,
     finishing: unit.finishing,
-    unitCycle: unit.unitCycle,
+    engineeringApprovals: unit.engineeringApprovals,
   });
 
   if (!canCompleteStage(activeKey, stage.status, snapshot)) {
@@ -236,75 +238,6 @@ export async function completeUnitCycleStageAction(input: {
   return actionOk();
 }
 
-/** CS agents approve engineering progress for the unit cycle (Phase 1 engineering gate). */
-export async function approveUnitCycleEngineeringAction(input: {
-  unitId: string;
-}): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "CS_AGENT") {
-    return actionFail("Unauthorized");
-  }
-
-  const unit = await prisma.unit.findFirst({
-    where: activeUnitWhere({ id: input.unitId }),
-    include: {
-      project: true,
-      contractWorkflow: true,
-      finishing: true,
-      unitCycle: { include: { stages: true } },
-    },
-  });
-
-  if (!unit?.project.unitCycleEnabled || !unit.unitCycle) {
-    return actionFail("Unit cycle not enabled");
-  }
-
-  if (!isCsAgentAssignedToUnit(await resolveCsAgentScope(session.user), {
-    unitAgentId: unit.agentId,
-  })) {
-    return actionFail("Unauthorized");
-  }
-
-  const activeKey = resolveActiveStageKey(unit.unitCycle.stages);
-  if (activeKey !== "ENGINEERING") {
-    return actionFail("Engineering stage is not active");
-  }
-
-  const snapshot = buildUnitOperationsSnapshot({
-    unit,
-    contractWorkflow: unit.contractWorkflow,
-    finishing: unit.finishing,
-    unitCycle: unit.unitCycle,
-  });
-
-  const checklist = buildStageChecklist("ENGINEERING", snapshot).filter(
-    (item) => item.key !== "cs_engineering_approval"
-  );
-  if (!checklist.every((item) => item.passed)) {
-    return actionFail("Engineering checklist incomplete");
-  }
-
-  await withAudit(async () => {
-    await prisma.unitCycle.update({
-      where: { id: unit.unitCycle!.id },
-      data: {
-        engineeringCsApprovedAt: new Date(),
-        engineeringCsApprovedByUserId: session.user.id,
-      },
-    });
-
-    await recordUnitCycleAuditEvent({
-      unitCycleId: unit.unitCycle!.id,
-      stageKey: "ENGINEERING",
-      userId: session.user.id,
-      action: "engineering_cs_approved",
-    });
-  });
-
-  revalidateUnitCyclePaths(unit.id);
-  return actionOk();
-}
-
 export async function loadUnitCycleForUnit(unitId: string) {
   const unit = await prisma.unit.findFirst({
     where: activeUnitWhere({ id: unitId }),
@@ -312,6 +245,10 @@ export async function loadUnitCycleForUnit(unitId: string) {
       project: true,
       contractWorkflow: true,
       finishing: true,
+      engineeringApprovals: {
+        where: { kind: "READINESS_SIGN_OFF" },
+        select: { kind: true },
+      },
       unitCycle: {
         include: {
           stages: { orderBy: { sortOrder: "asc" } },
@@ -337,7 +274,7 @@ export async function loadUnitCycleForUnit(unitId: string) {
     unit,
     contractWorkflow: unit.contractWorkflow,
     finishing: unit.finishing,
-    unitCycle: unit.unitCycle,
+    engineeringApprovals: unit.engineeringApprovals,
   });
 
   const stages = unit.unitCycle.stages.map((stage) => {
@@ -351,7 +288,6 @@ export async function loadUnitCycleForUnit(unitId: string) {
 
   return {
     unitCycleId: unit.unitCycle.id,
-    engineeringCsApprovedAt: unit.unitCycle.engineeringCsApprovedAt,
     activeStageKey: resolveActiveStageKey(stages),
     stages,
     events: unit.unitCycle.events,

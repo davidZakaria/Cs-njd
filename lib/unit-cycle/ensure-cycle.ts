@@ -45,6 +45,11 @@ export async function ensureUnitCycleForUnit(
     include: {
       contractWorkflow: true,
       finishing: true,
+      engineeringApprovals: {
+        where: { kind: "READINESS_SIGN_OFF" },
+        select: { kind: true },
+        take: 1,
+      },
       unitCycle: { include: { stages: true } },
     },
   });
@@ -57,7 +62,7 @@ export async function ensureUnitCycleForUnit(
     unit,
     contractWorkflow: unit.contractWorkflow,
     finishing: unit.finishing,
-    unitCycle: unit.unitCycle,
+    engineeringApprovals: unit.engineeringApprovals,
   });
 
   const completedKeys = deriveCompletedStageKeys(snapshot);
