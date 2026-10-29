@@ -1,11 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
 
 import { canAccessRequestsDashboard } from "@/lib/auth/role-permissions";
 import {
   canCreateUnitRequest,
-  canViewUnitRequest,
   userCanApproveAtCurrentStep,
-} from "@/lib/requests/permissions";
+} from "@/lib/requests/permissions-core";
+import { canViewUnitRequest } from "@/lib/requests/permissions.server";
 import { isOperationsAnApprover } from "@/lib/requests/approver-roles";
 import { getApprovalPathForType } from "@/lib/requests/approval-paths";
 
@@ -38,14 +40,12 @@ describe("request permissions", () => {
     expect(
       userCanApproveAtCurrentStep({
         role: "MANAGEMENT",
-        userId: "mgr",
         request: {
           type: "PAYMENT_PLAN_CHANGE",
           status: "PENDING",
           currentStepIndex: 0,
           currentApproverKind: "FINANCE",
         },
-        unitAgentId: "agent-1",
       })
     ).toBe(true);
   });

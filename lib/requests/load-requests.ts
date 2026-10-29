@@ -1,6 +1,8 @@
+import "server-only";
+
 import type { PrismaClient } from "@prisma/client";
 
-import type { UnitRequestListRow } from "@/lib/requests/queries";
+import type { UnitRequestListRow } from "@/lib/requests/types";
 
 export async function loadAllUnitRequestRows(
   prisma: Pick<PrismaClient, "unitRequest">

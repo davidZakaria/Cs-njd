@@ -1,5 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 const notifyRoles = vi.fn();
 const recordRequestAuditEvent = vi.fn();
 
@@ -12,7 +14,7 @@ vi.mock("@/lib/requests/audit", () => ({
     recordRequestAuditEvent(...args),
 }));
 
-import { isRequestOverdue } from "@/lib/requests/queries";
+import { isRequestOverdue } from "@/lib/requests/overdue";
 import { runRequestEscalationJob } from "@/lib/requests/escalation";
 
 describe("request escalation", () => {

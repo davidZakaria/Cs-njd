@@ -10,7 +10,7 @@ import {
   canUploadRequestAttachment,
   userCanApproveAtCurrentStep,
   userCanRejectAtCurrentStep,
-} from "@/lib/requests/permissions";
+} from "@/lib/requests/permissions.server";
 import { UnitRequestDetailPanel } from "@/components/requests/unit-request-detail-panel";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
@@ -38,18 +38,12 @@ export default async function RequestDetailPage({
 
   const canApprove = userCanApproveAtCurrentStep({
     role: session.user.role,
-    userId: session.user.id,
     request,
-    unitAgentId: request.unit.agentId,
-    csScope,
   });
 
   const canReject = userCanRejectAtCurrentStep({
     role: session.user.role,
-    userId: session.user.id,
     request,
-    unitAgentId: request.unit.agentId,
-    csScope,
   });
 
   const canSubmit =

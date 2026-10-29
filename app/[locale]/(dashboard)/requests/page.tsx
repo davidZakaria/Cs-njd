@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { canAccessRequestsDashboard } from "@/lib/auth/role-permissions";
 import { loadAllUnitRequestRows } from "@/lib/requests/load-requests";
-import { filterRequestRowsForUser } from "@/lib/requests/queries";
+import { filterRequestRowsForUser } from "@/lib/requests/queries.server";
 import { parseRequestsPageFilters } from "@/lib/requests/requests-filter-url";
 import { basePrisma } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
@@ -11,7 +11,7 @@ import { RequestsTable } from "@/components/requests/requests-table";
 import { CreateUnitRequestForm } from "@/components/requests/create-unit-request-form";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
-import { canCreateUnitRequest } from "@/lib/requests/permissions";
+import { canCreateUnitRequest } from "@/lib/requests/permissions-core";
 
 export const dynamic = "force-dynamic";
 

@@ -1,22 +1,28 @@
-import type { Role, UnitRequest, UnitRequestApproverKind, UnitRequestType } from "@prisma/client";
+import type {
+  Role,
+  UnitRequest,
+  UnitRequestApproverKind,
+  UnitRequestStatus,
+  UnitRequestType,
+} from "@prisma/client";
 
-import type { CsAgentScope } from "@/lib/auth/cs-agent-scope";
-import { canAccessUnitAsCsAgent } from "@/lib/auth/cs-agent-scope";
 import {
   isAdminUnitManager,
   isCommunityManagementRole,
   isCsAgentRole,
-  isOperationsRole,
 } from "@/lib/auth/unit-roles";
+import type { RequestsPageFilters, UnitRequestListRow } from "@/lib/requests/types";
 import {
   getApproverKindAtStep,
-  normalizeApprovalPath,
   getApprovalPathForType,
+  normalizeApprovalPath,
 } from "@/lib/requests/approval-paths";
 import {
   resolveApproverKindToRole,
   rolesThatCanActOnApproverKind,
 } from "@/lib/requests/approver-roles";
+
+/** Pure permission helpers safe for client bundles (no Prisma / cs-agent-scope). */
 
 export function canCreateUnitRequest(role: Role): boolean {
   return isCsAgentRole(role) || isAdminUnitManager(role) || role === "SUPER_ADMIN";
@@ -26,50 +32,12 @@ export function communityMayViewRequestType(type: UnitRequestType): boolean {
   return type === "HANDOVER_APPOINTMENT";
 }
 
-export function canViewUnitRequest(input: {
-  role: Role;
-  userId: string;
-  request: Pick<
-    UnitRequest,
-    "requestedById" | "type" | "status" | "currentStepIndex" | "currentApproverKind"
-  >;
-  unitAgentId: string | null;
-  csScope?: CsAgentScope | null;
-}): boolean {
-  const { role, userId, request, unitAgentId, csScope } = input;
-
-  if (isAdminUnitManager(role) || role === "SUPER_ADMIN") return true;
-
-  if (request.requestedById === userId) return true;
-
-  if (isCommunityManagementRole(role)) {
-    return communityMayViewRequestType(request.type);
-  }
-
-  if (isOperationsRole(role)) return false;
-
-  if (request.status === "PENDING" && request.currentApproverKind) {
-    if (userCanApproveAtCurrentStep({ role, userId, request, unitAgentId, csScope })) {
-      return true;
-    }
-  }
-
-  if (isCsAgentRole(role) && csScope && canAccessUnitAsCsAgent(csScope, unitAgentId)) {
-    return true;
-  }
-
-  return false;
-}
-
 export function userCanApproveAtCurrentStep(input: {
   role: Role;
-  userId: string;
   request: Pick<
     UnitRequest,
     "type" | "status" | "currentStepIndex" | "currentApproverKind"
   >;
-  unitAgentId: string | null;
-  csScope?: CsAgentScope | null;
 }): boolean {
   const { role, request } = input;
   if (request.status !== "PENDING" || !request.currentApproverKind) {
@@ -89,13 +57,10 @@ export function userCanApproveAtCurrentStep(input: {
 
 export function userCanRejectAtCurrentStep(input: {
   role: Role;
-  userId: string;
   request: Pick<
     UnitRequest,
     "type" | "status" | "currentStepIndex" | "currentApproverKind"
   >;
-  unitAgentId: string | null;
-  csScope?: CsAgentScope | null;
 }): boolean {
   return userCanApproveAtCurrentStep(input);
 }
@@ -117,7 +82,7 @@ export function canCancelRequest(input: {
   role: Role;
   userId: string;
   requestedById: string;
-  status: UnitRequest["status"];
+  status: UnitRequestStatus;
 }): boolean {
   if (input.status !== "DRAFT" && input.status !== "PENDING") return false;
   return (
@@ -131,9 +96,13 @@ export function canUploadRequestAttachment(input: {
   role: Role;
   userId: string;
   requestedById: string;
-  status: UnitRequest["status"];
+  status: UnitRequestStatus;
 }): boolean {
-  if (input.status === "APPROVED" || input.status === "REJECTED" || input.status === "CANCELLED") {
+  if (
+    input.status === "APPROVED" ||
+    input.status === "REJECTED" ||
+    input.status === "CANCELLED"
+  ) {
     return false;
   }
   return canEditDraftRequest({
@@ -143,19 +112,29 @@ export function canUploadRequestAttachment(input: {
   });
 }
 
-export function canAddRequestComment(input: {
+export function requestMatchesRoleInbox(input: {
   role: Role;
   userId: string;
-  request: Pick<UnitRequest, "requestedById" | "type" | "status" | "currentStepIndex" | "currentApproverKind">;
-  unitAgentId: string | null;
-  csScope?: CsAgentScope | null;
+  type: UnitRequestType;
+  status: UnitRequestStatus;
+  currentApproverKind: UnitRequestApproverKind | null;
+  requestedById: string;
+  view: "awaiting" | "submitted";
 }): boolean {
-  return canViewUnitRequest({
+  if (input.view === "submitted") {
+    return input.requestedById === input.userId;
+  }
+
+  if (input.status !== "PENDING" || !input.currentApproverKind) return false;
+
+  return userCanApproveAtCurrentStep({
     role: input.role,
-    userId: input.userId,
-    request: input.request,
-    unitAgentId: input.unitAgentId,
-    csScope: input.csScope,
+    request: {
+      type: input.type,
+      status: input.status,
+      currentStepIndex: 0,
+      currentApproverKind: input.currentApproverKind,
+    },
   });
 }
 
@@ -169,43 +148,78 @@ export function listApproverKindsForRole(role: Role): UnitRequestApproverKind[] 
   return kinds.filter((kind) => rolesThatCanActOnApproverKind(kind).includes(role));
 }
 
-export function requestMatchesRoleInbox(input: {
-  role: Role;
-  userId: string;
-  type: UnitRequestType;
-  status: UnitRequest["status"];
-  currentApproverKind: UnitRequest["currentApproverKind"];
-  requestedById: string;
-  unitAgentId: string | null;
-  csScope?: CsAgentScope | null;
-  view: "awaiting" | "submitted";
-}): boolean {
-  if (input.view === "submitted") {
-    return input.requestedById === input.userId;
-  }
-
-  if (input.status !== "PENDING" || !input.currentApproverKind) return false;
-
-  return userCanApproveAtCurrentStep({
-    role: input.role,
-    userId: input.userId,
-    request: {
-      type: input.type,
-      status: input.status,
-      currentStepIndex: 0,
-      currentApproverKind: input.currentApproverKind,
-    },
-    unitAgentId: input.unitAgentId,
-    csScope: input.csScope,
-  });
-}
-
 export function describeApprovalPath(type: UnitRequestType): UnitRequestApproverKind[] {
   return normalizeApprovalPath(getApprovalPathForType(type));
 }
 
 export function initialApproverKindForType(
   type: UnitRequestType
-): import("@prisma/client").UnitRequestApproverKind | null {
+): UnitRequestApproverKind | null {
   return getApproverKindAtStep(type, 0);
+}
+
+export function filterRequestRowsByView(input: {
+  rows: UnitRequestListRow[];
+  role: Role;
+  userId: string;
+  filters: RequestsPageFilters;
+  now?: Date;
+}): UnitRequestListRow[] {
+  const now = input.now ?? new Date();
+  let list = input.rows;
+
+  if (isCommunityManagementRole(input.role)) {
+    list = list.filter((row) => row.type === "HANDOVER_APPOINTMENT");
+  }
+
+  if (input.filters.view === "awaiting") {
+    list = list.filter((row) =>
+      requestMatchesRoleInbox({
+        role: input.role,
+        userId: input.userId,
+        type: row.type,
+        status: row.status,
+        currentApproverKind: row.currentApproverKind,
+        requestedById: row.requestedById,
+        view: "awaiting",
+      })
+    );
+  } else if (input.filters.view === "submitted") {
+    list = list.filter((row) => row.requestedById === input.userId);
+  } else if (!isAdminUnitManager(input.role) && input.role !== "SUPER_ADMIN") {
+    list = list.filter(
+      (row) =>
+        row.requestedById === input.userId ||
+        requestMatchesRoleInbox({
+          role: input.role,
+          userId: input.userId,
+          type: row.type,
+          status: row.status,
+          currentApproverKind: row.currentApproverKind,
+          requestedById: row.requestedById,
+          view: "awaiting",
+        }) ||
+        (isCommunityManagementRole(input.role) && row.type === "HANDOVER_APPOINTMENT")
+    );
+  }
+
+  if (input.filters.status !== "all") {
+    list = list.filter((row) => row.status === input.filters.status);
+  }
+  if (input.filters.type !== "all") {
+    list = list.filter((row) => row.type === input.filters.type);
+  }
+  if (input.filters.project !== "all") {
+    list = list.filter((row) => row.projectName === input.filters.project);
+  }
+  if (input.filters.overdue === "yes") {
+    list = list.filter(
+      (row) =>
+        row.status === "PENDING" &&
+        row.dueDate != null &&
+        row.dueDate.getTime() < now.getTime()
+    );
+  }
+
+  return list;
 }

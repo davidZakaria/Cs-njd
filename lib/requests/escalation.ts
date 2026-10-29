@@ -1,10 +1,10 @@
+import "server-only";
+
 import type { PrismaClient } from "@prisma/client";
 
 import { recordRequestAuditEvent } from "@/lib/requests/audit";
-import {
-  isRequestOverdue,
-  type UnitRequestListRow,
-} from "@/lib/requests/queries";
+import { isRequestOverdue } from "@/lib/requests/overdue";
+import type { UnitRequestListRow } from "@/lib/requests/types";
 import { notifyRoles } from "@/lib/services/notifications";
 
 export type RequestEscalationDb = Pick<PrismaClient, "unitRequest">;

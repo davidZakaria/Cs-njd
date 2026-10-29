@@ -31,7 +31,7 @@ import {
   type RequestsPageFilters,
   projectNameToSlug,
 } from "@/lib/requests/requests-filter-url";
-import { isRequestOverdue } from "@/lib/requests/queries";
+import { isRequestOverdue } from "@/lib/requests/overdue";
 import { UnitRequestStatus, UnitRequestType } from "@prisma/client";
 import { cn } from "@/lib/utils";
 

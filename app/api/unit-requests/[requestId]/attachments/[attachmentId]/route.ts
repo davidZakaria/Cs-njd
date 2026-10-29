@@ -2,7 +2,7 @@ import fs from "fs/promises";
 
 import { auth } from "@/lib/auth";
 import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
-import { canViewUnitRequest } from "@/lib/requests/permissions";
+import { canViewUnitRequest } from "@/lib/requests/permissions.server";
 import { prisma } from "@/lib/prisma";
 import { getRequestAttachmentFilePath } from "@/lib/uploads/request-attachment-storage";
 

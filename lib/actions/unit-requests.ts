@@ -17,7 +17,7 @@ import {
   canViewUnitRequest,
   userCanApproveAtCurrentStep,
   userCanRejectAtCurrentStep,
-} from "@/lib/requests/permissions";
+} from "@/lib/requests/permissions.server";
 import {
   advanceAfterApproval,
   buildSubmitState,
@@ -203,18 +203,10 @@ export async function approveUnitRequestStepAction(
   if (!request) return actionFail("Request not found");
   if (request.status !== "PENDING") return actionFail("Request is not pending");
 
-  const csScope =
-    session.user.role === "CS_AGENT"
-      ? await resolveCsAgentScope(session.user)
-      : null;
-
   if (
     !userCanApproveAtCurrentStep({
       role: session.user.role,
-      userId: session.user.id,
       request,
-      unitAgentId: request.unit.agentId,
-      csScope,
     })
   ) {
     return actionFail("Unauthorized");
@@ -300,18 +292,10 @@ export async function rejectUnitRequestAction(
   if (!request) return actionFail("Request not found");
   if (request.status !== "PENDING") return actionFail("Request is not pending");
 
-  const csScope =
-    session.user.role === "CS_AGENT"
-      ? await resolveCsAgentScope(session.user)
-      : null;
-
   if (
     !userCanRejectAtCurrentStep({
       role: session.user.role,
-      userId: session.user.id,
       request,
-      unitAgentId: request.unit.agentId,
-      csScope,
     })
   ) {
     return actionFail("Unauthorized");
