@@ -96,6 +96,11 @@ export async function uploadSignedProtocol(
     CONTRACT_UNIT_UPDATE_FLAG.handoverRecord
   );
 
+  const { markGeneratedDocumentsSignedCopyOnFile } = await import(
+    "@/lib/official-documents/finalize"
+  );
+  await markGeneratedDocumentsSignedCopyOnFile(unitId, "signedProtocol");
+
   if (session.user.role === "CS_AGENT") {
     await notifyHandoverChecklistUpdatedByAgent({
       unitCode: unit.unitCode,

@@ -212,6 +212,11 @@ export async function uploadUnitDocument(
       }
     }
 
+    const { markGeneratedDocumentsSignedCopyOnFile } = await import(
+      "@/lib/official-documents/finalize"
+    );
+    await markGeneratedDocumentsSignedCopyOnFile(unitId, documentType);
+
     revalidatePath(`/units/${unitId}`);
     revalidatePath("/units");
     return { ...actionOk(), filePath: storedName };

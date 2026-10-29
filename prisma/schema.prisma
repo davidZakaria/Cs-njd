@@ -190,6 +190,14 @@ enum UnitRequestApproverKind {
   CS_AGENT
 }
 
+enum OfficialDocumentType {
+  GRACE_PERIOD_ANNEX
+  CONTRACT_AMENDMENT
+  HANDOVER_RECORD
+  FINISHING_CONTRACT_SUMMARY
+  UNIT_SWAP_ADDENDUM
+}
+
 model User {
   id                     String    @id @default(cuid())
   name                   String
@@ -221,6 +229,9 @@ model User {
   requestComments        RequestComment[]
   requestAttachments     RequestAttachment[]
   requestAuditEvents     RequestAuditEvent[]
+  generatedOfficialDocuments UnitGeneratedDocument[] @relation("GeneratedOfficialDocumentBy")
+  officialDocumentTemplates  OfficialDocumentTemplate[] @relation("OfficialDocumentTemplateAuthor")
+  officialDocumentAuditEvents OfficialDocumentAuditEvent[]
 
   @@index([role])
   @@index([deletedAt])
@@ -350,6 +361,7 @@ model Unit {
   unitCycle        UnitCycle?
   engineeringApprovals UnitEngineeringApproval[]
   unitRequests     UnitRequest[]
+  generatedOfficialDocuments UnitGeneratedDocument[]
 
   @@unique([projectId, unitCode])
   @@index([projectId])
@@ -690,6 +702,7 @@ model UnitRequest {
   comments              RequestComment[]
   attachments           RequestAttachment[]
   auditEvents           RequestAuditEvent[]
+  generatedOfficialDocuments UnitGeneratedDocument[]
 
   @@index([unitId])
   @@index([clientId])
@@ -700,6 +713,68 @@ model UnitRequest {
   @@index([dueDate])
   @@index([unitCycleStageKey])
   @@index([status, dueDate])
+}
+
+model OfficialDocumentTemplate {
+  id           String               @id @default(cuid())
+  documentType OfficialDocumentType
+  locale       String
+  version      Int
+  title        String
+  body         String
+  isActive     Boolean              @default(false)
+  createdById  String?
+  createdAt    DateTime             @default(now())
+
+  createdBy User? @relation("OfficialDocumentTemplateAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  generatedDocuments UnitGeneratedDocument[]
+
+  @@unique([documentType, locale, version])
+  @@index([documentType, locale, isActive])
+}
+
+model UnitGeneratedDocument {
+  id                  String               @id @default(cuid())
+  unitId              String
+  unitRequestId       String?
+  documentType        OfficialDocumentType
+  templateId          String
+  templateVersion     Int
+  templateLocale      String
+  storedName          String
+  displayName         String
+  mimeType            String               @default("application/pdf")
+  sizeBytes           Int
+  signedCopyOnFileAt  DateTime?
+  generatedById       String
+  generatedAt         DateTime             @default(now())
+
+  unit        Unit                     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  unitRequest UnitRequest?             @relation(fields: [unitRequestId], references: [id], onDelete: SetNull)
+  template    OfficialDocumentTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  generatedBy User                     @relation("GeneratedOfficialDocumentBy", fields: [generatedById], references: [id], onDelete: Cascade)
+
+  @@index([unitId, generatedAt])
+  @@index([unitRequestId])
+  @@index([documentType])
+}
+
+model OfficialDocumentAuditEvent {
+  id             String                @id @default(cuid())
+  unitId         String?
+  documentType   OfficialDocumentType?
+  templateVersion Int?
+  templateLocale String?
+  action         String
+  userId         String?
+  details        Json?
+  createdAt      DateTime              @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([unitId])
+  @@index([createdAt])
+  @@index([documentType])
 }
 
 model RequestComment {

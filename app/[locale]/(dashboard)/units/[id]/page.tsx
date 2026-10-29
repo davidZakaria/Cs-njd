@@ -66,6 +66,12 @@ import {
 import { toContactExtraLines } from "@/lib/client/contact-lines";
 import { formatUnitSwapHistoryMessage } from "@/lib/units/unit-swap-history";
 import { UnitCyclePanel } from "@/components/units/unit-cycle-panel";
+import {
+  canGenerateOfficialDocuments,
+  canViewOfficialDocuments,
+} from "@/lib/official-documents/permissions";
+import { listUnitGeneratedDocumentsAction } from "@/lib/actions/official-documents";
+import { UnitOfficialDocumentsPanel } from "@/components/units/unit-official-documents-panel";
 
 export default async function UnitProfilePage({
   params,
@@ -134,6 +140,19 @@ export default async function UnitProfilePage({
       : null;
 
   const unitRequests = session?.user ? await listUnitRequestsForUnit(id) : [];
+
+  const officialDocsEnabled = unit.project.unitCycleEnabled;
+  const generatedOfficialDocuments =
+    session?.user && officialDocsEnabled && canViewOfficialDocuments(session.user.role)
+      ? await listUnitGeneratedDocumentsAction(id)
+      : [];
+  const canGenerateOfficialDocs =
+    session?.user && officialDocsEnabled
+      ? canGenerateOfficialDocuments(session.user.role)
+      : false;
+  const approvedRequestsForDocs = unitRequests
+    .filter((r) => r.status === "APPROVED")
+    .map((r) => ({ id: r.id, type: r.type, status: r.status }));
 
   const projectLabel = await labels.project(unit.project.name);
   const agentLabel = unit.agent
@@ -437,6 +456,18 @@ export default async function UnitProfilePage({
       />
 
       <UnitRequestsPanel unitId={unit.id} requests={unitRequests} locale={locale} />
+
+      {officialDocsEnabled && session?.user && canViewOfficialDocuments(session.user.role) ? (
+        <UnitOfficialDocumentsPanel
+          unitId={unit.id}
+          canGenerate={canGenerateOfficialDocs}
+          generatedDocuments={generatedOfficialDocuments.map((doc) => ({
+            ...doc,
+            generatedAt: doc.generatedAt,
+          }))}
+          approvedRequests={approvedRequestsForDocs}
+        />
+      ) : null}
 
       {isCommunityViewer && !communityCanActOnUnit ? (
         <Alert>

@@ -30,6 +30,9 @@ vi.mock("@/lib/prisma", () => ({
       findFirst: vi.fn().mockResolvedValue(null),
       update: vi.fn(),
     },
+    unitGeneratedDocument: {
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
   },
   basePrisma: {
     auditLog: { create: vi.fn() },

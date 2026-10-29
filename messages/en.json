@@ -1745,6 +1745,13 @@
       "HANDOVER_APPOINTMENT": "Handover appointment",
       "DOCUMENT_CORRECTION": "Document correction"
     },
+    "officialDocumentType": {
+      "GRACE_PERIOD_ANNEX": "Grace period annex (ملحق المد)",
+      "CONTRACT_AMENDMENT": "Contract amendment",
+      "HANDOVER_RECORD": "Handover record",
+      "FINISHING_CONTRACT_SUMMARY": "Finishing contract summary",
+      "UNIT_SWAP_ADDENDUM": "Unit swap addendum"
+    },
     "unitRequestStatus": {
       "DRAFT": "Draft",
       "PENDING": "Pending approval",
@@ -1907,7 +1914,47 @@
       "financeDays": "Finance days",
       "engineeringDays": "Engineering days",
       "legalDays": "Legal & handover days",
-      "save": "Save settings"
+      "save": "Save settings",
+      "documentTemplatesLink": "Official document templates"
+    }
+  },
+  "officialDocuments": {
+    "panelTitle": "Official document drafts",
+    "panelHint": "Generate watermarked PDF drafts from management templates. Upload the signed copy to the unit contract fields when ready — uploads never replace existing signed files.",
+    "documentType": "Document type",
+    "selectType": "Select type",
+    "linkedRequest": "Linked request",
+    "linkedRequestOptional": "Optional request link",
+    "linkedRequestNone": "None",
+    "linkedRequestHint": "Grace period annex, contract amendment, and unit swap require an approved request of the matching type.",
+    "generateDraft": "Generate draft PDF",
+    "generating": "Generating…",
+    "generateSuccess": "Draft PDF generated.",
+    "generateFailed": "Could not generate document.",
+    "empty": "No generated drafts yet.",
+    "draftWatermark": "Draft (watermarked)",
+    "signedOnFile": "Signed copy on file",
+    "downloadPdf": "Download PDF",
+    "templates": {
+      "pageTitle": "Official document templates",
+      "pageSubtitle": "Maintain bilingual templates with merge fields. Saving creates a new version; previous versions are kept.",
+      "backToProjectSettings": "Back to project settings",
+      "editorTitle": "Template editor",
+      "documentType": "Document type",
+      "templateLocale": "Template language",
+      "localeEn": "English",
+      "localeAr": "Arabic",
+      "titleField": "Document title",
+      "bodyField": "Body (use {{mergeField}} placeholders)",
+      "saveNewVersion": "Save as new version",
+      "saving": "Saving…",
+      "saveSuccess": "New template version saved.",
+      "saveFailed": "Could not save template.",
+      "versioningHint": "Older versions remain available for audit and cannot be deleted.",
+      "mergeFields": "Merge fields",
+      "versionHistory": "Version history",
+      "noVersions": "No templates yet — save to create version 1.",
+      "active": "active"
     }
   }
 }
