@@ -40,6 +40,15 @@ describe("handover field access", () => {
     ).toBe(false);
   });
 
+  it("allows CS engineering site visit approval without assignment", () => {
+    expect(
+      canEditHandoverChecklistField("siteVisitDone", false, false, true)
+    ).toBe(true);
+    expect(
+      canEditHandoverChecklistField("hasSignedProtocol", false, false, true)
+    ).toBe(false);
+  });
+
   it("allows management full edit", () => {
     expect(
       canEditHandoverChecklistField("handoverStatus", true, false)

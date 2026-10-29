@@ -25,6 +25,11 @@ import {
   canAccessOperationsProgressTracker,
   canEditOperationsArchiveFilingOnUnit,
   canUploadOperationsArchiveDocuments,
+  canApproveEngineeringSiteVisitOnUnit,
+  canApproveEngineeringSnagDefectOnUnit,
+  canSignOffEngineeringReadinessOnUnit,
+  canEnterEngineeringDataOnUnit,
+  canUseUnitEngineeringApprovalsPanel,
   canAccessImportsOrUserAdmin,
 } from "@/lib/auth/role-permissions";
 
@@ -86,6 +91,16 @@ describe("role-permissions matrix", () => {
     it("detects assignment via scope", () => {
       expect(isCsAgentAssignedToUnit(csScope, assigned)).toBe(true);
       expect(isCsAgentAssignedToUnit(csScope, other)).toBe(false);
+    });
+
+    it("may read operations progress and perform engineering approvals on any unit", () => {
+      expect(canAccessOperationsProgressTracker(role)).toBe(true);
+      expect(canEditOperationsArchiveFilingOnUnit(role)).toBe(false);
+      expect(canApproveEngineeringSiteVisitOnUnit(role)).toBe(true);
+      expect(canApproveEngineeringSnagDefectOnUnit(role)).toBe(true);
+      expect(canSignOffEngineeringReadinessOnUnit(role)).toBe(true);
+      expect(canEnterEngineeringDataOnUnit(role)).toBe(true);
+      expect(canUseUnitEngineeringApprovalsPanel(role)).toBe(true);
     });
   });
 
@@ -191,6 +206,7 @@ describe("role-permissions matrix", () => {
       expect(canManageUnitCoOwners(role)).toBe(false);
       expect(canEditLegalHandoverOnUnit(role)).toBe(false);
       expect(canEditFinishingFinancialsOnUnit(role, assigned)).toBe(false);
+      expect(canApproveEngineeringSiteVisitOnUnit(role)).toBe(false);
       expect(canLogCallOnUnit(role, assigned, csScope)).toBe(false);
       expect(canAccessImportsOrUserAdmin(role)).toBe(false);
       expect(canUploadClientNationalIdScan(role)).toBe(true);

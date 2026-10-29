@@ -155,6 +155,13 @@ enum TwoFactorResetRequestStatus {
   REJECTED
 }
 
+enum EngineeringApprovalKind {
+  SITE_VISIT_COMPLETION
+  SNAG_DEFECT_CLOSURE
+  READINESS_SIGN_OFF
+  DATA_ENTRY
+}
+
 model User {
   id                     String    @id @default(cuid())
   name                   String
@@ -180,6 +187,7 @@ model User {
   loginHistory  LoginHistory[]
   twoFactorResetRequests TwoFactorResetRequest[] @relation("TwoFactorResetRequestUser")
   twoFactorResetReviews  TwoFactorResetRequest[] @relation("TwoFactorResetRequestReviewer")
+  engineeringApprovals   UnitEngineeringApproval[]
 
   @@index([role])
   @@index([deletedAt])
@@ -300,6 +308,7 @@ model Unit {
   contractWorkflow ContractWorkflow?
   finishing        Finishing?
   tickets          Ticket[]
+  engineeringApprovals UnitEngineeringApproval[]
 
   @@unique([projectId, unitCode])
   @@index([projectId])
@@ -526,4 +535,20 @@ model LoginHistory {
   @@index([email])
   @@index([status])
   @@index([timestamp])
+}
+
+model UnitEngineeringApproval {
+  id           String                  @id @default(cuid())
+  unitId       String
+  kind         EngineeringApprovalKind
+  approvedById String
+  summary      String?
+  payload      Json?
+  createdAt    DateTime                @default(now())
+
+  unit       Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  approvedBy User @relation(fields: [approvedById], references: [id], onDelete: Cascade)
+
+  @@index([unitId, createdAt])
+  @@index([approvedById])
 }

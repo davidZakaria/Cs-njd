@@ -782,7 +782,7 @@
   },
   "operations": {
     "title": "Operations progress",
-    "subtitle": "Contract archive checklist by unit — read-only view for management and operations.",
+    "subtitle": "Contract archive checklist by unit — read-only for CS agents; operations staff can file papers from the unit Legal tab.",
     "search": "Search",
     "searchPlaceholder": "Unit, client, or project…",
     "progressLabel": "{done} of {total} done",
@@ -938,6 +938,54 @@
       "handoverRecord": "Handover record",
       "finalSale": "Final sale contract",
       "finishingContract": "Finishing contract (عقد التشطيبات)"
+    },
+    "engineeringApprovals": {
+      "title": "Engineering approvals",
+      "subtitle": "Complete site visits, close snag/defect items, sign off readiness, and enter phase progress on any unit. Each action is recorded with your name and time.",
+      "siteVisit": {
+        "title": "Site visit approval",
+        "done": "Site visit completed",
+        "siteVisitDate1": "1st visit date",
+        "siteVisitDate2": "2nd visit date",
+        "siteVisitDate3": "3rd visit date",
+        "save": "Save site visit"
+      },
+      "snagDefect": {
+        "title": "Snag / defect closure",
+        "hint": "Mark custom modification / snag work as complete after engineering verification.",
+        "noMods": "No custom modifications are recorded on this unit.",
+        "notePlaceholder": "Optional note for the audit trail…",
+        "approve": "Approve snag / defect closure",
+        "alreadyClosed": "Already marked complete"
+      },
+      "readiness": {
+        "title": "Engineering readiness sign-off",
+        "hint": "Marks all nine engineering finishing phases complete (same as a full site readiness sign-off).",
+        "notePlaceholder": "Optional sign-off note…",
+        "signOff": "Sign off readiness"
+      },
+      "dataEntry": {
+        "title": "Engineering data entry",
+        "hint": "Update the phase checklist and append finishing notes or modifications (existing text cannot be removed).",
+        "phases": "Finishing phases",
+        "phasesHint": "Select completed engineering steps.",
+        "phasesDisabled": "Phase checklist is disabled for this package type.",
+        "selectAllPhases": "Select all phases",
+        "addNote": "Append finishing note",
+        "addModification": "Append custom modification",
+        "save": "Save engineering data"
+      },
+      "history": {
+        "title": "Approval history",
+        "empty": "No engineering approvals recorded yet.",
+        "line": "{name} · {date}"
+      },
+      "kinds": {
+        "SITE_VISIT_COMPLETION": "Site visit completed",
+        "SNAG_DEFECT_CLOSURE": "Snag / defect closed",
+        "READINESS_SIGN_OFF": "Engineering readiness signed off",
+        "DATA_ENTRY": "Engineering data updated"
+      }
     },
     "clientInfo": "Client Info",
     "financials": "Finishing Financials",
