@@ -70,7 +70,7 @@ function requireEngineeringApprovalRole(
 }
 
 export async function approveEngineeringSiteVisitAction(
-  input: z.infer<typeof siteVisitApprovalSchema>
+  input: z.input<typeof siteVisitApprovalSchema>
 ): Promise<ActionResult> {
   const session = await auth();
   const denied = requireEngineeringApprovalRole(
@@ -93,15 +93,33 @@ export async function approveEngineeringSiteVisitAction(
 
   const existing = unit.contractWorkflow;
   const wasDone = existing?.siteVisitDone ?? false;
-  const locked = applyDhlSiteVisitLock(
+  const dhlSnapshot = existing
+    ? {
+        siteVisitDone: existing.siteVisitDone,
+        dhlSentToClient: existing.dhlSentToClient,
+        dhlSentToClientDate: existing.dhlSentToClientDate,
+        dhlReceivedFromClient: existing.dhlReceivedFromClient,
+        dhlReceivedFromClientDate: existing.dhlReceivedFromClientDate,
+        powerOfAttorneyReceived: existing.powerOfAttorneyReceived,
+      }
+    : null;
+  const dhlLocked = applyDhlSiteVisitLock(
     {
       siteVisitDone: parsed.data.siteVisitDone,
-      siteVisitDate1: parsed.data.siteVisitDate1,
-      siteVisitDate2: parsed.data.siteVisitDate2,
-      siteVisitDate3: parsed.data.siteVisitDate3,
+      dhlSentToClient: existing?.dhlSentToClient ?? false,
+      dhlSentToClientDate: existing?.dhlSentToClientDate ?? null,
+      dhlReceivedFromClient: existing?.dhlReceivedFromClient ?? false,
+      dhlReceivedFromClientDate: existing?.dhlReceivedFromClientDate ?? null,
+      powerOfAttorneyReceived: existing?.powerOfAttorneyReceived ?? false,
     },
-    existing
+    dhlSnapshot
   );
+  const locked = {
+    ...dhlLocked,
+    siteVisitDate1: parsed.data.siteVisitDate1,
+    siteVisitDate2: parsed.data.siteVisitDate2,
+    siteVisitDate3: parsed.data.siteVisitDate3,
+  };
 
   await withAudit(() =>
     prisma.contractWorkflow.upsert({

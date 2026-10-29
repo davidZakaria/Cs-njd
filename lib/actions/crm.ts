@@ -984,8 +984,7 @@ export async function updateCsHandoverChecklist(
     if (!canSiteVisitAnyUnit) return accessError;
     for (const field of CS_HANDOVER_CHECKLIST_FIELDS) {
       if (isEngineeringSiteVisitField(field)) continue;
-      const key = field as keyof typeof parsed.data;
-      if (parsed.data[key] !== previousSnapshot[key]) {
+      if (parsed.data[field] !== previousSnapshot[field]) {
         return accessError;
       }
     }

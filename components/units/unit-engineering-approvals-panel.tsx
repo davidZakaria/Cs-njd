@@ -153,9 +153,9 @@ export function UnitEngineeringApprovalsPanel({
                     approveEngineeringSiteVisitAction({
                       unitId: defaults.unitId,
                       siteVisitDone,
-                      siteVisitDate1: siteVisitDate1 || null,
-                      siteVisitDate2: siteVisitDate2 || null,
-                      siteVisitDate3: siteVisitDate3 || null,
+                      siteVisitDate1: siteVisitDate1 || undefined,
+                      siteVisitDate2: siteVisitDate2 || undefined,
+                      siteVisitDate3: siteVisitDate3 || undefined,
                     }),
                   "saved"
                 )
