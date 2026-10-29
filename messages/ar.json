@@ -1745,7 +1745,13 @@
       "HANDOVER_APPOINTMENT": "موعد تسليم",
       "DOCUMENT_CORRECTION": "تصحيح مستند"
     },
-    "unitRequestStatus": {
+    "officialDocumentType": {
+      "GRACE_PERIOD_ANNEX": "ملحق المد",
+      "CONTRACT_AMENDMENT": "تعديل العقد",
+      "HANDOVER_RECORD": "محضر التسليم",
+      "FINISHING_CONTRACT_SUMMARY": "ملخص عقد التشطيب",
+      "UNIT_SWAP_ADDENDUM": "ملحق استبدال الوحدة"
+    },
       "DRAFT": "مسودة",
       "PENDING": "قيد الموافقة",
       "APPROVED": "موافق عليه",
@@ -1907,7 +1913,47 @@
       "financeDays": "أيام الحسابات",
       "engineeringDays": "أيام الهندسة",
       "legalDays": "أيام قانوني وتسليم",
-      "save": "حفظ الإعدادات"
+      "save": "حفظ الإعدادات",
+      "documentTemplatesLink": "قوالب المستندات الرسمية"
+    }
+  },
+  "officialDocuments": {
+    "panelTitle": "مسودات المستندات الرسمية",
+    "panelHint": "إنشاء ملفات PDF بعلامة مسودة من قوالب الإدارة. ارفع النسخة الموقعة في حقول عقد الوحدة عند الجاهزية — الرفع لا يستبدل الملفات الموقعة الحالية.",
+    "documentType": "نوع المستند",
+    "selectType": "اختر النوع",
+    "linkedRequest": "طلب مرتبط",
+    "linkedRequestOptional": "ربط طلب (اختياري)",
+    "linkedRequestNone": "بدون",
+    "linkedRequestHint": "ملحق المد وتعديل العقد واستبدال الوحدة يتطلبان طلباً معتمداً من النوع المطابق.",
+    "generateDraft": "إنشاء مسودة PDF",
+    "generating": "جاري الإنشاء…",
+    "generateSuccess": "تم إنشاء مسودة PDF.",
+    "generateFailed": "تعذر إنشاء المستند.",
+    "empty": "لا مسودات منشأة بعد.",
+    "draftWatermark": "مسودة (علامة مائية)",
+    "signedOnFile": "نسخة موقعة مرفوعة",
+    "downloadPdf": "تحميل PDF",
+    "templates": {
+      "pageTitle": "قوالب المستندات الرسمية",
+      "pageSubtitle": "صيانة القوالب ثنائية اللغة مع حقول الدمج. الحفظ ينشئ إصداراً جديداً؛ الإصدارات السابقة تُحفظ.",
+      "backToProjectSettings": "العودة لإعدادات المشروع",
+      "editorTitle": "محرر القالب",
+      "documentType": "نوع المستند",
+      "templateLocale": "لغة القالب",
+      "localeEn": "English",
+      "localeAr": "العربية",
+      "titleField": "عنوان المستند",
+      "bodyField": "المحتوى (استخدم {{mergeField}})",
+      "saveNewVersion": "حفظ كإصدار جديد",
+      "saving": "جاري الحفظ…",
+      "saveSuccess": "تم حفظ إصدار القالب.",
+      "saveFailed": "تعذر حفظ القالب.",
+      "versioningHint": "الإصدارات الأقدم تبقى للتدقيق ولا يمكن حذفها.",
+      "mergeFields": "حقول الدمج",
+      "versionHistory": "سجل الإصدارات",
+      "noVersions": "لا قوالب بعد — احفظ لإنشاء الإصدار 1.",
+      "active": "نشط"
     }
   }
 }

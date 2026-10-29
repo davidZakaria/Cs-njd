@@ -52,6 +52,12 @@ export default async function ExecutiveProjectSettingsPage() {
         <Link href="/executive" className={buttonVariants({ variant: "outline" })}>
           {t("backToExecutive")}
         </Link>
+        <Link
+          href="/executive/document-templates"
+          className={buttonVariants({ variant: "secondary" })}
+        >
+          {t("documentTemplatesLink")}
+        </Link>
       </div>
       <ProjectUnitCycleSettingsPanel
         projects={projects.map((project) => ({
