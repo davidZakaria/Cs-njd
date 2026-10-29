@@ -21,6 +21,11 @@ import {
   canSubmitEngineeringSiteUpdate,
   canSyncClientExtraContacts,
   isCsAgentAssignedToUnit,
+  canViewUnitProfile,
+  canAccessOperationsProgressTracker,
+  canEditOperationsArchiveFilingOnUnit,
+  canUploadOperationsArchiveDocuments,
+  canAccessImportsOrUserAdmin,
 } from "@/lib/auth/role-permissions";
 
 const csScope: CsAgentScope = {
@@ -166,6 +171,29 @@ describe("role-permissions matrix", () => {
       expect(canCreateOrUpdateCaseOnUnit(role, assigned)).toBe(false);
       expect(canListAllUnits(role)).toBe(false);
       expect(canEditFinishingFinancialsOnUnit(role, assigned)).toBe(false);
+    });
+  });
+
+  describe("OPERATIONS", () => {
+    const role: Role = "OPERATIONS";
+
+    it("uses operations tracker and read-only unit access", () => {
+      expect(canListAllUnits(role)).toBe(true);
+      expect(canViewUnitProfile(role)).toBe(true);
+      expect(canAccessOperationsProgressTracker(role)).toBe(true);
+      expect(canEditOperationsArchiveFilingOnUnit(role)).toBe(true);
+      expect(canUploadOperationsArchiveDocuments(role)).toBe(true);
+    });
+
+    it("cannot manage cases, clients, deletes, or imports", () => {
+      expect(canCreateOrUpdateCaseOnUnit(role, assigned, csScope)).toBe(false);
+      expect(canEditClientIdentityOnUnit(role)).toBe(false);
+      expect(canManageUnitCoOwners(role)).toBe(false);
+      expect(canEditLegalHandoverOnUnit(role)).toBe(false);
+      expect(canEditFinishingFinancialsOnUnit(role, assigned)).toBe(false);
+      expect(canLogCallOnUnit(role, assigned, csScope)).toBe(false);
+      expect(canAccessImportsOrUserAdmin(role)).toBe(false);
+      expect(canUploadClientNationalIdScan(role)).toBe(true);
     });
   });
 });

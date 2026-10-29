@@ -62,11 +62,13 @@ const roleRoutes: Record<Role, string[]> = {
     "/print",
   ],
   ENGINEER: ["/engineering"],
+  OPERATIONS: ["/operations", "/units", "/print"],
 };
 
 export function getHomeRoute(role: Role): string {
   if (role === "MANAGEMENT") return "/executive";
   if (role === "ENGINEER") return "/engineering";
+  if (role === "OPERATIONS") return "/operations";
   return "/dashboard";
 }
 
@@ -112,7 +114,7 @@ export function getCoreNavItems(role: Role) {
     {
       href: "/operations",
       key: "operations",
-      roles: ["SUPER_ADMIN", "MANAGEMENT"],
+      roles: ["SUPER_ADMIN", "MANAGEMENT", "OPERATIONS"],
     },
     {
       href: "/dashboard",
@@ -127,7 +129,13 @@ export function getCoreNavItems(role: Role) {
     {
       href: "/units",
       key: "units",
-      roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
+      roles: [
+        "SUPER_ADMIN",
+        "MANAGEMENT",
+        "CS_AGENT",
+        "COMMUNITY_MANAGEMENT",
+        "OPERATIONS",
+      ],
     },
     {
       href: "/notifications",
@@ -196,7 +204,7 @@ export function getNavItems(role: Role) {
     {
       href: "/operations",
       key: "operations",
-      roles: ["SUPER_ADMIN", "MANAGEMENT"],
+      roles: ["SUPER_ADMIN", "MANAGEMENT", "OPERATIONS"],
     },
     {
       href: "/dashboard",
@@ -211,7 +219,13 @@ export function getNavItems(role: Role) {
     {
       href: "/units",
       key: "units",
-      roles: ["SUPER_ADMIN", "MANAGEMENT", "CS_AGENT", "COMMUNITY_MANAGEMENT"],
+      roles: [
+        "SUPER_ADMIN",
+        "MANAGEMENT",
+        "CS_AGENT",
+        "COMMUNITY_MANAGEMENT",
+        "OPERATIONS",
+      ],
     },
     {
       href: "/notifications",

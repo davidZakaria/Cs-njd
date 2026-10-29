@@ -13,6 +13,7 @@ enum Role {
   CS_AGENT
   COMMUNITY_MANAGEMENT
   ENGINEER
+  OPERATIONS
 }
 
 enum UnitClientRole {

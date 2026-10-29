@@ -12,8 +12,16 @@ export function isCommunityManagementRole(role: Role): boolean {
   return role === "COMMUNITY_MANAGEMENT";
 }
 
+export function isOperationsRole(role: Role): boolean {
+  return role === "OPERATIONS";
+}
+
 export function isLimitedExportRole(role: Role): boolean {
-  return isCsAgentRole(role) || isCommunityManagementRole(role);
+  return (
+    isCsAgentRole(role) ||
+    isCommunityManagementRole(role) ||
+    isOperationsRole(role)
+  );
 }
 
 export type UnitClientEditMode =
