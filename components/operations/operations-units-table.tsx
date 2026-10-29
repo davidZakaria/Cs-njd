@@ -36,6 +36,10 @@ import {
 } from "@/components/ui/table";
 import { RemovableFilterChip } from "@/components/filters/removable-filter-chip";
 import type { UnitsHandoverGroup } from "@/lib/units/units-filter-url";
+import {
+  selectOptionItems,
+  selectOptionLabel,
+} from "@/lib/ui/select-option-label";
 
 const HANDOVER_OPTIONS: UnitsHandoverGroup[] = [
   "all",
@@ -267,15 +271,19 @@ function FilterSelect({
   onValueChange: (value: string) => void;
   options: Array<{ value: string; label: string }>;
 }) {
+  const displayLabel = selectOptionLabel(options, value);
+  const items = selectOptionItems(options);
+
   return (
     <div className="flex min-w-[10rem] flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>
       <Select
         value={value}
+        items={items}
         onValueChange={(next) => onValueChange(next ?? "")}
       >
         <SelectTrigger>
-          <SelectValue />
+          <SelectValue>{displayLabel}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {options.map((opt) => (
