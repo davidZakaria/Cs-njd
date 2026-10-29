@@ -32,6 +32,9 @@ jobs:
       - name: Run tests
         run: npm run test:ci
 
+      - name: Verify cron worker imports (tsx / PM2)
+        run: npm run verify:cron-imports
+
   lint-and-typecheck:
     name: Lint & Type Check
     runs-on: ubuntu-latest
