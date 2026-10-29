@@ -209,3 +209,10 @@ export function canDeleteRecords(role: Role): boolean {
 export function canAccessImportsOrUserAdmin(role: Role): boolean {
   return role === "SUPER_ADMIN" || role === "MANAGEMENT";
 }
+
+/** Operations contract archive progress — extend OPERATIONS_PROGRESS_ROLES when Role enum adds OPERATIONS. */
+const OPERATIONS_PROGRESS_ROLES: Role[] = ["SUPER_ADMIN", "MANAGEMENT"];
+
+export function canAccessOperationsProgressTracker(role: Role): boolean {
+  return OPERATIONS_PROGRESS_ROLES.includes(role);
+}

@@ -32,6 +32,7 @@ const roleRoutes: Record<Role, string[]> = {
   SUPER_ADMIN: [
     "/dashboard",
     "/executive",
+    "/operations",
     "/cases",
     "/units",
     "/users",
@@ -44,6 +45,7 @@ const roleRoutes: Record<Role, string[]> = {
   ],
   MANAGEMENT: [
     "/executive",
+    "/operations",
     "/dashboard",
     "/cases",
     "/units",
@@ -78,6 +80,7 @@ export function canAccessRoute(role: Role, path: string): boolean {
 export type NavItemKey =
   | "dashboard"
   | "executive"
+  | "operations"
   | "cases"
   | "units"
   | "engineering"
@@ -106,6 +109,11 @@ export function getCoreNavItems(role: Role) {
 
   const items: Array<{ href: string; key: NavItemKey; roles: Role[] }> = [
     { href: "/executive", key: "executive", roles: ["SUPER_ADMIN", "MANAGEMENT"] },
+    {
+      href: "/operations",
+      key: "operations",
+      roles: ["SUPER_ADMIN", "MANAGEMENT"],
+    },
     {
       href: "/dashboard",
       key: "dashboard",
@@ -185,6 +193,11 @@ export function getNavItems(role: Role) {
     roles: Role[];
   }> = [
     { href: "/executive", key: "executive", roles: ["SUPER_ADMIN", "MANAGEMENT"] },
+    {
+      href: "/operations",
+      key: "operations",
+      roles: ["SUPER_ADMIN", "MANAGEMENT"],
+    },
     {
       href: "/dashboard",
       key: "dashboard",
