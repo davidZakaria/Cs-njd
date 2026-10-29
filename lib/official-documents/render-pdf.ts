@@ -1,31 +1,18 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { Readable } from "node:stream";
 
-import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, degrees } from "pdf-lib";
 
 import type { MergeFieldValues } from "@/lib/official-documents/types";
 import { interpolateOfficialDocumentTemplate } from "@/lib/official-documents/merge-fields";
-
-const FONT_DIR = path.join(process.cwd(), "lib/official-documents/assets");
-
-let arabicFontBytes: Uint8Array | null = null;
-let latinFontBytes: Uint8Array | null = null;
-
-async function loadFonts() {
-  if (!arabicFontBytes) {
-    arabicFontBytes = await fs.readFile(
-      path.join(FONT_DIR, "NotoNaskhArabic-Regular.ttf")
-    );
-  }
-  if (!latinFontBytes) {
-    latinFontBytes = await fs.readFile(
-      path.join(FONT_DIR, "NotoSans-Regular.ttf")
-    );
-  }
-  return { arabicFontBytes, latinFontBytes };
-}
+import { prepareOfficialPdfFonts } from "@/lib/official-documents/pdf-fonts";
+import {
+  drawLtrLine,
+  drawRtlVisualLine,
+  measureVisualLineWidth,
+  stripBidiControls,
+  validateArabicLogicalLine,
+  wrapLogicalParagraph,
+} from "@/lib/official-documents/pdf-text-layout";
 
 export async function renderOfficialDocumentPdf(input: {
   title: string;
@@ -34,14 +21,10 @@ export async function renderOfficialDocumentPdf(input: {
   locale: string;
   watermarkDraft: boolean;
 }): Promise<Uint8Array> {
-  const { arabicFontBytes: arBytes, latinFontBytes: enBytes } = await loadFonts();
   const pdf = await PDFDocument.create();
-  pdf.registerFontkit(fontkit);
+  const fonts = await prepareOfficialPdfFonts(pdf);
 
   const useArabic = input.locale === "ar";
-  const font = await pdf.embedFont(useArabic ? arBytes! : enBytes!);
-  const bodyFont = await pdf.embedFont(useArabic ? arBytes! : enBytes!);
-
   const body = interpolateOfficialDocumentTemplate(
     input.bodyTemplate,
     input.fields
@@ -59,23 +42,42 @@ export async function renderOfficialDocumentPdf(input: {
   let y = pageHeight - margin;
 
   for (const paragraph of fullText.split("\n")) {
-    const lines = wrapText(paragraph, font, fontSize, maxWidth);
-    for (const line of lines.length > 0 ? lines : [""]) {
+    const logicalParagraph = stripBidiControls(paragraph);
+    if (useArabic) {
+      validateArabicLogicalLine(
+        logicalParagraph,
+        fonts,
+        "official-document-paragraph"
+      );
+    }
+
+    const lines = wrapLogicalParagraph(
+      logicalParagraph,
+      maxWidth,
+      fonts,
+      fontSize,
+      useArabic ? "rtl" : "ltr"
+    );
+
+    for (const line of lines) {
       if (y < margin + lineHeight) {
         page = pdf.addPage([pageWidth, pageHeight]);
         y = pageHeight - margin;
       }
-      const textWidth = font.widthOfTextAtSize(line, fontSize);
-      const x = useArabic
-        ? pageWidth - margin - textWidth
-        : margin;
-      page.drawText(line, {
-        x,
-        y,
-        size: fontSize,
-        font: bodyFont,
-        color: rgb(0.1, 0.1, 0.1),
-      });
+
+      if (useArabic) {
+        drawRtlVisualLine(page, line, fonts, {
+          xRight: pageWidth - margin,
+          y,
+          fontSize,
+        });
+      } else {
+        drawLtrLine(page, line, fonts, {
+          xLeft: margin,
+          y,
+          fontSize,
+        });
+      }
       y -= lineHeight;
     }
     y -= lineHeight * 0.35;
@@ -84,43 +86,32 @@ export async function renderOfficialDocumentPdf(input: {
   if (input.watermarkDraft) {
     const label = useArabic ? "مسودة — DRAFT" : "DRAFT";
     const wmSize = 42;
-    const wmFont = font;
-    const wmWidth = wmFont.widthOfTextAtSize(label, wmSize);
-    page.drawText(label, {
-      x: (pageWidth - wmWidth) / 2,
-      y: pageHeight / 2,
-      size: wmSize,
-      font: wmFont,
-      color: rgb(0.75, 0.75, 0.75),
-      rotate: degrees(-35),
-      opacity: 0.35,
-    });
+    const wmColor = rgb(0.75, 0.75, 0.75);
+    if (useArabic) {
+      const lineWidth = measureVisualLineWidth(label, fonts, wmSize);
+      drawRtlVisualLine(page, label, fonts, {
+        xRight: (pageWidth + lineWidth) / 2,
+        y: pageHeight / 2,
+        fontSize: wmSize,
+        color: wmColor,
+        opacity: 0.35,
+        rotate: degrees(-35),
+      });
+    } else {
+      const wmWidth = fonts.latin.widthOfTextAtSize(label, wmSize);
+      page.drawText(label, {
+        x: (pageWidth - wmWidth) / 2,
+        y: pageHeight / 2,
+        size: wmSize,
+        font: fonts.latin,
+        color: rgb(0.75, 0.75, 0.75),
+        rotate: degrees(-35),
+        opacity: 0.35,
+      });
+    }
   }
 
   return pdf.save();
-}
-
-function wrapText(
-  text: string,
-  font: Awaited<ReturnType<PDFDocument["embedFont"]>>,
-  fontSize: number,
-  maxWidth: number
-): string[] {
-  if (!text.trim()) return [""];
-  const words = text.split(/\s+/);
-  const lines: string[] = [];
-  let current = "";
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word;
-    if (font.widthOfTextAtSize(candidate, fontSize) <= maxWidth) {
-      current = candidate;
-    } else {
-      if (current) lines.push(current);
-      current = word;
-    }
-  }
-  if (current) lines.push(current);
-  return lines;
 }
 
 async function streamToBuffer(stream: Readable): Promise<Buffer> {
@@ -137,4 +128,18 @@ export async function readGeneratedDocumentBytes(
   const { readStoredObjectStream } = await import("@/lib/storage/object-store");
   const { stream } = await readStoredObjectStream(relativePath);
   return streamToBuffer(stream);
+}
+
+/** Generate sample PDF bytes for visual verification (tests / scripts). */
+export async function renderArabicSamplePdf(input: {
+  title: string;
+  body: string;
+}): Promise<Uint8Array> {
+  return renderOfficialDocumentPdf({
+    title: input.title,
+    bodyTemplate: input.body,
+    fields: {},
+    locale: "ar",
+    watermarkDraft: true,
+  });
 }

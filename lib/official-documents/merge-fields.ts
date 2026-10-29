@@ -4,6 +4,7 @@ import {
   type ClientWithContactLines,
 } from "@/lib/client/contact-lines";
 import type { MergeFieldValues } from "@/lib/official-documents/types";
+import { formatShortDateForOfficialPdf } from "@/lib/official-documents/pdf-text-layout";
 
 const DAY_NAMES_AR = [
   "الأحد",
@@ -179,9 +180,5 @@ function parseUnitCode(unitCode: string) {
 }
 
 function formatShortDate(date: Date, locale: string) {
-  return date.toLocaleDateString(locale === "ar" ? "ar-EG" : "en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return formatShortDateForOfficialPdf(date, locale);
 }
