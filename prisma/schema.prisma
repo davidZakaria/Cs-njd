@@ -211,6 +211,11 @@ model TwoFactorResetRequest {
 model Project {
   id        String   @id @default(cuid())
   name      String   @unique
+  unitCycleEnabled                    Boolean @default(false)
+  unitCycleContractDeadlineDays       Int     @default(5)
+  unitCycleFinanceDeadlineDays        Int     @default(5)
+  unitCycleEngineeringDeadlineDays    Int     @default(7)
+  unitCycleLegalHandoverDeadlineDays  Int     @default(7)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -308,6 +313,7 @@ model Unit {
   contractWorkflow ContractWorkflow?
   finishing        Finishing?
   tickets          Ticket[]
+  unitCycle        UnitCycle?
   engineeringApprovals UnitEngineeringApproval[]
 
   @@unique([projectId, unitCode])
@@ -463,6 +469,20 @@ enum NotificationKind {
   ACTIVITY
 }
 
+enum UnitCycleStageKey {
+  CONTRACT
+  FINANCE
+  ENGINEERING
+  LEGAL_HANDOVER
+}
+
+enum UnitCycleStageStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
 model Notification {
   id        String           @id @default(cuid())
   userId    String
@@ -497,6 +517,57 @@ model AuditLog {
   @@index([userId])
   @@index([tableName])
   @@index([timestamp])
+}
+
+model UnitCycle {
+  id        String   @id @default(cuid())
+  unitId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  unit   Unit              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  stages UnitCycleStage[]
+  events UnitCycleAuditEvent[]
+
+  @@index([unitId])
+}
+
+model UnitCycleStage {
+  id                String               @id @default(cuid())
+  unitCycleId       String
+  stageKey          UnitCycleStageKey
+  status            UnitCycleStageStatus @default(NOT_STARTED)
+  ownerRole         Role
+  deadlineAt        DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  completedByUserId String?
+  blockedReason     String?
+  lastEscalatedAt   DateTime?
+  sortOrder         Int
+
+  unitCycle UnitCycle @relation(fields: [unitCycleId], references: [id], onDelete: Cascade)
+
+  @@unique([unitCycleId, stageKey])
+  @@index([unitCycleId])
+  @@index([status])
+  @@index([deadlineAt])
+  @@index([ownerRole, status])
+}
+
+model UnitCycleAuditEvent {
+  id          String             @id @default(cuid())
+  unitCycleId String
+  stageKey    UnitCycleStageKey?
+  userId      String?
+  action      String
+  details     Json?
+  createdAt   DateTime           @default(now())
+
+  unitCycle UnitCycle @relation(fields: [unitCycleId], references: [id], onDelete: Cascade)
+
+  @@index([unitCycleId])
+  @@index([createdAt])
 }
 
 model BackupLog {

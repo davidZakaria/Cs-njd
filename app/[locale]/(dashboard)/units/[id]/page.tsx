@@ -63,6 +63,7 @@ import {
 } from "@/lib/client/contact-lines";
 import { toContactExtraLines } from "@/lib/client/contact-lines";
 import { formatUnitSwapHistoryMessage } from "@/lib/units/unit-swap-history";
+import { UnitCyclePanel } from "@/components/units/unit-cycle-panel";
 
 export default async function UnitProfilePage({
   params,
@@ -415,6 +416,14 @@ export default async function UnitProfilePage({
       <UnitContractUpdateFlags
         contractFlags={contractUpdateFlags}
         finishingNeedsUpdate={finishingContractNeedsUpdate}
+      />
+
+      <UnitCyclePanel
+        unitId={unit.id}
+        userRole={session?.user.role}
+        userId={session?.user.id}
+        unitAgentId={unit.agentId}
+        locale={locale}
       />
 
       {isCommunityViewer && !communityCanActOnUnit ? (

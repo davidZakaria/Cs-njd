@@ -11,6 +11,11 @@ import {
   getExecutiveFinancials,
 } from "@/lib/executive/financial-analytics";
 import { ExecutiveCommandCenter } from "@/components/executive/executive-command-center";
+import { getOverdueStagesForManagement, getMyStageTasks } from "@/lib/unit-cycle/queries";
+import {
+  MyStageTasksQueue,
+  OverdueStagesList,
+} from "@/components/unit-cycle/stage-task-queues";
 import {
   getInitialCommunityDailyActivity,
   type CommunityTrackerViewerRole,
@@ -19,6 +24,7 @@ import { format } from "date-fns";
 import { Link } from "@/i18n/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
+import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +45,7 @@ export default async function ExecutiveDashboardPage() {
 
   const communityTrackerDate = format(new Date(), "yyyy-MM-dd");
 
-  const [data, portfolio, projectSummaries, financials, kpis, communityDailyActivity] =
+  const [data, portfolio, projectSummaries, financials, kpis, communityDailyActivity, myStageTasks, overdueStages] =
     await Promise.all([
       getExecutiveDashboardData(session.user.id),
       getExecutivePortfolioMetrics(),
@@ -49,6 +55,12 @@ export default async function ExecutiveDashboardPage() {
         : Promise.resolve(null),
       getAgentKPIs(startDate, endDate),
       getInitialCommunityDailyActivity(communityTrackerDate),
+      getMyStageTasks({
+        prisma,
+        userId: session.user.id,
+        role: session.user.role,
+      }),
+      getOverdueStagesForManagement(prisma),
     ]);
 
   return (
@@ -71,11 +83,22 @@ export default async function ExecutiveDashboardPage() {
           </p>
         </div>
         <Link
+          href="/executive/project-settings"
+          className={cn(buttonVariants({ variant: "outline" }), "shrink-0")}
+        >
+          {t("projectSettings")}
+        </Link>
+        <Link
           href="/cases"
           className={cn(buttonVariants({ variant: "outline" }), "shrink-0")}
         >
           {t("viewAllCases")}
         </Link>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <MyStageTasksQueue tasks={myStageTasks} />
+        <OverdueStagesList tasks={overdueStages} />
       </div>
 
       <div className={cn(entranceAnimationClass, "animate-delay-150")}>
