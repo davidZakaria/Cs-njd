@@ -1,17 +1,23 @@
 import "dotenv/config";
+
 import cron from "node-cron";
-import { PrismaClient } from "@prisma/client";
+
 import {
   getBackupCronSchedule,
   runFullBackup,
 } from "../lib/backup/run-full-backup";
+import {
+  getUnitCycleCronSchedule,
+  runUnitCycleEscalationJob,
+} from "../lib/unit-cycle/escalation";
+import { prisma, basePrisma } from "../lib/prisma";
 
-const prisma = new PrismaClient();
-const schedule = getBackupCronSchedule();
+const backupSchedule = getBackupCronSchedule();
+const unitCycleSchedule = getUnitCycleCronSchedule();
 
 async function runScheduledBackup() {
   try {
-    const { manifest } = await runFullBackup(prisma, "SCHEDULED");
+    const { manifest } = await runFullBackup(basePrisma, "SCHEDULED");
     console.log(
       `[backup-cron] SUCCESS ${manifest.archive.filename} (${manifest.archive.sizeBytes} bytes)`
     );
@@ -25,10 +31,33 @@ async function runScheduledBackup() {
   }
 }
 
-if (!cron.validate(schedule)) {
-  console.error(`[backup-cron] Invalid BACKUP_CRON schedule: ${schedule}`);
-  process.exit(1);
+async function runScheduledUnitCycleEscalation() {
+  try {
+    const result = await runUnitCycleEscalationJob(prisma);
+    console.log(
+      `[unit-cycle-cron] scanned=${result.scanned} notified=${result.notified}`
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown unit cycle job failure";
+    console.error("[unit-cycle-cron] FAILED:", message);
+  }
 }
 
-console.log(`[backup-cron] Daily backup scheduled: ${schedule}`);
-cron.schedule(schedule, runScheduledBackup);
+for (const [label, schedule] of [
+  ["backup-cron", backupSchedule],
+  ["unit-cycle-cron", unitCycleSchedule],
+] as const) {
+  if (!cron.validate(schedule)) {
+    console.error(`[${label}] Invalid cron schedule: ${schedule}`);
+    process.exit(1);
+  }
+}
+
+console.log(`[backup-cron] Daily backup scheduled: ${backupSchedule}`);
+cron.schedule(backupSchedule, runScheduledBackup);
+
+console.log(
+  `[unit-cycle-cron] Overdue escalation scheduled: ${unitCycleSchedule}`
+);
+cron.schedule(unitCycleSchedule, runScheduledUnitCycleEscalation);

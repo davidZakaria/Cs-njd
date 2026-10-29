@@ -575,6 +575,7 @@
     "title": "مركز قيادة الإدارة",
     "subtitle": "نظرة على محفظة المشاريع وإجراءات سريعة — {name}",
     "viewAllCases": "عرض كل البلاغات",
+    "projectSettings": "إعدادات المشروع",
     "viewAllResolved": "عرض كل البلاغات المغلقة",
     "viewProjectCases": "عرض الوحدات التي لديها عمل مفتوح في هذا المشروع",
     "viewProjectResolved": "عرض البلاغات المغلقة لهذا المشروع",
@@ -1611,6 +1612,78 @@
       "LOGISTICS": "شحن / لوجستيات",
       "CUSTOMER_SERVICE": "خدمة العملاء",
       "NONE": "لا يوجد"
+    }
+  },
+  "unitCycle": {
+    "title": "دورة الوحدة",
+    "subtitle": "عقد → حسابات → هندسة → قانوني وتسليم",
+    "complete": "الدورة مكتملة",
+    "checklist": "قائمة المرحلة",
+    "due": "الاستحقاق {date}",
+    "blockedReason": "محظور: {reason}",
+    "auditTitle": "سجل الدورة",
+    "stages": {
+      "CONTRACT": "العقد",
+      "FINANCE": "الحسابات",
+      "ENGINEERING": "الهندسة",
+      "LEGAL_HANDOVER": "قانوني وتسليم"
+    },
+    "status": {
+      "NOT_STARTED": "لم تبدأ",
+      "IN_PROGRESS": "قيد التنفيذ",
+      "BLOCKED": "محظور",
+      "DONE": "منتهية"
+    },
+    "checklistItems": {
+      "contract_date_recorded": "تاريخ العقد مسجل",
+      "sale_contract_flagged": "عقد ابتدائي أو نهائي مُعلَّم",
+      "signed_contract_uploaded": "ملف العقد الموقع مرفوع",
+      "delivery_date_recorded": "تاريخ التسليم مسجل",
+      "fees_paid_when_due": "رسوم الأبواب/الألوميتال مُسدَّدة عند الاقتضاء",
+      "finishing_finance_clear": "بيانات التشطيب المالية سليمة",
+      "finishing_work_complete": "مراحل التشطيب الهندسية مكتملة",
+      "modifications_complete": "التعديلات المخصصة مكتملة",
+      "cs_engineering_approval": "موافقة CS الهندسية مسجلة",
+      "handover_papers_complete": "أوراق التسليم مكتملة (محضر، أوراق، ملحق إن لزم)",
+      "not_legally_blocked": "لا يوجد حظر قانوني",
+      "handover_protocol_signed": "محضر التسليم موقع",
+      "paper_handover_complete": "محضر أصلي وتسليم مفتاح مسجل"
+    },
+    "actions": {
+      "completeStage": "إتمام المرحلة",
+      "block": "تعليم كمحظور",
+      "unblock": "استئناف المرحلة",
+      "approveEngineering": "اعتماد الهندسة (CS)"
+    },
+    "auditActions": {
+      "cycle_initialized": "تهيئة الدورة",
+      "stage_completed": "إتمام مرحلة",
+      "stage_blocked": "حظر مرحلة",
+      "stage_unblocked": "رفع حظر مرحلة",
+      "engineering_cs_approved": "اعتماد CS للهندسة",
+      "escalated_overdue": "تصعيد مرحلة متأخرة"
+    },
+    "myTasks": {
+      "title": "مهام مرحلتي",
+      "empty": "لا مهام مرحلة نشطة لدورك.",
+      "overdue": "متأخر"
+    },
+    "overdue": {
+      "title": "مراحل متأخرة",
+      "empty": "لا مراحل دورة متأخرة.",
+      "row": "{stage} · متأخر {days} يوم"
+    },
+    "projectSettings": {
+      "pageTitle": "إعدادات المشروع",
+      "pageSubtitle": "تفعيل تجربة دورة الوحدة وتكوين مهلة كل مرحلة (بالأيام).",
+      "backToExecutive": "العودة للوحة التنفيذية",
+      "hint": "عند التفعيل، تحصل وحدات المشروع على دورة من أربع مراحل عند أول زيارة أو عبر التعبئة.",
+      "enabled": "دورة الوحدة مفعّلة",
+      "contractDays": "أيام العقد",
+      "financeDays": "أيام الحسابات",
+      "engineeringDays": "أيام الهندسة",
+      "legalDays": "أيام قانوني وتسليم",
+      "save": "حفظ الإعدادات"
     }
   }
 }

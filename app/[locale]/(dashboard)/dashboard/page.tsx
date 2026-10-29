@@ -28,6 +28,8 @@ import { format } from "date-fns";
 import { Link } from "@/i18n/navigation";
 import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { buildUnitsFilterUrl } from "@/lib/units/units-filter-url";
+import { MyStageTasksQueue } from "@/components/unit-cycle/stage-task-queues";
+import { getMyStageTasks } from "@/lib/unit-cycle/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +55,7 @@ export default async function DashboardPage() {
     session?.user.role === "COMMUNITY_MANAGEMENT";
   const communityTrackerDate = format(new Date(), "yyyy-MM-dd");
 
-  const [totalUnits, pendingTickets, deliveredUnits, legalDisputes, pendingWork, communityDailyActivity] =
+  const [totalUnits, pendingTickets, deliveredUnits, legalDisputes, pendingWork, communityDailyActivity, myStageTasks] =
     await Promise.all([
       prisma.unit.count({
         where: activeUnitWhere(csScope ? {} : assignedUnitScope),
@@ -100,6 +102,14 @@ export default async function DashboardPage() {
       isCommunityManagement
         ? getInitialCommunityDailyActivity(communityTrackerDate)
         : Promise.resolve(null),
+      session?.user
+        ? getMyStageTasks({
+            prisma,
+            userId: session.user.id,
+            role: session.user.role,
+            agentIdForCs: csScope?.effectiveAgentId,
+          })
+        : Promise.resolve([]),
     ]);
 
   const stats = [
@@ -193,7 +203,10 @@ export default async function DashboardPage() {
       </div>
 
       {session?.user.role === "CS_AGENT" ? (
-        <PendingWorkQueue items={pendingWork} groupByProject />
+        <>
+          <MyStageTasksQueue tasks={myStageTasks} />
+          <PendingWorkQueue items={pendingWork} groupByProject />
+        </>
       ) : null}
     </div>
   );

@@ -210,7 +210,10 @@ describe("User Management Server Actions - RBAC", () => {
       });
       
       expect(result.success).toBe(false);
-      expect(result).toHaveProperty("error", "Management can only create CS agents or site engineers");
+      expect(result).toHaveProperty(
+        "error",
+        "Management can only create CS agents, community management, or site engineers"
+      );
     });
 
     it("denies MANAGEMENT from creating MANAGEMENT", async () => {
@@ -228,7 +231,10 @@ describe("User Management Server Actions - RBAC", () => {
       });
       
       expect(result.success).toBe(false);
-      expect(result).toHaveProperty("error", "Management can only create CS agents or site engineers");
+      expect(result).toHaveProperty(
+        "error",
+        "Management can only create CS agents, community management, or site engineers"
+      );
     });
 
     it("rejects duplicate email", async () => {
@@ -390,7 +396,10 @@ describe("User Management Server Actions - RBAC", () => {
       });
       
       expect(result.success).toBe(false);
-      expect(result).toHaveProperty("error", "Management can only assign CS agent or site engineer role");
+      expect(result).toHaveProperty(
+        "error",
+        "Management can only assign CS agent, community management, or site engineer role"
+      );
     });
 
     it("returns error when user not found", async () => {

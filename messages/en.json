@@ -575,6 +575,7 @@
     "title": "Executive Command Center",
     "subtitle": "Project portfolio overview and quick actions — {name}",
     "viewAllCases": "Full cases view",
+    "projectSettings": "Project settings",
     "viewAllResolved": "View all resolved cases",
     "viewProjectCases": "View units with open work for this project",
     "viewProjectResolved": "View resolved cases for this project",
@@ -1611,6 +1612,78 @@
       "LOGISTICS": "Shipping / Logistics",
       "CUSTOMER_SERVICE": "Customer Service",
       "NONE": "None"
+    }
+  },
+  "unitCycle": {
+    "title": "Unit cycle",
+    "subtitle": "Contract → Finance → Engineering → Legal & handover",
+    "complete": "Cycle complete",
+    "checklist": "Stage checklist",
+    "due": "Due {date}",
+    "blockedReason": "Blocked: {reason}",
+    "auditTitle": "Cycle history",
+    "stages": {
+      "CONTRACT": "Contract",
+      "FINANCE": "Finance",
+      "ENGINEERING": "Engineering",
+      "LEGAL_HANDOVER": "Legal & handover"
+    },
+    "status": {
+      "NOT_STARTED": "Not started",
+      "IN_PROGRESS": "In progress",
+      "BLOCKED": "Blocked",
+      "DONE": "Done"
+    },
+    "checklistItems": {
+      "contract_date_recorded": "Contract date recorded",
+      "sale_contract_flagged": "Preliminary or final sale contract flagged",
+      "signed_contract_uploaded": "Signed contract file uploaded",
+      "delivery_date_recorded": "Delivery date recorded",
+      "fees_paid_when_due": "Door/aluminum fees marked paid when applicable",
+      "finishing_finance_clear": "Finishing financials pass data-quality checks",
+      "finishing_work_complete": "Engineering finishing phases complete",
+      "modifications_complete": "Custom modifications completed",
+      "cs_engineering_approval": "CS engineering approval recorded",
+      "handover_papers_complete": "Handover papers complete (protocol, papers, extension if needed)",
+      "not_legally_blocked": "No active legal block",
+      "handover_protocol_signed": "Handover protocol signed",
+      "paper_handover_complete": "Original protocol and key handover recorded"
+    },
+    "actions": {
+      "completeStage": "Complete stage",
+      "block": "Mark blocked",
+      "unblock": "Resume stage",
+      "approveEngineering": "Approve engineering (CS)"
+    },
+    "auditActions": {
+      "cycle_initialized": "Cycle initialized",
+      "stage_completed": "Stage completed",
+      "stage_blocked": "Stage blocked",
+      "stage_unblocked": "Stage unblocked",
+      "engineering_cs_approved": "CS engineering approval",
+      "escalated_overdue": "Escalated overdue stage"
+    },
+    "myTasks": {
+      "title": "My stage tasks",
+      "empty": "No active stage tasks for your role.",
+      "overdue": "Overdue"
+    },
+    "overdue": {
+      "title": "Overdue stages",
+      "empty": "No overdue unit cycle stages.",
+      "row": "{stage} · {days} day(s) overdue"
+    },
+    "projectSettings": {
+      "pageTitle": "Project settings",
+      "pageSubtitle": "Enable the per-unit cycle pilot and configure stage deadlines (days).",
+      "backToExecutive": "Back to executive",
+      "hint": "When enabled, units in this project get the four-stage cycle on first access or backfill.",
+      "enabled": "Unit cycle enabled",
+      "contractDays": "Contract days",
+      "financeDays": "Finance days",
+      "engineeringDays": "Engineering days",
+      "legalDays": "Legal & handover days",
+      "save": "Save settings"
     }
   }
 }
