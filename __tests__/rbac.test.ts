@@ -181,6 +181,11 @@ describe("RBAC Role Access Control", () => {
       expect(canAccessRoute(role, "/executive")).toBe(true);
     });
 
+    it("can access operations progress", () => {
+      expect(canAccessRoute(role, "/operations")).toBe(true);
+      expect(canAccessRoute(role, "/operations/units/abc")).toBe(true);
+    });
+
     it("can access dashboard", () => {
       expect(canAccessRoute(role, "/dashboard")).toBe(true);
     });
@@ -236,6 +241,10 @@ describe("RBAC Role Access Control", () => {
 
     it("cannot access executive", () => {
       expect(canAccessRoute(role, "/executive")).toBe(false);
+    });
+
+    it("cannot access operations progress", () => {
+      expect(canAccessRoute(role, "/operations")).toBe(false);
     });
 
     it("cannot access users", () => {

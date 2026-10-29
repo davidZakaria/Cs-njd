@@ -9,6 +9,7 @@ import {
   FileUp,
   HardHat,
   LayoutDashboard,
+  ListChecks,
   ScrollText,
   Settings,
   Users,
@@ -50,6 +51,7 @@ import { JCommunitiesLogo } from "@/components/brand/j-communities-logo";
 const iconMap = {
   dashboard: LayoutDashboard,
   executive: BarChart3,
+  operations: ListChecks,
   cases: ClipboardList,
   units: Building2,
   engineering: HardHat,

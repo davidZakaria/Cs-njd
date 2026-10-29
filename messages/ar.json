@@ -393,6 +393,7 @@
   "nav": {
     "dashboard": "لوحة التحكم",
     "executive": "لوحة الإدارة",
+    "operations": "متابعة العمليات",
     "cases": "بلاغات العملاء",
     "units": "الوحدات",
     "engineering": "بوابة الهندسة",
@@ -777,6 +778,73 @@
         "STATUS_CHANGE": "تغيير حالة",
         "CASE_RESOLVED": "إغلاق حالة"
       }
+    }
+  },
+  "operations": {
+    "title": "متابعة العمليات",
+    "subtitle": "قائمة متابعة أرشيف العقود لكل وحدة — عرض للإدارة والعمليات فقط.",
+    "search": "بحث",
+    "searchPlaceholder": "رمز الوحدة أو العميل أو المشروع…",
+    "progressLabel": "{done} من {total} مكتمل",
+    "empty": "لا توجد وحدات مطابقة للفلاتر الحالية.",
+    "status": {
+      "done": "مكتمل",
+      "missing": "ناقص",
+      "needs_update": "يحتاج تحديث",
+      "not_applicable": "غير مطبّق"
+    },
+    "items": {
+      "primaryOwnerId": "رفع هوية المالك الأساسي",
+      "coOwnerIds": "رفع هويات الملاك المشاركين",
+      "preliminaryContract": "عقد البيع المبدئي",
+      "finalContract": "عقد البيع النهائي",
+      "handoverRecord": "محضر التسليم",
+      "finishingContract": "عقد التشطيبات",
+      "gracePeriodAnnex": "ملحق المد",
+      "archiveFiling": "الأرشفة (استلام الأوراق)",
+      "finishingFinancials": "البيانات المالية للتشطيب صحيحة",
+      "siteVisit": "زيارة الموقع",
+      "paperHandoverChecks": "خطوات التسليم الورقي"
+    },
+    "filters": {
+      "project": "المشروع",
+      "allProjects": "كل المشاريع",
+      "handover": "حالة التسليم",
+      "handoverGroup": {
+        "all": "الكل",
+        "delivered": "تم التسليم",
+        "atRisk": "معرض للخطر",
+        "legal": "قانوني / نزاع"
+      },
+      "missingItem": "بند ناقص",
+      "anyItem": "أي بند",
+      "agent": "موظف خدمة العملاء",
+      "allAgents": "كل الموظفين",
+      "unassigned": "غير معيّن",
+      "searchChip": "بحث: {q}"
+    },
+    "table": {
+      "project": "المشروع",
+      "unit": "الوحدة",
+      "client": "العميل",
+      "agent": "موظف CS",
+      "progress": "التقدم",
+      "unassigned": "غير معيّن"
+    },
+    "summary": {
+      "title": "التقدم حسب المشروع",
+      "unitCount": "{count, plural, one {وحدة واحدة} two {وحدتان} few {# وحدات} many {# وحدة} other {# وحدة}}",
+      "percentComplete": "{percent}% مكتمل"
+    },
+    "detail": {
+      "back": "العودة لقائمة العمليات",
+      "overall": "التقدم الإجمالي",
+      "percent": "{percent}% مكتمل",
+      "item": "البند",
+      "status": "الحالة",
+      "action": "إصلاح من ملف الوحدة",
+      "openTab": "فتح التبويب",
+      "openUnitProfile": "فتح ملف الوحدة الكامل"
     }
   },
   "units": {
