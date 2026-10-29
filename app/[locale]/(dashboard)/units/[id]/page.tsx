@@ -49,6 +49,8 @@ import {
 } from "@/lib/auth/role-permissions";
 import { listUnitEngineeringApprovalHistory } from "@/lib/workflow/engineering-approval-log";
 import { UnitEngineeringApprovalsPanel } from "@/components/units/unit-engineering-approvals-panel";
+import { listUnitRequestsForUnit } from "@/lib/actions/unit-requests";
+import { UnitRequestsPanel } from "@/components/units/unit-requests-panel";
 import {
   canAccessCsPortfolioDocuments,
   canManageCsPortfolioDocumentFiles,
@@ -130,6 +132,8 @@ export default async function UnitProfilePage({
     session?.user.role === "CS_AGENT"
       ? await resolveCsAgentScope(session.user)
       : null;
+
+  const unitRequests = session?.user ? await listUnitRequestsForUnit(id) : [];
 
   const projectLabel = await labels.project(unit.project.name);
   const agentLabel = unit.agent
@@ -424,7 +428,15 @@ export default async function UnitProfilePage({
         userId={session?.user.id}
         unitAgentId={unit.agentId}
         locale={locale}
+        openRequests={unitRequests.map((r) => ({
+          id: r.id,
+          type: r.type,
+          status: r.status,
+          unitCycleStageKey: r.unitCycleStageKey,
+        }))}
       />
+
+      <UnitRequestsPanel unitId={unit.id} requests={unitRequests} locale={locale} />
 
       {isCommunityViewer && !communityCanActOnUnit ? (
         <Alert>

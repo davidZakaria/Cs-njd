@@ -33,6 +33,7 @@ const roleRoutes: Record<Role, string[]> = {
     "/dashboard",
     "/executive",
     "/operations",
+    "/requests",
     "/cases",
     "/units",
     "/users",
@@ -46,6 +47,7 @@ const roleRoutes: Record<Role, string[]> = {
   MANAGEMENT: [
     "/executive",
     "/operations",
+    "/requests",
     "/dashboard",
     "/cases",
     "/units",
@@ -56,6 +58,7 @@ const roleRoutes: Record<Role, string[]> = {
   CS_AGENT: [
     "/dashboard",
     "/operations",
+    "/requests",
     "/cases",
     "/units",
     "/notifications",
@@ -63,6 +66,7 @@ const roleRoutes: Record<Role, string[]> = {
   ],
   COMMUNITY_MANAGEMENT: [
     "/dashboard",
+    "/requests",
     "/cases",
     "/units",
     "/notifications",
@@ -90,6 +94,7 @@ export type NavItemKey =
   | "dashboard"
   | "executive"
   | "operations"
+  | "requests"
   | "cases"
   | "units"
   | "engineering"
@@ -122,6 +127,16 @@ export function getCoreNavItems(role: Role) {
       href: "/operations",
       key: "operations",
       roles: ["SUPER_ADMIN", "MANAGEMENT", "OPERATIONS", "CS_AGENT"],
+    },
+    {
+      href: "/requests",
+      key: "requests",
+      roles: [
+        "SUPER_ADMIN",
+        "MANAGEMENT",
+        "CS_AGENT",
+        "COMMUNITY_MANAGEMENT",
+      ],
     },
     {
       href: "/dashboard",
@@ -212,6 +227,16 @@ export function getNavItems(role: Role) {
       href: "/operations",
       key: "operations",
       roles: ["SUPER_ADMIN", "MANAGEMENT", "OPERATIONS", "CS_AGENT"],
+    },
+    {
+      href: "/requests",
+      key: "requests",
+      roles: [
+        "SUPER_ADMIN",
+        "MANAGEMENT",
+        "CS_AGENT",
+        "COMMUNITY_MANAGEMENT",
+      ],
     },
     {
       href: "/dashboard",

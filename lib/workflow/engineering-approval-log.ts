@@ -16,8 +16,8 @@ export async function recordUnitEngineeringApproval(input: {
   approvedById: string;
   summary?: string | null;
   payload?: Prisma.InputJsonValue;
-}): Promise<void> {
-  await prisma.unitEngineeringApproval.create({
+}): Promise<{ id: string }> {
+  const created = await prisma.unitEngineeringApproval.create({
     data: {
       unitId: input.unitId,
       kind: input.kind,
@@ -25,7 +25,9 @@ export async function recordUnitEngineeringApproval(input: {
       summary: input.summary ?? null,
       payload: input.payload ?? undefined,
     },
+    select: { id: true },
   });
+  return created;
 }
 
 export async function listUnitEngineeringApprovalHistory(

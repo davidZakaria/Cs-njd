@@ -237,6 +237,18 @@ export function canAccessOperationsProgressTracker(role: Role): boolean {
   return OPERATIONS_PROGRESS_ROLES.includes(role);
 }
 
+/** Internal request & approval workflow (/requests). Operations cannot access. */
+export function canAccessRequestsDashboard(role: Role): boolean {
+  if (isOperationsRole(role)) return false;
+  if (role === "ENGINEER") return false;
+  if (isCommunityManagementRole(role)) return true;
+  return (
+    isCsAgentRole(role) ||
+    isAdminUnitManager(role) ||
+    role === "SUPER_ADMIN"
+  );
+}
+
 /** Engineering sign-offs on Unit 360 (any unit for CS agents). */
 export function canApproveEngineeringSiteVisitOnUnit(role: Role): boolean {
   return (

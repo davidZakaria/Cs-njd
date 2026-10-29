@@ -15,6 +15,7 @@ import {
   Users,
   Shield,
   ShieldAlert,
+  FileText,
   Gauge,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -52,6 +53,7 @@ const iconMap = {
   dashboard: LayoutDashboard,
   executive: BarChart3,
   operations: ListChecks,
+  requests: FileText,
   cases: ClipboardList,
   units: Building2,
   engineering: HardHat,

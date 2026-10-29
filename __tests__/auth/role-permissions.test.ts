@@ -23,6 +23,7 @@ import {
   isCsAgentAssignedToUnit,
   canViewUnitProfile,
   canAccessOperationsProgressTracker,
+  canAccessRequestsDashboard,
   canEditOperationsArchiveFilingOnUnit,
   canUploadOperationsArchiveDocuments,
   canApproveEngineeringSiteVisitOnUnit,
@@ -95,6 +96,7 @@ describe("role-permissions matrix", () => {
 
     it("may read operations progress and perform engineering approvals on any unit", () => {
       expect(canAccessOperationsProgressTracker(role)).toBe(true);
+      expect(canAccessRequestsDashboard(role)).toBe(true);
       expect(canEditOperationsArchiveFilingOnUnit(role)).toBe(false);
       expect(canApproveEngineeringSiteVisitOnUnit(role)).toBe(true);
       expect(canApproveEngineeringSnagDefectOnUnit(role)).toBe(true);

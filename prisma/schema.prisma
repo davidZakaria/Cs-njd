@@ -162,6 +162,34 @@ enum EngineeringApprovalKind {
   DATA_ENTRY
 }
 
+enum UnitRequestType {
+  CONTRACT_ISSUE_OR_AMENDMENT
+  GRACE_PERIOD_ANNEX
+  UNIT_SWAP
+  FINISHING_PRICE_CHANGE_OR_DISCOUNT
+  PAYMENT_PLAN_CHANGE
+  REFUND
+  SITE_VISIT
+  SNAG_OR_DEFECT
+  HANDOVER_APPOINTMENT
+  DOCUMENT_CORRECTION
+}
+
+enum UnitRequestStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum UnitRequestApproverKind {
+  LEGAL
+  FINANCE
+  MANAGEMENT
+  CS_AGENT
+}
+
 model User {
   id                     String    @id @default(cuid())
   name                   String
@@ -188,6 +216,11 @@ model User {
   twoFactorResetRequests TwoFactorResetRequest[] @relation("TwoFactorResetRequestUser")
   twoFactorResetReviews  TwoFactorResetRequest[] @relation("TwoFactorResetRequestReviewer")
   engineeringApprovals   UnitEngineeringApproval[]
+  submittedRequests      UnitRequest[]             @relation("UnitRequestRequestedBy")
+  resolvedRequests       UnitRequest[]             @relation("UnitRequestResolvedBy")
+  requestComments        RequestComment[]
+  requestAttachments     RequestAttachment[]
+  requestAuditEvents     RequestAuditEvent[]
 
   @@index([role])
   @@index([deletedAt])
@@ -242,6 +275,7 @@ model Client {
   unitLinks   UnitClient[]
   phones    ClientPhone[]
   addresses ClientAddress[]
+  unitRequests UnitRequest[]
 
   @@index([name])
   @@index([phone1])
@@ -315,6 +349,7 @@ model Unit {
   tickets          Ticket[]
   unitCycle        UnitCycle?
   engineeringApprovals UnitEngineeringApproval[]
+  unitRequests     UnitRequest[]
 
   @@unique([projectId, unitCode])
   @@index([projectId])
@@ -619,7 +654,95 @@ model UnitEngineeringApproval {
 
   unit       Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
   approvedBy User @relation(fields: [approvedById], references: [id], onDelete: Cascade)
+  unitRequest UnitRequest?
 
   @@index([unitId, createdAt])
   @@index([approvedById])
+}
+
+model UnitRequest {
+  id                      String                   @id @default(cuid())
+  type                    UnitRequestType
+  unitId                  String
+  clientId                String?
+  requestedById           String
+  status                  UnitRequestStatus        @default(DRAFT)
+  currentStepIndex        Int                      @default(0)
+  currentApproverKind     UnitRequestApproverKind?
+  dueDate                 DateTime?
+  description             String?
+  unitCycleStageKey       UnitCycleStageKey?
+  linkedSwapTargetUnitId  String?
+  engineeringApprovalId   String?                  @unique
+  escalatedToManagement   Boolean                  @default(false)
+  lastEscalatedAt         DateTime?
+  submittedAt             DateTime?
+  resolvedAt              DateTime?
+  resolvedById            String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  unit                  Unit                     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  client                Client?                  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  requestedBy           User                     @relation("UnitRequestRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
+  resolvedBy            User?                    @relation("UnitRequestResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  engineeringApproval   UnitEngineeringApproval? @relation(fields: [engineeringApprovalId], references: [id], onDelete: SetNull)
+  comments              RequestComment[]
+  attachments           RequestAttachment[]
+  auditEvents           RequestAuditEvent[]
+
+  @@index([unitId])
+  @@index([clientId])
+  @@index([requestedById])
+  @@index([status])
+  @@index([type])
+  @@index([currentApproverKind, status])
+  @@index([dueDate])
+  @@index([unitCycleStageKey])
+  @@index([status, dueDate])
+}
+
+model RequestComment {
+  id        String   @id @default(cuid())
+  requestId String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  request UnitRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  author  User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([authorId])
+}
+
+model RequestAttachment {
+  id           String   @id @default(cuid())
+  requestId    String
+  storedName   String
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  request    UnitRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  uploadedBy User        @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
+
+model RequestAuditEvent {
+  id        String   @id @default(cuid())
+  requestId String
+  userId    String?
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  request UnitRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user    User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([requestId])
+  @@index([createdAt])
 }
