@@ -247,8 +247,9 @@ describe("RBAC Role Access Control", () => {
       expect(canAccessRoute(role, "/executive")).toBe(false);
     });
 
-    it("cannot access operations progress", () => {
-      expect(canAccessRoute(role, "/operations")).toBe(false);
+    it("can access operations progress read-only", () => {
+      expect(canAccessRoute(role, "/operations")).toBe(true);
+      expect(canAccessRoute(role, "/operations/units/abc")).toBe(true);
     });
 
     it("cannot access users", () => {
@@ -336,6 +337,7 @@ describe("RBAC Navigation Items", () => {
       const items = getCoreNavItems("CS_AGENT");
       const hrefs = items.map((i) => i.href);
       expect(hrefs).toContain("/dashboard");
+      expect(hrefs).toContain("/operations");
       expect(hrefs).not.toContain("/engineering");
       expect(hrefs).not.toContain("/executive");
     });

@@ -230,8 +230,33 @@ export const OPERATIONS_PROGRESS_ROLES: Role[] = [
   "SUPER_ADMIN",
   "MANAGEMENT",
   "OPERATIONS",
+  "CS_AGENT",
 ];
 
 export function canAccessOperationsProgressTracker(role: Role): boolean {
   return OPERATIONS_PROGRESS_ROLES.includes(role);
+}
+
+/** Engineering sign-offs on Unit 360 (any unit for CS agents). */
+export function canApproveEngineeringSiteVisitOnUnit(role: Role): boolean {
+  return (
+    isCsAgentRole(role) || isAdminUnitManager(role) || role === "SUPER_ADMIN"
+  );
+}
+
+export function canApproveEngineeringSnagDefectOnUnit(role: Role): boolean {
+  return canApproveEngineeringSiteVisitOnUnit(role);
+}
+
+export function canSignOffEngineeringReadinessOnUnit(role: Role): boolean {
+  return canApproveEngineeringSiteVisitOnUnit(role);
+}
+
+/** Phases / site notes — same gate as engineer portal updates, without /engineering route. */
+export function canEnterEngineeringDataOnUnit(role: Role): boolean {
+  return canApproveEngineeringSiteVisitOnUnit(role);
+}
+
+export function canUseUnitEngineeringApprovalsPanel(role: Role): boolean {
+  return canApproveEngineeringSiteVisitOnUnit(role);
 }

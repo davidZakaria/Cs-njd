@@ -43,8 +43,12 @@ import {
   canUploadClientNationalIdScan,
   canManageClientNationalIdFile,
   canLogCallOnUnit,
+  canApproveEngineeringSiteVisitOnUnit,
+  canUseUnitEngineeringApprovalsPanel,
   isCsAgentAssignedToUnit,
 } from "@/lib/auth/role-permissions";
+import { listUnitEngineeringApprovalHistory } from "@/lib/workflow/engineering-approval-log";
+import { UnitEngineeringApprovalsPanel } from "@/components/units/unit-engineering-approvals-panel";
 import {
   canAccessCsPortfolioDocuments,
   canManageCsPortfolioDocumentFiles,
@@ -246,6 +250,17 @@ export default async function UnitProfilePage({
     session?.user.role != null
       ? canEditOperationsArchiveFilingOnUnit(session.user.role)
       : false;
+  const canEngineeringApproveSiteVisit =
+    session?.user.role != null
+      ? canApproveEngineeringSiteVisitOnUnit(session.user.role)
+      : false;
+  const canUseEngineeringApprovals =
+    session?.user.role != null
+      ? canUseUnitEngineeringApprovalsPanel(session.user.role)
+      : false;
+  const engineeringApprovalHistory = canUseEngineeringApprovals
+    ? await listUnitEngineeringApprovalHistory(unit.id)
+    : [];
   const isOperationsViewer =
     session?.user.role != null && isOperationsRole(session.user.role);
   const showLegalHandoverForm =
@@ -446,7 +461,33 @@ export default async function UnitProfilePage({
           />
         </TabsContent>
 
-        <TabsContent value="financials">
+        <TabsContent value="financials" className="space-y-6">
+          {canUseEngineeringApprovals ? (
+            <UnitEngineeringApprovalsPanel
+              canUse={canUseEngineeringApprovals}
+              history={engineeringApprovalHistory}
+              defaults={{
+                unitId: unit.id,
+                siteVisitDone: unit.contractWorkflow?.siteVisitDone ?? false,
+                siteVisitDate1:
+                  unit.contractWorkflow?.siteVisitDate1?.toISOString() ?? null,
+                siteVisitDate2:
+                  unit.contractWorkflow?.siteVisitDate2?.toISOString() ?? null,
+                siteVisitDate3:
+                  unit.contractWorkflow?.siteVisitDate3?.toISOString() ?? null,
+                phases:
+                  unit.finishing?.phases?.length
+                    ? unit.finishing.phases
+                    : unit.finishing?.phase
+                      ? [unit.finishing.phase]
+                      : ["NOT_STARTED"],
+                packageType: unit.finishing?.packageType ?? null,
+                customModifications: unit.finishing?.customModifications ?? null,
+                modificationsCompleted:
+                  unit.finishing?.modificationsCompleted ?? true,
+              }}
+            />
+          ) : null}
           <UnitFinishingForm
             canEditManagement={canEditAdmin}
             canEditFinishing={canEditFinishing}
@@ -488,6 +529,7 @@ export default async function UnitProfilePage({
             <UnitLegalHandoverForm
               canEditManagement={canEditAdmin || canEditLegalHandover}
               canEditCsChecklist={canEditCsChecklist}
+              canEngineeringApproveSiteVisit={canEngineeringApproveSiteVisit}
               canEditOperationsArchiveFiling={canEditOperationsArchiveFiling}
               canUploadGracePeriodAnnex={canCsPortfolioDocs}
               canManageGracePeriodAnnexFiles={canManagePortfolioDocFiles}
