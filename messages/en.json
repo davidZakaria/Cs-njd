@@ -394,6 +394,7 @@
     "dashboard": "Dashboard",
     "executive": "Executive",
     "operations": "Operations progress",
+    "requests": "Requests",
     "cases": "Cases",
     "units": "Units",
     "engineering": "Engineering Portal",
@@ -1731,6 +1732,110 @@
       "LOGISTICS": "Shipping / Logistics",
       "CUSTOMER_SERVICE": "Customer Service",
       "NONE": "None"
+    },
+    "unitRequestType": {
+      "CONTRACT_ISSUE_OR_AMENDMENT": "Contract issue or amendment",
+      "GRACE_PERIOD_ANNEX": "Grace period annex",
+      "UNIT_SWAP": "Unit swap",
+      "FINISHING_PRICE_CHANGE_OR_DISCOUNT": "Finishing price change or discount",
+      "PAYMENT_PLAN_CHANGE": "Payment plan change",
+      "REFUND": "Refund",
+      "SITE_VISIT": "Site visit",
+      "SNAG_OR_DEFECT": "Snag or defect",
+      "HANDOVER_APPOINTMENT": "Handover appointment",
+      "DOCUMENT_CORRECTION": "Document correction"
+    },
+    "unitRequestStatus": {
+      "DRAFT": "Draft",
+      "PENDING": "Pending approval",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected",
+      "CANCELLED": "Cancelled"
+    },
+    "unitRequestApproverKind": {
+      "LEGAL": "Legal",
+      "FINANCE": "Finance",
+      "MANAGEMENT": "Management",
+      "CS_AGENT": "CS agent"
+    }
+  },
+  "requests": {
+    "title": "Requests",
+    "subtitle": "Internal approvals for contract, finance, engineering, and handover changes.",
+    "empty": "No requests match your filters.",
+    "open": "Open",
+    "overdue": "Overdue",
+    "escalated": "Escalated",
+    "views": {
+      "awaiting": "Awaiting my approval",
+      "submitted": "My submissions",
+      "all": "All visible"
+    },
+    "filters": {
+      "status": "Status",
+      "type": "Type",
+      "project": "Project",
+      "overdue": "Overdue only",
+      "allStatuses": "All statuses",
+      "allTypes": "All types",
+      "allProjects": "All projects",
+      "clear": "Clear filters"
+    },
+    "columns": {
+      "unit": "Unit",
+      "type": "Type",
+      "status": "Status",
+      "due": "Due",
+      "requestedBy": "Requested by",
+      "actions": "Actions"
+    },
+    "create": {
+      "title": "New request",
+      "unitId": "Unit ID",
+      "type": "Request type",
+      "description": "Description",
+      "swapTargetUnitId": "Target empty unit ID",
+      "submit": "Create draft",
+      "created": "Draft created",
+      "failed": "Could not create request"
+    },
+    "detail": {
+      "description": "Description",
+      "submit": "Submit for approval",
+      "approve": "Approve step",
+      "reject": "Reject",
+      "cancel": "Cancel request",
+      "decisionNotePlaceholder": "Optional note for approvers or audit",
+      "attachments": "Attachments",
+      "noAttachments": "No files uploaded yet.",
+      "upload": "Upload",
+      "uploaded": "File uploaded",
+      "comments": "Comments",
+      "addComment": "Add comment",
+      "audit": "Audit history",
+      "saved": "Saved",
+      "failed": "Action failed",
+      "escalated": "Escalated to management",
+      "unitSwapHint": "After management approval, complete the swap from the unit profile (management only).",
+      "openUnitSwap": "Open unit profile",
+      "auditActions": {
+        "created": "Created",
+        "submitted": "Submitted",
+        "approved": "Fully approved",
+        "step_approved": "Approval step completed",
+        "rejected": "Rejected",
+        "cancelled": "Cancelled",
+        "comment_added": "Comment added",
+        "attachment_added": "Attachment uploaded",
+        "escalated_overdue": "Escalated (overdue)"
+      }
+    },
+    "unitPanel": {
+      "title": "Requests",
+      "empty": "No requests on this unit yet.",
+      "create": "New request",
+      "viewAll": "All requests",
+      "stageTitle": "Open requests for this cycle stage"
     }
   },
   "unitCycle": {

@@ -252,6 +252,11 @@ describe("RBAC Role Access Control", () => {
       expect(canAccessRoute(role, "/operations/units/abc")).toBe(true);
     });
 
+    it("can access requests dashboard", () => {
+      expect(canAccessRoute(role, "/requests")).toBe(true);
+      expect(canAccessRoute(role, "/requests/abc")).toBe(true);
+    });
+
     it("cannot access users", () => {
       expect(canAccessRoute(role, "/users")).toBe(false);
     });
@@ -281,6 +286,7 @@ describe("RBAC Role Access Control", () => {
       expect(canAccessRoute(role, "/dashboard")).toBe(false);
       expect(canAccessRoute(role, "/cases")).toBe(false);
       expect(canAccessRoute(role, "/executive")).toBe(false);
+      expect(canAccessRoute(role, "/requests")).toBe(false);
       expect(canAccessRoute(role, "/users")).toBe(false);
       expect(canAccessRoute(role, "/imports")).toBe(false);
       expect(canAccessRoute(role, "/notifications")).toBe(false);

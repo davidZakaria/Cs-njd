@@ -394,6 +394,7 @@
     "dashboard": "لوحة التحكم",
     "executive": "لوحة الإدارة",
     "operations": "متابعة العمليات",
+    "requests": "الطلبات",
     "cases": "بلاغات العملاء",
     "units": "الوحدات",
     "engineering": "بوابة الهندسة",
@@ -1731,6 +1732,110 @@
       "LOGISTICS": "شحن / لوجستيات",
       "CUSTOMER_SERVICE": "خدمة العملاء",
       "NONE": "لا يوجد"
+    },
+    "unitRequestType": {
+      "CONTRACT_ISSUE_OR_AMENDMENT": "مشكلة أو تعديل عقد",
+      "GRACE_PERIOD_ANNEX": "ملحق فترة السماح",
+      "UNIT_SWAP": "تبديل وحدة",
+      "FINISHING_PRICE_CHANGE_OR_DISCOUNT": "تغيير سعر تشطيب أو خصم",
+      "PAYMENT_PLAN_CHANGE": "تغيير خطة السداد",
+      "REFUND": "استرداد",
+      "SITE_VISIT": "زيارة موقع",
+      "SNAG_OR_DEFECT": "عيب أو ملاحظة",
+      "HANDOVER_APPOINTMENT": "موعد تسليم",
+      "DOCUMENT_CORRECTION": "تصحيح مستند"
+    },
+    "unitRequestStatus": {
+      "DRAFT": "مسودة",
+      "PENDING": "قيد الموافقة",
+      "APPROVED": "موافق عليه",
+      "REJECTED": "مرفوض",
+      "CANCELLED": "ملغى"
+    },
+    "unitRequestApproverKind": {
+      "LEGAL": "قانوني",
+      "FINANCE": "حسابات",
+      "MANAGEMENT": "إدارة",
+      "CS_AGENT": "موظف خدمة العملاء"
+    }
+  },
+  "requests": {
+    "title": "الطلبات",
+    "subtitle": "موافقات داخلية على تغييرات العقد والحسابات والهندسة والتسليم.",
+    "empty": "لا توجد طلبات مطابقة للفلاتر.",
+    "open": "فتح",
+    "overdue": "متأخر",
+    "escalated": "تم التصعيد",
+    "views": {
+      "awaiting": "بانتظار موافقتي",
+      "submitted": "طلباتي",
+      "all": "كل ما يظهر لي"
+    },
+    "filters": {
+      "status": "الحالة",
+      "type": "النوع",
+      "project": "المشروع",
+      "overdue": "المتأخر فقط",
+      "allStatuses": "كل الحالات",
+      "allTypes": "كل الأنواع",
+      "allProjects": "كل المشاريع",
+      "clear": "مسح الفلاتر"
+    },
+    "columns": {
+      "unit": "الوحدة",
+      "type": "النوع",
+      "status": "الحالة",
+      "due": "الاستحقاق",
+      "requestedBy": "مقدّم الطلب",
+      "actions": "إجراءات"
+    },
+    "create": {
+      "title": "طلب جديد",
+      "unitId": "معرّف الوحدة",
+      "type": "نوع الطلب",
+      "description": "الوصف",
+      "swapTargetUnitId": "معرّف الوحدة الفارغة المستهدفة",
+      "submit": "إنشاء مسودة",
+      "created": "تم إنشاء المسودة",
+      "failed": "تعذّر إنشاء الطلب"
+    },
+    "detail": {
+      "description": "الوصف",
+      "submit": "إرسال للموافقة",
+      "approve": "اعتماد الخطوة",
+      "reject": "رفض",
+      "cancel": "إلغاء الطلب",
+      "decisionNotePlaceholder": "ملاحظة اختيارية للموافقين أو السجل",
+      "attachments": "مرفقات",
+      "noAttachments": "لم يُرفع أي ملف بعد.",
+      "upload": "رفع",
+      "uploaded": "تم رفع الملف",
+      "comments": "تعليقات",
+      "addComment": "إضافة تعليق",
+      "audit": "سجل التدقيق",
+      "saved": "تم الحفظ",
+      "failed": "فشل الإجراء",
+      "escalated": "مُصعَّد للإدارة",
+      "unitSwapHint": "بعد موافقة الإدارة، أكمل التبديل من ملف الوحدة (للإدارة فقط).",
+      "openUnitSwap": "فتح ملف الوحدة",
+      "auditActions": {
+        "created": "تم الإنشاء",
+        "submitted": "تم الإرسال",
+        "approved": "موافقة نهائية",
+        "step_approved": "اكتملت خطوة موافقة",
+        "rejected": "مرفوض",
+        "cancelled": "ملغى",
+        "comment_added": "تعليق مضاف",
+        "attachment_added": "مرفق مرفوع",
+        "escalated_overdue": "تصعيد (متأخر)"
+      }
+    },
+    "unitPanel": {
+      "title": "الطلبات",
+      "empty": "لا توجد طلبات على هذه الوحدة بعد.",
+      "create": "طلب جديد",
+      "viewAll": "كل الطلبات",
+      "stageTitle": "طلبات مفتوحة لهذه المرحلة"
     }
   },
   "unitCycle": {
