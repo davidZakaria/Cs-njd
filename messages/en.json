@@ -796,16 +796,16 @@
       "not_applicable": "Not applicable"
     },
     "items": {
-      "primaryOwnerId": "Primary owner ID uploaded",
-      "coOwnerIds": "Co-owner IDs uploaded",
+      "primaryOwnerId": "Primary owner ID",
+      "coOwnerIds": "Co-owner IDs",
       "preliminaryContract": "Preliminary sale contract",
       "finalContract": "Final sale contract",
       "handoverRecord": "Handover record contract",
       "finishingContract": "Finishing contract",
       "gracePeriodAnnex": "Grace period annex",
-      "archiveFiling": "Archive filing (papers received)",
-      "finishingFinancials": "Finishing financials present and valid",
-      "siteVisit": "Site visit completed",
+      "archiveFiling": "Archive filing",
+      "finishingFinancials": "Finishing financials",
+      "siteVisit": "Site visit",
       "paperHandoverChecks": "Paper handover checks"
     },
     "filters": {
@@ -836,7 +836,8 @@
     "summary": {
       "title": "Progress by project",
       "unitCount": "{count, plural, one {# unit} other {# units}}",
-      "percentComplete": "{percent}% complete"
+      "percentComplete": "{percent}% complete",
+      "missingCount": "{count, plural, one {# missing} other {# missing}}"
     },
     "detail": {
       "back": "Back to operations list",

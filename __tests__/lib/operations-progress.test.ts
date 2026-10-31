@@ -91,15 +91,85 @@ describe("operations progress rules", () => {
     expect(statusHandoverRecord(input)).toBe("done");
   });
 
+  it("marks handover record done when legacy hasSignedProtocol checkbox is true", () => {
+    const input = baseInput({
+      workflow: {
+        ...baseInput().workflow!,
+        hasSignedProtocol: true,
+      },
+    });
+    expect(statusHandoverRecord(input)).toBe("done");
+  });
+
+  it("marks preliminary contract done when legacy hasPreliminarySaleContract is true", () => {
+    const input = baseInput({
+      workflow: {
+        ...baseInput().workflow!,
+        hasPreliminarySaleContract: true,
+      },
+    });
+    expect(statusPreliminaryContract(input)).toBe("done");
+  });
+
+  it("marks preliminary contract done when signedContractFile is uploaded", () => {
+    const input = baseInput({
+      workflow: {
+        ...baseInput().workflow!,
+        signedContractFile: "prelim.pdf",
+      },
+    });
+    expect(statusPreliminaryContract(input)).toBe("done");
+  });
+
   it("marks grace period annex not applicable without grace context", () => {
     expect(isGracePeriodAnnexApplicable(baseInput())).toBe(false);
     expect(statusGracePeriodAnnex(baseInput())).toBe("not_applicable");
   });
 
-  it("marks grace period annex missing when applicable but no file", () => {
-    const input = baseInput({ gracePeriod: "6 months" });
+  it("does not treat gracePeriod text alone (including 0) as annex-applicable", () => {
+    expect(isGracePeriodAnnexApplicable(baseInput({ gracePeriod: "6 months" }))).toBe(
+      false
+    );
+    expect(isGracePeriodAnnexApplicable(baseInput({ gracePeriod: "0" }))).toBe(
+      false
+    );
+    expect(statusGracePeriodAnnex(baseInput({ gracePeriod: "6 months" }))).toBe(
+      "not_applicable"
+    );
+  });
+
+  it("marks grace period annex missing when a real extension signal exists but no file", () => {
+    const input = baseInput({
+      workflow: {
+        ...baseInput().workflow!,
+        hasSignedExtension: true,
+      },
+    });
     expect(isGracePeriodAnnexApplicable(input)).toBe(true);
     expect(statusGracePeriodAnnex(input)).toBe("missing");
+  });
+
+  it("marks grace period annex applicable for DELIVERY_EXTENSION or annex file", () => {
+    expect(
+      isGracePeriodAnnexApplicable(
+        baseInput({
+          workflow: {
+            ...baseInput().workflow!,
+            handoverStatus: "DELIVERY_EXTENSION",
+          },
+        })
+      )
+    ).toBe(true);
+    expect(
+      isGracePeriodAnnexApplicable(
+        baseInput({
+          workflow: {
+            ...baseInput().workflow!,
+            extensionAnnexFile: "annex.pdf",
+          },
+        })
+      )
+    ).toBe(true);
   });
 
   it("marks finishing contract needs update from finishing flag", () => {
