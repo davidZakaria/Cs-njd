@@ -1753,6 +1753,7 @@
       "FINISHING_CONTRACT_SUMMARY": "ملخص عقد التشطيب",
       "UNIT_SWAP_ADDENDUM": "ملحق استبدال الوحدة"
     },
+    "unitRequestStatus": {
       "DRAFT": "مسودة",
       "PENDING": "قيد الموافقة",
       "APPROVED": "موافق عليه",
