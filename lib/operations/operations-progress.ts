@@ -95,7 +95,8 @@ function coOwners(input: OperationsProgressInput): OperationsOwnerSnapshot[] {
 export function isGracePeriodAnnexApplicable(
   input: OperationsProgressInput
 ): boolean {
-  if (input.gracePeriod?.trim()) return true;
+  // Grace-period months text alone (including "0") does not make the annex applicable.
+  // Require a real extension signal: signed-extension flag, DELIVERY_EXTENSION status, or annex file.
   const workflow = input.workflow;
   if (!workflow) return false;
   if (workflow.hasSignedExtension) return true;
@@ -155,7 +156,10 @@ export function statusPreliminaryContract(
   const workflow = input.workflow;
   const flags = flagSet(workflow?.contractUnitUpdateFlags ?? []);
   if (flags.has(CONTRACT_UNIT_UPDATE_FLAG.preliminary)) return "needs_update";
-  if (workflow?.signedContractFile) return "done";
+  // File upload OR legacy checkbox both count as done.
+  if (workflow?.signedContractFile || workflow?.hasPreliminarySaleContract) {
+    return "done";
+  }
   return "missing";
 }
 
@@ -175,7 +179,10 @@ export function statusHandoverRecord(
   const workflow = input.workflow;
   const flags = flagSet(workflow?.contractUnitUpdateFlags ?? []);
   if (flags.has(CONTRACT_UNIT_UPDATE_FLAG.handoverRecord)) return "needs_update";
-  if (workflow?.signedProtocolStoredName) return "done";
+  // Protocol file upload OR legacy signed-protocol checkbox both count as done.
+  if (workflow?.signedProtocolStoredName || workflow?.hasSignedProtocol) {
+    return "done";
+  }
   return "missing";
 }
 

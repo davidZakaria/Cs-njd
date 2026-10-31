@@ -50,7 +50,7 @@ export function OperationsProjectSummaryBar({
                         href={`/operations?project=${row.projectSlug}&missingItem=${key}`}
                         className="tabular-nums text-primary underline-offset-2 hover:underline"
                       >
-                        {count}
+                        {t("missingCount", { count })}
                       </Link>
                     </li>
                   );

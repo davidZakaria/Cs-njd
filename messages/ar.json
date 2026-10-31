@@ -796,8 +796,8 @@
       "not_applicable": "غير مطبّق"
     },
     "items": {
-      "primaryOwnerId": "رفع هوية المالك الأساسي",
-      "coOwnerIds": "رفع هويات الملاك المشاركين",
+      "primaryOwnerId": "هوية المالك الأساسي",
+      "coOwnerIds": "هويات الملاك المشاركين",
       "preliminaryContract": "عقد البيع المبدئي",
       "finalContract": "عقد البيع النهائي",
       "handoverRecord": "محضر التسليم",
@@ -836,7 +836,8 @@
     "summary": {
       "title": "التقدم حسب المشروع",
       "unitCount": "{count, plural, one {وحدة واحدة} two {وحدتان} few {# وحدات} many {# وحدة} other {# وحدة}}",
-      "percentComplete": "{percent}% مكتمل"
+      "percentComplete": "{percent}% مكتمل",
+      "missingCount": "{count, plural, one {# ناقص} two {# ناقصان} few {# ناقصة} many {# ناقص} other {# ناقص}}"
     },
     "detail": {
       "back": "العودة لقائمة العمليات",
@@ -1752,6 +1753,7 @@
       "FINISHING_CONTRACT_SUMMARY": "ملخص عقد التشطيب",
       "UNIT_SWAP_ADDENDUM": "ملحق استبدال الوحدة"
     },
+    "unitRequestStatus": {
       "DRAFT": "مسودة",
       "PENDING": "قيد الموافقة",
       "APPROVED": "موافق عليه",
