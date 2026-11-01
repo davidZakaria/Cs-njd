@@ -237,7 +237,7 @@ describe("User Management Server Actions - RBAC", () => {
       expect(result.success).toBe(false);
       expect(result).toHaveProperty(
         "error",
-        "Management can only create CS agents, community management, site engineers, or operations staff"
+        "Management can only create CS agents, community management, site engineers, operations, legal, or finance staff"
       );
     });
 
@@ -258,7 +258,7 @@ describe("User Management Server Actions - RBAC", () => {
       expect(result.success).toBe(false);
       expect(result).toHaveProperty(
         "error",
-        "Management can only create CS agents, community management, site engineers, or operations staff"
+        "Management can only create CS agents, community management, site engineers, operations, legal, or finance staff"
       );
     });
 
@@ -423,7 +423,7 @@ describe("User Management Server Actions - RBAC", () => {
       expect(result.success).toBe(false);
       expect(result).toHaveProperty(
         "error",
-        "Management can only assign CS agent, community management, site engineer, or operations role"
+        "Management can only assign CS agent, community management, site engineer, operations, legal, or finance role"
       );
     });
 

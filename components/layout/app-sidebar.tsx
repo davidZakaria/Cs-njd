@@ -57,6 +57,8 @@ const iconMap = {
   cases: ClipboardList,
   units: Building2,
   engineering: HardHat,
+  legalHome: Shield,
+  financeHome: BarChart3,
   users: Users,
   imports: FileUp,
   auditLogs: ScrollText,

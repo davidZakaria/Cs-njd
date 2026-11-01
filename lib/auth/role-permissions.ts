@@ -11,6 +11,7 @@ import {
   isAdminUnitManager,
   isCommunityManagementRole,
   isCsAgentRole,
+  isDepartmentStaffRole,
   isOperationsRole,
 } from "@/lib/auth/unit-roles";
 
@@ -25,10 +26,11 @@ export function isCsAgentAssignedToUnit(
   return canAccessUnitAsCsAgent(scope, unit.unitAgentId);
 }
 
-/** CS agents may open any unit profile; operations has read-only unit access. */
+/** CS agents may open any unit profile; operations and department staff have read-only unit access. */
 export function canViewUnitProfile(role: Role): boolean {
   if (isCsAgentRole(role) || isCommunityManagementRole(role)) return true;
   if (isOperationsRole(role)) return true;
+  if (isDepartmentStaffRole(role)) return true;
   return (
     isAdminUnitManager(role) ||
     role === "SUPER_ADMIN" ||
@@ -40,7 +42,8 @@ export function canListAllUnits(role: Role): boolean {
   return (
     isCsAgentRole(role) ||
     isCommunityManagementRole(role) ||
-    isOperationsRole(role)
+    isOperationsRole(role) ||
+    isDepartmentStaffRole(role)
   );
 }
 
@@ -241,6 +244,7 @@ export function canAccessOperationsProgressTracker(role: Role): boolean {
 export function canAccessRequestsDashboard(role: Role): boolean {
   if (isOperationsRole(role)) return false;
   if (role === "ENGINEER") return false;
+  if (isDepartmentStaffRole(role)) return true;
   if (isCommunityManagementRole(role)) return true;
   return (
     isCsAgentRole(role) ||

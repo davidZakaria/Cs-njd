@@ -113,10 +113,12 @@ export async function createUser(input: CreateUserInput): Promise<ActionResult> 
     role !== "CS_AGENT" &&
     role !== "ENGINEER" &&
     role !== "COMMUNITY_MANAGEMENT" &&
-    role !== "OPERATIONS"
+    role !== "OPERATIONS" &&
+    role !== "LEGAL" &&
+    role !== "FINANCE"
   ) {
     return actionFail(
-      "Management can only create CS agents, community management, site engineers, or operations staff"
+      "Management can only create CS agents, community management, site engineers, operations, legal, or finance staff"
     );
   }
 
@@ -172,10 +174,12 @@ export async function updateUser(input: UpdateUserInput): Promise<ActionResult> 
     role !== "CS_AGENT" &&
     role !== "ENGINEER" &&
     role !== "COMMUNITY_MANAGEMENT" &&
-    role !== "OPERATIONS"
+    role !== "OPERATIONS" &&
+    role !== "LEGAL" &&
+    role !== "FINANCE"
   ) {
     return actionFail(
-      "Management can only assign CS agent, community management, site engineer, or operations role"
+      "Management can only assign CS agent, community management, site engineer, operations, legal, or finance role"
     );
   }
 

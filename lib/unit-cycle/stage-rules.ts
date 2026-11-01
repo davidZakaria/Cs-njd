@@ -6,16 +6,36 @@ import {
   UNIT_CYCLE_STAGE_ORDER,
   type UnitOperationsSnapshot,
 } from "@/lib/operations/operations-progress";
+import type { UnitRequestStageBlocker } from "@/lib/unit-cycle/stage-request-blocking";
+import { stageIsBlockedByOpenRequests } from "@/lib/unit-cycle/stage-request-blocking";
 
 export function canCompleteStage(
   stageKey: UnitCycleStageKey,
   status: UnitCycleStageStatus,
-  snapshot: UnitOperationsSnapshot
+  snapshot: UnitOperationsSnapshot,
+  options?: {
+    unitCycleEnabled?: boolean;
+    openRequests?: UnitRequestStageBlocker[];
+  }
 ): boolean {
   if (status === "DONE" || status === "NOT_STARTED") {
     return false;
   }
-  return isStageChecklistComplete(stageKey, snapshot);
+  if (!isStageChecklistComplete(stageKey, snapshot)) {
+    return false;
+  }
+  if (
+    options?.unitCycleEnabled &&
+    options.openRequests &&
+    stageIsBlockedByOpenRequests({
+      unitCycleEnabled: true,
+      stageKey,
+      openRequests: options.openRequests,
+    })
+  ) {
+    return false;
+  }
+  return true;
 }
 
 export function nextStageKey(

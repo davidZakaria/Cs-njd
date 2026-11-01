@@ -1,36 +1,64 @@
 import type { Role, UnitRequestApproverKind } from "@prisma/client";
 
+export type OrgStaffAvailability = {
+  hasLegalStaff: boolean;
+  hasFinanceStaff: boolean;
+};
+
+export const DEFAULT_ORG_STAFF: OrgStaffAvailability = {
+  hasLegalStaff: true,
+  hasFinanceStaff: true,
+};
+
 /**
  * Maps logical approver steps to staff roles.
- * When dedicated LEGAL / FINANCE roles are added to the Role enum, set the flags below.
+ * When no active LEGAL/FINANCE user exists, steps fall back to MANAGEMENT.
  */
-export const ORG_HAS_LEGAL_STAFF_ROLE = false;
-export const ORG_HAS_FINANCE_STAFF_ROLE = false;
-
 export function resolveApproverKindToRole(
-  kind: UnitRequestApproverKind
+  kind: UnitRequestApproverKind,
+  staff: OrgStaffAvailability = DEFAULT_ORG_STAFF
 ): Role {
   if (kind === "LEGAL") {
-    return ORG_HAS_LEGAL_STAFF_ROLE ? ("LEGAL" as Role) : "MANAGEMENT";
+    return staff.hasLegalStaff ? "LEGAL" : "MANAGEMENT";
   }
   if (kind === "FINANCE") {
-    return ORG_HAS_FINANCE_STAFF_ROLE ? ("FINANCE" as Role) : "MANAGEMENT";
+    return staff.hasFinanceStaff ? "FINANCE" : "MANAGEMENT";
   }
   if (kind === "CS_AGENT") return "CS_AGENT";
   return "MANAGEMENT";
 }
 
 export function rolesThatCanActOnApproverKind(
-  kind: UnitRequestApproverKind
+  kind: UnitRequestApproverKind,
+  staff: OrgStaffAvailability = DEFAULT_ORG_STAFF
 ): Role[] {
-  const primary = resolveApproverKindToRole(kind);
+  const primary = resolveApproverKindToRole(kind, staff);
   if (primary === "MANAGEMENT") {
     return ["MANAGEMENT", "SUPER_ADMIN"];
   }
   if (primary === "CS_AGENT") {
     return ["CS_AGENT", "SUPER_ADMIN", "MANAGEMENT"];
   }
+  if (primary === "LEGAL") {
+    return staff.hasLegalStaff
+      ? ["LEGAL", "SUPER_ADMIN"]
+      : ["MANAGEMENT", "SUPER_ADMIN"];
+  }
+  if (primary === "FINANCE") {
+    return staff.hasFinanceStaff
+      ? ["FINANCE", "SUPER_ADMIN"]
+      : ["MANAGEMENT", "SUPER_ADMIN"];
+  }
   return [primary, "SUPER_ADMIN"];
+}
+
+export function managementMayActOnDedicatedStep(
+  kind: UnitRequestApproverKind,
+  staff: OrgStaffAvailability
+): boolean {
+  if (kind === "LEGAL") return !staff.hasLegalStaff;
+  if (kind === "FINANCE") return !staff.hasFinanceStaff;
+  return kind === "MANAGEMENT" || kind === "CS_AGENT";
 }
 
 export function isOperationsAnApprover(): boolean {

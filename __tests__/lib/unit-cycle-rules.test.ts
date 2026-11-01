@@ -71,6 +71,53 @@ describe("unit-cycle stage rules", () => {
     expect(canCompleteStage("CONTRACT", "DONE", emptySnapshot)).toBe(false);
   });
 
+  it("blocks completion when open requests block the stage", () => {
+    const financeReady: UnitOperationsSnapshot = {
+      ...emptySnapshot,
+      contractWorkflow: {
+        contractDate: new Date("2024-01-01"),
+        deliveryDate: new Date("2025-01-01"),
+        hasPreliminarySaleContract: true,
+        hasFinalSaleContract: false,
+        signedContractFile: "file.pdf",
+        hasPaidFees: true,
+        hasSignedProtocol: false,
+        hasSignedExtension: false,
+        papersReceived: false,
+        handoverStatus: "PENDING",
+        isLegallyBlocked: false,
+        paperHandoverOriginalProtocol: false,
+        paperHandoverKeyReceived: false,
+      },
+      finishing: {
+        phases: [],
+        phase: "NOT_STARTED",
+        packageType: "CORE_AND_SHELL",
+        doorFees: 0,
+        aluminumFees: 0,
+        customModifications: null,
+        modificationsCompleted: true,
+        totalFinishingPrice: 500_000,
+        pricePerMeter: 5_000,
+      },
+    };
+
+    expect(canCompleteStage("FINANCE", "IN_PROGRESS", financeReady)).toBe(true);
+    expect(
+      canCompleteStage("FINANCE", "IN_PROGRESS", financeReady, {
+        unitCycleEnabled: true,
+        openRequests: [
+          {
+            id: "r1",
+            type: "REFUND",
+            status: "PENDING",
+            unitCycleStageKey: "FINANCE",
+          },
+        ],
+      })
+    ).toBe(false);
+  });
+
   it("returns next stage in order", () => {
     expect(nextStageKey("CONTRACT")).toBe("FINANCE");
     expect(nextStageKey("LEGAL_HANDOVER")).toBeNull();

@@ -409,6 +409,8 @@
     "notificationsLog": "سجل الإشعارات",
     "activityNotifications": "الإشعارات",
     "systemSettings": "الإعدادات العامة",
+    "legalHome": "الرئيسية — قانوني",
+    "financeHome": "الرئيسية — حسابات",
     "administration": "الإدارة",
     "groups": {
       "usersSecurity": "المستخدمون والأمان",
@@ -1073,7 +1075,9 @@
       "csAgent": "موظف خدمة العملاء",
       "communityManagement": "إدارة المجتمع",
       "engineer": "مهندس موقع",
-      "operations": "العمليات"
+      "operations": "العمليات",
+      "legal": "قانوني",
+      "finance": "حسابات"
     },
     "twoFactor": "المصادقة الثنائية",
     "twoFactorSecured": "مؤمّن",
@@ -1853,6 +1857,9 @@
     "checklist": "قائمة المرحلة",
     "due": "الاستحقاق {date}",
     "blockedReason": "محظور: {reason}",
+    "blockedByRequest": {
+      "title": "محظور بسبب طلب"
+    },
     "auditTitle": "سجل الدورة",
     "stages": {
       "CONTRACT": "العقد",
@@ -1918,6 +1925,15 @@
       "save": "حفظ الإعدادات",
       "documentTemplatesLink": "قوالب المستندات الرسمية"
     }
+  },
+  "departmentHome": {
+    "legalTitle": "قائمة القانوني",
+    "legalSubtitle": "موافقات قانونية معلّقة ومهام مرحلة قانوني وتسليم.",
+    "financeTitle": "قائمة الحسابات",
+    "financeSubtitle": "موافقات مالية معلّقة ومهام مرحلة الحسابات.",
+    "awaitingTitle": "بانتظار موافقتك",
+    "awaitingEmpty": "لا طلبات بانتظارك حالياً.",
+    "viewAllRequests": "فتح صندوق الطلبات"
   },
   "officialDocuments": {
     "panelTitle": "مسودات المستندات الرسمية",

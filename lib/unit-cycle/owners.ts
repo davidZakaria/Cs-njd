@@ -1,12 +1,14 @@
 import type { Role, UnitCycleStageKey } from "@prisma/client";
 
-/** Contract/Legal workflow parties map to management when no dedicated login role exists. */
+/** Contract workflow stays with management; finance/legal stages use dedicated roles when present. */
 export function resolveStageOwnerRole(stageKey: UnitCycleStageKey): Role {
   switch (stageKey) {
     case "CONTRACT":
-    case "FINANCE":
-    case "LEGAL_HANDOVER":
       return "MANAGEMENT";
+    case "FINANCE":
+      return "FINANCE";
+    case "LEGAL_HANDOVER":
+      return "LEGAL";
     case "ENGINEERING":
       return "CS_AGENT";
     default:
@@ -22,9 +24,9 @@ export function roleCanOwnStage(
   userRole: Role,
   stageKey: UnitCycleStageKey
 ): boolean {
-  const owner = resolveStageOwnerRole(stageKey);
-  if (owner === "MANAGEMENT") {
-    return managementRolesForCycle().includes(userRole);
+  if (managementRolesForCycle().includes(userRole)) {
+    return true;
   }
+  const owner = resolveStageOwnerRole(stageKey);
   return userRole === owner;
 }
