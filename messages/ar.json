@@ -198,7 +198,14 @@
       "paperPreliminaryCopy": "نسخة عقد ابتدائي",
       "paperOriginalProtocol": "أصل محضر استلام",
       "paperFinishingPapers": "أوراق التشطيب",
-      "paperKeyHandover": "استلام المفتاح"
+      "paperKeyHandover": "استلام المفتاح",
+      "signedPaperOnly": "موقّع (ورقي فقط)"
+    },
+    "legalDocumentStatus": {
+      "missing": "ناقص",
+      "signed_no_file": "موقّع — بدون ملف",
+      "file_uploaded": "تم رفع الملف",
+      "needs_update": "يحتاج تحديث"
     },
     "edgeCases": {
       "isLegallyBlocked": "بلوك / نزاع قانوني نشط (يمنع الاستلام)",
@@ -1803,7 +1810,14 @@
     },
     "create": {
       "title": "طلب جديد",
+      "unit": "الوحدة",
       "unitId": "معرّف الوحدة",
+      "unitSearchPlaceholder": "ابحث برمز الوحدة أو المشروع أو العميل…",
+      "unitSearchMinChars": "اكتب حرفين على الأقل للبحث",
+      "unitRequired": "اختر وحدة من نتائج البحث",
+      "swapTargetUnit": "الوحدة المستهدفة",
+      "swapTargetRequired": "اختر الوحدة المستهدفة من نتائج البحث",
+      "swapTargetSelectSourceFirst": "اختر وحدة المصدر أولاً",
       "type": "نوع الطلب",
       "description": "الوصف",
       "swapTargetUnitId": "معرّف الوحدة الفارغة المستهدفة",

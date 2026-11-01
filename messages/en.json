@@ -198,7 +198,14 @@
       "paperPreliminaryCopy": "Copy of preliminary contract given",
       "paperOriginalProtocol": "Original handover record received",
       "paperFinishingPapers": "Finishing papers",
-      "paperKeyHandover": "Key handover"
+      "paperKeyHandover": "Key handover",
+      "signedPaperOnly": "Signed (paper only)"
+    },
+    "legalDocumentStatus": {
+      "missing": "Missing",
+      "signed_no_file": "Signed — no file",
+      "file_uploaded": "File uploaded",
+      "needs_update": "Needs update"
     },
     "edgeCases": {
       "isLegallyBlocked": "Active legal block (blocks handover)",
@@ -1803,7 +1810,14 @@
     },
     "create": {
       "title": "New request",
+      "unit": "Unit",
       "unitId": "Unit ID",
+      "unitSearchPlaceholder": "Search unit code, project, or client…",
+      "unitSearchMinChars": "Type at least 2 characters to search",
+      "unitRequired": "Select a unit from the search results",
+      "swapTargetUnit": "Target unit",
+      "swapTargetRequired": "Select a target unit from the search results",
+      "swapTargetSelectSourceFirst": "Select the source unit first",
       "type": "Request type",
       "description": "Description",
       "swapTargetUnitId": "Target empty unit ID",
