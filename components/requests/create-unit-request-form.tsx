@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
@@ -13,7 +13,6 @@ import {
 } from "@/lib/actions/unit-requests";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -35,15 +34,41 @@ export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: strin
   const [selectedUnit, setSelectedUnit] = useState<UnitRequestPickerOption | null>(
     null
   );
+  const [selectedSwapTarget, setSelectedSwapTarget] =
+    useState<UnitRequestPickerOption | null>(null);
   const [type, setType] = useState<UnitRequestType>(
     UnitRequestType.CONTRACT_ISSUE_OR_AMENDMENT
   );
   const [description, setDescription] = useState("");
-  const [swapTargetUnitId, setSwapTargetUnitId] = useState("");
+
+  const searchUnits = useCallback(
+    (query: string) => searchUnitsForRequestPickerAction(query),
+    []
+  );
+
+  const searchSwapTargets = useCallback(
+    (query: string) =>
+      selectedUnit
+        ? searchUnitsForRequestPickerAction(query, selectedUnit.unitId)
+        : Promise.resolve([]),
+    [selectedUnit]
+  );
+
+  useEffect(() => {
+    setSelectedSwapTarget(null);
+  }, [selectedUnit?.unitId]);
+
+  const canSubmit =
+    selectedUnit != null &&
+    (type !== UnitRequestType.UNIT_SWAP || selectedSwapTarget != null);
 
   const submit = () => {
     if (!selectedUnit) {
       toast.error(t("unitRequired"));
+      return;
+    }
+    if (type === UnitRequestType.UNIT_SWAP && !selectedSwapTarget) {
+      toast.error(t("swapTargetRequired"));
       return;
     }
     startTransition(async () => {
@@ -52,7 +77,9 @@ export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: strin
         type,
         description,
         linkedSwapTargetUnitId:
-          type === UnitRequestType.UNIT_SWAP ? swapTargetUnitId.trim() : undefined,
+          type === UnitRequestType.UNIT_SWAP
+            ? selectedSwapTarget?.unitId
+            : undefined,
       });
       if (!result.success) {
         toast.error(result.error ?? t("failed"));
@@ -75,7 +102,7 @@ export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: strin
           emptyHint={t("unitSearchMinChars")}
           value={selectedUnit}
           onChange={setSelectedUnit}
-          onSearch={searchUnitsForRequestPickerAction}
+          onSearch={searchUnits}
           onResolveUnit={resolveUnitForRequestPickerAction}
           initialUnitId={defaultUnitId}
           disabled={pending}
@@ -104,16 +131,22 @@ export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: strin
           />
         </div>
         {type === UnitRequestType.UNIT_SWAP ? (
-          <div className="md:col-span-2 space-y-1">
-            <label className="text-sm font-medium">{t("swapTargetUnitId")}</label>
-            <Input
-              value={swapTargetUnitId}
-              onChange={(e) => setSwapTargetUnitId(e.target.value)}
+          <div className="md:col-span-2">
+            <UnitSearchCombobox
+              label={t("swapTargetUnit")}
+              placeholder={t("unitSearchPlaceholder")}
+              emptyHint={
+                selectedUnit ? t("unitSearchMinChars") : t("swapTargetSelectSourceFirst")
+              }
+              value={selectedSwapTarget}
+              onChange={setSelectedSwapTarget}
+              onSearch={searchSwapTargets}
+              disabled={pending || !selectedUnit}
             />
           </div>
         ) : null}
         <div className="md:col-span-2">
-          <Button disabled={pending || !selectedUnit} onClick={submit}>
+          <Button disabled={pending || !canSubmit} onClick={submit}>
             {t("submit")}
           </Button>
         </div>

@@ -51,14 +51,11 @@ describe("unit request picker search", () => {
     );
   });
 
-  it("scopes CS agents to assigned units only", () => {
-    expect(
-      unitWhereVisibleForRequestUnitPicker("CS_AGENT", {
-        loginUserId: "login",
-        effectiveAgentId: "agent-1",
-        isPreview: false,
-      })
-    ).toEqual({ agentId: "agent-1" });
-    expect(unitWhereVisibleForRequestUnitPicker("MANAGEMENT", null)).toEqual({});
+  it("allows any role that may create requests to see all active units", () => {
+    expect(unitWhereVisibleForRequestUnitPicker("CS_AGENT")).toEqual({});
+    expect(unitWhereVisibleForRequestUnitPicker("MANAGEMENT")).toEqual({});
+    expect(unitWhereVisibleForRequestUnitPicker("OPERATIONS")).toEqual({
+      id: { in: [] },
+    });
   });
 });

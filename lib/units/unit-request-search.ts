@@ -1,9 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import type { Role } from "@prisma/client";
 
-import type { CsAgentScope } from "@/lib/auth/cs-agent-scope";
-import { csAgentUnitScope } from "@/lib/auth/cs-agent-scope";
-import { isAdminUnitManager, isCsAgentRole } from "@/lib/auth/unit-roles";
+import { canCreateUnitRequest } from "@/lib/requests/permissions-core";
 import { unitMatchesOwnerSearchQuery } from "@/lib/units/unit-owner-search";
 
 export type UnitRequestPickerOption = {
@@ -36,18 +34,11 @@ export function unitMatchesRequestPickerSearchQuery(
   };
 }
 
-/** Units the current user may attach when creating a unit request. */
+/** Active units eligible for the request picker (role may create requests). */
 export function unitWhereVisibleForRequestUnitPicker(
-  role: Role,
-  csScope: CsAgentScope | null
+  role: Role
 ): Prisma.UnitWhereInput {
-  if (isAdminUnitManager(role)) {
-    return {};
-  }
-  if (isCsAgentRole(role) && csScope) {
-    return csAgentUnitScope(csScope);
-  }
-  return { id: { in: [] } };
+  return canCreateUnitRequest(role) ? {} : { id: { in: [] } };
 }
 
 export function resolvePrimaryClientName(input: {

@@ -5,7 +5,6 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
-import { assertCsAgentUnitAccess } from "@/lib/auth/abac";
 import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { prisma, activeUnitWhere } from "@/lib/prisma";
 import {
@@ -38,7 +37,7 @@ import {
   REQUEST_ATTACHMENT_MAX_BYTES,
   writeRequestAttachmentFile,
 } from "@/lib/uploads/request-attachment-storage";
-import { UnitRequestType } from "@prisma/client";
+import { UnitRequestType, type Prisma, type Role } from "@prisma/client";
 
 const createSchema = z.object({
   unitId: z.string().min(1),
@@ -92,8 +91,32 @@ const unitPickerInclude = {
   },
 } as const;
 
+async function loadActiveUnitForRequest(unitId: string) {
+  return prisma.unit.findUnique({
+    where: { id: unitId },
+    select: { id: true, clientId: true, deletedAt: true },
+  });
+}
+
+function buildRequestPickerWhere(input: {
+  role: Role;
+  trimmedQuery: string;
+  excludeUnitId?: string;
+}) {
+  const andClauses: Prisma.UnitWhereInput[] = [
+    unitWhereVisibleForRequestUnitPicker(input.role),
+    unitMatchesRequestPickerSearchQuery(input.trimmedQuery),
+  ];
+  const excluded = input.excludeUnitId?.trim();
+  if (excluded) {
+    andClauses.push({ id: { not: excluded } });
+  }
+  return activeUnitWhere({ AND: andClauses });
+}
+
 export async function searchUnitsForRequestPickerAction(
-  query: string
+  query: string,
+  excludeUnitId?: string
 ): Promise<UnitRequestPickerOption[]> {
   const session = await auth();
   if (!session?.user || !canCreateUnitRequest(session.user.role)) {
@@ -103,17 +126,11 @@ export async function searchUnitsForRequestPickerAction(
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
 
-  const csScope =
-    session.user.role === "CS_AGENT"
-      ? await resolveCsAgentScope(session.user)
-      : null;
-
   const units = await prisma.unit.findMany({
-    where: activeUnitWhere({
-      AND: [
-        unitWhereVisibleForRequestUnitPicker(session.user.role, csScope),
-        unitMatchesRequestPickerSearchQuery(trimmed),
-      ],
+    where: buildRequestPickerWhere({
+      role: session.user.role,
+      trimmedQuery: trimmed,
+      excludeUnitId,
     }),
     include: unitPickerInclude,
     take: 12,
@@ -124,7 +141,8 @@ export async function searchUnitsForRequestPickerAction(
 }
 
 export async function resolveUnitForRequestPickerAction(
-  unitId: string
+  unitId: string,
+  excludeUnitId?: string
 ): Promise<UnitRequestPickerOption | null> {
   const session = await auth();
   if (!session?.user || !canCreateUnitRequest(session.user.role)) {
@@ -133,16 +151,12 @@ export async function resolveUnitForRequestPickerAction(
 
   const trimmed = unitId.trim();
   if (!trimmed) return null;
-
-  const csScope =
-    session.user.role === "CS_AGENT"
-      ? await resolveCsAgentScope(session.user)
-      : null;
+  if (excludeUnitId?.trim() === trimmed) return null;
 
   const unit = await prisma.unit.findFirst({
     where: activeUnitWhere({
       id: trimmed,
-      ...unitWhereVisibleForRequestUnitPicker(session.user.role, csScope),
+      ...unitWhereVisibleForRequestUnitPicker(session.user.role),
     }),
     include: unitPickerInclude,
   });
@@ -167,24 +181,29 @@ export async function createUnitRequestAction(
     return { success: false as const, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
 
-  const unit = await prisma.unit.findUnique({
-    where: { id: parsed.data.unitId },
-    select: { id: true, clientId: true, deletedAt: true, agentId: true },
-  });
+  const unit = await loadActiveUnitForRequest(parsed.data.unitId);
   if (!unit || unit.deletedAt) {
     return { success: false as const, error: "Unit not found" };
   }
 
-  const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
-  if (accessError && !accessError.success) {
-    return { success: false as const, error: accessError.error };
-  }
-
-  if (
-    parsed.data.type === "UNIT_SWAP" &&
-    !parsed.data.linkedSwapTargetUnitId
-  ) {
-    return { success: false as const, error: "Target unit is required for unit swap requests" };
+  if (parsed.data.type === "UNIT_SWAP") {
+    const targetId = parsed.data.linkedSwapTargetUnitId?.trim();
+    if (!targetId) {
+      return {
+        success: false as const,
+        error: "Target unit is required for unit swap requests",
+      };
+    }
+    if (targetId === unit.id) {
+      return {
+        success: false as const,
+        error: "Target unit must be different from the source unit",
+      };
+    }
+    const targetUnit = await loadActiveUnitForRequest(targetId);
+    if (!targetUnit || targetUnit.deletedAt) {
+      return { success: false as const, error: "Target unit not found" };
+    }
   }
 
   const submit = buildSubmitState(parsed.data.type);
