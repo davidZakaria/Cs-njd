@@ -1799,7 +1799,11 @@
     },
     "create": {
       "title": "طلب جديد",
+      "unit": "الوحدة",
       "unitId": "معرّف الوحدة",
+      "unitSearchPlaceholder": "ابحث برمز الوحدة أو المشروع أو العميل…",
+      "unitSearchMinChars": "اكتب حرفين على الأقل للبحث",
+      "unitRequired": "اختر وحدة من نتائج البحث",
       "type": "نوع الطلب",
       "description": "الوصف",
       "swapTargetUnitId": "معرّف الوحدة الفارغة المستهدفة",

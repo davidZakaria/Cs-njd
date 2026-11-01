@@ -5,8 +5,15 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
+import { assertCsAgentUnitAccess } from "@/lib/auth/abac";
 import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
-import { prisma } from "@/lib/prisma";
+import { prisma, activeUnitWhere } from "@/lib/prisma";
+import {
+  mapUnitRowToRequestPickerOption,
+  unitMatchesRequestPickerSearchQuery,
+  unitWhereVisibleForRequestUnitPicker,
+  type UnitRequestPickerOption,
+} from "@/lib/units/unit-request-search";
 import { recordRequestAuditEvent } from "@/lib/requests/audit";
 import {
   canAddRequestComment,
@@ -75,6 +82,75 @@ function parseDueDate(value: string | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+const unitPickerInclude = {
+  project: { select: { name: true } },
+  client: { select: { name: true } },
+  unitClients: {
+    where: { role: "PRIMARY" as const },
+    take: 1,
+    select: { role: true, client: { select: { name: true } } },
+  },
+} as const;
+
+export async function searchUnitsForRequestPickerAction(
+  query: string
+): Promise<UnitRequestPickerOption[]> {
+  const session = await auth();
+  if (!session?.user || !canCreateUnitRequest(session.user.role)) {
+    return [];
+  }
+
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return [];
+
+  const csScope =
+    session.user.role === "CS_AGENT"
+      ? await resolveCsAgentScope(session.user)
+      : null;
+
+  const units = await prisma.unit.findMany({
+    where: activeUnitWhere({
+      AND: [
+        unitWhereVisibleForRequestUnitPicker(session.user.role, csScope),
+        unitMatchesRequestPickerSearchQuery(trimmed),
+      ],
+    }),
+    include: unitPickerInclude,
+    take: 12,
+    orderBy: [{ project: { name: "asc" } }, { unitCode: "asc" }],
+  });
+
+  return units.map(mapUnitRowToRequestPickerOption);
+}
+
+export async function resolveUnitForRequestPickerAction(
+  unitId: string
+): Promise<UnitRequestPickerOption | null> {
+  const session = await auth();
+  if (!session?.user || !canCreateUnitRequest(session.user.role)) {
+    return null;
+  }
+
+  const trimmed = unitId.trim();
+  if (!trimmed) return null;
+
+  const csScope =
+    session.user.role === "CS_AGENT"
+      ? await resolveCsAgentScope(session.user)
+      : null;
+
+  const unit = await prisma.unit.findFirst({
+    where: activeUnitWhere({
+      id: trimmed,
+      ...unitWhereVisibleForRequestUnitPicker(session.user.role, csScope),
+    }),
+    include: unitPickerInclude,
+  });
+
+  if (!unit) return null;
+  return mapUnitRowToRequestPickerOption(unit);
+}
+
 export async function createUnitRequestAction(
   input: z.input<typeof createSchema>
 ): Promise<
@@ -93,9 +169,16 @@ export async function createUnitRequestAction(
 
   const unit = await prisma.unit.findUnique({
     where: { id: parsed.data.unitId },
-    select: { id: true, clientId: true, deletedAt: true },
+    select: { id: true, clientId: true, deletedAt: true, agentId: true },
   });
-  if (!unit || unit.deletedAt) return { success: false as const, error: "Unit not found" };
+  if (!unit || unit.deletedAt) {
+    return { success: false as const, error: "Unit not found" };
+  }
+
+  const accessError = await assertCsAgentUnitAccess(session.user, unit.agentId);
+  if (accessError && !accessError.success) {
+    return { success: false as const, error: accessError.error };
+  }
 
   if (
     parsed.data.type === "UNIT_SWAP" &&

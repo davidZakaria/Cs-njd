@@ -6,7 +6,11 @@ import { useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
 import { UnitRequestType } from "@prisma/client";
 
-import { createUnitRequestAction } from "@/lib/actions/unit-requests";
+import {
+  createUnitRequestAction,
+  resolveUnitForRequestPickerAction,
+  searchUnitsForRequestPickerAction,
+} from "@/lib/actions/unit-requests";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { UnitSearchCombobox } from "@/components/units/unit-search-combobox";
+import type { UnitRequestPickerOption } from "@/lib/units/unit-request-search";
 
 const TYPES = Object.values(UnitRequestType);
 
@@ -26,7 +32,9 @@ export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: strin
   const tEnums = useTranslations("enums");
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [unitId, setUnitId] = useState(defaultUnitId ?? "");
+  const [selectedUnit, setSelectedUnit] = useState<UnitRequestPickerOption | null>(
+    null
+  );
   const [type, setType] = useState<UnitRequestType>(
     UnitRequestType.CONTRACT_ISSUE_OR_AMENDMENT
   );
@@ -34,9 +42,13 @@ export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: strin
   const [swapTargetUnitId, setSwapTargetUnitId] = useState("");
 
   const submit = () => {
+    if (!selectedUnit) {
+      toast.error(t("unitRequired"));
+      return;
+    }
     startTransition(async () => {
       const result = await createUnitRequestAction({
-        unitId: unitId.trim(),
+        unitId: selectedUnit.unitId,
         type,
         description,
         linkedSwapTargetUnitId:
@@ -57,10 +69,17 @@ export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: strin
         <CardTitle className="text-base">{t("title")}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 md:grid-cols-2">
-        <div className="space-y-1">
-          <label className="text-sm font-medium">{t("unitId")}</label>
-          <Input value={unitId} onChange={(e) => setUnitId(e.target.value)} />
-        </div>
+        <UnitSearchCombobox
+          label={t("unit")}
+          placeholder={t("unitSearchPlaceholder")}
+          emptyHint={t("unitSearchMinChars")}
+          value={selectedUnit}
+          onChange={setSelectedUnit}
+          onSearch={searchUnitsForRequestPickerAction}
+          onResolveUnit={resolveUnitForRequestPickerAction}
+          initialUnitId={defaultUnitId}
+          disabled={pending}
+        />
         <div className="space-y-1">
           <label className="text-sm font-medium">{t("type")}</label>
           <Select value={type} onValueChange={(v) => setType(v as UnitRequestType)}>
@@ -94,7 +113,7 @@ export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: strin
           </div>
         ) : null}
         <div className="md:col-span-2">
-          <Button disabled={pending || !unitId.trim()} onClick={submit}>
+          <Button disabled={pending || !selectedUnit} onClick={submit}>
             {t("submit")}
           </Button>
         </div>
