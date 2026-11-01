@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Check, Circle, Lock } from "lucide-react";
 
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,7 @@ import {
   unblockUnitCycleStageAction,
 } from "@/lib/actions/unit-cycle";
 import type { UnitCycleChecklistItemKey } from "@/lib/operations/operations-progress";
+import type { UnitRequestType } from "@prisma/client";
 
 type StagePayload = {
   stageKey: string;
@@ -28,18 +30,24 @@ export function UnitCycleStepper({
   activeStageKey,
   stages,
   canManageStage,
+  blockingRequests = [],
 }: {
   unitId: string;
   activeStageKey: string | null;
   stages: StagePayload[];
   canManageStage: boolean;
+  blockingRequests?: Array<{ id: string; type: UnitRequestType }>;
 }) {
   const t = useTranslations("unitCycle");
+  const tEnums = useTranslations("enums");
   const locale = useLocale();
   const isRtl = locale === "ar";
   const [pending, startTransition] = useTransition();
 
   const activeStage = stages.find((stage) => stage.stageKey === activeStageKey);
+  const blockedByRequest = blockingRequests.length > 0;
+  const canCompleteActive =
+    activeStage?.checklistComplete && !blockedByRequest;
 
   function run(action: () => Promise<unknown>) {
     startTransition(async () => {
@@ -109,6 +117,28 @@ export function UnitCycleStepper({
 
       {activeStage ? (
         <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+          {blockedByRequest ? (
+            <div
+              className="space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
+              role="status"
+            >
+              <p className="font-medium text-amber-950 dark:text-amber-100">
+                {t("blockedByRequest.title")}
+              </p>
+              <ul className="space-y-1">
+                {blockingRequests.map((request) => (
+                  <li key={request.id}>
+                    <Link
+                      href={`/requests/${request.id}`}
+                      className="font-medium text-[var(--color-chart-1)] underline-offset-4 hover:underline"
+                    >
+                      {tEnums(`unitRequestType.${request.type}`)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <p className="text-sm font-medium">{t("checklist")}</p>
           <ul className="space-y-1 text-sm">
             {activeStage.checklist.map((item) => (
@@ -155,7 +185,7 @@ export function UnitCycleStepper({
               )}
               <Button
                 size="sm"
-                disabled={pending || !activeStage.checklistComplete}
+                disabled={pending || !canCompleteActive}
                 onClick={() => run(() => completeUnitCycleStageAction({ unitId }))}
               >
                 {t("actions.completeStage")}

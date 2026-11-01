@@ -1,12 +1,13 @@
 import type { UnitCycleStageKey, UnitRequestType } from "@prisma/client";
 
+/** Maps request types to the unit cycle stage they block when open (pilot projects only). */
 export const REQUEST_TYPE_UNIT_CYCLE_STAGE: Record<
   UnitRequestType,
   UnitCycleStageKey | null
 > = {
-  CONTRACT_ISSUE_OR_AMENDMENT: "CONTRACT",
-  GRACE_PERIOD_ANNEX: "CONTRACT",
-  UNIT_SWAP: "CONTRACT",
+  CONTRACT_ISSUE_OR_AMENDMENT: "LEGAL_HANDOVER",
+  GRACE_PERIOD_ANNEX: "LEGAL_HANDOVER",
+  UNIT_SWAP: null,
   FINISHING_PRICE_CHANGE_OR_DISCOUNT: "FINANCE",
   PAYMENT_PLAN_CHANGE: "FINANCE",
   REFUND: "FINANCE",

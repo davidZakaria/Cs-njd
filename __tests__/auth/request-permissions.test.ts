@@ -36,7 +36,7 @@ describe("request permissions", () => {
     }
   });
 
-  it("lets management approve Finance-mapped pending requests", () => {
+  it("lets management approve Finance-mapped pending requests when no finance staff", () => {
     expect(
       userCanApproveAtCurrentStep({
         role: "MANAGEMENT",
@@ -46,8 +46,24 @@ describe("request permissions", () => {
           currentStepIndex: 0,
           currentApproverKind: "FINANCE",
         },
+        staff: { hasLegalStaff: false, hasFinanceStaff: false },
       })
     ).toBe(true);
+  });
+
+  it("blocks management from finance step when finance staff exists", () => {
+    expect(
+      userCanApproveAtCurrentStep({
+        role: "MANAGEMENT",
+        request: {
+          type: "PAYMENT_PLAN_CHANGE",
+          status: "PENDING",
+          currentStepIndex: 0,
+          currentApproverKind: "FINANCE",
+        },
+        staff: { hasLegalStaff: false, hasFinanceStaff: true },
+      })
+    ).toBe(false);
   });
 
   it("lets community management view handover appointments only", () => {

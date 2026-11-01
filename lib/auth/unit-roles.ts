@@ -16,11 +16,24 @@ export function isOperationsRole(role: Role): boolean {
   return role === "OPERATIONS";
 }
 
+export function isLegalRole(role: Role): boolean {
+  return role === "LEGAL";
+}
+
+export function isFinanceRole(role: Role): boolean {
+  return role === "FINANCE";
+}
+
+export function isDepartmentStaffRole(role: Role): boolean {
+  return isLegalRole(role) || isFinanceRole(role);
+}
+
 export function isLimitedExportRole(role: Role): boolean {
   return (
     isCsAgentRole(role) ||
     isCommunityManagementRole(role) ||
-    isOperationsRole(role)
+    isOperationsRole(role) ||
+    isDepartmentStaffRole(role)
   );
 }
 

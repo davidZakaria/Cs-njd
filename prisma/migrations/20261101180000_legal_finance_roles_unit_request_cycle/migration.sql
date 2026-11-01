@@ -1,0 +1,3 @@
+-- AlterEnum
+ALTER TYPE "Role" ADD VALUE 'LEGAL';
+ALTER TYPE "Role" ADD VALUE 'FINANCE';

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
-import { prisma, activeUnitWhere } from "@/lib/prisma";
+import { prisma, basePrisma, activeUnitWhere } from "@/lib/prisma";
 import {
   mapUnitRowToRequestPickerOption,
   unitMatchesRequestPickerSearchQuery,
@@ -31,6 +31,7 @@ import {
   engineeringKindForRequestType,
 } from "@/lib/requests/workflow-helpers";
 import { recordUnitEngineeringApproval } from "@/lib/workflow/engineering-approval-log";
+import { getOrgStaffAvailability } from "@/lib/requests/org-staff.server";
 import {
   buildRequestAttachmentStoredFilename,
   isAllowedRequestAttachmentMime,
@@ -305,10 +306,13 @@ export async function approveUnitRequestStepAction(
   if (!request) return actionFail("Request not found");
   if (request.status !== "PENDING") return actionFail("Request is not pending");
 
+  const staff = await getOrgStaffAvailability(basePrisma);
+
   if (
     !userCanApproveAtCurrentStep({
       role: session.user.role,
       request,
+      staff,
     })
   ) {
     return actionFail("Unauthorized");
@@ -394,10 +398,13 @@ export async function rejectUnitRequestAction(
   if (!request) return actionFail("Request not found");
   if (request.status !== "PENDING") return actionFail("Request is not pending");
 
+  const staff = await getOrgStaffAvailability(basePrisma);
+
   if (
     !userCanRejectAtCurrentStep({
       role: session.user.role,
       request,
+      staff,
     })
   ) {
     return actionFail("Unauthorized");
@@ -545,6 +552,11 @@ export async function uploadUnitRequestAttachmentAction(
       userId: session.user.id,
       requestedById: request.requestedById,
       status: request.status,
+    }) &&
+    !userCanApproveAtCurrentStep({
+      role: session.user.role,
+      request,
+      staff: await getOrgStaffAvailability(basePrisma),
     })
   ) {
     return actionFail("Unauthorized");

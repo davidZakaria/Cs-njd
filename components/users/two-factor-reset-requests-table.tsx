@@ -38,6 +38,8 @@ const roleKeyMap: Record<
   | "communityManagement"
   | "engineer"
   | "operations"
+  | "legal"
+  | "finance"
 > = {
   SUPER_ADMIN: "superAdmin",
   MANAGEMENT: "management",
@@ -45,6 +47,8 @@ const roleKeyMap: Record<
   COMMUNITY_MANAGEMENT: "communityManagement",
   ENGINEER: "engineer",
   OPERATIONS: "operations",
+  LEGAL: "legal",
+  FINANCE: "finance",
 };
 
 export function TwoFactorResetRequestsTable({

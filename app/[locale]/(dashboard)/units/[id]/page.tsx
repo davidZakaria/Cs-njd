@@ -447,12 +447,6 @@ export default async function UnitProfilePage({
         userId={session?.user.id}
         unitAgentId={unit.agentId}
         locale={locale}
-        openRequests={unitRequests.map((r) => ({
-          id: r.id,
-          type: r.type,
-          status: r.status,
-          unitCycleStageKey: r.unitCycleStageKey,
-        }))}
       />
 
       <UnitRequestsPanel unitId={unit.id} requests={unitRequests} locale={locale} />

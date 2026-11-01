@@ -6,25 +6,29 @@ import type { CsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { filterRequestRowsByView } from "@/lib/requests/permissions-core";
 import type { RequestsPageFilters, UnitRequestListRow } from "@/lib/requests/types";
 import { isRequestOverdue } from "@/lib/requests/overdue";
+import { getOrgStaffAvailability } from "@/lib/requests/org-staff.server";
+import { basePrisma } from "@/lib/prisma";
 
 export type { UnitRequestListRow, RequestsPageFilters, OverdueUnitRequestRow } from "@/lib/requests/types";
 
 export { isRequestOverdue } from "@/lib/requests/overdue";
 
-export function filterRequestRowsForUser(input: {
+export async function filterRequestRowsForUser(input: {
   rows: UnitRequestListRow[];
   role: Role;
   userId: string;
   csScope?: CsAgentScope | null;
   filters: RequestsPageFilters;
   now?: Date;
-}): UnitRequestListRow[] {
+}): Promise<UnitRequestListRow[]> {
+  const staff = await getOrgStaffAvailability(basePrisma);
   return filterRequestRowsByView({
     rows: input.rows,
     role: input.role,
     userId: input.userId,
     filters: input.filters,
     now: input.now,
+    staff,
   });
 }
 

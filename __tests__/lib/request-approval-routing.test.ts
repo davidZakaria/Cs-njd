@@ -5,9 +5,8 @@ import {
   normalizeApprovalPath,
 } from "@/lib/requests/approval-paths";
 import {
-  ORG_HAS_FINANCE_STAFF_ROLE,
-  ORG_HAS_LEGAL_STAFF_ROLE,
   resolveApproverKindToRole,
+  rolesThatCanActOnApproverKind,
 } from "@/lib/requests/approver-roles";
 import {
   advanceAfterApproval,
@@ -32,11 +31,31 @@ describe("request approval paths", () => {
     expect(getApprovalPathForType("SITE_VISIT")).toEqual(["CS_AGENT"]);
   });
 
-  it("resolves Legal and Finance to Management until dedicated roles exist", () => {
-    expect(ORG_HAS_LEGAL_STAFF_ROLE).toBe(false);
-    expect(ORG_HAS_FINANCE_STAFF_ROLE).toBe(false);
-    expect(resolveApproverKindToRole("LEGAL")).toBe("MANAGEMENT");
-    expect(resolveApproverKindToRole("FINANCE")).toBe("MANAGEMENT");
+  it("resolves Legal and Finance to dedicated roles when staff exists", () => {
+    expect(
+      resolveApproverKindToRole("LEGAL", { hasLegalStaff: true, hasFinanceStaff: true })
+    ).toBe("LEGAL");
+    expect(
+      resolveApproverKindToRole("FINANCE", { hasLegalStaff: true, hasFinanceStaff: true })
+    ).toBe("FINANCE");
+  });
+
+  it("falls back Legal and Finance to Management when no dedicated staff", () => {
+    expect(
+      resolveApproverKindToRole("LEGAL", { hasLegalStaff: false, hasFinanceStaff: false })
+    ).toBe("MANAGEMENT");
+    expect(
+      resolveApproverKindToRole("FINANCE", { hasLegalStaff: false, hasFinanceStaff: false })
+    ).toBe("MANAGEMENT");
+  });
+
+  it("limits Legal inbox to Legal when staff exists", () => {
+    expect(
+      rolesThatCanActOnApproverKind("LEGAL", {
+        hasLegalStaff: true,
+        hasFinanceStaff: true,
+      })
+    ).toEqual(["LEGAL", "SUPER_ADMIN"]);
   });
 
   it("dedupes consecutive identical steps after role resolution", () => {
@@ -63,10 +82,14 @@ describe("request approval paths", () => {
     expect(done.done).toBe(true);
   });
 
-  it("links request types to unit cycle stages", () => {
+  it("links request types to unit cycle stages for pilot blocking", () => {
     expect(unitCycleStageForRequestType("SITE_VISIT")).toBe("ENGINEERING");
     expect(unitCycleStageForRequestType("HANDOVER_APPOINTMENT")).toBe(
       "LEGAL_HANDOVER"
     );
+    expect(unitCycleStageForRequestType("CONTRACT_ISSUE_OR_AMENDMENT")).toBe(
+      "LEGAL_HANDOVER"
+    );
+    expect(unitCycleStageForRequestType("UNIT_SWAP")).toBeNull();
   });
 });

@@ -127,6 +127,14 @@ describe("RBAC Role Access Control", () => {
       expect(getHomeRoute("OPERATIONS")).toBe("/operations");
     });
 
+    it("returns /legal for LEGAL role", () => {
+      expect(getHomeRoute("LEGAL")).toBe("/legal");
+    });
+
+    it("returns /finance for FINANCE role", () => {
+      expect(getHomeRoute("FINANCE")).toBe("/finance");
+    });
+
     it("returns /dashboard for CS_AGENT role", () => {
       expect(getHomeRoute("CS_AGENT")).toBe("/dashboard");
     });

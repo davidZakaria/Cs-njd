@@ -33,7 +33,7 @@ export default async function RequestsPage({
       : null;
 
   const allRows = await loadAllUnitRequestRows(basePrisma);
-  const rows = filterRequestRowsForUser({
+  const rows = await filterRequestRowsForUser({
     rows: allRows,
     role: session.user.role,
     userId: session.user.id,

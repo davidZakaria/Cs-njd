@@ -2,6 +2,7 @@
  * Smoke-import modules used by scripts/cron.ts under Node/tsx (not Next.js).
  * Must not throw from `server-only` or other Next-only guards.
  */
+import "dotenv/config";
 import { getBackupCronSchedule } from "../lib/backup/run-full-backup";
 import { getUnitCycleCronSchedule } from "../lib/unit-cycle/escalation";
 import {

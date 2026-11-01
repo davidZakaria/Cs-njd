@@ -28,6 +28,11 @@ import {
   canCompleteStage,
   nextStageKey,
 } from "@/lib/unit-cycle/stage-rules";
+import {
+  OPEN_UNIT_REQUEST_STATUSES,
+  blockingRequestsForStage,
+  type UnitRequestStageBlocker,
+} from "@/lib/unit-cycle/stage-request-blocking";
 
 const projectSettingsSchema = z.object({
   projectId: z.string().min(1),
@@ -188,8 +193,11 @@ export async function completeUnitCycleStageAction(input: {
     engineeringApprovals: unit.engineeringApprovals,
   });
 
-  if (!canCompleteStage(activeKey, stage.status, snapshot)) {
-    return actionFail("Checklist incomplete");
+  if (!canCompleteStage(activeKey, stage.status, snapshot, {
+    unitCycleEnabled: true,
+    openRequests: await loadOpenUnitRequestBlockers(unit.id),
+  })) {
+    return actionFail("Checklist incomplete or blocked by open request");
   }
 
   const following = nextStageKey(activeKey);
@@ -277,12 +285,22 @@ export async function loadUnitCycleForUnit(unitId: string) {
     engineeringApprovals: unit.engineeringApprovals,
   });
 
+  const openRequests = await loadOpenUnitRequestBlockers(unitId);
+  const activeStageKey = resolveActiveStageKey(unit.unitCycle.stages);
+
   const stages = unit.unitCycle.stages.map((stage) => {
     const checklist = buildStageChecklist(stage.stageKey, snapshot);
+    const checklistComplete = checklist.every((item) => item.passed);
+    const stageBlockers = blockingRequestsForStage(
+      stage.stageKey,
+      openRequests,
+      true
+    );
     return {
       ...stage,
       checklist,
-      checklistComplete: checklist.every((item) => item.passed),
+      checklistComplete,
+      blockedByRequest: stageBlockers.length > 0,
     };
   });
 
@@ -291,11 +309,35 @@ export async function loadUnitCycleForUnit(unitId: string) {
     activeStageKey: resolveActiveStageKey(stages),
     stages,
     events: unit.unitCycle.events,
+    blockingRequests:
+      activeStageKey != null
+        ? blockingRequestsForStage(activeStageKey, openRequests, true)
+        : [],
   };
+}
+
+async function loadOpenUnitRequestBlockers(
+  unitId: string
+): Promise<UnitRequestStageBlocker[]> {
+  const rows = await prisma.unitRequest.findMany({
+    where: {
+      unitId,
+      status: { in: OPEN_UNIT_REQUEST_STATUSES },
+    },
+    select: {
+      id: true,
+      type: true,
+      status: true,
+      unitCycleStageKey: true,
+    },
+  });
+  return rows;
 }
 
 function revalidateUnitCyclePaths(unitId: string) {
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/dashboard");
   revalidatePath("/executive");
+  revalidatePath("/legal");
+  revalidatePath("/finance");
 }

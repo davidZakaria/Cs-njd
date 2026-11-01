@@ -8,6 +8,7 @@ import {
   isAdminUnitManager,
   isCommunityManagementRole,
   isCsAgentRole,
+  isDepartmentStaffRole,
   isOperationsRole,
 } from "@/lib/auth/unit-roles";
 import {
@@ -23,6 +24,7 @@ import {
   describeApprovalPath,
   initialApproverKindForType,
 } from "@/lib/requests/permissions-core";
+import type { OrgStaffAvailability } from "@/lib/requests/approver-roles";
 
 export {
   canCreateUnitRequest,
@@ -47,8 +49,9 @@ export function canViewUnitRequest(input: {
   >;
   unitAgentId: string | null;
   csScope?: CsAgentScope | null;
+  staff?: OrgStaffAvailability;
 }): boolean {
-  const { role, userId, request, unitAgentId, csScope } = input;
+  const { role, userId, request, unitAgentId, csScope, staff } = input;
 
   if (isAdminUnitManager(role) || role === "SUPER_ADMIN") return true;
 
@@ -60,11 +63,19 @@ export function canViewUnitRequest(input: {
 
   if (isOperationsRole(role)) return false;
 
+  if (isDepartmentStaffRole(role)) {
+    if (request.status === "PENDING" && request.currentApproverKind) {
+      return userCanApproveAtCurrentStep({ role, request, staff });
+    }
+    return false;
+  }
+
   if (request.status === "PENDING" && request.currentApproverKind) {
     if (
       userCanApproveAtCurrentStep({
         role,
         request,
+        staff,
       })
     ) {
       return true;

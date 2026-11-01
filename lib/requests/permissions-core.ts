@@ -18,8 +18,10 @@ import {
   normalizeApprovalPath,
 } from "@/lib/requests/approval-paths";
 import {
+  managementMayActOnDedicatedStep,
   resolveApproverKindToRole,
   rolesThatCanActOnApproverKind,
+  type OrgStaffAvailability,
 } from "@/lib/requests/approver-roles";
 
 /** Pure permission helpers safe for client bundles (no Prisma / cs-agent-scope). */
@@ -38,16 +40,28 @@ export function userCanApproveAtCurrentStep(input: {
     UnitRequest,
     "type" | "status" | "currentStepIndex" | "currentApproverKind"
   >;
+  staff?: OrgStaffAvailability;
 }): boolean {
-  const { role, request } = input;
+  const { role, request, staff } = input;
   if (request.status !== "PENDING" || !request.currentApproverKind) {
     return false;
   }
 
-  const allowedRoles = rolesThatCanActOnApproverKind(request.currentApproverKind);
+  const allowedRoles = rolesThatCanActOnApproverKind(
+    request.currentApproverKind,
+    staff
+  );
   if (!allowedRoles.includes(role)) return false;
 
-  const resolved = resolveApproverKindToRole(request.currentApproverKind);
+  if (
+    role === "MANAGEMENT" &&
+    staff &&
+    !managementMayActOnDedicatedStep(request.currentApproverKind, staff)
+  ) {
+    return false;
+  }
+
+  const resolved = resolveApproverKindToRole(request.currentApproverKind, staff);
   if (resolved === "CS_AGENT" && isCsAgentRole(role)) {
     return true;
   }
@@ -61,6 +75,7 @@ export function userCanRejectAtCurrentStep(input: {
     UnitRequest,
     "type" | "status" | "currentStepIndex" | "currentApproverKind"
   >;
+  staff?: OrgStaffAvailability;
 }): boolean {
   return userCanApproveAtCurrentStep(input);
 }
@@ -120,6 +135,7 @@ export function requestMatchesRoleInbox(input: {
   currentApproverKind: UnitRequestApproverKind | null;
   requestedById: string;
   view: "awaiting" | "submitted";
+  staff?: OrgStaffAvailability;
 }): boolean {
   if (input.view === "submitted") {
     return input.requestedById === input.userId;
@@ -135,17 +151,23 @@ export function requestMatchesRoleInbox(input: {
       currentStepIndex: 0,
       currentApproverKind: input.currentApproverKind,
     },
+    staff: input.staff,
   });
 }
 
-export function listApproverKindsForRole(role: Role): UnitRequestApproverKind[] {
+export function listApproverKindsForRole(
+  role: Role,
+  staff?: OrgStaffAvailability
+): UnitRequestApproverKind[] {
   const kinds: UnitRequestApproverKind[] = [
     "LEGAL",
     "FINANCE",
     "MANAGEMENT",
     "CS_AGENT",
   ];
-  return kinds.filter((kind) => rolesThatCanActOnApproverKind(kind).includes(role));
+  return kinds.filter((kind) =>
+    rolesThatCanActOnApproverKind(kind, staff).includes(role)
+  );
 }
 
 export function describeApprovalPath(type: UnitRequestType): UnitRequestApproverKind[] {
@@ -164,9 +186,11 @@ export function filterRequestRowsByView(input: {
   userId: string;
   filters: RequestsPageFilters;
   now?: Date;
+  staff?: OrgStaffAvailability;
 }): UnitRequestListRow[] {
   const now = input.now ?? new Date();
   let list = input.rows;
+  const staff = input.staff;
 
   if (isCommunityManagementRole(input.role)) {
     list = list.filter((row) => row.type === "HANDOVER_APPOINTMENT");
@@ -182,6 +206,7 @@ export function filterRequestRowsByView(input: {
         currentApproverKind: row.currentApproverKind,
         requestedById: row.requestedById,
         view: "awaiting",
+        staff,
       })
     );
   } else if (input.filters.view === "submitted") {
@@ -198,6 +223,7 @@ export function filterRequestRowsByView(input: {
           currentApproverKind: row.currentApproverKind,
           requestedById: row.requestedById,
           view: "awaiting",
+          staff,
         }) ||
         (isCommunityManagementRole(input.role) && row.type === "HANDOVER_APPOINTMENT")
     );

@@ -416,6 +416,8 @@
     "notificationsLog": "Notifications Log",
     "activityNotifications": "Notifications",
     "systemSettings": "General Settings",
+    "legalHome": "Legal home",
+    "financeHome": "Finance home",
     "administration": "Administration",
     "groups": {
       "usersSecurity": "Users & Security",
@@ -1080,7 +1082,9 @@
       "csAgent": "CS Agent",
       "communityManagement": "Community Management",
       "engineer": "Site Engineer",
-      "operations": "Operations"
+      "operations": "Operations",
+      "legal": "Legal",
+      "finance": "Finance"
     },
     "twoFactor": "2FA",
     "twoFactorSecured": "Secured",
@@ -1867,6 +1871,9 @@
     "checklist": "Stage checklist",
     "due": "Due {date}",
     "blockedReason": "Blocked: {reason}",
+    "blockedByRequest": {
+      "title": "Blocked by request"
+    },
     "auditTitle": "Cycle history",
     "stages": {
       "CONTRACT": "Contract",
@@ -1932,6 +1939,15 @@
       "save": "Save settings",
       "documentTemplatesLink": "Official document templates"
     }
+  },
+  "departmentHome": {
+    "legalTitle": "Legal queue",
+    "legalSubtitle": "Pending legal approvals and legal & handover cycle tasks.",
+    "financeTitle": "Finance queue",
+    "financeSubtitle": "Pending finance approvals and finance cycle tasks.",
+    "awaitingTitle": "Awaiting your approval",
+    "awaitingEmpty": "No requests waiting on you right now.",
+    "viewAllRequests": "Open requests inbox"
   },
   "officialDocuments": {
     "panelTitle": "Official document drafts",

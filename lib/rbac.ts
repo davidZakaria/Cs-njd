@@ -28,6 +28,8 @@ export function isMaintenanceRoute(path: string): boolean {
   return path.startsWith("/maintenance");
 }
 
+const departmentStaffRoutes = ["/requests", "/units", "/notifications", "/print"];
+
 const roleRoutes: Record<Role, string[]> = {
   SUPER_ADMIN: [
     "/dashboard",
@@ -43,6 +45,8 @@ const roleRoutes: Record<Role, string[]> = {
     "/system",
     "/notifications",
     "/print",
+    "/legal",
+    "/finance",
   ],
   MANAGEMENT: [
     "/executive",
@@ -74,12 +78,16 @@ const roleRoutes: Record<Role, string[]> = {
   ],
   ENGINEER: ["/engineering"],
   OPERATIONS: ["/operations", "/units", "/print"],
+  LEGAL: ["/legal", ...departmentStaffRoutes],
+  FINANCE: ["/finance", ...departmentStaffRoutes],
 };
 
 export function getHomeRoute(role: Role): string {
   if (role === "MANAGEMENT") return "/executive";
   if (role === "ENGINEER") return "/engineering";
   if (role === "OPERATIONS") return "/operations";
+  if (role === "LEGAL") return "/legal";
+  if (role === "FINANCE") return "/finance";
   return "/dashboard";
 }
 
@@ -98,6 +106,8 @@ export type NavItemKey =
   | "cases"
   | "units"
   | "engineering"
+  | "legalHome"
+  | "financeHome"
   | "users"
   | "imports"
   | "auditLogs"
@@ -119,6 +129,32 @@ export type NavGroupKey =
 export function getCoreNavItems(role: Role) {
   if (role === "ENGINEER") {
     return [{ href: "/engineering", key: "engineering" as const, roles: ["ENGINEER" as Role] }];
+  }
+
+  if (role === "LEGAL") {
+    return [
+      { href: "/legal", key: "legalHome" as const, roles: ["LEGAL" as Role] },
+      { href: "/requests", key: "requests" as const, roles: ["LEGAL" as Role] },
+      { href: "/units", key: "units" as const, roles: ["LEGAL" as Role] },
+      {
+        href: "/notifications",
+        key: "activityNotifications" as const,
+        roles: ["LEGAL" as Role],
+      },
+    ];
+  }
+
+  if (role === "FINANCE") {
+    return [
+      { href: "/finance", key: "financeHome" as const, roles: ["FINANCE" as Role] },
+      { href: "/requests", key: "requests" as const, roles: ["FINANCE" as Role] },
+      { href: "/units", key: "units" as const, roles: ["FINANCE" as Role] },
+      {
+        href: "/notifications",
+        key: "activityNotifications" as const,
+        roles: ["FINANCE" as Role],
+      },
+    ];
   }
 
   const items: Array<{ href: string; key: NavItemKey; roles: Role[] }> = [
@@ -215,6 +251,14 @@ export function getSuperAdminNavGroups(): Array<{
 export function getNavItems(role: Role) {
   if (role === "ENGINEER") {
     return [{ href: "/engineering", key: "engineering" as const, roles: ["ENGINEER" as Role] }];
+  }
+
+  if (role === "LEGAL") {
+    return getCoreNavItems("LEGAL");
+  }
+
+  if (role === "FINANCE") {
+    return getCoreNavItems("FINANCE");
   }
 
   const all: Array<{

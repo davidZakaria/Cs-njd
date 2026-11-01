@@ -49,6 +49,12 @@ export async function getMyStageTasks(input: {
   if (input.role === "CS_AGENT") {
     ownerRoles.push("CS_AGENT");
   }
+  if (input.role === "LEGAL") {
+    ownerRoles.push("LEGAL");
+  }
+  if (input.role === "FINANCE") {
+    ownerRoles.push("FINANCE");
+  }
 
   if (ownerRoles.length === 0) {
     return [];
