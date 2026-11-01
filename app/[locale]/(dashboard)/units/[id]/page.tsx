@@ -585,9 +585,15 @@ export default async function UnitProfilePage({
               canEditOperationsArchiveFiling={canEditOperationsArchiveFiling}
               canUploadGracePeriodAnnex={canCsPortfolioDocs}
               canManageGracePeriodAnnexFiles={canManagePortfolioDocFiles}
+              canUploadSignedContract={signedProtocolAccess.canUpload}
+              canManageSignedContractFiles={canManageSignedProtocolFiles}
+              signedProtocolInfo={signedProtocolInfo}
               defaults={{
                 unitId: unit.id,
                 extensionAnnexFile: workflow?.extensionAnnexFile ?? null,
+                signedContractFile: workflow?.signedContractFile ?? null,
+                signedProtocolStoredName: workflow?.signedProtocolStoredName ?? null,
+                contractUnitUpdateFlags: contractUpdateFlags,
                 handoverStatus: unit.contractWorkflow?.handoverStatus ?? "PENDING",
                 actionLabel: unit.contractWorkflow?.actionLabel ?? null,
                 contractDate:
@@ -676,38 +682,40 @@ export default async function UnitProfilePage({
             </Card>
           )}
           {!showLegalHandoverForm ? (
-            <UnitDocumentUpload
-              unitId={unit.id}
-              documentType="extensionAnnex"
-              existingFile={workflow?.extensionAnnexFile ?? null}
-              canUploadWhenEmpty={canCsPortfolioDocs}
-              canManageFiles={canManagePortfolioDocFiles}
-              canView={
-                canCsPortfolioDocs ||
-                canManagePortfolioDocFiles ||
-                Boolean(workflow?.extensionAnnexFile)
-              }
-            />
+            <>
+              <UnitDocumentUpload
+                unitId={unit.id}
+                documentType="extensionAnnex"
+                existingFile={workflow?.extensionAnnexFile ?? null}
+                canUploadWhenEmpty={canCsPortfolioDocs}
+                canManageFiles={canManagePortfolioDocFiles}
+                canView={
+                  canCsPortfolioDocs ||
+                  canManagePortfolioDocFiles ||
+                  Boolean(workflow?.extensionAnnexFile)
+                }
+              />
+              <SignedProtocolUpload
+                info={signedProtocolInfo}
+                canUpload={signedProtocolAccess.canUpload}
+                canManageFiles={canManageSignedProtocolFiles}
+                hasResolvedCase={hasResolvedCase}
+              />
+              <UnitDocumentUpload
+                unitId={unit.id}
+                documentType="signedContract"
+                existingFile={workflow?.signedContractFile ?? null}
+                canUploadWhenEmpty={signedProtocolAccess.canUpload}
+                canManageFiles={canManageSignedProtocolFiles}
+                canView={
+                  signedProtocolAccess.canUpload ||
+                  canManageSignedProtocolFiles ||
+                  Boolean(workflow?.signedContractFile)
+                }
+                required
+              />
+            </>
           ) : null}
-          <SignedProtocolUpload
-            info={signedProtocolInfo}
-            canUpload={signedProtocolAccess.canUpload}
-            canManageFiles={canManageSignedProtocolFiles}
-            hasResolvedCase={hasResolvedCase}
-          />
-          <UnitDocumentUpload
-            unitId={unit.id}
-            documentType="signedContract"
-            existingFile={workflow?.signedContractFile ?? null}
-            canUploadWhenEmpty={signedProtocolAccess.canUpload}
-            canManageFiles={canManageSignedProtocolFiles}
-            canView={
-              signedProtocolAccess.canUpload ||
-              canManageSignedProtocolFiles ||
-              Boolean(workflow?.signedContractFile)
-            }
-            required
-          />
         </TabsContent>
 
         <TabsContent value="timeline" className="space-y-4">
