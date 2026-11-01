@@ -45,7 +45,7 @@ export function UnitDocumentUpload({
   canManageFiles?: boolean;
   canUpload?: boolean;
   required?: boolean;
-  variant?: "card" | "embedded";
+  variant?: "card" | "embedded" | "inline";
 }) {
   const legacyMode =
     canUpload !== undefined && !canUploadWhenEmpty && !canManageFiles;
@@ -102,8 +102,79 @@ export function UnitDocumentUpload({
     }, "deleted");
   }
 
-  if (!hasFile && !mayUpload && !canView) {
+  if (!hasFile && !mayUpload && !canView && variant !== "inline") {
     return null;
+  }
+
+  const inlineUploadControls = showUploadSection ? (
+    <div className="flex flex-wrap items-center gap-2">
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,application/pdf,image/jpeg,image/png,.jpg,.png"
+        className="max-w-[14rem] flex-1 text-xs file:mr-2 file:rounded-md file:border-0 file:bg-primary file:px-2 file:py-1 file:text-xs file:font-medium file:text-primary-foreground"
+        disabled={pending}
+        onChange={handleFileChange}
+      />
+      <Button
+        type="button"
+        size="sm"
+        className="h-8 gap-1 shrink-0"
+        disabled={pending || !selectedName}
+        onClick={handleUpload}
+      >
+        {pending ? (
+          <Loader2 className="size-3.5 animate-spin" />
+        ) : (
+          <Upload className="size-3.5" />
+        )}
+        {hasFile && resolvedManageFiles ? t("replace") : t("upload")}
+      </Button>
+    </div>
+  ) : null;
+
+  if (variant === "inline") {
+    if (!hasFile && !mayUpload && !canView) {
+      return null;
+    }
+    return (
+      <div className="space-y-2">
+        {hasFile && canView ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-2">
+            <FileText className="size-4 shrink-0 text-primary" />
+            <p className="min-w-0 flex-1 truncate text-sm">{existingFile}</p>
+            <a
+              href={downloadHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              {t("view")}
+            </a>
+            {resolvedManageFiles ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 text-destructive hover:text-destructive"
+                disabled={pending}
+                onClick={handleRemove}
+              >
+                <Trash2 className="size-3.5" />
+                {tCommon("delete")}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+        {hasFile && !resolvedManageFiles && resolvedUploadWhenEmpty ? (
+          <p className="text-xs text-muted-foreground">{tDocs("uploadLocked")}</p>
+        ) : null}
+        {inlineUploadControls}
+        {selectedName && showUploadSection ? (
+          <p className="text-xs text-muted-foreground">{selectedName}</p>
+        ) : null}
+      </div>
+    );
   }
 
   const body = (

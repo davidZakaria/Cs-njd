@@ -187,18 +187,28 @@ export async function uploadUnitDocument(
         await deleteUnitDocumentFile(documentType, previousStoredName);
       }
 
+      const workflowPatch =
+        documentType === "signedContract"
+          ? {
+              signedContractFile: storedName,
+              ...(!unit.contractWorkflow?.hasPreliminarySaleContract
+                ? { hasPreliminarySaleContract: true }
+                : {}),
+            }
+          : {
+              extensionAnnexFile: storedName,
+              ...(!unit.contractWorkflow?.hasSignedExtension
+                ? { hasSignedExtension: true }
+                : {}),
+            };
+
       await prisma.contractWorkflow.upsert({
         where: { unitId },
         create: {
           unitId,
-          ...(documentType === "signedContract"
-            ? { signedContractFile: storedName }
-            : { extensionAnnexFile: storedName }),
+          ...workflowPatch,
         },
-        update:
-          documentType === "signedContract"
-            ? { signedContractFile: storedName }
-            : { extensionAnnexFile: storedName },
+        update: workflowPatch,
       });
     }
 
