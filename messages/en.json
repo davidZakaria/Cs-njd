@@ -198,7 +198,14 @@
       "paperPreliminaryCopy": "Copy of preliminary contract given",
       "paperOriginalProtocol": "Original handover record received",
       "paperFinishingPapers": "Finishing papers",
-      "paperKeyHandover": "Key handover"
+      "paperKeyHandover": "Key handover",
+      "signedPaperOnly": "Signed (paper only)"
+    },
+    "legalDocumentStatus": {
+      "missing": "Missing",
+      "signed_no_file": "Signed — no file",
+      "file_uploaded": "File uploaded",
+      "needs_update": "Needs update"
     },
     "edgeCases": {
       "isLegallyBlocked": "Active legal block (blocks handover)",

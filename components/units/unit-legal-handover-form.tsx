@@ -36,6 +36,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UnitDocumentUpload } from "@/components/units/unit-document-upload";
+import { LegalDocumentRow } from "@/components/units/legal-document-row";
+import {
+  SignedProtocolUpload,
+  type SignedProtocolInfo,
+} from "@/components/units/signed-protocol-upload";
+import {
+  contractFlagsNeedUpdate,
+  LEGAL_DOCUMENT_UPDATE_FLAGS,
+} from "@/lib/units/legal-document-ui-status";
 import { cn } from "@/lib/utils";
 
 export type UnitLegalHandoverDefaults = {
@@ -70,6 +79,9 @@ export type UnitLegalHandoverDefaults = {
   paperHandoverFinishingPapers: boolean;
   paperHandoverKeyReceived: boolean;
   extensionAnnexFile: string | null;
+  signedContractFile: string | null;
+  signedProtocolStoredName: string | null;
+  contractUnitUpdateFlags: string[];
 };
 
 function toDateInput(value: string | null | undefined): string {
@@ -143,6 +155,9 @@ export function UnitLegalHandoverForm({
   canEngineeringApproveSiteVisit = false,
   canUploadGracePeriodAnnex = false,
   canManageGracePeriodAnnexFiles = false,
+  canUploadSignedContract = false,
+  canManageSignedContractFiles = false,
+  signedProtocolInfo,
   canEdit,
 }: {
   defaults: UnitLegalHandoverDefaults;
@@ -152,6 +167,9 @@ export function UnitLegalHandoverForm({
   canEngineeringApproveSiteVisit?: boolean;
   canUploadGracePeriodAnnex?: boolean;
   canManageGracePeriodAnnexFiles?: boolean;
+  canUploadSignedContract?: boolean;
+  canManageSignedContractFiles?: boolean;
+  signedProtocolInfo?: SignedProtocolInfo;
   /** @deprecated Use canEditManagement */
   canEdit?: boolean;
 }) {
@@ -160,6 +178,7 @@ export function UnitLegalHandoverForm({
   const tChecklist = useTranslations("workflow.checklist");
   const tEdge = useTranslations("workflow.edgeCases");
   const tForm = useTranslations("workflow.contractsHandover");
+  const tDocsExtension = useTranslations("documents.extensionAnnex");
   const tCommon = useTranslations("common");
   const labels = useDomainLabels();
   const { pending, runAction } = useCrudToast();
@@ -232,6 +251,17 @@ export function UnitLegalHandoverForm({
   }
 
   const managementOnlyLabel = tChecklist("managementOnly");
+  const contractFlags = defaults.contractUnitUpdateFlags;
+
+  const signedProtocolInlineInfo: SignedProtocolInfo =
+    signedProtocolInfo ?? {
+      unitId: defaults.unitId,
+      originalName: null,
+      uploadedAtLabel: null,
+      uploadedByLabel: null,
+      sizeLabel: null,
+      hasFile: Boolean(defaults.signedProtocolStoredName),
+    };
 
   function onSubmit(values: HandoverChecklistFormInput) {
     if (managementEdit) {
@@ -426,16 +456,24 @@ export function UnitLegalHandoverForm({
           ) : null}
         </CardHeader>
         <CardContent className="space-y-3">
-          <ContractRow
-            id="hasPreliminarySaleContract"
-            label={tForm("preliminarySaleContract")}
-            checked={Boolean(form.watch("hasPreliminarySaleContract"))}
+          <LegalDocumentRow
+            documentName={tForm("preliminarySaleContract")}
+            paperSigned={Boolean(form.watch("hasPreliminarySaleContract"))}
+            hasFile={Boolean(defaults.signedContractFile)}
+            needsUpdate={contractFlagsNeedUpdate(
+              contractFlags,
+              [...LEGAL_DOCUMENT_UPDATE_FLAGS.preliminary]
+            )}
+            dateId="contractDate-preliminary"
             dateValue={String(form.watch("contractDate") ?? "")}
+            onDateChange={(value) => form.setValue("contractDate", value)}
+            dateDisabled={fieldDisabled("contractDate")}
+            checkId="hasPreliminarySaleContract"
+            checked={Boolean(form.watch("hasPreliminarySaleContract"))}
             onCheckChange={(value) =>
               form.setValue("hasPreliminarySaleContract", value)
             }
-            onDateChange={(value) => form.setValue("contractDate", value)}
-            disabled={fieldDisabled("hasPreliminarySaleContract")}
+            checkDisabled={fieldDisabled("hasPreliminarySaleContract")}
             managementOnlyLabel={
               showManagementOnlyHint(
                 "hasPreliminarySaleContract",
@@ -445,46 +483,98 @@ export function UnitLegalHandoverForm({
                 ? managementOnlyLabel
                 : undefined
             }
-          />
-          <ContractRow
-            id="hasSignedExtension"
-            label={tForm("saleContractAnnex")}
-            checked={Boolean(form.watch("hasSignedExtension"))}
-            dateValue={String(form.watch("signedExtensionDate") ?? "")}
-            onCheckChange={(value) => form.setValue("hasSignedExtension", value)}
-            onDateChange={(value) => form.setValue("signedExtensionDate", value)}
-            disabled={fieldDisabled("hasSignedExtension")}
-          />
-          <UnitDocumentUpload
-            unitId={defaults.unitId}
-            documentType="extensionAnnex"
-            existingFile={defaults.extensionAnnexFile}
-            variant="embedded"
-            canView={
-              canUploadGracePeriodAnnex ||
-              canManageGracePeriodAnnexFiles ||
-              Boolean(defaults.extensionAnnexFile)
+            uploadSlot={
+              <UnitDocumentUpload
+                unitId={defaults.unitId}
+                documentType="signedContract"
+                existingFile={defaults.signedContractFile}
+                variant="inline"
+                canUploadWhenEmpty={canUploadSignedContract}
+                canManageFiles={canManageSignedContractFiles}
+                canView={
+                  canUploadSignedContract ||
+                  canManageSignedContractFiles ||
+                  Boolean(defaults.signedContractFile)
+                }
+              />
             }
-            canUploadWhenEmpty={canUploadGracePeriodAnnex}
-            canManageFiles={canManageGracePeriodAnnexFiles}
           />
-          <ContractRow
-            id="hasSignedProtocol"
-            label={tForm("handoverRecord")}
-            checked={Boolean(form.watch("hasSignedProtocol"))}
+          <LegalDocumentRow
+            documentName={tForm("saleContractAnnex")}
+            paperSigned={Boolean(form.watch("hasSignedExtension"))}
+            hasFile={Boolean(defaults.extensionAnnexFile)}
+            needsUpdate={contractFlagsNeedUpdate(
+              contractFlags,
+              [...LEGAL_DOCUMENT_UPDATE_FLAGS.extensionAnnex]
+            )}
+            dateId="signedExtensionDate"
+            dateValue={String(form.watch("signedExtensionDate") ?? "")}
+            onDateChange={(value) => form.setValue("signedExtensionDate", value)}
+            dateDisabled={fieldDisabled("signedExtensionDate")}
+            checkId="hasSignedExtension"
+            checked={Boolean(form.watch("hasSignedExtension"))}
+            onCheckChange={(value) => form.setValue("hasSignedExtension", value)}
+            checkDisabled={fieldDisabled("hasSignedExtension")}
+            hint={tDocsExtension("gracePeriodHint")}
+            uploadSlot={
+              <UnitDocumentUpload
+                unitId={defaults.unitId}
+                documentType="extensionAnnex"
+                existingFile={defaults.extensionAnnexFile}
+                variant="inline"
+                canView={
+                  canUploadGracePeriodAnnex ||
+                  canManageGracePeriodAnnexFiles ||
+                  Boolean(defaults.extensionAnnexFile)
+                }
+                canUploadWhenEmpty={canUploadGracePeriodAnnex}
+                canManageFiles={canManageGracePeriodAnnexFiles}
+              />
+            }
+          />
+          <LegalDocumentRow
+            documentName={tForm("handoverRecord")}
+            paperSigned={Boolean(form.watch("hasSignedProtocol"))}
+            hasFile={signedProtocolInlineInfo.hasFile}
+            needsUpdate={contractFlagsNeedUpdate(
+              contractFlags,
+              [...LEGAL_DOCUMENT_UPDATE_FLAGS.handoverRecord]
+            )}
+            dateId="signedProtocolDate"
             dateValue={String(form.watch("signedProtocolDate") ?? "")}
-            onCheckChange={(value) => form.setValue("hasSignedProtocol", value)}
             onDateChange={(value) => form.setValue("signedProtocolDate", value)}
-            disabled={fieldDisabled("hasSignedProtocol")}
+            dateDisabled={fieldDisabled("signedProtocolDate")}
+            checkId="hasSignedProtocol"
+            checked={Boolean(form.watch("hasSignedProtocol"))}
+            onCheckChange={(value) => form.setValue("hasSignedProtocol", value)}
+            checkDisabled={fieldDisabled("hasSignedProtocol")}
+            uploadSlot={
+              <SignedProtocolUpload
+                info={signedProtocolInlineInfo}
+                canUpload={canUploadSignedContract}
+                canManageFiles={canManageSignedContractFiles}
+                variant="inline"
+              />
+            }
           />
-          <ContractRow
-            id="hasFinalSaleContract"
-            label={tForm("finalSaleContract")}
-            checked={Boolean(form.watch("hasFinalSaleContract"))}
+          <LegalDocumentRow
+            documentName={tForm("finalSaleContract")}
+            paperSigned={Boolean(form.watch("hasFinalSaleContract"))}
+            hasFile={false}
+            needsUpdate={contractFlagsNeedUpdate(
+              contractFlags,
+              [...LEGAL_DOCUMENT_UPDATE_FLAGS.finalSale]
+            )}
+            dateId="finalSaleContractDate"
             dateValue={String(form.watch("finalSaleContractDate") ?? "")}
+            onDateChange={(value) =>
+              form.setValue("finalSaleContractDate", value)
+            }
+            dateDisabled={fieldDisabled("finalSaleContractDate")}
+            checkId="hasFinalSaleContract"
+            checked={Boolean(form.watch("hasFinalSaleContract"))}
             onCheckChange={(value) => form.setValue("hasFinalSaleContract", value)}
-            onDateChange={(value) => form.setValue("finalSaleContractDate", value)}
-            disabled={fieldDisabled("hasFinalSaleContract")}
+            checkDisabled={fieldDisabled("hasFinalSaleContract")}
             managementOnlyLabel={
               showManagementOnlyHint(
                 "hasFinalSaleContract",
