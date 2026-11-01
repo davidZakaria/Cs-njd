@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
@@ -40,6 +40,16 @@ export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: strin
     UnitRequestType.CONTRACT_ISSUE_OR_AMENDMENT
   );
   const [description, setDescription] = useState("");
+
+  const requestTypeItems = useMemo(() => {
+    const items: Record<string, string> = {};
+    for (const value of TYPES) {
+      items[value] = tEnums(`unitRequestType.${value}`);
+    }
+    return items;
+  }, [tEnums]);
+
+  const requestTypeLabel = requestTypeItems[type] ?? type;
 
   const searchUnits = useCallback(
     (query: string) => searchUnitsForRequestPickerAction(query),
@@ -109,9 +119,13 @@ export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: strin
         />
         <div className="space-y-1">
           <label className="text-sm font-medium">{t("type")}</label>
-          <Select value={type} onValueChange={(v) => setType(v as UnitRequestType)}>
-            <SelectTrigger>
-              <SelectValue />
+          <Select
+            value={type}
+            items={requestTypeItems}
+            onValueChange={(v) => setType(v as UnitRequestType)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue>{requestTypeLabel}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {TYPES.map((value) => (
