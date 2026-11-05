@@ -364,7 +364,25 @@ p.justified,
   margin: 1.2mm 0;
 }
 
-.insurance-block {
-  margin-top: 2mm;
+.handover-green .violations-block p {
+  margin: 0.85mm 0;
+  line-height: 1.46;
+}
+
+.handover-green .insurance-block {
+  margin-top: 0.5mm;
+  line-height: 1.46;
+  break-inside: auto;
+  page-break-inside: auto;
+  break-after: avoid-page;
+  page-break-after: avoid;
+}
+
+.draft-legal-appendix {
+  margin-top: 0.5mm;
+  font-size: 10pt;
+  line-height: 1.25;
+  break-before: avoid-page;
+  page-break-before: avoid;
 }
 `.trim();

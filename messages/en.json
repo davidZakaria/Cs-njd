@@ -2201,6 +2201,8 @@
     "handoverVariantAuto": "Automatic",
     "handoverVariantApplyFailed": "Could not apply handover variant.",
     "handoverMissingFieldsWarning": "Some placeholders are still blank. Complete unit/client data or edit the text before generating the PDF.",
+    "proposedOfficialBodyNotice": "A proposed official Arabic handover text is available. Your current draft text is unchanged until you load or edit it.",
+    "loadProposedOfficialBody": "Load proposed official Arabic text",
     "handoverVariantGreen1OwnerDeposit": "Green Avenue — one owner (with finishing deposit)",
     "handoverVariantGreen1OwnerNoDeposit": "Green Avenue — one owner (no deposit)",
     "handoverVariantGreen2OwnersDeposit": "Green Avenue — two owners (with deposit)",

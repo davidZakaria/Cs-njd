@@ -73,3 +73,4 @@ secrets/
 prisma/*.db
 prisma/*.db-journal
 artifacts-handover-samples/
+opt/
