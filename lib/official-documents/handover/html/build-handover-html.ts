@@ -18,7 +18,6 @@ import { handoverLogoAssetRelativePath } from "@/lib/official-documents/handover
 import {
   greenAvenueBodyChunksWithoutHeader,
   isHandoverDraftAppendixChunk,
-  mergeTrailingHandoverAppendixChunks,
   splitHandoverDraftChunks,
 } from "@/lib/official-documents/handover/draft-body-structure";
 import {
@@ -400,9 +399,13 @@ function renderGreenAvenueDraftBodyHtml(
   fields: HandoverFieldValues,
   draftBody: string
 ): string {
-  const chunks = mergeTrailingHandoverAppendixChunks(
-    greenAvenueBodyChunksWithoutHeader(splitHandoverDraftChunks(draftBody))
+  const chunks = greenAvenueBodyChunksWithoutHeader(
+    splitHandoverDraftChunks(draftBody)
   );
+  let trailingAppendix: string | null = null;
+  if (chunks.length >= 2 && isHandoverDraftAppendixChunk(chunks[chunks.length - 1]!)) {
+    trailingAppendix = chunks.pop()!.trim();
+  }
 
   let html = "";
   let sawDeclarationSignatures = false;
@@ -518,13 +521,16 @@ function renderGreenAvenueDraftBodyHtml(
       if (!template.insurance) {
         continue;
       }
-      let insuranceText = chunk.trim();
-      if (bodyText && isHandoverDraftAppendixChunk(bodyText)) {
-        insuranceText = `${heading}\n\n${bodyText}`.trim();
-      } else if (bodyText) {
-        insuranceText = bodyText;
+      const insuranceText =
+        bodyText && !isHandoverDraftAppendixChunk(bodyText)
+          ? `${heading}\n${bodyText}`.trim()
+          : chunk.trim();
+      if (trailingAppendix) {
+        html += `<p class="justified insurance-block">${toHandoverHtml(insuranceText)} <span class="draft-legal-appendix">${toHandoverHtml(trailingAppendix)}</span></p>`;
+        trailingAppendix = null;
+      } else {
+        html += `<p class="justified insurance-block">${toHandoverHtml(insuranceText)}</p>`;
       }
-      html += `<p class="justified insurance-block">${toHandoverHtml(insuranceText)}</p>`;
       continue;
     }
 
@@ -540,6 +546,10 @@ function renderGreenAvenueDraftBodyHtml(
   }
   if (template.dual) {
     html += buildGreenDualClosingSignatures();
+  }
+
+  if (trailingAppendix) {
+    html += `<p class="justified draft-legal-appendix">${toHandoverHtml(trailingAppendix)}</p>`;
   }
 
   return html;

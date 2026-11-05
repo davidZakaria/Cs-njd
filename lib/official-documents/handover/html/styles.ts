@@ -360,13 +360,6 @@ p.justified,
   max-width: 100%;
 }
 
-.draft-legal-appendix {
-  break-before: avoid;
-  page-break-before: avoid;
-  orphans: 1;
-  widows: 1;
-}
-
 .violations-block p {
   margin: 1.2mm 0;
 }
@@ -375,5 +368,11 @@ p.justified,
   margin-top: 2mm;
   break-inside: auto;
   page-break-inside: auto;
+}
+
+.draft-legal-appendix {
+  margin-top: 1mm;
+  font-size: 10pt;
+  line-height: 1.35;
 }
 `.trim();
