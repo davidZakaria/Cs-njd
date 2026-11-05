@@ -48,6 +48,7 @@ export async function loadOperationsArchiveCheckQueue(input: {
       currentApproverKind: "OPERATIONS",
       archiveCheckSubmittedAt: null,
       bulkProjectId: null,
+      unitId: { not: null },
     },
     include: {
       requestedBy: { select: { name: true } },
@@ -66,6 +67,7 @@ export async function loadOperationsArchiveCheckQueue(input: {
   });
 
   return rows
+    .filter((row) => row.unit != null)
     .filter((row) =>
       operationsMayWorkArchiveCheckRequest(input.role, {
         type: row.type,
@@ -78,10 +80,10 @@ export async function loadOperationsArchiveCheckQueue(input: {
     )
     .map((row) => ({
       id: row.id,
-      unitId: row.unit.id,
-      unitCode: row.unit.unitCode,
-      projectName: row.unit.project.name,
-      clientName: row.unit.client?.name ?? "—",
+      unitId: row.unit!.id,
+      unitCode: row.unit!.unitCode,
+      projectName: row.unit!.project.name,
+      clientName: row.unit!.client?.name ?? "—",
       dueDate: row.dueDate?.toISOString() ?? null,
       requestedByName: row.requestedBy.name,
       parentRequestId: row.parentRequestId,

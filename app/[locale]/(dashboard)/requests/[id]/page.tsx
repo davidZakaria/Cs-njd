@@ -67,7 +67,7 @@ export default async function RequestDetailPage({
     role: session.user.role,
     userId: session.user.id,
     request,
-    unitAgentId: request.unit.agentId,
+    unitAgentId: request.unit?.agentId ?? null,
     csScope,
   });
 
@@ -84,25 +84,31 @@ export default async function RequestDetailPage({
         unitCode: string;
         projectName: string;
         items: Array<{ itemKey: string; status: import("@prisma/client").ArchiveCheckItemStatus }>;
-        gapTasks: Array<{ itemKey: string; status: import("@prisma/client").ArchiveCheckGapTaskStatus }>;
+        gapTasks: Array<{
+          itemKey: string;
+          status: import("@prisma/client").ArchiveCheckGapTaskStatus;
+          ownerRole: import("@prisma/client").Role;
+        }>;
       }>
     | undefined;
   let bulkProjectName: string | null = null;
+  let isBulkParent = false;
 
   if (request.type === "ARCHIVE_CHECK") {
     const archiveDetail = await loadArchiveCheckDetail(request.id);
     if (archiveDetail) {
       bulkProjectName = archiveDetail.bulkProject?.name ?? null;
-      if (
-        isBulkArchiveCheckParent({
-          type: archiveDetail.type,
-          bulkProjectId: archiveDetail.bulkProjectId,
-          parentRequestId: archiveDetail.parentRequestId,
-        })
-      ) {
-        archiveProgressUnits = archiveDetail.childRequests.map((child) => ({
-          unitCode: child.unit.unitCode,
-          projectName: child.unit.project.name,
+      isBulkParent = isBulkArchiveCheckParent({
+        type: archiveDetail.type,
+        bulkProjectId: archiveDetail.bulkProjectId,
+        parentRequestId: archiveDetail.parentRequestId,
+      });
+      if (isBulkParent) {
+        archiveProgressUnits = archiveDetail.childRequests
+          .filter((child) => child.unit != null)
+          .map((child) => ({
+          unitCode: child.unit!.unitCode,
+          projectName: child.unit!.project.name,
           items: child.archiveCheckItems.map((item) => ({
             itemKey: item.itemKey,
             status: item.status,
@@ -110,9 +116,10 @@ export default async function RequestDetailPage({
           gapTasks: child.archiveCheckGapTasks.map((task) => ({
             itemKey: task.itemKey,
             status: task.status,
+            ownerRole: task.ownerRole,
           })),
         }));
-      } else {
+      } else if (archiveDetail.unit) {
         archiveProgressUnits = [
           {
             unitCode: archiveDetail.unit.unitCode,
@@ -124,12 +131,19 @@ export default async function RequestDetailPage({
             gapTasks: archiveDetail.archiveCheckGapTasks.map((task) => ({
               itemKey: task.itemKey,
               status: task.status,
+              ownerRole: task.ownerRole,
             })),
           },
         ];
       }
     }
   }
+
+  const displayProjectName =
+    isBulkParent && bulkProjectName
+      ? bulkProjectName
+      : (request.unit?.project.name ?? bulkProjectName ?? "—");
+  const displayUnitCode = request.unit?.unitCode ?? "";
 
   return (
     <div className={cn("max-w-3xl", entranceAnimationClass)}>
@@ -143,9 +157,9 @@ export default async function RequestDetailPage({
           linkedSwapTargetUnitId: request.linkedSwapTargetUnitId,
           currentApproverKind: request.currentApproverKind,
           escalatedToManagement: request.escalatedToManagement,
-          unitId: request.unitId,
-          unitCode: request.unit.unitCode,
-          projectName: request.unit.project.name,
+          unitId: request.unitId ?? "",
+          unitCode: displayUnitCode,
+          projectName: displayProjectName,
           comments: request.comments.map((c) => ({
             id: c.id,
             body: c.body,
@@ -171,6 +185,7 @@ export default async function RequestDetailPage({
         canUpload={canUpload}
         archiveProgressUnits={archiveProgressUnits}
         bulkProjectName={bulkProjectName}
+        isBulkArchiveCheckParentRequest={isBulkParent}
       />
     </div>
   );

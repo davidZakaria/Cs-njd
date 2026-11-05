@@ -1831,7 +1831,8 @@
       "archiveScopeBulk": "Whole project (one check per unit)",
       "project": "Project",
       "projectPlaceholder": "Select project",
-      "projectRequired": "Select a project"
+      "projectRequired": "Select a project",
+      "createdBulkWithSkipped": "Draft created for {included} units ({skipped} skipped — already have an open check)"
     },
     "detail": {
       "description": "Description",
@@ -1862,7 +1863,12 @@
         "cancelled": "Cancelled",
         "comment_added": "Comment added",
         "attachment_added": "Attachment uploaded",
-        "escalated_overdue": "Escalated (overdue)"
+        "escalated_overdue": "Escalated (overdue)",
+        "archive_check_submitted": "Archive check submitted by operations",
+        "archive_check_bulk_created": "Bulk archive check created",
+        "archive_gap_completed": "Archive gap resolved",
+        "archive_gap_escalated": "Archive gap escalated",
+        "archive_scan_uploaded": "Archive scan uploaded"
       }
     },
     "unitPanel": {
@@ -1907,7 +1913,9 @@
       "statusColumn": "Status",
       "done": "Done",
       "missing": "Missing",
-      "beingFixed": "Being fixed by {department}"
+      "notChecked": "Not checked",
+      "beingFixed": "Being fixed by {department}",
+      "bulkProjectLabel": "Project: {project}"
     },
     "gapTasks": {
       "title": "Archive gap follow-ups",
@@ -2010,7 +2018,7 @@
     "selectType": "Select type",
     "linkedRequest": "Linked request",
     "linkedRequestOptional": "Optional request link",
-    "linkedRequestNone": "None",
+    "linkedRequestNone": "No request",
     "linkedRequestHint": "Grace period annex, contract amendment, and unit swap require an approved request of the matching type.",
     "generateDraft": "Generate draft PDF",
     "generating": "Generating…",

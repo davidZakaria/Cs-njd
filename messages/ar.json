@@ -1831,7 +1831,8 @@
       "archiveScopeBulk": "مشروع كامل (فحص لكل وحدة)",
       "project": "المشروع",
       "projectPlaceholder": "اختر المشروع",
-      "projectRequired": "اختر مشروعاً"
+      "projectRequired": "اختر مشروعاً",
+      "createdBulkWithSkipped": "تم إنشاء مسودة لـ {included} وحدة (تم تخطي {skipped} — لديها فحص مفتوح)"
     },
     "detail": {
       "description": "الوصف",
@@ -1862,7 +1863,12 @@
         "cancelled": "ملغى",
         "comment_added": "تعليق مضاف",
         "attachment_added": "مرفق مرفوع",
-        "escalated_overdue": "تصعيد (متأخر)"
+        "escalated_overdue": "تصعيد (متأخر)",
+        "archive_check_submitted": "تم إرسال فحص الأرشيف من العمليات",
+        "archive_check_bulk_created": "تم إنشاء فحص أرشيف جماعي",
+        "archive_gap_completed": "تم حل فجوة الأرشيف",
+        "archive_gap_escalated": "تم تصعيد فجوة الأرشيف",
+        "archive_scan_uploaded": "تم رفع مسح الأرشيف"
       }
     },
     "unitPanel": {
@@ -1907,7 +1913,9 @@
       "statusColumn": "الحالة",
       "done": "مكتمل",
       "missing": "ناقص",
-      "beingFixed": "قيد المعالجة لدى {department}"
+      "notChecked": "لم يُفحص بعد",
+      "beingFixed": "قيد المعالجة لدى {department}",
+      "bulkProjectLabel": "المشروع: {project}"
     },
     "gapTasks": {
       "title": "متابعات فجوات الأرشيف",
@@ -2010,7 +2018,7 @@
     "selectType": "اختر النوع",
     "linkedRequest": "طلب مرتبط",
     "linkedRequestOptional": "ربط طلب (اختياري)",
-    "linkedRequestNone": "بدون",
+    "linkedRequestNone": "بدون طلب",
     "linkedRequestHint": "ملحق المد وتعديل العقد واستبدال الوحدة يتطلبان طلباً معتمداً من النوع المطابق.",
     "generateDraft": "إنشاء مسودة PDF",
     "generating": "جاري الإنشاء…",

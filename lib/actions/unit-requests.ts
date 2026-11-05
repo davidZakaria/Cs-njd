@@ -19,6 +19,9 @@ import { unitIncludeForArchiveSeed } from "@/lib/archive-check/queries";
 import { mapUnitToOperationsProgressInput } from "@/lib/operations/map-unit-to-progress-input";
 import { isBulkArchiveCheckParent } from "@/lib/archive-check/permissions";
 import {
+  OPEN_ARCHIVE_CHECK_STATUSES,
+} from "@/lib/archive-check/open-request";
+import {
   canAddRequestComment,
   canCancelRequest,
   canCreateUnitRequest,
@@ -171,6 +174,22 @@ export async function resolveUnitForRequestPickerAction(
   return mapUnitRowToRequestPickerOption(unit);
 }
 
+function revalidateUnitPath(unitId: string | null | undefined) {
+  if (unitId) revalidatePath(`/units/${unitId}`);
+}
+
+async function unitHasOpenArchiveCheck(unitId: string): Promise<boolean> {
+  const existing = await prisma.unitRequest.findFirst({
+    where: {
+      unitId,
+      type: "ARCHIVE_CHECK",
+      status: { in: OPEN_ARCHIVE_CHECK_STATUSES },
+    },
+    select: { id: true },
+  });
+  return existing != null;
+}
+
 export async function createUnitRequestAction(
   input: z.input<typeof createSchema>
 ): Promise<
@@ -209,6 +228,15 @@ export async function createUnitRequestAction(
     const targetUnit = await loadActiveUnitForRequest(targetId);
     if (!targetUnit || targetUnit.deletedAt) {
       return { success: false as const, error: "Target unit not found" };
+    }
+  }
+
+  if (parsed.data.type === "ARCHIVE_CHECK") {
+    if (await unitHasOpenArchiveCheck(unit.id)) {
+      return {
+        success: false as const,
+        error: "An archive check is already open for this unit",
+      };
     }
   }
 
@@ -340,8 +368,17 @@ export async function submitUnitRequestAction(
   });
 
   revalidatePath("/requests");
-  revalidatePath(`/units/${request.unitId}`);
+  revalidateUnitPath(request.unitId);
   revalidatePath(`/requests/${request.id}`);
+  if (childIds.length > 0) {
+    const childUnits = await prisma.unitRequest.findMany({
+      where: { id: { in: childIds } },
+      select: { unitId: true },
+    });
+    for (const child of childUnits) {
+      revalidateUnitPath(child.unitId);
+    }
+  }
   return actionOk(undefined);
 }
 
@@ -382,7 +419,7 @@ export async function approveUnitRequestStepAction(
   let engineeringApprovalId = request.engineeringApprovalId;
 
   const engKind = engineeringKindForRequestType(request.type);
-  if (engKind && !engineeringApprovalId) {
+  if (engKind && !engineeringApprovalId && request.unitId) {
     const approval = await recordUnitEngineeringApproval({
       unitId: request.unitId,
       approvedById: session.user.id,
@@ -432,7 +469,7 @@ export async function approveUnitRequestStepAction(
   }
 
   revalidatePath("/requests");
-  revalidatePath(`/units/${request.unitId}`);
+  revalidateUnitPath(request.unitId);
   revalidatePath(`/requests/${request.id}`);
   return actionOk(undefined);
 }
@@ -483,7 +520,7 @@ export async function rejectUnitRequestAction(
   });
 
   revalidatePath("/requests");
-  revalidatePath(`/units/${request.unitId}`);
+  revalidateUnitPath(request.unitId);
   revalidatePath(`/requests/${request.id}`);
   return actionOk(undefined);
 }
@@ -530,7 +567,7 @@ export async function cancelUnitRequestAction(
   });
 
   revalidatePath("/requests");
-  revalidatePath(`/units/${request.unitId}`);
+  revalidateUnitPath(request.unitId);
   revalidatePath(`/requests/${request.id}`);
   return actionOk(undefined);
 }
@@ -560,7 +597,7 @@ export async function addUnitRequestCommentAction(
       role: session.user.role,
       userId: session.user.id,
       request,
-      unitAgentId: request.unit.agentId,
+      unitAgentId: request.unit?.agentId ?? null,
       csScope,
     })
   ) {
@@ -672,7 +709,7 @@ export async function getUnitRequestDetailAction(requestId: string) {
       role: session.user.role,
       userId: session.user.id,
       request,
-      unitAgentId: request.unit.agentId,
+      unitAgentId: request.unit?.agentId ?? null,
       csScope,
     })
   ) {
@@ -705,7 +742,7 @@ export async function listUnitRequestsForUnit(unitId: string) {
       role: session.user!.role,
       userId: session.user!.id,
       request,
-      unitAgentId: request.unit.agentId,
+      unitAgentId: request.unit?.agentId ?? null,
       csScope,
     })
   );

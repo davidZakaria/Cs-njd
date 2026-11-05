@@ -30,22 +30,27 @@ export function UnitCycleStepper({
   activeStageKey,
   stages,
   canManageStage,
-  blockingRequests = [],
+  blockingBannerEntries = [],
 }: {
   unitId: string;
   activeStageKey: string | null;
   stages: StagePayload[];
   canManageStage: boolean;
-  blockingRequests?: Array<{ id: string; type: UnitRequestType }>;
+  blockingBannerEntries?: Array<{
+    requestId: string;
+    type: UnitRequestType;
+    gapItemKeys: string[];
+  }>;
 }) {
   const t = useTranslations("unitCycle");
   const tEnums = useTranslations("enums");
+  const tItems = useTranslations("operations.items");
   const locale = useLocale();
   const isRtl = locale === "ar";
   const [pending, startTransition] = useTransition();
 
   const activeStage = stages.find((stage) => stage.stageKey === activeStageKey);
-  const blockedByRequest = blockingRequests.length > 0;
+  const blockedByRequest = blockingBannerEntries.length > 0;
   const canCompleteActive =
     activeStage?.checklistComplete && !blockedByRequest;
 
@@ -125,15 +130,22 @@ export function UnitCycleStepper({
               <p className="font-medium text-amber-950 dark:text-amber-100">
                 {t("blockedByRequest.title")}
               </p>
-              <ul className="space-y-1">
-                {blockingRequests.map((request) => (
-                  <li key={request.id}>
+              <ul className="space-y-2">
+                {blockingBannerEntries.map((entry) => (
+                  <li key={entry.requestId}>
                     <Link
-                      href={`/requests/${request.id}`}
+                      href={`/requests/${entry.requestId}`}
                       className="font-medium text-[var(--color-chart-1)] underline-offset-4 hover:underline"
                     >
-                      {tEnums(`unitRequestType.${request.type}`)}
+                      {tEnums(`unitRequestType.${entry.type}`)}
                     </Link>
+                    {entry.gapItemKeys.length > 0 ? (
+                      <ul className="ms-4 mt-1 list-disc space-y-0.5 text-muted-foreground">
+                        {entry.gapItemKeys.map((itemKey) => (
+                          <li key={itemKey}>{tItems(itemKey)}</li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </li>
                 ))}
               </ul>

@@ -694,7 +694,7 @@ model UnitEngineeringApproval {
 model UnitRequest {
   id                      String                   @id @default(cuid())
   type                    UnitRequestType
-  unitId                  String
+  unitId                  String?
   clientId                String?
   requestedById           String
   status                  UnitRequestStatus        @default(DRAFT)
@@ -716,7 +716,7 @@ model UnitRequest {
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
 
-  unit                  Unit                     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  unit                  Unit?                    @relation(fields: [unitId], references: [id], onDelete: Cascade)
   parentRequest         UnitRequest?             @relation("ArchiveCheckChildren", fields: [parentRequestId], references: [id], onDelete: Cascade)
   childRequests         UnitRequest[]            @relation("ArchiveCheckChildren")
   bulkProject           Project?                 @relation("BulkArchiveCheckProject", fields: [bulkProjectId], references: [id], onDelete: SetNull)

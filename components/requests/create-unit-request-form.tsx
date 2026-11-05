@@ -60,6 +60,14 @@ export function CreateUnitRequestForm({
 
   const requestTypeLabel = requestTypeItems[type] ?? type;
 
+  const archiveScopeItems = useMemo(
+    () => ({
+      single: t("archiveScopeSingle"),
+      bulk: t("archiveScopeBulk"),
+    }),
+    [t]
+  );
+
   const searchUnits = useCallback(
     (query: string) => searchUnitsForRequestPickerAction(query),
     []
@@ -98,7 +106,16 @@ export function CreateUnitRequestForm({
           toast.error(result.error ?? t("failed"));
           return;
         }
-        toast.success(t("created"));
+        if (result.skippedUnitCount > 0) {
+          toast.success(
+            t("createdBulkWithSkipped", {
+              included: result.includedUnitCount,
+              skipped: result.skippedUnitCount,
+            })
+          );
+        } else {
+          toast.success(t("created"));
+        }
         router.push(`/requests/${result.id}`);
       });
       return;
@@ -142,12 +159,13 @@ export function CreateUnitRequestForm({
             <label className="text-sm font-medium">{t("archiveScope")}</label>
             <Select
               value={archiveScope}
+              items={archiveScopeItems}
               onValueChange={(value) =>
                 setArchiveScope(value === "bulk" ? "bulk" : "single")
               }
             >
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue>{archiveScopeItems[archiveScope]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="single">{t("archiveScopeSingle")}</SelectItem>

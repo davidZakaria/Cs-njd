@@ -23,6 +23,8 @@ export default async function OperationsArchiveCheckPage({
   const request = await loadArchiveCheckDetail(requestId);
   if (!request) notFound();
 
+  if (!request.unit) notFound();
+
   const canWork = operationsMayWorkArchiveCheckRequest(session.user.role, {
     type: request.type,
     status: request.status,

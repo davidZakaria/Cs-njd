@@ -34,6 +34,7 @@ import {
   type UnitRequestStageBlocker,
 } from "@/lib/unit-cycle/stage-request-blocking";
 import { loadOpenArchiveGapTasksForUnit } from "@/lib/archive-check/queries";
+import { mergeUnitCycleBlockerBanner } from "@/lib/archive-check/blocking-banner";
 import {
   blockingGapTasksForStage,
 } from "@/lib/archive-check/stage-blocking";
@@ -324,6 +325,14 @@ export async function loadUnitCycleForUnit(unitId: string) {
       ? blockingGapTasksForStage(activeStageKey, openGapTasks, true)
       : [];
 
+  const blockingBannerEntries =
+    activeStageKey != null
+      ? mergeUnitCycleBlockerBanner({
+          openRequests: activeRequestBlockers,
+          openGapTasks: activeGapBlockers,
+        })
+      : [];
+
   return {
     unitCycleId: unit.unitCycle.id,
     activeStageKey: resolveActiveStageKey(stages),
@@ -331,6 +340,7 @@ export async function loadUnitCycleForUnit(unitId: string) {
     events: unit.unitCycle.events,
     blockingRequests: activeRequestBlockers,
     blockingGapTasks: activeGapBlockers,
+    blockingBannerEntries,
   };
 }
 
@@ -341,6 +351,10 @@ async function loadOpenUnitRequestBlockers(
     where: {
       unitId,
       status: { in: OPEN_UNIT_REQUEST_STATUSES },
+      NOT: {
+        bulkProjectId: { not: null },
+        parentRequestId: null,
+      },
     },
     select: {
       id: true,

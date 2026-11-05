@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import {
   buildArchiveCheckProgressItems,
   summarizeArchiveCheckProgress,
+  type ArchiveCheckGapTaskProgress,
 } from "@/lib/archive-check/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,14 +23,14 @@ type UnitProgressBlock = {
   unitCode: string;
   projectName: string;
   items: Array<{ itemKey: string; status: ArchiveCheckItemStatus }>;
-  gapTasks: Array<{ itemKey: string; status: ArchiveCheckGapTaskStatus }>;
+  gapTasks: ArchiveCheckGapTaskProgress[];
 };
 
 export function ArchiveCheckProgressPanel({
-  overallLabel,
+  bulkProjectName,
   units,
 }: {
-  overallLabel?: string;
+  bulkProjectName?: string | null;
   units: UnitProgressBlock[];
 }) {
   const t = useTranslations("archiveCheck.progress");
@@ -48,16 +49,17 @@ export function ArchiveCheckProgressPanel({
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-base">{t("title")}</CardTitle>
-        {overallLabel ? (
-          <p className="text-sm text-muted-foreground">{overallLabel}</p>
-        ) : (
+        {bulkProjectName ? (
           <p className="text-sm text-muted-foreground">
-            {t("overallCount", {
-              done: summary.doneCount,
-              total: summary.totalCount,
-            })}
+            {t("bulkProjectLabel", { project: bulkProjectName })}
           </p>
-        )}
+        ) : null}
+        <p className="text-sm text-muted-foreground">
+          {t("overallCount", {
+            done: summary.doneCount,
+            total: summary.totalCount,
+          })}
+        </p>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <Table>
@@ -86,6 +88,8 @@ export function ArchiveCheckProgressPanel({
                           : tDept("MANAGEMENT"),
                       })}
                     </Badge>
+                  ) : row.displayStatus === "not_checked" ? (
+                    <Badge variant="outline">{t("notChecked")}</Badge>
                   ) : (
                     <Badge variant="destructive">{t("missing")}</Badge>
                   )}

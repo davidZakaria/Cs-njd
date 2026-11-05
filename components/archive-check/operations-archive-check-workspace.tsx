@@ -118,6 +118,14 @@ export function OperationsArchiveCheckWorkspace({
 
   const pendingCount = localItems.filter((item) => item.status === "PENDING").length;
 
+  const statusItems = useMemo(() => {
+    const items: Record<string, string> = {};
+    for (const status of STATUS_OPTIONS) {
+      items[status] = tStatus(status);
+    }
+    return items;
+  }, [tStatus]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -142,19 +150,28 @@ export function OperationsArchiveCheckWorkspace({
             <TableBody>
               {localItems.map((item) => {
                 const scans = scansByKey.get(item.itemKey) ?? [];
+                const selectValue =
+                  item.status === "PENDING" ? "" : item.status;
+                const statusLabel =
+                  item.status === "PENDING"
+                    ? undefined
+                    : statusItems[item.status];
                 return (
                   <TableRow key={item.itemKey}>
                     <TableCell>{tItems(item.itemKey)}</TableCell>
                     <TableCell>
                       <Select
-                        value={item.status === "PENDING" ? "" : item.status}
+                        value={selectValue}
+                        items={statusItems}
                         onValueChange={(value) =>
                           updateStatus(item.itemKey, value as ArchiveCheckItemStatus)
                         }
                         disabled={pending || !canSubmit}
                       >
                         <SelectTrigger className="w-[10rem]">
-                          <SelectValue placeholder={t("chooseStatus")} />
+                          <SelectValue placeholder={t("chooseStatus")}>
+                            {statusLabel}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           {STATUS_OPTIONS.map((status) => (

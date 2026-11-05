@@ -1,28 +1,45 @@
-import type { ArchiveCheckGapTaskStatus, ArchiveCheckItemStatus } from "@prisma/client";
+import type { ArchiveCheckGapTaskStatus, ArchiveCheckItemStatus, Role } from "@prisma/client";
 
 import type { ArchiveCheckItemKey } from "@/lib/archive-check/items";
-import { resolveGapOwnerRoleForItem } from "@/lib/archive-check/routing";
-import type { OrgStaffAvailability } from "@/lib/requests/approver-roles";
 
 export type ArchiveCheckProgressItem = {
   itemKey: ArchiveCheckItemKey;
-  displayStatus: "done" | "missing" | "being_fixed";
+  displayStatus: "done" | "missing" | "not_checked" | "being_fixed";
   fixingDepartment: "LEGAL" | "FINANCE" | "MANAGEMENT" | null;
   archiveStatus: ArchiveCheckItemStatus;
   gapTaskStatus: ArchiveCheckGapTaskStatus | null;
 };
 
+export type ArchiveCheckGapTaskProgress = {
+  itemKey: string;
+  status: ArchiveCheckGapTaskStatus;
+  ownerRole: Role;
+};
+
+function gapFixingDepartment(
+  gapTask: ArchiveCheckGapTaskProgress | undefined
+): "LEGAL" | "FINANCE" | "MANAGEMENT" | null {
+  if (!gapTask || gapTask.status !== "OPEN") return null;
+  if (
+    gapTask.ownerRole === "LEGAL" ||
+    gapTask.ownerRole === "FINANCE" ||
+    gapTask.ownerRole === "MANAGEMENT"
+  ) {
+    return gapTask.ownerRole;
+  }
+  return null;
+}
+
 export function buildArchiveCheckProgressItems(input: {
   items: Array<{ itemKey: string; status: ArchiveCheckItemStatus }>;
-  gapTasks: Array<{ itemKey: string; status: ArchiveCheckGapTaskStatus }>;
-  staff?: OrgStaffAvailability;
+  gapTasks: ArchiveCheckGapTaskProgress[];
 }): ArchiveCheckProgressItem[] {
-  const staff = input.staff;
-  const gapByKey = new Map(input.gapTasks.map((task) => [task.itemKey, task.status]));
+  const gapByKey = new Map(input.gapTasks.map((task) => [task.itemKey, task]));
 
   return input.items.map((item) => {
     const itemKey = item.itemKey as ArchiveCheckItemKey;
-    const gapStatus = gapByKey.get(item.itemKey) ?? null;
+    const gapTask = gapByKey.get(item.itemKey);
+    const gapStatus = gapTask?.status ?? null;
 
     if (item.status === "FOUND") {
       return {
@@ -35,13 +52,20 @@ export function buildArchiveCheckProgressItems(input: {
     }
 
     if (gapStatus === "OPEN") {
-      const dept = staff
-        ? resolveGapOwnerRoleForItem(itemKey, staff)
-        : ("MANAGEMENT" as const);
       return {
         itemKey,
         displayStatus: "being_fixed" as const,
-        fixingDepartment: dept,
+        fixingDepartment: gapFixingDepartment(gapTask),
+        archiveStatus: item.status,
+        gapTaskStatus: gapStatus,
+      };
+    }
+
+    if (item.status === "PENDING") {
+      return {
+        itemKey,
+        displayStatus: "not_checked" as const,
+        fixingDepartment: null,
         archiveStatus: item.status,
         gapTaskStatus: gapStatus,
       };

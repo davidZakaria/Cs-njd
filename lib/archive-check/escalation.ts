@@ -52,6 +52,9 @@ export async function runArchiveCheckGapEscalationJob(
     }
 
     const unit = task.unitRequest.unit;
+    if (!unit) {
+      continue;
+    }
     await notifyRoles(
       ["MANAGEMENT", "SUPER_ADMIN"],
       "Overdue archive check gap",

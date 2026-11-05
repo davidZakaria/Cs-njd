@@ -11,6 +11,7 @@ import {
   tryCompleteArchiveCheckRequest,
 } from "@/lib/archive-check/gap-tasks";
 import { operationsMayWorkArchiveCheckRequest } from "@/lib/archive-check/permissions";
+import { OPEN_ARCHIVE_CHECK_STATUSES } from "@/lib/archive-check/open-request";
 import {
   loadArchiveCheckDetail,
   listActiveUnitsForProject,
@@ -73,7 +74,10 @@ async function loadUnitForArchiveSeed(unitId: string) {
 
 export async function createBulkArchiveCheckAction(
   input: z.input<typeof bulkSchema>
-): Promise<{ success: true; id: string } | { success: false; error: string }> {
+): Promise<
+  | { success: true; id: string; skippedUnitCount: number; includedUnitCount: number }
+  | { success: false; error: string }
+> {
   const session = await auth();
   if (!session?.user || !canCreateUnitRequest(session.user.role)) {
     return { success: false, error: "Unauthorized" };
@@ -98,14 +102,34 @@ export async function createBulkArchiveCheckAction(
     return { success: false, error: "No active units in this project" };
   }
 
+  const openRows = await prisma.unitRequest.findMany({
+    where: {
+      unitId: { in: units.map((unit) => unit.id) },
+      type: "ARCHIVE_CHECK",
+      status: { in: OPEN_ARCHIVE_CHECK_STATUSES },
+    },
+    select: { unitId: true },
+  });
+  const blockedUnitIds = new Set(
+    openRows.map((row) => row.unitId).filter((id): id is string => id != null)
+  );
+  const eligibleUnits = units.filter((unit) => !blockedUnitIds.has(unit.id));
+  const skippedUnitCount = units.length - eligibleUnits.length;
+
+  if (eligibleUnits.length === 0) {
+    return {
+      success: false,
+      error: "Every unit in this project already has an open archive check",
+    };
+  }
+
   const submit = buildSubmitState("ARCHIVE_CHECK");
   const dueDate = computeDefaultDueDate(new Date());
-  const anchorUnitId = units[0]!.id;
 
   const parent = await prisma.unitRequest.create({
     data: {
       type: "ARCHIVE_CHECK",
-      unitId: anchorUnitId,
+      unitId: null,
       requestedById: session.user.id,
       status: "DRAFT",
       description: parsed.data.description?.trim() || null,
@@ -117,7 +141,7 @@ export async function createBulkArchiveCheckAction(
     },
   });
 
-  for (const unit of units) {
+  for (const unit of eligibleUnits) {
     const child = await prisma.unitRequest.create({
       data: {
         type: "ARCHIVE_CHECK",
@@ -147,11 +171,20 @@ export async function createBulkArchiveCheckAction(
     requestId: parent.id,
     userId: session.user.id,
     action: "archive_check_bulk_created",
-    details: { projectId: project.id, unitCount: units.length },
+    details: {
+      projectId: project.id,
+      unitCount: eligibleUnits.length,
+      skippedUnitCount,
+    },
   });
 
   revalidatePath("/requests");
-  return { success: true, id: parent.id };
+  return {
+    success: true,
+    id: parent.id,
+    skippedUnitCount,
+    includedUnitCount: eligibleUnits.length,
+  };
 }
 
 export async function updateArchiveCheckItemStatusAction(
@@ -278,7 +311,7 @@ export async function submitArchiveCheckOperationsAction(
   revalidatePath("/operations");
   revalidatePath(`/operations/archive-checks/${request.id}`);
   revalidatePath(`/requests/${request.id}`);
-  revalidatePath(`/units/${request.unitId}`);
+  if (request.unitId) revalidatePath(`/units/${request.unitId}`);
   return actionOk(undefined);
 }
 
@@ -365,7 +398,9 @@ export async function completeArchiveCheckGapTaskAction(
   }
 
   revalidatePath(`/requests/${task.unitRequestId}`);
-  revalidatePath(`/units/${task.unitRequest.unitId}`);
+  if (task.unitRequest.unitId) {
+    revalidatePath(`/units/${task.unitRequest.unitId}`);
+  }
   revalidatePath("/legal");
   revalidatePath("/finance");
   return actionOk(undefined);

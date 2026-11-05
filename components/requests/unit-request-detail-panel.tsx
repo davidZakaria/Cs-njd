@@ -32,6 +32,7 @@ export function UnitRequestDetailPanel({
   canUpload,
   archiveProgressUnits,
   bulkProjectName,
+  isBulkArchiveCheckParentRequest,
 }: {
   request: {
     id: string;
@@ -59,9 +60,14 @@ export function UnitRequestDetailPanel({
     unitCode: string;
     projectName: string;
     items: Array<{ itemKey: string; status: ArchiveCheckItemStatus }>;
-    gapTasks: Array<{ itemKey: string; status: ArchiveCheckGapTaskStatus }>;
+    gapTasks: Array<{
+      itemKey: string;
+      status: ArchiveCheckGapTaskStatus;
+      ownerRole: import("@prisma/client").Role;
+    }>;
   }>;
   bulkProjectName?: string | null;
+  isBulkArchiveCheckParentRequest?: boolean;
 }) {
   const t = useTranslations("requests.detail");
   const tEnums = useTranslations("enums");
@@ -85,7 +91,9 @@ export function UnitRequestDetailPanel({
             {tEnums(`unitRequestType.${request.type}`)}
           </h1>
           <p className="text-muted-foreground">
-            {request.projectName} · {request.unitCode}
+            {isBulkArchiveCheckParentRequest
+              ? bulkProjectName ?? request.projectName
+              : `${request.projectName} · ${request.unitCode}`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -125,11 +133,7 @@ export function UnitRequestDetailPanel({
 
       {request.type === "ARCHIVE_CHECK" && archiveProgressUnits?.length ? (
         <ArchiveCheckProgressPanel
-          overallLabel={
-            bulkProjectName
-              ? t("archiveBulkProject", { project: bulkProjectName })
-              : undefined
-          }
+          bulkProjectName={bulkProjectName}
           units={archiveProgressUnits}
         />
       ) : null}

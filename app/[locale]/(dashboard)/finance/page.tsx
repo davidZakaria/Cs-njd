@@ -50,14 +50,16 @@ export default async function FinanceHomePage() {
         viewAllHref="/requests?view=awaiting"
       />
       <DepartmentArchiveGapTasksQueue
-        tasks={gapTasks.map((task) => ({
-          id: task.id,
-          itemKey: task.itemKey,
-          deadlineAt: task.deadlineAt,
-          ownerRole: task.ownerRole,
-          unitRequestId: task.unitRequestId,
-          unit: task.unitRequest.unit,
-        }))}
+        tasks={gapTasks
+          .filter((task) => task.unitRequest.unit != null)
+          .map((task) => ({
+            id: task.id,
+            itemKey: task.itemKey,
+            deadlineAt: task.deadlineAt,
+            ownerRole: task.ownerRole,
+            unitRequestId: task.unitRequestId,
+            unit: task.unitRequest.unit!,
+          }))}
       />
       <MyStageTasksQueue tasks={myStageTasks} />
     </div>
