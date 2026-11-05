@@ -280,13 +280,15 @@ async function openHandoverEditor(page: Page, locale: "en" | "ar") {
     })
     .first();
 
-  if (await editText.isVisible().catch(() => false)) {
-    await editText.click();
-  } else if (await reopenDraft.isVisible().catch(() => false)) {
-    await reopenDraft.click();
-  } else {
-    throw new Error("Neither Edit text nor Reopen draft button visible");
+  if (await reopenDraft.isVisible().catch(() => false)) {
+    await reopenDraft.click({ force: true });
+    return;
   }
+  if (await editText.isVisible().catch(() => false)) {
+    await editText.click({ force: true });
+    return;
+  }
+  throw new Error("Neither Edit text nor Reopen draft button visible");
 }
 
 async function generateHandoverOnUnit(
