@@ -467,9 +467,10 @@ function renderGreenAvenueDraftBodyHtml(
 
 function renderJuraDraftBodyHtml(
   template: JuraTemplate,
-  fields: HandoverFieldValues,
+  _fields: HandoverFieldValues,
   draftBody: string
 ): string {
+  void _fields;
   const chunks = draftBody
     .split(/\n\n+/)
     .map((chunk) => chunk.trim())

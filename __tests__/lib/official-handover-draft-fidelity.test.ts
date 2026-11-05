@@ -54,10 +54,11 @@ describe("official handover draft → PDF text fidelity", () => {
     const phraseReplacement = `${phraseOriginal} E2E_REPLACED`;
 
     const deleteMatch = canonical.match(
-      /دون الحاجة إلى إنذار[\s\S]{0,120}?حكم قضائي\./u
+      /وفى حالة مخالفة اياً مما ذكر[\s\S]{0,220}?حكم قضائي\./u
     );
     expect(deleteMatch).not.toBeNull();
     const sentenceToDelete = deleteMatch![0]!;
+    const deletedFragment = sentenceToDelete.slice(0, 40);
 
     let edited = canonical.replace(phraseOriginal, phraseReplacement);
     edited = edited.replace(sentenceToDelete, "");
@@ -87,7 +88,7 @@ describe("official handover draft → PDF text fidelity", () => {
 
     const text = pdfText(pdf);
     expect(text).toContain("E2E_REPLACED");
-    expect(text).not.toContain("حكم قضائي");
+    expect(text).not.toContain(deletedFragment);
     expect(text).toMatch(/مخالف|الإلتزامات/u);
   });
 

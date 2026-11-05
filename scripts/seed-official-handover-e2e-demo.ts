@@ -297,6 +297,7 @@ async function main() {
       projectName: "GREEN AVENUE",
       unitCode: "704-3-B",
       dual: true,
+      // Company-finished (FULLY_FINISHED): inferHandoverFinishingDepositApplies=false → green-avenue-dual-no-insurance master. CORE_AND_SHELL would infer deposit insurance (dual with insurance master), which is a different product case.
       fullyFinished: true,
     },
     {

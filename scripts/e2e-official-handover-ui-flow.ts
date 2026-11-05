@@ -94,6 +94,39 @@ type Manifest = {
   legacyDraft?: { unitId: string; draftId: string; userEditMarker: string };
 };
 
+type LegalEditMeta = {
+  editMarker: string;
+  phraseOriginal: string;
+  phraseReplacement: string;
+  deletedSentenceFragment: string;
+};
+
+type E2eVariantRecord = {
+  locale: string;
+  variant: string;
+  unitId: string;
+  pdfPath: string;
+  downloadUrl: string;
+  sha256: string;
+  pageCount: number;
+  pagePngs: string[];
+  pagePngCount: number;
+};
+
+type E2eReport = {
+  executedAt: string;
+  baseUrl: string;
+  runId: string;
+  evidenceRoot: string;
+  executionHonesty: Record<string, string | boolean>;
+  steps: string[];
+  variants: E2eVariantRecord[];
+  failed?: boolean;
+  error?: string;
+  stack?: string;
+  regressionUnitTests?: Record<string, unknown>;
+};
+
 function loadManifest(): Manifest {
   const raw = fs.readFileSync(MANIFEST_PATH, "utf8");
   return JSON.parse(raw) as Manifest;
@@ -301,7 +334,7 @@ function assertPdfEditFidelity(
   const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
   assertPdfContainsMarker(pdfPath, input.editMarker, label);
   if (!text.includes("E2E_REPLACED") && !text.includes(input.phraseReplacement)) {
-    throw new Error(`${label}: PDF missing replacement phrase`);
+    throw new Error(`${label}: PDF missing replacement phrase (expected E2E_REPLACED or edited Arabic phrase)`);
   }
   if (text.includes(input.deletedSentenceFragment)) {
     throw new Error(`${label}: PDF still contains deleted sentence fragment`);
@@ -459,7 +492,12 @@ async function generateHandoverOnUnit(
   unitId: string,
   variant: string,
   screenshotPath: string
-): Promise<{ pdfPath: string; downloadUrl: string; editMarker: string }> {
+): Promise<{
+  pdfPath: string;
+  downloadUrl: string;
+  editMarker: string;
+  editMeta: LegalEditMeta;
+}> {
   await page.goto(`${BASE_URL}/${locale}/units/${unitId}`, {
     waitUntil: "domcontentloaded",
   });
@@ -782,7 +820,7 @@ async function main() {
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
 
-  const report: Record<string, unknown> = {
+  const report: E2eReport = {
     executedAt: new Date().toISOString(),
     baseUrl: BASE_URL,
     runId,
@@ -796,8 +834,8 @@ async function main() {
       nextJsDevOverlay:
         "Bottom-left “N Issues” in dev is the Next.js dev-tools indicator, not a CRM validation error.",
     },
-    steps: [] as string[],
-    variants: [] as unknown[],
+    steps: [],
+    variants: [],
   };
 
   const localeFilter = process.env.HANDOVER_E2E_LOCALES?.split(",")
@@ -889,6 +927,28 @@ async function main() {
       await runLegacyDraftFlow(page, locale, manifest);
       await context.close();
     }
+
+    const mainLoopUnits = manifest.units.filter(
+      (u) => !manifest.legacyDraft || u.unitId !== manifest.legacyDraft.unitId
+    ).length;
+    const expectedPdfRows = locales.length * mainLoopUnits;
+    if (report.variants.length !== expectedPdfRows) {
+      throw new Error(
+        `Expected ${expectedPdfRows} variant PDF records (locales=${locales.join(",")} × ${mainLoopUnits} units), got ${report.variants.length}`
+      );
+    }
+    for (const row of report.variants) {
+      if (!fs.existsSync(row.pdfPath)) {
+        throw new Error(`Missing canonical PDF ${row.pdfPath}`);
+      }
+      const fromDisk = sha256File(row.pdfPath);
+      if (fromDisk !== row.sha256) {
+        throw new Error(`SHA256 mismatch for ${row.pdfPath}`);
+      }
+      if (row.pagePngCount !== row.pageCount) {
+        throw new Error(`Page PNG count mismatch for ${row.variant} ${row.locale}`);
+      }
+    }
   } catch (err) {
     report.failed = true;
     report.error = err instanceof Error ? err.message : String(err);
@@ -902,11 +962,9 @@ async function main() {
     );
     console.log("E2E report written:", path.join(ARTIFACT_ROOT, "e2e-report.json"));
     if (!report.failed) {
-      const totalPages = (report.variants as Array<{ pageCount: number }>).reduce(
-        (n, v) => n + v.pageCount,
-        0
-      );
+      const totalPages = report.variants.reduce((n, v) => n + v.pageCount, 0);
       console.log("Total page PNGs:", totalPages);
+      console.log("E2E PASS", report.variants.length, "canonical PDFs");
     }
   }
 }
