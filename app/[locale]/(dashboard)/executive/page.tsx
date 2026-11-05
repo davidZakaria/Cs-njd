@@ -11,7 +11,7 @@ import {
   getExecutiveFinancials,
 } from "@/lib/executive/financial-analytics";
 import { ExecutiveCommandCenter } from "@/components/executive/executive-command-center";
-import { getMyStageTasks, getPersonalOverdueStages } from "@/lib/unit-cycle/queries";
+import { getMyStageTasks, getOverdueStagesForManagement } from "@/lib/unit-cycle/queries";
 import {
   MyStageTasksQueue,
 } from "@/components/unit-cycle/stage-task-queues";
@@ -26,10 +26,16 @@ import { buttonVariants } from "@/components/ui/button";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
+import { parseWorkScopeFromSearchParams } from "@/lib/work/work-scope-url";
+import { managementRolesForCycle } from "@/lib/unit-cycle/owners";
 
 export const dynamic = "force-dynamic";
 
-export default async function ExecutiveDashboardPage() {
+export default async function ExecutiveDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth();
   const t = await getTranslations("executive");
 
@@ -45,6 +51,9 @@ export default async function ExecutiveDashboardPage() {
 
   const communityTrackerDate = format(new Date(), "yyyy-MM-dd");
 
+  const workScope = parseWorkScopeFromSearchParams(await searchParams);
+  const showWorkScopeToggle = managementRolesForCycle().includes(session.user.role);
+
   const [data, portfolio, projectSummaries, financials, kpis, communityDailyActivity, myStageTasks, overdueStages] =
     await Promise.all([
       getExecutiveDashboardData(session.user.id),
@@ -59,12 +68,9 @@ export default async function ExecutiveDashboardPage() {
         prisma,
         userId: session.user.id,
         role: session.user.role,
+        scope: workScope,
       }),
-      getPersonalOverdueStages({
-        prisma,
-        userId: session.user.id,
-        role: session.user.role,
-      }),
+      getOverdueStagesForManagement(prisma, 500),
     ]);
 
   return (
@@ -101,7 +107,11 @@ export default async function ExecutiveDashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <MyStageTasksQueue tasks={myStageTasks} />
+        <MyStageTasksQueue
+          tasks={myStageTasks}
+          workScope={workScope}
+          showWorkScopeToggle={showWorkScopeToggle}
+        />
         <OverdueTasksSummaryCard tasks={overdueStages} />
       </div>
 

@@ -8,6 +8,7 @@ export type RequestsFilterParams = {
   type?: UnitRequestType;
   project?: string;
   overdue?: "yes";
+  tasks?: "all";
 };
 
 export function buildRequestsFilterUrl(params: RequestsFilterParams): string {
@@ -17,6 +18,7 @@ export function buildRequestsFilterUrl(params: RequestsFilterParams): string {
   if (params.type) search.set("type", params.type);
   if (params.project) search.set("project", params.project);
   if (params.overdue) search.set("overdue", params.overdue);
+  if (params.tasks) search.set("tasks", params.tasks);
   const query = search.toString();
   return query ? `/requests?${query}` : "/requests";
 }
@@ -43,6 +45,7 @@ export type RequestsPageFilters = {
   type: "all" | UnitRequestType;
   project: string;
   overdue: "all" | "yes";
+  tasks: "mine" | "all";
 };
 
 export function parseRequestsPageFilters(
@@ -63,6 +66,7 @@ export function parseRequestsPageFilters(
   const typeRaw = pick("type");
   const projectSlug = pick("project");
   const overdueRaw = pick("overdue");
+  const tasksRaw = pick("tasks");
 
   return {
     view,
@@ -70,6 +74,7 @@ export function parseRequestsPageFilters(
     type: (typeRaw as RequestsPageFilters["type"]) ?? "all",
     project: projectSlug ? slugToProjectName(projectSlug) ?? "all" : "all",
     overdue: overdueRaw === "yes" ? "yes" : "all",
+    tasks: tasksRaw === "all" ? "all" : "mine",
   };
 }
 
@@ -79,6 +84,7 @@ export function buildRequestsPageUrl(filters: RequestsPageFilters): string {
   if (filters.type !== "all") params.type = filters.type;
   if (filters.project !== "all") params.project = projectNameToSlug(filters.project);
   if (filters.overdue === "yes") params.overdue = "yes";
+  if (filters.tasks === "all") params.tasks = "all";
   return buildRequestsFilterUrl(params);
 }
 

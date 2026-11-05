@@ -29,7 +29,7 @@ export default async function FinanceHomePage() {
       rows: await loadAllUnitRequestRows(basePrisma),
       role: session.user.role,
       userId: session.user.id,
-      filters: { view: "awaiting", status: "all", type: "all", project: "all", overdue: "all" },
+      filters: { view: "awaiting", status: "all", type: "all", project: "all", overdue: "all", tasks: "mine" },
     }),
     getMyStageTasks({
       prisma,

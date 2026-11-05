@@ -5,12 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { OverdueStageRow, UnitCycleStageTaskRow } from "@/lib/unit-cycle/queries";
 import { ClaimWorkButton } from "@/components/work/claim-work-button";
+import { WorkScopeToggle } from "@/components/work/work-scope-toggle";
 import { cn } from "@/lib/utils";
+import type { WorkScopeMode } from "@/lib/work/personal-scope";
 
 export async function MyStageTasksQueue({
   tasks,
+  workScope = "personal",
+  showWorkScopeToggle = false,
 }: {
   tasks: UnitCycleStageTaskRow[];
+  workScope?: WorkScopeMode;
+  showWorkScopeToggle?: boolean;
 }) {
   const t = await getTranslations("unitCycle.myTasks");
   const tStages = await getTranslations("unitCycle.stages");
@@ -19,8 +25,11 @@ export async function MyStageTasksQueue({
   if (tasks.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">{t("title")}</CardTitle>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+          <CardTitle className="text-lg">
+            {workScope === "oversight" ? t("allTasksTitle") : t("title")}
+          </CardTitle>
+          {showWorkScopeToggle ? <WorkScopeToggle mode={workScope} /> : null}
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">{t("empty")}</p>
@@ -31,8 +40,11 @@ export async function MyStageTasksQueue({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">{t("title")}</CardTitle>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+        <CardTitle className="text-lg">
+          {workScope === "oversight" ? t("allTasksTitle") : t("title")}
+        </CardTitle>
+        {showWorkScopeToggle ? <WorkScopeToggle mode={workScope} /> : null}
       </CardHeader>
       <CardContent className="space-y-2">
         {tasks.map((task) => (

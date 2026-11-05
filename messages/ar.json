@@ -2032,8 +2032,13 @@
     },
     "myTasks": {
       "title": "مهام مرحلتي",
+      "allTasksTitle": "جميع مهام المراحل",
       "empty": "لا مهام مرحلة نشطة لدورك.",
       "overdue": "متأخر"
+    },
+    "workScope": {
+      "mine": "مهامي",
+      "all": "كل المهام"
     },
     "overdue": {
       "title": "مراحل متأخرة",
@@ -2041,8 +2046,8 @@
       "row": "{stage} · متأخر {days} يوم"
     },
     "overdueManagement": {
-      "allTasksPageTitle": "All overdue tasks",
-      "allTasksPageSubtitle": "Oversight view across every overdue unit cycle stage in enabled projects.",
+      "allTasksPageTitle": "جميع المهام المتأخرة",
+      "allTasksPageSubtitle": "عرض إشرافي لكل مراحل دورة الوحدة المتأخرة في المشاريع المفعّلة.",
       "backToExecutive": "العودة للوحة التنفيذية",
       "summaryTitle": "مهام دورة الوحدة المتأخرة",
       "summaryEmpty": "لا مراحل متأخرة حالياً.",
@@ -2050,7 +2055,8 @@
       "viewAll": "عرض المهام المتأخرة",
       "resultsCount": "{count, plural, one {مهمة واحدة} other {# مهمة}}",
       "emptyFiltered": "لا مهام متأخرة تطابق هذه الفلاتر.",
-      "ownerGroupLabel": "{department}{assignee, select, empty {} other { · {assignee}}}",
+      "ownerGroupLabel": "{department} · {assignee}",
+      "ownerUnclaimed": "غير مُسنَد",
       "taskMeta": "متأخر {days} يوم · قائمة {checklist}",
       "deadline": "المهلة {date}",
       "daysOverdueBadge": "متأخر {days} ي",

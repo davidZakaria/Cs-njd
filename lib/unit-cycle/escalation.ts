@@ -5,6 +5,8 @@ import { buildOverdueTasksPageUrl } from "@/lib/unit-cycle/overdue-filter-url";
 import {
   groupOverdueStagesForDigest,
   groupOverdueStagesForOwnerDigest,
+  groupOverdueStagesForDepartmentPoolDigest,
+  formatOverdueDigestMessage,
 } from "@/lib/unit-cycle/overdue-digest";
 import { recordUnitCycleAuditEvent } from "@/lib/unit-cycle/audit";
 import {
@@ -60,24 +62,38 @@ export async function runUnitCycleEscalationJob(
   }
 
   for (const ownerGroup of groupOverdueStagesForOwnerDigest(overdue)) {
-    const count = ownerGroup.rows.length;
+    const digest = formatOverdueDigestMessage(ownerGroup.rows);
     const sample = ownerGroup.rows[0]!;
-    const stageLabels = unitCycleStageLabelEnAr(sample.stageKey as UnitCycleStageKey);
     const link = buildOverdueTasksPageUrl({
       project: projectNameToSlug(sample.projectName),
-      stage: sample.stageKey as UnitCycleStageKey,
     });
     const sent = await notifyUserInboxTab({
       userId: ownerGroup.userId,
       inboxTab: "OVERDUE_TASKS",
       titleEn: "Your overdue unit cycle tasks",
       titleAr: "مهام دورة الوحدة المتأخرة",
-      messageEn: `${count} unit(s) overdue in ${stageLabels.en}`,
-      messageAr: `${count} وحدة متأخرة في ${stageLabels.ar}`,
+      messageEn: digest.en,
+      messageAr: digest.ar,
       link,
       dedupeKey: `unit-cycle-overdue-user:${ownerGroup.userId}:${dayKey}`,
     });
     if (sent) notified += 1;
+  }
+
+  for (const poolGroup of groupOverdueStagesForDepartmentPoolDigest(overdue)) {
+    const digest = formatOverdueDigestMessage(poolGroup.rows);
+    const link = buildOverdueTasksPageUrl({});
+    const created = await notifyRolesInboxTab({
+      roles: [poolGroup.ownerRole],
+      inboxTab: "OVERDUE_TASKS",
+      titleEn: "Unclaimed overdue tasks in your department",
+      titleAr: "مهام متأخرة غير مُسنَدة في إدارتك",
+      messageEn: digest.en,
+      messageAr: digest.ar,
+      link,
+      dedupeKey: `unit-cycle-overdue-pool:${poolGroup.ownerRole}:${dayKey}`,
+    });
+    notified += created;
   }
 
   return { notified, scanned: overdue.length };

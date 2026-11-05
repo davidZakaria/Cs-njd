@@ -16,6 +16,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  selectOptionItems,
+  selectOptionLabel,
+} from "@/lib/ui/select-option-label";
+import {
   buildOverdueTasksPageUrl,
   DEPARTMENT_ROLES,
   STAGE_KEYS,
@@ -65,6 +69,50 @@ export function OverdueTasksWorkspace({
 
   const grouped = useMemo(() => groupOverdueStageRows(filtered), [filtered]);
 
+  const projectOptions = useMemo(
+    () => [
+      { value: "all", label: t("filters.allProjects") },
+      ...projects.map((project) => ({
+        value: projectNameToSlug(project.name),
+        label: project.name,
+      })),
+    ],
+    [projects, t]
+  );
+
+  const stageOptions = useMemo(
+    () => [
+      { value: "all", label: t("filters.allStages") },
+      ...STAGE_KEYS.map((stageKey) => ({
+        value: stageKey,
+        label: tStages(stageKey),
+      })),
+    ],
+    [t, tStages]
+  );
+
+  const departmentOptions = useMemo(
+    () => [
+      { value: "all", label: t("filters.allDepartments") },
+      ...DEPARTMENT_ROLES.map((role) => ({
+        value: role,
+        label: tDepartments(role),
+      })),
+    ],
+    [t, tDepartments]
+  );
+
+  const minDaysOptions = useMemo(
+    () => [
+      { value: "all", label: t("filters.anyDaysOverdue") },
+      { value: "1", label: t("filters.atLeastDays", { days: 1 }) },
+      { value: "3", label: t("filters.atLeastDays", { days: 3 }) },
+      { value: "7", label: t("filters.atLeastDays", { days: 7 }) },
+      { value: "14", label: t("filters.atLeastDays", { days: 14 }) },
+    ],
+    [t]
+  );
+
   const chips = useMemo(() => {
     const list: Array<{ key: string; label: string; onRemove: () => void }> = [];
     if (filters.project !== "all") {
@@ -103,13 +151,14 @@ export function OverdueTasksWorkspace({
       <div className="flex flex-wrap gap-3">
         <Select
           value={filters.project}
+          items={selectOptionItems(projectOptions)}
           onValueChange={(value) => {
             if (value == null) return;
             syncUrl({ ...filters, project: value });
           }}
         >
           <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder={t("filters.project")} />
+            <SelectValue>{selectOptionLabel(projectOptions, filters.project)}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("filters.allProjects")}</SelectItem>
@@ -126,15 +175,17 @@ export function OverdueTasksWorkspace({
 
         <Select
           value={filters.stage}
-          onValueChange={(value) =>
+          items={selectOptionItems(stageOptions)}
+          onValueChange={(value) => {
+            if (value == null) return;
             syncUrl({
               ...filters,
               stage: value as OverdueTasksPageFilters["stage"],
-            })
-          }
+            });
+          }}
         >
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder={t("filters.stage")} />
+            <SelectValue>{selectOptionLabel(stageOptions, filters.stage)}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("filters.allStages")}</SelectItem>
@@ -148,15 +199,19 @@ export function OverdueTasksWorkspace({
 
         <Select
           value={filters.department}
-          onValueChange={(value) =>
+          items={selectOptionItems(departmentOptions)}
+          onValueChange={(value) => {
+            if (value == null) return;
             syncUrl({
               ...filters,
               department: value as OverdueTasksPageFilters["department"],
-            })
-          }
+            });
+          }}
         >
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder={t("filters.department")} />
+            <SelectValue>
+              {selectOptionLabel(departmentOptions, filters.department)}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("filters.allDepartments")}</SelectItem>
@@ -170,15 +225,17 @@ export function OverdueTasksWorkspace({
 
         <Select
           value={filters.minDays}
-          onValueChange={(value) =>
+          items={selectOptionItems(minDaysOptions)}
+          onValueChange={(value) => {
+            if (value == null) return;
             syncUrl({
               ...filters,
               minDays: value as OverdueTasksPageFilters["minDays"],
-            })
-          }
+            });
+          }}
         >
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder={t("filters.minDays")} />
+            <SelectValue>{selectOptionLabel(minDaysOptions, filters.minDays)}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("filters.anyDaysOverdue")}</SelectItem>
@@ -225,7 +282,8 @@ export function OverdueTasksWorkspace({
                   <p className="text-sm font-medium text-muted-foreground">
                     {t("ownerGroupLabel", {
                       department: tDepartments(ownerGroup.ownerRole),
-                      assignee: ownerGroup.ownerAssigneeName ?? "",
+                      assignee:
+                        ownerGroup.ownerAssigneeName ?? t("ownerUnclaimed"),
                     })}
                   </p>
                   <ul className="space-y-2">

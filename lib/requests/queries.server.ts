@@ -13,12 +13,15 @@ export type { UnitRequestListRow, RequestsPageFilters, OverdueUnitRequestRow } f
 
 export { isRequestOverdue } from "@/lib/requests/overdue";
 
+import type { WorkScopeMode } from "@/lib/work/personal-scope";
+
 export async function filterRequestRowsForUser(input: {
   rows: UnitRequestListRow[];
   role: Role;
   userId: string;
   csScope?: CsAgentScope | null;
   filters: RequestsPageFilters;
+  workScopeMode?: WorkScopeMode;
   now?: Date;
 }): Promise<UnitRequestListRow[]> {
   const staff = await getOrgStaffAvailability(basePrisma);
@@ -27,6 +30,9 @@ export async function filterRequestRowsForUser(input: {
     role: input.role,
     userId: input.userId,
     filters: input.filters,
+    workScopeMode:
+      input.workScopeMode ??
+      (input.filters.tasks === "all" ? "oversight" : "personal"),
     now: input.now,
     staff,
   });

@@ -23,7 +23,7 @@ import {
   rolesThatCanActOnApproverKind,
   type OrgStaffAvailability,
 } from "@/lib/requests/approver-roles";
-import { requestAwaitingVisibleToUser } from "@/lib/work/personal-scope";
+import { requestAwaitingVisibleToUser, type WorkScopeMode } from "@/lib/work/personal-scope";
 
 /** Pure permission helpers safe for client bundles (no Prisma / cs-agent-scope). */
 
@@ -263,12 +263,14 @@ export function filterRequestRowsByView(input: {
   role: Role;
   userId: string;
   filters: RequestsPageFilters;
+  workScopeMode?: WorkScopeMode;
   now?: Date;
   staff?: OrgStaffAvailability;
 }): UnitRequestListRow[] {
   const now = input.now ?? new Date();
   let list = input.rows;
   const staff = input.staff;
+  const mode = input.workScopeMode ?? "personal";
 
   if (isCommunityManagementRole(input.role)) {
     list = list.filter((row) => row.type === "HANDOVER_APPOINTMENT");
@@ -287,6 +289,7 @@ export function filterRequestRowsByView(input: {
         escalatedToManagement: row.escalatedToManagement,
         view: "awaiting",
         staff,
+        mode,
       })
     );
   } else if (input.filters.view === "submitted") {
@@ -306,6 +309,7 @@ export function filterRequestRowsByView(input: {
           escalatedToManagement: row.escalatedToManagement,
           view: "awaiting",
           staff,
+          mode,
         }) ||
         (isCommunityManagementRole(input.role) && row.type === "HANDOVER_APPOINTMENT")
     );

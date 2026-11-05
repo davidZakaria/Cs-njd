@@ -2032,8 +2032,13 @@
     },
     "myTasks": {
       "title": "My stage tasks",
+      "allTasksTitle": "All stage tasks",
       "empty": "No active stage tasks for your role.",
       "overdue": "Overdue"
+    },
+    "workScope": {
+      "mine": "My tasks",
+      "all": "All tasks"
     },
     "overdue": {
       "title": "Overdue stages",
@@ -2052,7 +2057,8 @@
       "viewAll": "View overdue tasks",
       "resultsCount": "{count, plural, one {# task} other {# tasks}}",
       "emptyFiltered": "No overdue tasks match these filters.",
-      "ownerGroupLabel": "{department}{assignee, select, empty {} other { · {assignee}}}",
+      "ownerGroupLabel": "{department} · {assignee}",
+      "ownerUnclaimed": "Unclaimed",
       "taskMeta": "{days} day(s) overdue · checklist {checklist}",
       "deadline": "Deadline {date}",
       "daysOverdueBadge": "{days}d overdue",

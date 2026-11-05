@@ -5,7 +5,7 @@ const STAGE_LABELS: Record<
   { en: string; ar: string }
 > = {
   CONTRACT: { en: "Contract", ar: "العقد" },
-  FINANCE: { en: "Finance", ar: "المالية" },
+  FINANCE: { en: "Finance", ar: "الحسابات" },
   ENGINEERING: { en: "Engineering", ar: "الهندسة" },
   LEGAL_HANDOVER: { en: "Legal & handover", ar: "القانونية والتسليم" },
 };

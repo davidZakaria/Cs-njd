@@ -30,6 +30,7 @@ export type RequestsPageFilters = {
   type: "all" | UnitRequestType;
   project: string;
   overdue: "all" | "yes";
+  tasks: "mine" | "all";
 };
 
 export type OverdueUnitRequestRow = UnitRequestListRow & { daysOverdue: number };

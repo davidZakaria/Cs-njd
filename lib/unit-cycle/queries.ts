@@ -19,6 +19,7 @@ import {
   matchesOverdueTasksFilters,
   projectNameToSlug,
 } from "@/lib/unit-cycle/overdue-filter-url";
+import { resolveOverdueOwnerAssigneeName } from "@/lib/unit-cycle/overdue-assignee";
 import {
   resolveUnitCycleAssigneeUserId,
   unitCycleStageClaimableByUser,
@@ -86,7 +87,7 @@ export async function getMyStageTasks(input: {
           },
         },
       },
-      stages: { orderBy: { sortOrder: "asc" } },
+      stages: { orderBy: { sortOrder: "asc" }, include: { assignedTo: { select: { id: true, name: true } } } },
     },
     take: scope === "oversight" ? 500 : limit * 3,
     orderBy: { updatedAt: "desc" },
@@ -189,7 +190,12 @@ const overdueCycleInclude = {
       },
     },
   },
-  stages: { orderBy: { sortOrder: "asc" as const } },
+  stages: {
+    orderBy: { sortOrder: "asc" as const },
+    include: {
+      assignedTo: { select: { id: true, name: true } },
+    },
+  },
 } satisfies Prisma.UnitCycleInclude;
 
 type OverdueCycleRow = Prisma.UnitCycleGetPayload<{
@@ -230,10 +236,13 @@ function buildOverdueRowFromCycle(
     : 0;
 
   const ownerRole = activeStage.ownerRole ?? resolveStageOwnerRole(activeStage.stageKey);
-  const ownerAssigneeName =
-    activeStage.stageKey === "ENGINEERING"
-      ? (cycle.unit.agent?.name ?? null)
-      : null;
+  const ownerAssigneeName = resolveOverdueOwnerAssigneeName({
+    stageKey: activeStage.stageKey,
+    assignedUserId: activeStage.assignedUserId,
+    assignedUserName: activeStage.assignedTo?.name ?? null,
+    unitAgentId: cycle.unit.agent?.id ?? null,
+    unitAgentName: cycle.unit.agent?.name ?? null,
+  });
   const assigneeUserId = resolveUnitCycleAssigneeUserId({
     stageKey: activeStage.stageKey,
     assignedUserId: activeStage.assignedUserId,
@@ -328,7 +337,7 @@ export function groupOverdueStageRows(rows: OverdueStageRow[]): Array<{
     if (!byStage.has(row.stageKey)) {
       byStage.set(row.stageKey, new Map());
     }
-    const ownerKey = `${row.ownerRole}:${row.ownerAssigneeName ?? ""}`;
+    const ownerKey = `${row.ownerRole}:${row.assigneeUserId ?? "unclaimed"}`;
     const stageMap = byStage.get(row.stageKey)!;
     if (!stageMap.has(ownerKey)) {
       stageMap.set(ownerKey, {

@@ -12,6 +12,8 @@ import { CreateUnitRequestForm } from "@/components/requests/create-unit-request
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
 import { canCreateUnitRequest } from "@/lib/requests/permissions-core";
+import { managementRolesForCycle } from "@/lib/unit-cycle/owners";
+import { parseWorkScopeFromSearchParams } from "@/lib/work/work-scope-url";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,7 @@ export default async function RequestsPage({
   }
 
   const filters = parseRequestsPageFilters(await searchParams);
+  const workScope = parseWorkScopeFromSearchParams(await searchParams);
   const t = await getTranslations("requests");
   const csScope =
     session.user.role === "CS_AGENT"
@@ -73,7 +76,13 @@ export default async function RequestsPage({
       {canCreate ? (
         <CreateUnitRequestForm projects={projectOptions} />
       ) : null}
-      <RequestsTable rows={tableRows} projects={projects} initialFilters={filters} />
+      <RequestsTable
+        rows={tableRows}
+        projects={projects}
+        initialFilters={filters}
+        workScope={workScope}
+        showWorkScopeToggle={managementRolesForCycle().includes(session.user.role)}
+      />
     </div>
   );
 }
