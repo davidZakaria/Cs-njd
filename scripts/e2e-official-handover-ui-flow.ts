@@ -390,6 +390,21 @@ async function generateDraftInDialog(page: Page, locale: "en" | "ar") {
     .waitFor({ timeout: 120_000 });
 }
 
+async function clickGenerateDraftExpectLegacyBlock(page: Page, locale: "en" | "ar") {
+  const generateBtn = page.getByRole("button", {
+    name: locale === "ar" ? /إنشاء مسودة PDF/i : /Generate draft PDF/i,
+  });
+    await generateBtn.click({ force: true });
+  await page
+    .locator("[data-sonner-toast]")
+    .filter({
+      hasText:
+        /legacy English placeholder still in editor|Save the official Arabic handover text before generating/i,
+    })
+    .first()
+    .waitFor({ timeout: 30_000 });
+}
+
 function assertPdfContainsMarker(pdfPath: string, marker: string, label: string) {
   const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
   if (!text.includes(marker)) {
@@ -690,13 +705,7 @@ async function runLegacyDraftFlow(
     throw new Error(`${locale} legacy reopen: proposed official body banner missing`);
   }
 
-  await generateDraftInDialog(page, locale);
-  const legacyBlock = page.getByText(
-    locale === "ar"
-      ? /legacy English placeholder|النص الإنجليزي/i
-      : /legacy English placeholder/i
-  );
-  await legacyBlock.waitFor({ timeout: 30_000 });
+  await clickGenerateDraftExpectLegacyBlock(page, locale);
 
   await proposedLoad.click();
   const afterProposed = await textarea.inputValue();
