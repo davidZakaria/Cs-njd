@@ -69,9 +69,37 @@ async function createUnit(input: {
 
   const existing = await prisma.unit.findFirst({
     where: { projectId: project.id, unitCode: input.unitCode, deletedAt: null },
+    include: { project: true, finishing: true },
   });
   if (existing) {
-    return { unit: { ...existing, project }, variant: input.variant };
+    if (input.projectName === "GREEN AVENUE") {
+      const finishingData = input.fullyFinished
+        ? {
+            finishingType: "FULLY_FINISHED" as const,
+            packageType: "PACKAGE_1" as const,
+            packageLabel: "Fully Finished",
+            totalFinishingPrice: 100,
+            pricePerMeter: 1,
+          }
+        : {
+            finishingType: "CORE_AND_SHELL" as const,
+            packageType: "CORE_AND_SHELL" as const,
+            packageLabel: null,
+            totalFinishingPrice: null,
+            pricePerMeter: null,
+          };
+      if (existing.finishing) {
+        await prisma.finishing.update({
+          where: { unitId: existing.id },
+          data: finishingData,
+        });
+      } else {
+        await prisma.finishing.create({
+          data: { unitId: existing.id, ...finishingData },
+        });
+      }
+    }
+    return { unit: { ...existing, project: existing.project }, variant: input.variant };
   }
 
   const unit = await prisma.unit.create({
@@ -218,7 +246,7 @@ async function main() {
       projectName: "GREEN AVENUE",
       unitCode: "704-3-B",
       dual: true,
-      fullyFinished: true,
+      fullyFinished: false,
     },
     {
       variant: "jura",

@@ -2199,6 +2199,8 @@
     "handoverVariantAuto": "تلقائي",
     "handoverVariantApplyFailed": "تعذر تطبيق نسخة المحضر.",
     "handoverMissingFieldsWarning": "لا تزال بعض الحقول فارغة. أكمل بيانات الوحدة/العميل أو عدّل النص قبل إنشاء PDF.",
+    "proposedOfficialBodyNotice": "يتوفر نص رسمي عربي مقترح. النص الحالي في المسودة لن يتغير حتى تحمّله أو تعدّله.",
+    "loadProposedOfficialBody": "تحميل النص الرسمي العربي المقترح",
     "handoverVariantGreen1OwnerDeposit": "جرين أفينيو — مالك واحد (مع تأمين تشطيب)",
     "handoverVariantGreen1OwnerNoDeposit": "جرين أفينيو — مالك واحد (بدون تأمين)",
     "handoverVariantGreen2OwnersDeposit": "جرين أفينيو — مالكان (مع تأمين)",

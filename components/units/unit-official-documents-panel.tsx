@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
@@ -123,6 +123,10 @@ export function UnitOfficialDocumentsPanel({
   const [versionHistory, setVersionHistory] = useState<
     Array<{ id: string; createdAt: string; editorName: string }>
   >([]);
+  const [proposedOfficialBody, setProposedOfficialBody] = useState<string | null>(
+    null
+  );
+  const editorTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const documentTypeItems = useMemo(() => {
     const items: Record<string, string> = {};
@@ -243,6 +247,7 @@ export function UnitOfficialDocumentsPanel({
       setActiveDraftId(result.draftId);
       setEditorTitle(result.title ?? detail?.title ?? "");
       setEditorBody(result.body ?? detail?.currentBody ?? "");
+      setProposedOfficialBody(result.proposedOfficialBody ?? null);
       setEditorLocale(result.locale ?? detail?.templateLocale ?? locale);
       setHandoverTemplateKey(
         (result.handoverTemplateKey ??
@@ -270,6 +275,7 @@ export function UnitOfficialDocumentsPanel({
       setActiveDraftId(draftId);
       setEditorTitle(detail.title);
       setEditorBody(detail.currentBody);
+      setProposedOfficialBody(null);
       setEditorLocale(detail.templateLocale);
       setHandoverTemplateKey(
         (detail.handoverTemplateKey ?? null) as HandoverTemplateKey | null
@@ -309,9 +315,13 @@ export function UnitOfficialDocumentsPanel({
   const saveDraft = () => {
     if (!activeDraftId) return;
     startTransition(async () => {
+      const bodyToPersist = (
+        editorTextareaRef.current?.value ??
+        editorBody
+      ).trimEnd();
       const result = await saveOfficialDocumentTextDraftAction({
         draftId: activeDraftId,
-        body: editorBody,
+        body: bodyToPersist,
       });
       if (!result.success) {
         toast.error(result.error ?? t("draftSaveFailed"));
@@ -333,6 +343,19 @@ export function UnitOfficialDocumentsPanel({
   const generatePdf = () => {
     if (!activeDraftId) return;
     startTransition(async () => {
+      const bodyToPersist = (
+        editorTextareaRef.current?.value ??
+        editorBody
+      ).trimEnd();
+      const saveResult = await saveOfficialDocumentTextDraftAction({
+        draftId: activeDraftId,
+        body: bodyToPersist,
+      });
+      if (!saveResult.success) {
+        toast.error(saveResult.error ?? t("draftSaveFailed"));
+        return;
+      }
+
       const result = await generateOfficialDocumentAction({
         unitId,
         textDraftId: activeDraftId,
@@ -562,6 +585,24 @@ export function UnitOfficialDocumentsPanel({
             <DialogTitle>{t("editTextDialogTitle")}</DialogTitle>
             <p className="text-sm text-muted-foreground">{editorTitle}</p>
           </DialogHeader>
+          {proposedOfficialBody ? (
+            <div className="rounded-md border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-sm">
+              <p>{t("proposedOfficialBodyNotice")}</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                disabled={pending}
+                onClick={() => {
+                  setEditorBody(proposedOfficialBody);
+                  setProposedOfficialBody(null);
+                }}
+              >
+                {t("loadProposedOfficialBody")}
+              </Button>
+            </div>
+          ) : null}
           {showHandoverVariantPicker && canEditDraftText ? (
             <div className="space-y-1.5">
               <Label>{t("handoverVariantLabel")}</Label>
@@ -601,6 +642,7 @@ export function UnitOfficialDocumentsPanel({
             </div>
           ) : null}
           <Textarea
+            ref={editorTextareaRef}
             value={editorBody}
             onChange={(e) => setEditorBody(e.target.value)}
             readOnly={!canEditDraftText}

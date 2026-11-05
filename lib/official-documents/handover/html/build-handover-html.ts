@@ -34,6 +34,8 @@ export function buildOfficialHandoverHtml(input: {
   templateKey: HandoverTemplateKey;
   fields: HandoverFieldValues;
   watermarkDraft: boolean;
+  /** When set, user-edited draft text drives document body content in the PDF. */
+  draftBody?: string;
 }): string {
   const template = loadHandoverTemplate(input.templateKey);
   const fontDataUri = loadFileDataUri(ARABIC_FONT_PATH, "font/ttf");
@@ -43,8 +45,9 @@ export function buildOfficialHandoverHtml(input: {
     logoRelative.endsWith(".jpg") ? "image/jpeg" : "image/png"
   );
 
-  const body =
-    template.kind === "green-avenue"
+  const body = input.draftBody?.trim()
+    ? buildBodyFromEditedDraftText(template, input.fields, input.draftBody)
+    : template.kind === "green-avenue"
       ? buildGreenAvenueBody(template, input.fields)
       : buildJuraBody(template, input.fields);
 
@@ -364,6 +367,59 @@ function buildGreenDualClosingSignatures(): string {
         </div>
       </div>
     </div>`;
+}
+
+function buildBodyFromEditedDraftText(
+  template: GreenAvenueTemplate | JuraTemplate,
+  fields: HandoverFieldValues,
+  draftBody: string
+): string {
+  const chunks = draftBody
+    .split(/\n\n+/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+
+  let startIndex = 0;
+  const first = chunks[0] ?? "";
+  if (
+    template.kind === "green-avenue" &&
+    (first.includes("محضر") || first.includes("Green") || first.includes("جرين"))
+  ) {
+    startIndex = 1;
+  }
+
+  let html = "";
+  for (const chunk of chunks.slice(startIndex)) {
+    const lines = chunk.split("\n");
+    const heading = lines[0]?.trim() ?? "";
+    const bodyText = lines.slice(1).join("\n").trim();
+    const looksLikeSection =
+      /^(أولاً|اولا|ثانيا|ثانياً|إقرار|third|violations|رابع)/u.test(heading) ||
+      heading.endsWith(":");
+
+    if (looksLikeSection && bodyText) {
+      html += `<h2 class="section-heading">${escapeHtml(heading)}</h2>`;
+      html += `<p class="justified">${toHandoverHtml(bodyText)}</p>`;
+    } else {
+      html += `<p class="justified">${toHandoverHtml(chunk)}</p>`;
+    }
+  }
+
+  if (template.kind === "green-avenue") {
+    html += buildDeclarantSignatureBlock({ dual: template.dual });
+    if (template.dual) {
+      html += buildGreenDualClosingSignatures();
+    }
+  } else {
+    html += buildDeclarantSignatureBlock({
+      dual: template.dual,
+      ownerRows: template.dual ? 2 : 1,
+    });
+    html += buildJuraClosingSignatures(template.dual);
+  }
+
+  void fields;
+  return html;
 }
 
 function buildJuraBody(template: JuraTemplate, fields: HandoverFieldValues): string {

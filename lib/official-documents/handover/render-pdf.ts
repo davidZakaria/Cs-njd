@@ -9,12 +9,14 @@ export async function renderOfficialHandoverRecordPdf(input: {
   fields: HandoverFieldValues;
   watermarkDraft: boolean;
   companyAddress?: string;
+  draftBody?: string;
 }): Promise<Uint8Array> {
   void input.companyAddress;
   const html = buildOfficialHandoverHtml({
     templateKey: input.templateKey,
     fields: input.fields,
     watermarkDraft: input.watermarkDraft,
+    draftBody: input.draftBody,
   });
   return renderHandoverHtmlToPdf(html);
 }

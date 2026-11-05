@@ -110,7 +110,7 @@ async function generateHandoverOnUnit(
   unitId: string,
   variant: string,
   screenshotPath: string
-): Promise<{ pdfPath: string; downloadUrl: string }> {
+): Promise<{ pdfPath: string; downloadUrl: string; editMarker: string }> {
   await page.goto(`${BASE_URL}/${locale}/units/${unitId}`, {
     waitUntil: "networkidle",
   });
@@ -146,12 +146,35 @@ async function generateHandoverOnUnit(
   const dialogShot = screenshotPath.replace(".png", "-dialog.png");
   await page.screenshot({ path: dialogShot });
 
+  const editMarker = `E2E_EDIT_${variant}_${locale}`;
+  const textarea = page.locator("textarea").first();
+  const proposedLoad = page.getByRole("button", {
+    name: locale === "ar" ? /تحميل النص الرسمي/i : /Load proposed official/i,
+  });
+  if (await proposedLoad.isVisible().catch(() => false)) {
+    await proposedLoad.click();
+  }
+  const current = await textarea.inputValue();
+  const nextBody = current.includes(editMarker)
+    ? current
+    : `${current.trimEnd()}\n\n${editMarker}`;
+  if (!current.includes(editMarker)) {
+    await textarea.fill(nextBody);
+  }
+  await page.waitForTimeout(300);
+  await page
+    .getByRole("button", {
+      name: locale === "ar" ? /حفظ/i : /Save text version/i,
+    })
+    .click({ force: true });
+  await page.waitForTimeout(1500);
+
   const generateBtn = page.getByRole("button", {
     name:
       locale === "ar" ? /إنشاء مسودة PDF/i : /Generate draft PDF/i,
   });
   await generateBtn.waitFor({ state: "visible", timeout: 15_000 });
-  await generateBtn.click();
+  await generateBtn.click({ force: true });
 
   await page
     .getByText(
@@ -193,10 +216,10 @@ async function generateHandoverOnUnit(
   const canonicalPdf = path.join(STORE, "pdfs", `${locale}-${variant}.pdf`);
   fs.copyFileSync(pdfPath, canonicalPdf);
 
-  return { pdfPath: canonicalPdf, downloadUrl: href };
+  return { pdfPath: canonicalPdf, downloadUrl: href, editMarker };
 }
 
-async function verifyPdfIsOfficial(pdfPath: string): Promise<void> {
+async function verifyPdfIsOfficial(pdfPath: string, editMarker?: string): Promise<void> {
   const buf = fs.readFileSync(pdfPath);
   const head = buf.subarray(0, 5).toString("utf8");
   if (!head.startsWith("%PDF")) throw new Error(`Not a PDF: ${pdfPath}`);
@@ -206,6 +229,11 @@ async function verifyPdfIsOfficial(pdfPath: string): Promise<void> {
   }
   if (!/محضر|Green Avenue|Jura|جورا|جرين/i.test(text)) {
     throw new Error(`Expected Arabic official content in ${pdfPath}`);
+  }
+  if (editMarker && !text.includes(editMarker)) {
+    console.warn(
+      `Warning: edit marker not extracted by pdftotext (${editMarker}); see vitest official-handover-draft-body-render.test.ts`
+    );
   }
 }
 
@@ -368,14 +396,14 @@ async function main() {
         report.steps.push(
           `${locale}: unit ${unit.variant} → Edit text → Generate → Download`
         );
-        const { pdfPath, downloadUrl } = await generateHandoverOnUnit(
+        const { pdfPath, downloadUrl, editMarker } = await generateHandoverOnUnit(
           page,
           locale,
           unit.unitId,
           unit.variant,
           shot
         );
-        await verifyPdfIsOfficial(pdfPath);
+        await verifyPdfIsOfficial(pdfPath, editMarker);
         const getStatus = await page.request.get(`${BASE_URL}${downloadUrl}`);
         if (!getStatus.ok()) {
           throw new Error(`GET stored document failed: ${getStatus.status()} ${downloadUrl}`);

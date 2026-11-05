@@ -62,6 +62,41 @@ vi.mock("@/lib/prisma", () => ({
     },
     officialDocumentTextDraftVersion: {
       create: (...args: unknown[]) => mockCreate(...args),
+      findFirst: vi.fn(async (args: { where?: { draftId?: string } }) => {
+        if (args?.where?.draftId === "draft-legacy-en") {
+          return {
+            id: "v0",
+            body: "Unit Handover Record\n\nProject: GREEN AVENUE",
+            createdAt: new Date(),
+            draftId: "draft-legacy-en",
+          };
+        }
+        if (args?.where?.draftId === "draft-legacy") {
+          return {
+            id: "v1",
+            body: "محضr — LEGAL saved version",
+            createdAt: new Date(),
+            draftId: "draft-legacy",
+          };
+        }
+        if (args?.where?.draftId === "draft-edited") {
+          return {
+            id: "v2",
+            body: "محضr official text\n\nLEGAL_EDIT_MARKER: approved clause",
+            createdAt: new Date(),
+            draftId: "draft-edited",
+          };
+        }
+        if (args?.where?.draftId === "draft-ar") {
+          return {
+            id: "v3",
+            body: "محضr تسليم — بيانات",
+            createdAt: new Date(),
+            draftId: "draft-ar",
+          };
+        }
+        return null;
+      }),
     },
     unitGeneratedDocument: {
       create: (...args: unknown[]) => mockCreate(...args),
@@ -149,7 +184,9 @@ describe("generateOfficialDocumentAction handover integration", () => {
     );
   });
 
-  it("uses Chromium official handover renderer for legacy English UI drafts on Green Avenue", async () => {
+  it("uses Chromium with saved draft body for official handover after metadata sync", async () => {
+    const officialBody =
+      "محضر تسليم — أولاً: بيانات المستلم\n\nLEGAL_EDIT_MARKER in saved version";
     mockFindFirst.mockImplementation(async (args: { where?: { id?: string } }) => {
       if (args?.where?.id === "draft-legacy") {
         return {
@@ -163,7 +200,7 @@ describe("generateOfficialDocumentAction handover integration", () => {
           templateId: "tpl-en",
           templateVersion: 1,
           title: "Handover Record",
-          versions: [{ id: "v1", createdAt: new Date() }],
+          versions: [{ id: "v1", body: officialBody, createdAt: new Date() }],
         };
       }
       return greenUnitRow;
@@ -184,6 +221,78 @@ describe("generateOfficialDocumentAction handover integration", () => {
     expect(mockRenderHandover.mock.calls[0]?.[0]?.templateKey).toBe(
       "green-avenue-no-insurance"
     );
+    expect(mockRenderHandover.mock.calls[0]?.[0]?.draftBody).toContain("LEGAL saved version");
+  });
+
+  it("passes saved draft body including legal edit markers to the Chromium renderer", async () => {
+    const bodyWithMarker =
+      "محضr official text\n\nLEGAL_EDIT_MARKER: approved clause";
+    mockFindFirst.mockImplementation(async (args: { where?: { id?: string } }) => {
+      if (args?.where?.id === "draft-edited") {
+        return {
+          id: "draft-edited",
+          unitId: "unit-green",
+          documentType: "HANDOVER_RECORD",
+          templateLocale: "ar",
+          handoverTemplateKey: "green-avenue",
+          currentBody: bodyWithMarker,
+          unitRequestId: null,
+          templateId: "tpl-ar",
+          templateVersion: 1,
+          title: "محضr",
+          versions: [{ id: "v1", body: bodyWithMarker, createdAt: new Date() }],
+        };
+      }
+      return greenUnitRow;
+    });
+    mockUpdate.mockResolvedValue({});
+
+    const { generateOfficialDocumentAction } = await import(
+      "@/lib/actions/official-documents"
+    );
+
+    const result = await generateOfficialDocumentAction({
+      unitId: "unit-green",
+      textDraftId: "draft-edited",
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockRenderHandover.mock.calls[0]?.[0]?.draftBody).toContain(
+      "LEGAL_EDIT_MARKER"
+    );
+  });
+
+  it("blocks generate while legacy English placeholder remains in saved version", async () => {
+    mockFindFirst.mockImplementation(async (args: { where?: { id?: string } }) => {
+      if (args?.where?.id === "draft-legacy-en") {
+        return {
+          id: "draft-legacy-en",
+          unitId: "unit-green",
+          documentType: "HANDOVER_RECORD",
+          templateLocale: "ar",
+          handoverTemplateKey: "green-avenue",
+          currentBody: "Unit Handover Record\n\nProject: GREEN AVENUE",
+          unitRequestId: null,
+          templateId: "tpl-ar",
+          templateVersion: 1,
+          title: "محضر",
+          versions: [],
+        };
+      }
+      return greenUnitRow;
+    });
+
+    const { generateOfficialDocumentAction } = await import(
+      "@/lib/actions/official-documents"
+    );
+
+    const result = await generateOfficialDocumentAction({
+      unitId: "unit-green",
+      textDraftId: "draft-legacy-en",
+    });
+
+    expect(result.success).toBe(false);
+    expect(mockRenderHandover).not.toHaveBeenCalled();
   });
 
   it("does not silently fall back to generic pdf-lib when Chromium handover render throws", async () => {
@@ -201,7 +310,7 @@ describe("generateOfficialDocumentAction handover integration", () => {
           templateId: "tpl-ar",
           templateVersion: 1,
           title: "محضر",
-          versions: [{ id: "v1", createdAt: new Date() }],
+          versions: [{ id: "v1", body: "محضr تسليم — بيانات", createdAt: new Date() }],
         };
       }
       return greenUnitRow;

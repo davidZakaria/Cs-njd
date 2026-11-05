@@ -52,9 +52,10 @@ export function handoverDraftNeedsOfficialMasterSync(
   ) {
     return false;
   }
-  return (
-    !draft.handoverTemplateKey ||
-    draft.templateLocale !== "ar" ||
-    isLegacyGenericHandoverDraftBody(draft.currentBody)
-  );
+  return !draft.handoverTemplateKey || draft.templateLocale !== "ar";
+}
+
+/** True when the draft body is still the pre-master generic English placeholder. */
+export function handoverDraftIsLegacyGenericPlaceholder(body: string): boolean {
+  return isLegacyGenericHandoverDraftBody(body);
 }
