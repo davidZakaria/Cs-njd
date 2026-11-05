@@ -142,8 +142,12 @@ export function UnitOfficialDocumentsPanel({
         unitRequestId: unitRequestId || null,
         draftId: input.draftId ?? null,
       });
-      if (!result.success || !result.draftId) {
+      if (!result.success) {
         toast.error(result.error ?? t("draftPrepareFailed"));
+        return;
+      }
+      if (!result.draftId) {
+        toast.error(t("draftPrepareFailed"));
         return;
       }
 
