@@ -297,6 +297,17 @@ function assertPdfPageContainsValue(
   const pageNorm = normalizePdfExtractedText(pageText);
   const compactPage = pageNorm.replace(/ /g, "");
   const compactNeedle = needle.replace(/ /g, "");
+  if (label.endsWith("address") && /[A-Za-z]/.test(needle)) {
+    const tokens = needle.split(/[\s,]+/).map((t) => t.trim()).filter((t) => t.length > 2);
+    for (const token of tokens) {
+      if (!compactPage.includes(token.replace(/ /g, ""))) {
+        throw new Error(
+          `${pdfPath}: page-1 address missing token "${token}" from "${value}" (${label})`
+        );
+      }
+    }
+    return;
+  }
   if (!compactPage.includes(compactNeedle)) {
     throw new Error(`${pdfPath}: page-1 missing ${label} (expected "${value}")`);
   }
@@ -363,6 +374,25 @@ async function assertHandoverPdfFieldIntegrity(
     }
     if (!body.includes(handoverFields.email)) {
       throw new Error(`${pdfPath}: saved draft body missing seeded email before PDF render path`);
+    }
+  }
+}
+
+function assertPdfArabicOnlyOfficialContent(pdfPath: string) {
+  const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
+  const englishBoilerplate = [
+    "Unit Handover Record",
+    "Primary owner:",
+    "Grace Period Annex",
+    "Contract Amendment",
+    "Finishing Contract Summary",
+    "Unit Swap Addendum",
+  ];
+  for (const phrase of englishBoilerplate) {
+    if (text.includes(phrase)) {
+      throw new Error(
+        `${pdfPath}: English official-document boilerplate "${phrase}" — generated PDFs must be Arabic-only`
+      );
     }
   }
 }
@@ -898,6 +928,7 @@ async function generateHandoverOnUnit(
   assertPdfEditFidelity(canonicalPdf, editMeta, "authenticated-GET", locale);
   assertMandatoryHandoverClauses(canonicalPdf, variant);
   assertHandoverPdfLayout(canonicalPdf, variant);
+  assertPdfArabicOnlyOfficialContent(canonicalPdf);
   await assertHandoverPdfFieldIntegrity(unitId, canonicalPdf, variant);
 
   return { pdfPath: canonicalPdf, downloadUrl, editMarker, editMeta, documentId };

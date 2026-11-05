@@ -29,6 +29,7 @@ import { buildOfficialHandoverFieldValues } from "@/lib/official-documents/hando
 import {
   handoverDraftIsLegacyGenericPlaceholder,
   handoverDraftNeedsOfficialMasterSync,
+  OFFICIAL_GENERATED_DOCUMENT_LOCALE,
   usesOfficialHandoverLegalMasters,
 } from "@/lib/official-documents/handover/document-locale";
 import { validateOfficialHandoverDraftStructure } from "@/lib/official-documents/handover/draft-body-structure";
@@ -643,7 +644,7 @@ export async function generateOfficialDocumentAction(input: {
   const ctx = await resolveOfficialDocumentGenerationContext({
     unitId: workingDraft.unitId,
     documentType: workingDraft.documentType,
-    locale: workingDraft.templateLocale as "en" | "ar",
+    locale: OFFICIAL_GENERATED_DOCUMENT_LOCALE,
     unitRequestId: workingDraft.unitRequestId,
     handoverTemplateKey: parseHandoverTemplateKey(workingDraft.handoverTemplateKey),
   });
@@ -717,7 +718,7 @@ export async function generateOfficialDocumentAction(input: {
           title: workingDraft.title,
           bodyTemplate: savedBody,
           fields: {},
-          locale: workingDraft.templateLocale,
+          locale: OFFICIAL_GENERATED_DOCUMENT_LOCALE,
           watermarkDraft: true,
           bodyIsFinal: true,
         });
@@ -732,7 +733,7 @@ export async function generateOfficialDocumentAction(input: {
 
   const storedName = buildGeneratedDocumentStoredFilename(
     workingDraft.documentType,
-    usesOfficialHandoverPdf ? "ar" : workingDraft.templateLocale
+    OFFICIAL_GENERATED_DOCUMENT_LOCALE
   );
   await writeGeneratedDocumentFile(ctx.unit.id, storedName, pdfBytes);
 
@@ -745,9 +746,7 @@ export async function generateOfficialDocumentAction(input: {
       documentType: workingDraft.documentType,
       templateId: workingDraft.templateId,
       templateVersion: workingDraft.templateVersion,
-      templateLocale: usesOfficialHandoverPdf
-        ? "ar"
-        : workingDraft.templateLocale,
+      templateLocale: OFFICIAL_GENERATED_DOCUMENT_LOCALE,
       storedName,
       displayName,
       sizeBytes: pdfBytes.length,
@@ -761,7 +760,7 @@ export async function generateOfficialDocumentAction(input: {
     unitId: ctx.unit.id,
     documentType: workingDraft.documentType,
     templateVersion: workingDraft.templateVersion,
-    templateLocale: usesOfficialHandoverPdf ? "ar" : workingDraft.templateLocale,
+    templateLocale: OFFICIAL_GENERATED_DOCUMENT_LOCALE,
     action: "GENERATE_DRAFT",
     userId: session.user.id,
     details: {

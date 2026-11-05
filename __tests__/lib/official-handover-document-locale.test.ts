@@ -8,18 +8,11 @@ import {
 } from "@/lib/official-documents/handover/document-locale";
 
 describe("official handover document locale routing", () => {
-  it("forces Arabic template locale for Green Avenue and Jura handover records", () => {
+  it("forces Arabic template locale for all official document types (CRM policy)", () => {
     expect(
       resolveOfficialDocumentTemplateLocale({
         documentType: "HANDOVER_RECORD",
         projectName: "GREEN AVENUE",
-        requestedLocale: "en",
-      })
-    ).toBe("ar");
-    expect(
-      resolveOfficialDocumentTemplateLocale({
-        documentType: "HANDOVER_RECORD",
-        projectName: "JURA",
         requestedLocale: "en",
       })
     ).toBe("ar");
@@ -29,7 +22,17 @@ describe("official handover document locale routing", () => {
         projectName: "GREEN AVENUE",
         requestedLocale: "en",
       })
-    ).toBe("en");
+    ).toBe("ar");
+  });
+
+  it("forces Arabic for Jura handover records", () => {
+    expect(
+      resolveOfficialDocumentTemplateLocale({
+        documentType: "HANDOVER_RECORD",
+        projectName: "JURA",
+        requestedLocale: "en",
+      })
+    ).toBe("ar");
   });
 
   it("detects legacy generic English handover drafts", () => {

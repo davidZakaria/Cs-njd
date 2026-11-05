@@ -2,6 +2,9 @@ import type { OfficialDocumentType } from "@prisma/client";
 
 import { handoverUsesOfficialMasters } from "@/lib/official-documents/handover/constants";
 
+/** All customer-facing generated official documents use Arabic templates only. */
+export const OFFICIAL_GENERATED_DOCUMENT_LOCALE = "ar" as const;
+
 /** Green Avenue / Jura handover records always use the Arabic legal masters. */
 export function usesOfficialHandoverLegalMasters(input: {
   documentType: OfficialDocumentType;
@@ -17,11 +20,11 @@ export function resolveOfficialDocumentTemplateLocale(input: {
   documentType: OfficialDocumentType;
   projectName: string;
   requestedLocale: "en" | "ar";
-}): "en" | "ar" {
-  if (usesOfficialHandoverLegalMasters(input)) {
-    return "ar";
-  }
-  return input.requestedLocale;
+}): typeof OFFICIAL_GENERATED_DOCUMENT_LOCALE {
+  void input.documentType;
+  void input.projectName;
+  void input.requestedLocale;
+  return OFFICIAL_GENERATED_DOCUMENT_LOCALE;
 }
 
 /** Detect legacy generic English placeholder drafts created before official masters. */
