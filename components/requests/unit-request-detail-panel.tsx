@@ -19,6 +19,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { UnitRequestStatus, UnitRequestType } from "@prisma/client";
+import { ArchiveCheckProgressPanel } from "@/components/archive-check/archive-check-progress-panel";
+import type { ArchiveCheckItemStatus, ArchiveCheckGapTaskStatus } from "@prisma/client";
 
 export function UnitRequestDetailPanel({
   request,
@@ -28,6 +30,9 @@ export function UnitRequestDetailPanel({
   canCancel,
   canComment,
   canUpload,
+  archiveProgressUnits,
+  bulkProjectName,
+  isBulkArchiveCheckParentRequest,
 }: {
   request: {
     id: string;
@@ -51,6 +56,18 @@ export function UnitRequestDetailPanel({
   canCancel: boolean;
   canComment: boolean;
   canUpload: boolean;
+  archiveProgressUnits?: Array<{
+    unitCode: string;
+    projectName: string;
+    items: Array<{ itemKey: string; status: ArchiveCheckItemStatus }>;
+    gapTasks: Array<{
+      itemKey: string;
+      status: ArchiveCheckGapTaskStatus;
+      ownerRole: import("@prisma/client").Role;
+    }>;
+  }>;
+  bulkProjectName?: string | null;
+  isBulkArchiveCheckParentRequest?: boolean;
 }) {
   const t = useTranslations("requests.detail");
   const tEnums = useTranslations("enums");
@@ -74,7 +91,9 @@ export function UnitRequestDetailPanel({
             {tEnums(`unitRequestType.${request.type}`)}
           </h1>
           <p className="text-muted-foreground">
-            {request.projectName} · {request.unitCode}
+            {isBulkArchiveCheckParentRequest
+              ? bulkProjectName ?? request.projectName
+              : `${request.projectName} · ${request.unitCode}`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -112,6 +131,13 @@ export function UnitRequestDetailPanel({
         </Card>
       ) : null}
 
+      {request.type === "ARCHIVE_CHECK" && archiveProgressUnits?.length ? (
+        <ArchiveCheckProgressPanel
+          bulkProjectName={bulkProjectName}
+          units={archiveProgressUnits}
+        />
+      ) : null}
+
       <div className="flex flex-wrap gap-2">
         {canSubmit ? (
           <Button
@@ -121,7 +147,7 @@ export function UnitRequestDetailPanel({
             {t("submit")}
           </Button>
         ) : null}
-        {canApprove ? (
+        {canApprove && request.type !== "ARCHIVE_CHECK" ? (
           <Button
             disabled={pending}
             onClick={() =>

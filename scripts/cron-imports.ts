@@ -9,10 +9,16 @@ import {
   getRequestEscalationCronSchedule,
   runRequestEscalationJob,
 } from "../lib/requests/escalation";
+import {
+  getArchiveGapEscalationCronSchedule,
+  runArchiveCheckGapEscalationJob,
+} from "../lib/archive-check/escalation";
 
 void getBackupCronSchedule;
 void getUnitCycleCronSchedule;
 void getRequestEscalationCronSchedule;
 void runRequestEscalationJob;
+void getArchiveGapEscalationCronSchedule;
+void runArchiveCheckGapEscalationJob;
 
 console.log("[cron-imports] ok");

@@ -25,6 +25,7 @@ export function resolveApproverKindToRole(
     return staff.hasFinanceStaff ? "FINANCE" : "MANAGEMENT";
   }
   if (kind === "CS_AGENT") return "CS_AGENT";
+  if (kind === "OPERATIONS") return "OPERATIONS";
   return "MANAGEMENT";
 }
 
@@ -38,6 +39,9 @@ export function rolesThatCanActOnApproverKind(
   }
   if (primary === "CS_AGENT") {
     return ["CS_AGENT", "SUPER_ADMIN", "MANAGEMENT"];
+  }
+  if (primary === "OPERATIONS") {
+    return ["OPERATIONS", "SUPER_ADMIN", "MANAGEMENT"];
   }
   if (primary === "LEGAL") {
     return staff.hasLegalStaff
@@ -58,9 +62,9 @@ export function managementMayActOnDedicatedStep(
 ): boolean {
   if (kind === "LEGAL") return !staff.hasLegalStaff;
   if (kind === "FINANCE") return !staff.hasFinanceStaff;
-  return kind === "MANAGEMENT" || kind === "CS_AGENT";
+  return kind === "MANAGEMENT" || kind === "CS_AGENT" || kind === "OPERATIONS";
 }
 
 export function isOperationsAnApprover(): boolean {
-  return false;
+  return true;
 }

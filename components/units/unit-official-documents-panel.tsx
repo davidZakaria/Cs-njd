@@ -58,6 +58,35 @@ export function UnitOfficialDocumentsPanel({
   );
   const [unitRequestId, setUnitRequestId] = useState<string>("");
 
+  const documentTypeItems = useMemo(() => {
+    const items: Record<string, string> = {};
+    for (const type of OFFICIAL_DOCUMENT_TYPES) {
+      items[type] = tEnums(`officialDocumentType.${type}`);
+    }
+    return items;
+  }, [tEnums]);
+
+  const documentTypeLabel =
+    documentTypeItems[documentType] ?? tEnums(`officialDocumentType.${documentType}`);
+
+  const linkedRequestItems = useMemo(() => {
+    const required = requiredRequestTypeForDocument(documentType);
+    const options = approvedRequests.filter((r) =>
+      required ? r.type === required : true
+    );
+    const items: Record<string, string> = {
+      __none__: t("linkedRequestNone"),
+    };
+    for (const req of options) {
+      items[req.id] = `${tEnums(`unitRequestType.${req.type}`)} — ${req.id.slice(0, 8)}`;
+    }
+    return items;
+  }, [approvedRequests, documentType, t, tEnums]);
+
+  const linkedRequestValue = unitRequestId || "__none__";
+  const linkedRequestLabel =
+    linkedRequestItems[linkedRequestValue] ?? t("linkedRequestNone");
+
   const requestOptions = useMemo(() => {
     const required = requiredRequestTypeForDocument(documentType);
     return approvedRequests.filter((r) =>
@@ -95,13 +124,14 @@ export function UnitOfficialDocumentsPanel({
             <Label>{t("documentType")}</Label>
             <Select
               value={documentType}
+              items={documentTypeItems}
               onValueChange={(v) => {
                 setDocumentType(v as OfficialDocumentType);
                 setUnitRequestId("");
               }}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>{documentTypeLabel}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {OFFICIAL_DOCUMENT_TYPES.map((type) => (
@@ -115,13 +145,16 @@ export function UnitOfficialDocumentsPanel({
           <div className="space-y-1.5 sm:col-span-2">
             <Label>{t("linkedRequest")}</Label>
             <Select
-              value={unitRequestId || "__none__"}
+              value={linkedRequestValue}
+              items={linkedRequestItems}
               onValueChange={(v) =>
                 setUnitRequestId(v && v !== "__none__" ? v : "")
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder={t("linkedRequestOptional")} />
+                <SelectValue placeholder={t("linkedRequestOptional")}>
+                  {linkedRequestLabel}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {!requiredRequestTypeForDocument(documentType) ? (

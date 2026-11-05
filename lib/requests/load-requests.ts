@@ -18,6 +18,7 @@ export async function loadAllUnitRequestRows(
           client: { select: { name: true } },
         },
       },
+      bulkProject: { select: { name: true } },
     },
   });
 
@@ -31,11 +32,12 @@ export async function loadAllUnitRequestRows(
     escalatedToManagement: row.escalatedToManagement,
     requestedById: row.requestedById,
     requestedByName: row.requestedBy.name,
-    unitId: row.unit.id,
-    unitCode: row.unit.unitCode,
-    projectName: row.unit.project.name,
-    clientName: row.unit.client?.name ?? "—",
-    unitAgentId: row.unit.agentId,
+    unitId: row.unit?.id ?? "",
+    unitCode: row.unit?.unitCode ?? "—",
+    projectName:
+      row.unit?.project.name ?? row.bulkProject?.name ?? "—",
+    clientName: row.unit?.client?.name ?? "—",
+    unitAgentId: row.unit?.agentId ?? null,
     unitCycleStageKey: row.unitCycleStageKey,
   }));
 }

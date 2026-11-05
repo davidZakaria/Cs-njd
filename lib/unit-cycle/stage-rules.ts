@@ -7,7 +7,13 @@ import {
   type UnitOperationsSnapshot,
 } from "@/lib/operations/operations-progress";
 import type { UnitRequestStageBlocker } from "@/lib/unit-cycle/stage-request-blocking";
-import { stageIsBlockedByOpenRequests } from "@/lib/unit-cycle/stage-request-blocking";
+import {
+  stageIsBlockedByOpenRequests,
+} from "@/lib/unit-cycle/stage-request-blocking";
+import {
+  stageIsBlockedByArchiveGaps,
+  type ArchiveGapStageBlocker,
+} from "@/lib/archive-check/stage-blocking";
 
 export function canCompleteStage(
   stageKey: UnitCycleStageKey,
@@ -16,6 +22,7 @@ export function canCompleteStage(
   options?: {
     unitCycleEnabled?: boolean;
     openRequests?: UnitRequestStageBlocker[];
+    openGapTasks?: ArchiveGapStageBlocker[];
   }
 ): boolean {
   if (status === "DONE" || status === "NOT_STARTED") {
@@ -24,16 +31,27 @@ export function canCompleteStage(
   if (!isStageChecklistComplete(stageKey, snapshot)) {
     return false;
   }
-  if (
-    options?.unitCycleEnabled &&
-    options.openRequests &&
-    stageIsBlockedByOpenRequests({
-      unitCycleEnabled: true,
-      stageKey,
-      openRequests: options.openRequests,
-    })
-  ) {
-    return false;
+  if (options?.unitCycleEnabled && options.openRequests) {
+    if (
+      stageIsBlockedByOpenRequests({
+        unitCycleEnabled: true,
+        stageKey,
+        openRequests: options.openRequests,
+      })
+    ) {
+      return false;
+    }
+  }
+  if (options?.unitCycleEnabled && options.openGapTasks) {
+    if (
+      stageIsBlockedByArchiveGaps({
+        unitCycleEnabled: true,
+        stageKey,
+        openGapTasks: options.openGapTasks,
+      })
+    ) {
+      return false;
+    }
   }
   return true;
 }

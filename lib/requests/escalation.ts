@@ -35,7 +35,11 @@ export async function getOverduePendingRequests(
     include: listInclude,
   });
 
-  return rows.map((row) => ({
+  return rows
+    .filter((row): row is typeof row & { unit: NonNullable<(typeof row)["unit"]> } =>
+      row.unit != null
+    )
+    .map((row) => ({
     id: row.id,
     type: row.type,
     status: row.status,

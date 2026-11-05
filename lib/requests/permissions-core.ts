@@ -112,6 +112,7 @@ export function canUploadRequestAttachment(input: {
   userId: string;
   requestedById: string;
   status: UnitRequestStatus;
+  type?: UnitRequestType;
 }): boolean {
   if (
     input.status === "APPROVED" ||
@@ -119,6 +120,13 @@ export function canUploadRequestAttachment(input: {
     input.status === "CANCELLED"
   ) {
     return false;
+  }
+  if (
+    input.type === "ARCHIVE_CHECK" &&
+    input.role === "OPERATIONS" &&
+    input.status === "PENDING"
+  ) {
+    return true;
   }
   return canEditDraftRequest({
     role: input.role,
@@ -164,6 +172,7 @@ export function listApproverKindsForRole(
     "FINANCE",
     "MANAGEMENT",
     "CS_AGENT",
+    "OPERATIONS",
   ];
   return kinds.filter((kind) =>
     rolesThatCanActOnApproverKind(kind, staff).includes(role)

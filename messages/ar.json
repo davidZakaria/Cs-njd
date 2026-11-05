@@ -1755,7 +1755,8 @@
       "SITE_VISIT": "زيارة موقع",
       "SNAG_OR_DEFECT": "عيب أو ملاحظة",
       "HANDOVER_APPOINTMENT": "موعد تسليم",
-      "DOCUMENT_CORRECTION": "تصحيح مستند"
+      "DOCUMENT_CORRECTION": "تصحيح مستند",
+      "ARCHIVE_CHECK": "فحص الأرشيف"
     },
     "officialDocumentType": {
       "GRACE_PERIOD_ANNEX": "ملحق المد",
@@ -1775,7 +1776,8 @@
       "LEGAL": "قانوني",
       "FINANCE": "حسابات",
       "MANAGEMENT": "إدارة",
-      "CS_AGENT": "موظف خدمة العملاء"
+      "CS_AGENT": "موظف خدمة العملاء",
+      "OPERATIONS": "العمليات"
     }
   },
   "requests": {
@@ -1823,7 +1825,14 @@
       "swapTargetUnitId": "معرّف الوحدة الفارغة المستهدفة",
       "submit": "إنشاء مسودة",
       "created": "تم إنشاء المسودة",
-      "failed": "تعذّر إنشاء الطلب"
+      "failed": "تعذّر إنشاء الطلب",
+      "archiveScope": "نطاق فحص الأرشيف",
+      "archiveScopeSingle": "وحدة واحدة",
+      "archiveScopeBulk": "مشروع كامل (فحص لكل وحدة)",
+      "project": "المشروع",
+      "projectPlaceholder": "اختر المشروع",
+      "projectRequired": "اختر مشروعاً",
+      "createdBulkWithSkipped": "تم إنشاء مسودة لـ {included} وحدة (تم تخطي {skipped} — لديها فحص مفتوح)"
     },
     "detail": {
       "description": "الوصف",
@@ -1844,6 +1853,7 @@
       "escalated": "مُصعَّد للإدارة",
       "unitSwapHint": "بعد موافقة الإدارة، أكمل التبديل من ملف الوحدة (للإدارة فقط).",
       "openUnitSwap": "فتح ملف الوحدة",
+      "archiveBulkProject": "فحص أرشيف جماعي — {project}",
       "auditActions": {
         "created": "تم الإنشاء",
         "submitted": "تم الإرسال",
@@ -1853,7 +1863,12 @@
         "cancelled": "ملغى",
         "comment_added": "تعليق مضاف",
         "attachment_added": "مرفق مرفوع",
-        "escalated_overdue": "تصعيد (متأخر)"
+        "escalated_overdue": "تصعيد (متأخر)",
+        "archive_check_submitted": "تم إرسال فحص الأرشيف من العمليات",
+        "archive_check_bulk_created": "تم إنشاء فحص أرشيف جماعي",
+        "archive_gap_completed": "تم حل فجوة الأرشيف",
+        "archive_gap_escalated": "تم تصعيد فجوة الأرشيف",
+        "archive_scan_uploaded": "تم رفع مسح الأرشيف"
       }
     },
     "unitPanel": {
@@ -1862,6 +1877,53 @@
       "create": "طلب جديد",
       "viewAll": "كل الطلبات",
       "stageTitle": "طلبات مفتوحة لهذه المرحلة"
+    }
+  },
+  "archiveCheck": {
+    "operations": {
+      "queueTitle": "فحوصات أرشيف بانتظار العمليات",
+      "queueEmpty": "لا توجد فحوصات أرشيف في قائمتك.",
+      "requestedBy": "طلب من {name}",
+      "itemsPending": "{pending} من {total} عناصر بانتظار التقييم",
+      "workspaceHint": "حدّد كل عنصر أرشيف كموجود أو ناقص أو غير موقّع. ارفع المسوحات عند توفرها (رفع فقط — لا يمكن استبدال الملفات أو حذفها).",
+      "checklistTitle": "قائمة فحص الأرشيف",
+      "itemColumn": "العنصر",
+      "statusColumn": "الحالة",
+      "scanColumn": "المسوحات",
+      "chooseStatus": "اختر الحالة",
+      "uploadScan": "رفع مسح",
+      "viewScan": "عرض",
+      "scanUploaded": "تم رفع المسح",
+      "submitCheck": "إرسال فحص الأرشيف",
+      "pendingItems": "{count} عناصر ما زالت بلا حالة",
+      "submitted": "تم إرسال فحص الأرشيف",
+      "failed": "فشل الإجراء",
+      "backToQueue": "العودة للعمليات"
+    },
+    "itemStatus": {
+      "FOUND": "موجود",
+      "MISSING": "ناقص",
+      "UNSIGNED": "غير موقّع"
+    },
+    "progress": {
+      "title": "تقدّم فحص الأرشيف",
+      "overallCount": "{done} من {total} عناصر مكتملة",
+      "unitColumn": "الوحدة",
+      "itemColumn": "العنصر",
+      "statusColumn": "الحالة",
+      "done": "مكتمل",
+      "missing": "ناقص",
+      "notChecked": "لم يُفحص بعد",
+      "beingFixed": "قيد المعالجة لدى {department}",
+      "bulkProjectLabel": "المشروع: {project}"
+    },
+    "gapTasks": {
+      "title": "متابعات فجوات الأرشيف",
+      "empty": "لا توجد فجوات أرشيف مفتوحة مسندة إليك.",
+      "openRequest": "فتح الطلب",
+      "markDone": "تعليم الفجوة كمحلولة",
+      "completed": "تم تعليم الفجوة كمحلولة",
+      "failed": "تعذّر تحديث الفجوة"
     }
   },
   "unitCycle": {
@@ -1956,7 +2018,7 @@
     "selectType": "اختر النوع",
     "linkedRequest": "طلب مرتبط",
     "linkedRequestOptional": "ربط طلب (اختياري)",
-    "linkedRequestNone": "بدون",
+    "linkedRequestNone": "بدون طلب",
     "linkedRequestHint": "ملحق المد وتعديل العقد واستبدال الوحدة يتطلبان طلباً معتمداً من النوع المطابق.",
     "generateDraft": "إنشاء مسودة PDF",
     "generating": "جاري الإنشاء…",

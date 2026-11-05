@@ -5,7 +5,7 @@ import { canAccessRequestsDashboard } from "@/lib/auth/role-permissions";
 import { loadAllUnitRequestRows } from "@/lib/requests/load-requests";
 import { filterRequestRowsForUser } from "@/lib/requests/queries.server";
 import { parseRequestsPageFilters } from "@/lib/requests/requests-filter-url";
-import { basePrisma } from "@/lib/prisma";
+import { basePrisma, prisma } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
 import { RequestsTable } from "@/components/requests/requests-table";
 import { CreateUnitRequestForm } from "@/components/requests/create-unit-request-form";
@@ -33,6 +33,10 @@ export default async function RequestsPage({
       : null;
 
   const allRows = await loadAllUnitRequestRows(basePrisma);
+  const projectOptions = await prisma.project.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
   const rows = await filterRequestRowsForUser({
     rows: allRows,
     role: session.user.role,
@@ -66,7 +70,9 @@ export default async function RequestsPage({
         <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
         <p className="text-muted-foreground">{t("subtitle")}</p>
       </div>
-      {canCreate ? <CreateUnitRequestForm /> : null}
+      {canCreate ? (
+        <CreateUnitRequestForm projects={projectOptions} />
+      ) : null}
       <RequestsTable rows={tableRows} projects={projects} initialFilters={filters} />
     </div>
   );

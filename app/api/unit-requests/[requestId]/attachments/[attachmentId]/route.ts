@@ -42,7 +42,7 @@ export async function GET(
       role: session.user.role,
       userId: session.user.id,
       request: attachment.request,
-      unitAgentId: attachment.request.unit.agentId,
+      unitAgentId: attachment.request.unit?.agentId ?? null,
       csScope,
     })
   ) {
