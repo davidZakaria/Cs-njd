@@ -55,6 +55,7 @@ const iconMap = {
   executive: BarChart3,
   operations: ListChecks,
   operationsRequests: FileText,
+  overdueTasks: ClipboardList,
   requests: FileText,
   cases: ClipboardList,
   units: Building2,

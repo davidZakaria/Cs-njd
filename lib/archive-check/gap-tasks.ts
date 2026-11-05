@@ -48,14 +48,13 @@ export async function createGapTasksForArchiveCheck(input: {
   for (const row of gapItems) {
     const itemKey = row.itemKey as ArchiveCheckItemKey;
     const ownerRole = resolveGapOwnerRoleForItem(itemKey, input.staff);
-    const ownerUserId = await pickActiveOwnerUserId(input.prisma, ownerRole);
 
     await input.prisma.archiveCheckGapTask.create({
       data: {
         unitRequestId: input.unitRequestId,
         itemKey: row.itemKey,
         ownerRole,
-        ownerUserId,
+        ownerUserId: null,
         deadlineAt,
         unitCycleStageKey: unitCycleStageForGapItem(itemKey),
       },

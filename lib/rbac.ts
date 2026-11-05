@@ -111,8 +111,8 @@ const roleRoutes: Record<Role, string[]> = {
   ],
   ENGINEER: ["/engineering"],
   OPERATIONS: ["/operations", "/operations/requests", "/print"],
-  LEGAL: ["/legal", ...departmentStaffRoutes],
-  FINANCE: ["/finance", ...departmentStaffRoutes],
+  LEGAL: ["/legal", "/legal/overdue-tasks", ...departmentStaffRoutes],
+  FINANCE: ["/finance", "/finance/overdue-tasks", ...departmentStaffRoutes],
 };
 
 export function getHomeRoute(role: Role): string {
@@ -162,7 +162,8 @@ export type NavItemKey =
   | "systemSettings"
   | "notificationsLog"
   | "activityNotifications"
-  | "operationsRequests";
+  | "operationsRequests"
+  | "overdueTasks";
 
 export type NavGroupKey =
   | "usersSecurity"
@@ -202,6 +203,11 @@ export function getCoreNavItems(role: Role) {
 
   const items: Array<{ href: string; key: NavItemKey; roles: Role[] }> = [
     { href: "/executive", key: "executive", roles: ["SUPER_ADMIN", "MANAGEMENT"] },
+    {
+      href: "/executive/overdue-tasks",
+      key: "overdueTasks",
+      roles: ["SUPER_ADMIN", "MANAGEMENT"],
+    },
     {
       href: "/operations",
       key: "operations",
@@ -313,6 +319,11 @@ export function getNavItems(role: Role) {
     roles: Role[];
   }> = [
     { href: "/executive", key: "executive", roles: ["SUPER_ADMIN", "MANAGEMENT"] },
+    {
+      href: "/executive/overdue-tasks",
+      key: "overdueTasks",
+      roles: ["SUPER_ADMIN", "MANAGEMENT"],
+    },
     {
       href: "/operations",
       key: "operations",

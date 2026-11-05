@@ -1,6 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
+import type { UnitRequest } from "@prisma/client";
 
 vi.mock("server-only", () => ({}));
+
+const openRequestVisibility = {
+  escalatedToManagement: false,
+  assignedApproverUserId: null,
+} satisfies Pick<
+  UnitRequest,
+  "escalatedToManagement" | "assignedApproverUserId"
+>;
 
 import { canAccessRequestsDashboard } from "@/lib/auth/role-permissions";
 import {
@@ -91,6 +100,7 @@ describe("request permissions", () => {
           status: "PENDING",
           currentStepIndex: 0,
           currentApproverKind: "CS_AGENT",
+          ...openRequestVisibility,
         },
         unitAgentId: null,
       })
@@ -106,6 +116,7 @@ describe("request permissions", () => {
           status: "PENDING",
           currentStepIndex: 0,
           currentApproverKind: "FINANCE",
+          ...openRequestVisibility,
         },
         unitAgentId: null,
       })
@@ -208,6 +219,7 @@ describe("request permissions", () => {
           status: "APPROVED",
           currentStepIndex: 0,
           currentApproverKind: null,
+          ...openRequestVisibility,
         },
         unitAgentId: "agent-1",
       })
@@ -225,6 +237,7 @@ describe("request permissions", () => {
           status: "PENDING",
           currentStepIndex: 0,
           currentApproverKind: "FINANCE",
+          ...openRequestVisibility,
         },
         unitAgentId: "agent-1",
       })
@@ -242,6 +255,7 @@ describe("request permissions", () => {
           status: "APPROVED",
           currentStepIndex: 0,
           currentApproverKind: null,
+          ...openRequestVisibility,
         },
         unitAgentId: "agent-1",
       })

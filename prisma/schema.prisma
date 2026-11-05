@@ -256,6 +256,8 @@ model User {
   createdTickets        Ticket[]        @relation("TicketCreatedBy")
   auditLogs     AuditLog[]
   notifications Notification[]
+  assignedUnitCycleStages UnitCycleStage[] @relation("UnitCycleStageAssignee")
+  assignedApproverRequests UnitRequest[] @relation("UnitRequestAssignedApprover")
   loginHistory  LoginHistory[]
   twoFactorResetRequests TwoFactorResetRequest[] @relation("TwoFactorResetRequestUser")
   twoFactorResetReviews  TwoFactorResetRequest[] @relation("TwoFactorResetRequestReviewer")
@@ -562,6 +564,12 @@ enum NotificationKind {
   ACTIVITY
 }
 
+enum NotificationInboxTab {
+  CALL_LOG
+  REQUESTS_AND_FILES
+  OVERDUE_TASKS
+}
+
 enum UnitCycleStageKey {
   CONTRACT
   FINANCE
@@ -582,15 +590,19 @@ model Notification {
   title     String
   message   String
   kind      NotificationKind @default(GENERAL)
+  inboxTab  NotificationInboxTab?
+  dedupeKey String?
   isRead    Boolean          @default(false)
   link      String?
   createdAt DateTime         @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, dedupeKey])
   @@index([userId])
   @@index([userId, isRead])
   @@index([userId, kind, isRead])
+  @@index([userId, inboxTab, isRead])
   @@index([createdAt])
 }
 
@@ -638,14 +650,17 @@ model UnitCycleStage {
   blockedReason     String?
   lastEscalatedAt   DateTime?
   sortOrder         Int
+  assignedUserId    String?
 
-  unitCycle UnitCycle @relation(fields: [unitCycleId], references: [id], onDelete: Cascade)
+  unitCycle  UnitCycle @relation(fields: [unitCycleId], references: [id], onDelete: Cascade)
+  assignedTo User?     @relation("UnitCycleStageAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
 
   @@unique([unitCycleId, stageKey])
   @@index([unitCycleId])
   @@index([status])
   @@index([deadlineAt])
   @@index([ownerRole, status])
+  @@index([assignedUserId, status])
 }
 
 model UnitCycleAuditEvent {
@@ -738,6 +753,7 @@ model UnitRequest {
   archiveFilePriority     ArchiveFileRequestPriority?
   escalatedToManagement   Boolean                  @default(false)
   lastEscalatedAt         DateTime?
+  assignedApproverUserId  String?
   submittedAt             DateTime?
   resolvedAt              DateTime?
   resolvedById            String?
@@ -750,6 +766,7 @@ model UnitRequest {
   bulkProject           Project?                 @relation("BulkArchiveCheckProject", fields: [bulkProjectId], references: [id], onDelete: SetNull)
   client                Client?                  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   requestedBy           User                     @relation("UnitRequestRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
+  assignedApprover      User?                    @relation("UnitRequestAssignedApprover", fields: [assignedApproverUserId], references: [id], onDelete: SetNull)
   resolvedBy            User?                    @relation("UnitRequestResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
   engineeringApproval   UnitEngineeringApproval? @relation(fields: [engineeringApprovalId], references: [id], onDelete: SetNull)
   comments              RequestComment[]
@@ -773,6 +790,7 @@ model UnitRequest {
   @@index([dueDate])
   @@index([unitCycleStageKey])
   @@index([status, dueDate])
+  @@index([assignedApproverUserId, status])
 }
 
 model OfficialDocumentTemplate {

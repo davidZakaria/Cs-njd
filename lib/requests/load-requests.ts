@@ -30,6 +30,7 @@ export async function loadAllUnitRequestRows(
     submittedAt: row.submittedAt,
     currentApproverKind: row.currentApproverKind,
     escalatedToManagement: row.escalatedToManagement,
+    assignedApproverUserId: row.assignedApproverUserId,
     requestedById: row.requestedById,
     requestedByName: row.requestedBy.name,
     unitId: row.unit?.id ?? "",

@@ -23,6 +23,7 @@ import {
   rolesThatCanActOnApproverKind,
   type OrgStaffAvailability,
 } from "@/lib/requests/approver-roles";
+import { requestAwaitingVisibleToUser, type WorkScopeMode } from "@/lib/work/personal-scope";
 
 /** Pure permission helpers safe for client bundles (no Prisma / cs-agent-scope). */
 
@@ -194,8 +195,11 @@ export function requestMatchesRoleInbox(input: {
   status: UnitRequestStatus;
   currentApproverKind: UnitRequestApproverKind | null;
   requestedById: string;
+  assignedApproverUserId?: string | null;
+  escalatedToManagement?: boolean;
   view: "awaiting" | "submitted";
   staff?: OrgStaffAvailability;
+  mode?: "personal" | "oversight";
 }): boolean {
   if (input.view === "submitted") {
     return input.requestedById === input.userId;
@@ -203,7 +207,7 @@ export function requestMatchesRoleInbox(input: {
 
   if (input.status !== "PENDING" || !input.currentApproverKind) return false;
 
-  return userCanApproveAtCurrentStep({
+  const canApprove = userCanApproveAtCurrentStep({
     role: input.role,
     request: {
       type: input.type,
@@ -212,6 +216,19 @@ export function requestMatchesRoleInbox(input: {
       currentApproverKind: input.currentApproverKind,
     },
     staff: input.staff,
+  });
+
+  if (!canApprove) return false;
+
+  return requestAwaitingVisibleToUser({
+    mode: input.mode ?? "personal",
+    userRole: input.role,
+    userId: input.userId,
+    requestedById: input.requestedById,
+    assignedApproverUserId: input.assignedApproverUserId ?? null,
+    escalatedToManagement: input.escalatedToManagement ?? false,
+    status: input.status,
+    canApprove: true,
   });
 }
 
@@ -246,12 +263,14 @@ export function filterRequestRowsByView(input: {
   role: Role;
   userId: string;
   filters: RequestsPageFilters;
+  workScopeMode?: WorkScopeMode;
   now?: Date;
   staff?: OrgStaffAvailability;
 }): UnitRequestListRow[] {
   const now = input.now ?? new Date();
   let list = input.rows;
   const staff = input.staff;
+  const mode = input.workScopeMode ?? "personal";
 
   if (isCommunityManagementRole(input.role)) {
     list = list.filter((row) => row.type === "HANDOVER_APPOINTMENT");
@@ -266,8 +285,11 @@ export function filterRequestRowsByView(input: {
         status: row.status,
         currentApproverKind: row.currentApproverKind,
         requestedById: row.requestedById,
+        assignedApproverUserId: row.assignedApproverUserId,
+        escalatedToManagement: row.escalatedToManagement,
         view: "awaiting",
         staff,
+        mode,
       })
     );
   } else if (input.filters.view === "submitted") {
@@ -283,8 +305,11 @@ export function filterRequestRowsByView(input: {
           status: row.status,
           currentApproverKind: row.currentApproverKind,
           requestedById: row.requestedById,
+          assignedApproverUserId: row.assignedApproverUserId,
+          escalatedToManagement: row.escalatedToManagement,
           view: "awaiting",
           staff,
+          mode,
         }) ||
         (isCommunityManagementRole(input.role) && row.type === "HANDOVER_APPOINTMENT")
     );

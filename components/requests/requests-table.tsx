@@ -32,6 +32,8 @@ import {
   projectNameToSlug,
 } from "@/lib/requests/requests-filter-url";
 import { isRequestOverdue } from "@/lib/requests/overdue";
+import { WorkScopeToggle } from "@/components/work/work-scope-toggle";
+import type { WorkScopeMode } from "@/lib/work/personal-scope";
 import { UnitRequestStatus, UnitRequestType } from "@prisma/client";
 import { cn } from "@/lib/utils";
 
@@ -57,10 +59,14 @@ export function RequestsTable({
   rows,
   projects,
   initialFilters,
+  workScope = "personal",
+  showWorkScopeToggle = false,
 }: {
   rows: RequestRow[];
   projects: string[];
   initialFilters: RequestsPageFilters;
+  workScope?: WorkScopeMode;
+  showWorkScopeToggle?: boolean;
 }) {
   const t = useTranslations("requests");
   const tEnums = useTranslations("enums");
@@ -108,6 +114,11 @@ export function RequestsTable({
 
   return (
     <div className="space-y-4">
+      {showWorkScopeToggle ? (
+        <div className="flex flex-wrap items-center justify-end">
+          <WorkScopeToggle mode={workScope} />
+        </div>
+      ) : null}
       <Tabs
         value={filters.view}
         onValueChange={(value) =>
@@ -218,6 +229,7 @@ export function RequestsTable({
                 type: "all",
                 project: "all",
                 overdue: "all",
+                tasks: filters.tasks,
               })
             }
           >

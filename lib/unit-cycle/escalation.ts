@@ -1,57 +1,143 @@
-import { notifyRoles } from "@/lib/services/notifications";
-import { getOverdueStagesForManagement, type UnitCycleDb } from "@/lib/unit-cycle/queries";
+import type { Role, UnitCycleStageKey } from "@prisma/client";
+
+import { projectNameToSlug } from "@/lib/cases/cases-filter-url";
+import { buildOverdueTasksPageUrl } from "@/lib/unit-cycle/overdue-filter-url";
+import { departmentOverdueHomePath } from "@/lib/unit-cycle/department-overdue";
+import {
+  groupOverdueStagesForDigest,
+  groupOverdueStagesForOwnerDigest,
+  groupOverdueStagesForDepartmentPoolDigest,
+  formatOverdueDigestMessage,
+} from "@/lib/unit-cycle/overdue-digest";
 import { recordUnitCycleAuditEvent } from "@/lib/unit-cycle/audit";
+import {
+  getOverdueStagesForManagement,
+  type OverdueStageRow,
+  type UnitCycleDb,
+} from "@/lib/unit-cycle/queries";
+import { unitCycleStageLabelEnAr } from "@/lib/unit-cycle/stage-labels";
+
+function digestDayKey(now: Date): string {
+  return now.toISOString().slice(0, 10);
+}
+
+export { groupOverdueStagesForDigest, groupOverdueStagesForOwnerDigest } from "@/lib/unit-cycle/overdue-digest";
+
+function overdueInboxLinkForRole(role: Role): string {
+  const basePath = departmentOverdueHomePath(role);
+  if (basePath) {
+    return buildOverdueTasksPageUrl({ department: role }, { basePath });
+  }
+  if (role === "OPERATIONS") {
+    return "/operations";
+  }
+  return buildOverdueTasksPageUrl({});
+}
 
 export async function runUnitCycleEscalationJob(
   prisma: UnitCycleDb
 ): Promise<{ notified: number; scanned: number }> {
-  const ESCALATION_COOLDOWN_MS = 20 * 60 * 60 * 1000;
   const overdue = await getOverdueStagesForManagement(prisma, 500);
   const now = new Date();
+  const dayKey = digestDayKey(now);
+  const groups = groupOverdueStagesForDigest(overdue);
   let notified = 0;
+  const { notifyRolesInboxTab, notifyUserInboxTab } = await import(
+    "@/lib/notifications/inbox.server"
+  );
 
-  for (const row of overdue) {
-    const stage = await prisma.unitCycleStage.findFirst({
-      where: {
-        unitCycleId: row.unitCycleId,
-        stageKey: row.stageKey as never,
-      },
-      select: { id: true, lastEscalatedAt: true },
+  for (const group of groups) {
+    const stageLabels = unitCycleStageLabelEnAr(group.stageKey);
+    const projectSlug = projectNameToSlug(group.projectName);
+    const link = buildOverdueTasksPageUrl({
+      project: projectSlug,
+      stage: group.stageKey,
     });
-    if (!stage) continue;
+    const dedupeKey = `unit-cycle-overdue-mgmt:${group.projectId}:${group.stageKey}:${dayKey}`;
 
-    if (
-      stage.lastEscalatedAt &&
-      now.getTime() - stage.lastEscalatedAt.getTime() < ESCALATION_COOLDOWN_MS
-    ) {
-      continue;
+    const created = await notifyRolesInboxTab({
+      roles: ["MANAGEMENT", "SUPER_ADMIN"],
+      inboxTab: "OVERDUE_TASKS",
+      titleEn: "Overdue unit cycle stages",
+      titleAr: "مراحل دورة وحدة متأخرة",
+      messageEn: `${group.projectName}: ${group.unitCount} unit(s) overdue in ${stageLabels.en}`,
+      messageAr: `${group.projectName}: ${group.unitCount} وحدة متأخرة في ${stageLabels.ar}`,
+      link,
+      dedupeKey,
+    });
+
+    notified += created;
+
+    for (const row of group.rows) {
+      await touchStageEscalation(prisma, row, now, dayKey);
     }
+  }
 
-    await notifyRoles(
-      ["MANAGEMENT", "SUPER_ADMIN"],
-      "Overdue unit cycle stage",
-      "مرحلة دورة وحدة متأخرة",
-      `${row.projectName} · ${row.unitCode} · ${row.stageKey} (${row.daysOverdue}d overdue)`,
-      `${row.projectName} · ${row.unitCode} · ${row.stageKey} (متأخر ${row.daysOverdue} يوم)`,
-      `/units/${row.unitId}`
-    );
-
-    await prisma.unitCycleStage.update({
-      where: { id: stage.id },
-      data: { lastEscalatedAt: now },
+  for (const ownerGroup of groupOverdueStagesForOwnerDigest(overdue)) {
+    const digest = formatOverdueDigestMessage(ownerGroup.rows);
+    const owner = await prisma.user.findFirst({
+      where: { id: ownerGroup.userId, deletedAt: null },
+      select: { role: true },
     });
-
-    await recordUnitCycleAuditEvent({
-      unitCycleId: row.unitCycleId,
-      stageKey: row.stageKey as never,
-      action: "escalated_overdue",
-      details: { daysOverdue: row.daysOverdue },
+    const link = overdueInboxLinkForRole(owner?.role ?? "MANAGEMENT");
+    const sent = await notifyUserInboxTab({
+      userId: ownerGroup.userId,
+      inboxTab: "OVERDUE_TASKS",
+      titleEn: "Your overdue unit cycle tasks",
+      titleAr: "مهام دورة الوحدة المتأخرة",
+      messageEn: digest.en,
+      messageAr: digest.ar,
+      link,
+      dedupeKey: `unit-cycle-overdue-user:${ownerGroup.userId}:${dayKey}`,
     });
+    if (sent) notified += 1;
+  }
 
-    notified += 1;
+  for (const poolGroup of groupOverdueStagesForDepartmentPoolDigest(overdue)) {
+    const digest = formatOverdueDigestMessage(poolGroup.rows);
+    const link = overdueInboxLinkForRole(poolGroup.ownerRole);
+    const created = await notifyRolesInboxTab({
+      roles: [poolGroup.ownerRole],
+      inboxTab: "OVERDUE_TASKS",
+      titleEn: "Unclaimed overdue tasks in your department",
+      titleAr: "مهام متأخرة غير مُسنَدة في إدارتك",
+      messageEn: digest.en,
+      messageAr: digest.ar,
+      link,
+      dedupeKey: `unit-cycle-overdue-pool:${poolGroup.ownerRole}:${dayKey}`,
+    });
+    notified += created;
   }
 
   return { notified, scanned: overdue.length };
+}
+
+async function touchStageEscalation(
+  prisma: UnitCycleDb,
+  row: OverdueStageRow,
+  now: Date,
+  dayKey: string
+) {
+  const stage = await prisma.unitCycleStage.findFirst({
+    where: {
+      unitCycleId: row.unitCycleId,
+      stageKey: row.stageKey as never,
+    },
+    select: { id: true },
+  });
+  if (!stage) return;
+
+  await prisma.unitCycleStage.update({
+    where: { id: stage.id },
+    data: { lastEscalatedAt: now },
+  });
+
+  await recordUnitCycleAuditEvent({
+    unitCycleId: row.unitCycleId,
+    stageKey: row.stageKey as never,
+    action: "escalated_overdue",
+    details: { daysOverdue: row.daysOverdue, digestDay: dayKey },
+  });
 }
 
 export function getUnitCycleCronSchedule(): string {

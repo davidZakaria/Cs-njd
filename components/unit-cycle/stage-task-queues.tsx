@@ -4,12 +4,19 @@ import { Link } from "@/i18n/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { OverdueStageRow, UnitCycleStageTaskRow } from "@/lib/unit-cycle/queries";
+import { ClaimWorkButton } from "@/components/work/claim-work-button";
+import { WorkScopeToggle } from "@/components/work/work-scope-toggle";
 import { cn } from "@/lib/utils";
+import type { WorkScopeMode } from "@/lib/work/personal-scope";
 
 export async function MyStageTasksQueue({
   tasks,
+  workScope = "personal",
+  showWorkScopeToggle = false,
 }: {
   tasks: UnitCycleStageTaskRow[];
+  workScope?: WorkScopeMode;
+  showWorkScopeToggle?: boolean;
 }) {
   const t = await getTranslations("unitCycle.myTasks");
   const tStages = await getTranslations("unitCycle.stages");
@@ -18,8 +25,11 @@ export async function MyStageTasksQueue({
   if (tasks.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">{t("title")}</CardTitle>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+          <CardTitle className="text-lg">
+            {workScope === "oversight" ? t("allTasksTitle") : t("title")}
+          </CardTitle>
+          {showWorkScopeToggle ? <WorkScopeToggle mode={workScope} /> : null}
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">{t("empty")}</p>
@@ -30,27 +40,29 @@ export async function MyStageTasksQueue({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">{t("title")}</CardTitle>
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+        <CardTitle className="text-lg">
+          {workScope === "oversight" ? t("allTasksTitle") : t("title")}
+        </CardTitle>
+        {showWorkScopeToggle ? <WorkScopeToggle mode={workScope} /> : null}
       </CardHeader>
       <CardContent className="space-y-2">
         {tasks.map((task) => (
-          <Link
+          <div
             key={`${task.unitId}-${task.stageKey}`}
-            href={`/units/${task.unitId}`}
             className={cn(
-              "flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 transition-colors hover:bg-muted/40",
+              "flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3",
               task.overdue && "border-destructive/40 bg-destructive/5"
             )}
           >
-            <div>
+            <Link href={`/units/${task.unitId}`} className="min-w-0 flex-1 hover:underline">
               <p className="font-medium">
                 {task.projectName} · {task.unitCode}
               </p>
               <p className="text-sm text-muted-foreground">
                 {tStages(task.stageKey as "CONTRACT")}
               </p>
-            </div>
+            </Link>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline">
                 {task.checklistPassed}/{task.checklistTotal}
@@ -63,8 +75,11 @@ export async function MyStageTasksQueue({
               {task.overdue ? (
                 <Badge variant="destructive">{t("overdue")}</Badge>
               ) : null}
+              {task.claimable ? (
+                <ClaimWorkButton kind="unitCycle" unitId={task.unitId} />
+              ) : null}
             </div>
-          </Link>
+          </div>
         ))}
       </CardContent>
     </Card>

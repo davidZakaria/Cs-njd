@@ -78,6 +78,7 @@ export async function updateProjectUnitCycleSettingsAction(
 
   revalidatePath("/executive/project-settings");
   revalidatePath("/executive");
+  revalidatePath("/executive/overdue-tasks");
   return actionOk();
 }
 
@@ -370,6 +371,7 @@ function revalidateUnitCyclePaths(unitId: string) {
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/dashboard");
   revalidatePath("/executive");
+  revalidatePath("/executive/overdue-tasks");
   revalidatePath("/legal");
   revalidatePath("/finance");
 }

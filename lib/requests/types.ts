@@ -12,6 +12,7 @@ export type UnitRequestListRow = {
   dueDate: Date | null;
   submittedAt: Date | null;
   currentApproverKind: UnitRequestApproverKind | null;
+  assignedApproverUserId: string | null;
   escalatedToManagement: boolean;
   requestedById: string;
   requestedByName: string;
@@ -29,6 +30,7 @@ export type RequestsPageFilters = {
   type: "all" | UnitRequestType;
   project: string;
   overdue: "all" | "yes";
+  tasks: "mine" | "all";
 };
 
 export type OverdueUnitRequestRow = UnitRequestListRow & { daysOverdue: number };

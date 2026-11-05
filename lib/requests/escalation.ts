@@ -3,7 +3,10 @@ import type { PrismaClient } from "@prisma/client";
 import { recordRequestAuditEvent } from "@/lib/requests/audit";
 import { isRequestOverdue } from "@/lib/requests/overdue";
 import type { UnitRequestListRow } from "@/lib/requests/types";
-import { notifyRoles } from "@/lib/services/notifications";
+
+function digestDayKey(now: Date): string {
+  return now.toISOString().slice(0, 10);
+}
 
 export type RequestEscalationDb = Pick<PrismaClient, "unitRequest">;
 
@@ -47,6 +50,7 @@ export async function getOverduePendingRequests(
     submittedAt: row.submittedAt,
     currentApproverKind: row.currentApproverKind,
     escalatedToManagement: row.escalatedToManagement,
+    assignedApproverUserId: row.assignedApproverUserId,
     requestedById: row.requestedById,
     requestedByName: row.requestedBy.name,
     unitId: row.unit.id,
@@ -65,6 +69,9 @@ export async function runRequestEscalationJob(
   const overdue = await getOverduePendingRequests(prisma, 500);
   const now = new Date();
   let notified = 0;
+  const { notifyRolesInboxTab, notifyUserInboxTab } = await import(
+    "@/lib/notifications/inbox.server"
+  );
 
   for (const row of overdue) {
     if (!isRequestOverdue({ status: row.status, dueDate: row.dueDate, now })) {
@@ -82,14 +89,30 @@ export async function runRequestEscalationJob(
       continue;
     }
 
-    await notifyRoles(
-      ["MANAGEMENT", "SUPER_ADMIN"],
-      "Overdue unit request",
-      "طلب وحدة متأخر",
-      `${row.projectName} · ${row.unitCode} · ${row.type}`,
-      `${row.projectName} · ${row.unitCode} · ${row.type}`,
-      `/requests/${row.id}`
-    );
+    if (row.assignedApproverUserId) {
+      const sent = await notifyUserInboxTab({
+        userId: row.assignedApproverUserId,
+        inboxTab: "REQUESTS_AND_FILES",
+        titleEn: "Overdue unit request",
+        titleAr: "طلب وحدة متأخر",
+        messageEn: `${row.projectName} · ${row.unitCode} · ${row.type}`,
+        messageAr: `${row.projectName} · ${row.unitCode} · ${row.type}`,
+        link: `/requests/${row.id}`,
+        dedupeKey: `request-overdue:${row.id}:${digestDayKey(now)}`,
+      });
+      if (sent) notified += 1;
+    }
+
+    await notifyRolesInboxTab({
+      roles: ["MANAGEMENT", "SUPER_ADMIN"],
+      inboxTab: "REQUESTS_AND_FILES",
+      titleEn: "Overdue request escalated",
+      titleAr: "طلب متأخر تم تصعيده",
+      messageEn: `${row.projectName} · ${row.unitCode} · ${row.type}`,
+      messageAr: `${row.projectName} · ${row.unitCode} · ${row.type}`,
+      link: `/requests/${row.id}`,
+      dedupeKey: `request-overdue-mgmt:${row.id}:${digestDayKey(now)}`,
+    });
 
     await prisma.unitRequest.update({
       where: { id: row.id },

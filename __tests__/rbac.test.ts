@@ -408,6 +408,12 @@ describe("RBAC Navigation Items", () => {
       const items = getNavItems("FINANCE");
       expect(items.map((i) => i.href)).toEqual(["/finance", "/requests"]);
     });
+
+    it("includes overdueTasks nav for MANAGEMENT", () => {
+      const items = getNavItems("MANAGEMENT");
+      const keys = items.map((i) => i.key);
+      expect(keys).toContain("overdueTasks");
+    });
   });
 
   describe("canAccessRoute - LEGAL and FINANCE", () => {
@@ -422,8 +428,10 @@ describe("RBAC Navigation Items", () => {
 
     it("allows department home and requests inbox", () => {
       expect(canAccessRoute("LEGAL", "/legal")).toBe(true);
+      expect(canAccessRoute("LEGAL", "/legal/overdue-tasks")).toBe(true);
       expect(canAccessRoute("LEGAL", "/requests")).toBe(true);
       expect(canAccessRoute("FINANCE", "/finance")).toBe(true);
+      expect(canAccessRoute("FINANCE", "/finance/overdue-tasks")).toBe(true);
       expect(canAccessRoute("FINANCE", "/requests/abc")).toBe(true);
     });
   });

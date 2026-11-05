@@ -8,7 +8,8 @@ import { loadDepartmentArchiveGapTasks } from "@/lib/archive-check/queries";
 import { MyStageTasksQueue } from "@/components/unit-cycle/stage-task-queues";
 import { loadAllUnitRequestRows } from "@/lib/requests/load-requests";
 import { filterRequestRowsForUser } from "@/lib/requests/queries.server";
-import { getMyStageTasks } from "@/lib/unit-cycle/queries";
+import { DepartmentOverdueSummaryCard } from "@/components/unit-cycle/department-overdue-summary-card";
+import { getDepartmentStaffOverdueStages, getMyStageTasks } from "@/lib/unit-cycle/queries";
 import { basePrisma, prisma } from "@/lib/prisma";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
@@ -24,19 +25,24 @@ export default async function FinanceHomePage() {
 
   const t = await getTranslations("departmentHome");
 
-  const [awaitingRows, myStageTasks, gapTasks] = await Promise.all([
+  const [awaitingRows, myStageTasks, gapTasks, overdueRows] = await Promise.all([
     filterRequestRowsForUser({
       rows: await loadAllUnitRequestRows(basePrisma),
       role: session.user.role,
       userId: session.user.id,
-      filters: { view: "awaiting", status: "all", type: "all", project: "all", overdue: "all" },
+      filters: { view: "awaiting", status: "all", type: "all", project: "all", overdue: "all", tasks: "mine" },
     }),
     getMyStageTasks({
       prisma,
       userId: session.user.id,
       role: session.user.role,
     }),
-    loadDepartmentArchiveGapTasks({ role: session.user.role }),
+    loadDepartmentArchiveGapTasks({ role: session.user.role, userId: session.user.id }),
+    getDepartmentStaffOverdueStages({
+      prisma,
+      userId: session.user.id,
+      role: session.user.role,
+    }),
   ]);
 
   return (
@@ -60,6 +66,11 @@ export default async function FinanceHomePage() {
             unitRequestId: task.unitRequestId,
             unit: task.unitRequest.unit!,
           }))}
+      />
+      <DepartmentOverdueSummaryCard
+        role="FINANCE"
+        userId={session.user.id}
+        rows={overdueRows}
       />
       <MyStageTasksQueue tasks={myStageTasks} />
     </div>

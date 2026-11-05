@@ -41,6 +41,9 @@ export async function UnitCyclePanel({
       <UnitCycleStepper
         unitId={unitId}
         activeStageKey={activeKey}
+        viewerRole={userRole}
+        viewerUserId={userId}
+        unitAgentId={unitAgentId}
         blockingBannerEntries={cycle.blockingBannerEntries.map((entry) => ({
           requestId: entry.requestId,
           type: entry.type,
