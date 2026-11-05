@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
     "/**/*": [
       "./node_modules/harfbuzzjs/**/*.wasm",
       "./lib/official-documents/assets/NotoNaskhArabic-Regular.ttf",
+      "./lib/official-documents/handover/assets/**",
       "./public/brand/j-communities-light.png",
     ],
   },

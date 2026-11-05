@@ -14,11 +14,11 @@ import type {
   JuraTemplate,
 } from "@/lib/print/handover-templates/types";
 
+import { handoverLogoAssetRelativePath } from "@/lib/official-documents/handover/constants";
 import { HANDOVER_PRINT_CSS } from "./styles";
-import { escapeHtml, toHandoverHtml } from "./utils";
+import { escapeHtml, stripGreenSection2Lead, toHandoverHtml } from "./utils";
 
 const ARABIC_FONT_PATH = "lib/official-documents/assets/NotoNaskhArabic-Regular.ttf";
-const NJD_LOGO_PATH = "public/brand/j-communities-light.png";
 
 export function buildOfficialHandoverHtml(input: {
   templateKey: HandoverTemplateKey;
@@ -27,7 +27,11 @@ export function buildOfficialHandoverHtml(input: {
 }): string {
   const template = loadHandoverTemplate(input.templateKey);
   const fontDataUri = loadFileDataUri(ARABIC_FONT_PATH, "font/ttf");
-  const logoDataUri = loadFileDataUri(NJD_LOGO_PATH, "image/png");
+  const logoRelative = handoverLogoAssetRelativePath(input.templateKey);
+  const logoDataUri = loadFileDataUri(
+    logoRelative,
+    logoRelative.endsWith(".jpg") ? "image/jpeg" : "image/png"
+  );
 
   const body =
     template.kind === "green-avenue"
@@ -53,11 +57,15 @@ export function buildOfficialHandoverHtml(input: {
   </style>
 </head>
 <body>
-  <div class="page-frame">
-    ${watermark}
-    <div class="page-content">
-      ${buildHeaderHtml(logoDataUri, template, input.fields)}
-      ${body}
+  <div class="page-border-outer">
+    <div class="page-border-inner">
+      <div class="page-frame">
+        ${watermark}
+        <div class="page-content">
+          ${buildHeaderHtml(logoDataUri, template, input.fields)}
+          ${body}
+        </div>
+      </div>
     </div>
   </div>
 </body>
@@ -109,7 +117,9 @@ function buildGreenAvenueBody(
   template: GreenAvenueTemplate,
   fields: HandoverFieldValues
 ): string {
-  const section2 = interpolateHandoverText(template.section2, fields);
+  const section2 = stripGreenSection2Lead(
+    interpolateHandoverText(template.section2, fields)
+  );
   const declaration = interpolateHandoverText(template.declaration, fields);
   const { intro, introIdLine, mainBody, closing } = splitGreenDeclaration(declaration);
   const violations = splitViolationItems(

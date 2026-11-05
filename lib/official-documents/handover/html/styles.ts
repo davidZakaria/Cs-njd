@@ -24,13 +24,27 @@ body {
   print-color-adjust: exact;
 }
 
-.page-frame {
+.page-border-outer {
   width: 210mm;
   min-height: 297mm;
   margin: 0 auto;
+  border: 0.6pt solid #000;
+  padding: 1.2pt;
+  background: #fff;
+}
+
+.page-border-inner {
+  border: 0.6pt solid #000;
+  min-height: calc(297mm - 4pt);
+}
+
+.page-frame {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
   padding: 10mm 12mm 12mm;
-  border: 1.2pt solid #000;
-  box-shadow: inset 0 0 0 0.6pt #000;
+  border: none;
+  box-shadow: none;
   position: relative;
   background: #fff;
   overflow: hidden;
@@ -65,11 +79,16 @@ body {
   position: absolute;
   left: 0;
   top: 0;
-  width: 34mm;
-  height: auto;
-  max-height: 18mm;
+  height: 14mm;
+  width: auto;
+  max-width: 72mm;
   object-fit: contain;
   object-position: left top;
+}
+
+.ltr-isolate {
+  unicode-bidi: isolate;
+  direction: ltr;
 }
 
 .title-block {

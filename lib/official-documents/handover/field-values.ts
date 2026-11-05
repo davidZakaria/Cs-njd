@@ -1,6 +1,8 @@
 import {
   allClientAddressValues,
   allClientPhoneValues,
+  normalizeContactValue,
+  type ClientWithContactLines,
 } from "@/lib/client/contact-lines";
 import type { UnitMergeInput } from "@/lib/official-documents/merge-fields";
 import type { HandoverFieldValues } from "@/lib/print/handover-templates/types";
@@ -57,6 +59,27 @@ export type OfficialHandoverFieldBuildResult = {
   handoverFields: HandoverFieldValues;
 };
 
+function primaryClientAddress(client: ClientWithContactLines): string | null {
+  const primary = normalizeContactValue(client.address1);
+  if (primary) return primary;
+
+  const seen = new Set<string>();
+  for (const value of allClientAddressValues(client)) {
+    const normalized = normalizeContactValue(value);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    return normalized;
+  }
+  return null;
+}
+
+function formatWesternShortDate(date: Date): string {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear());
+  return `${day}/${month}/${year}`;
+}
+
 function parseUnitCode(unitCode: string) {
   const parts = unitCode.split(/[-_/\\s]+/).filter(Boolean);
   return {
@@ -95,17 +118,13 @@ export function buildOfficialHandoverFieldValues(
     owner1_name: primary?.name ?? null,
     owner1_nationality: locale === "ar" ? "مصري" : "Egyptian",
     owner1_national_id: primary?.nationalId ?? null,
-    owner1_address: primary
-      ? allClientAddressValues(primary).join(" — ") || null
-      : null,
+    owner1_address: primary ? primaryClientAddress(primary) : null,
     owner1_phone1: primary ? allClientPhoneValues(primary)[0] ?? null : null,
     owner1_phone2: primary ? allClientPhoneValues(primary)[1] ?? null : null,
     owner1_email: primary?.email ?? null,
     owner2_name: coOwner?.name ?? null,
     owner2_national_id: coOwner?.nationalId ?? null,
-    owner2_address: coOwner
-      ? allClientAddressValues(coOwner).join(" — ") || null
-      : null,
+    owner2_address: coOwner ? primaryClientAddress(coOwner) : null,
     owner2_phone1: coOwner ? allClientPhoneValues(coOwner)[0] ?? null : null,
     owner2_email: coOwner?.email ?? null,
     unit_number: unitNumber,
@@ -113,16 +132,17 @@ export function buildOfficialHandoverFieldValues(
     building,
     area_sqm: unit.area != null ? String(unit.area) : null,
     area_words: unit.area != null ? String(unit.area) : null,
-    handover_date: formatShortDate(handoverAt, locale),
+    handover_date: formatWesternShortDate(handoverAt),
     handover_weekday: DAY_NAMES_AR[handoverAt.getDay()],
     contract_day: contractDate ? String(contractDate.getDate()) : null,
     contract_month: contractDate
-      ? contractDate.toLocaleDateString(locale === "ar" ? "ar-EG" : "en-GB", {
+      ? contractDate.toLocaleDateString("ar-EG", {
           month: "long",
+          numberingSystem: "latn",
         })
       : null,
     contract_year: contractDate ? String(contractDate.getFullYear()) : null,
-    contract_date: contractDate ? formatShortDate(contractDate, locale) : null,
+    contract_date: contractDate ? formatWesternShortDate(contractDate) : null,
   };
 
   const missingKeys: OfficialHandoverFieldKey[] = [];
@@ -168,12 +188,4 @@ export function buildOfficialHandoverFieldValues(
   };
 
   return { values, missingKeys, handoverFields };
-}
-
-function formatShortDate(date: Date, locale: string) {
-  return date.toLocaleDateString(locale === "ar" ? "ar-EG" : "en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
 }
