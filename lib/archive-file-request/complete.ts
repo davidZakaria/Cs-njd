@@ -5,6 +5,7 @@ import { recordRequestAuditEvent } from "@/lib/requests/audit";
 import { encodeBilingual } from "@/lib/notifications/bilingual";
 import { createNotification } from "@/lib/notifications/create-notification";
 import { fulfillmentLinkForArchiveFileItem } from "@/lib/archive-file-request/links";
+import { ARCHIVE_FILE_KIND_BILINGUAL } from "@/lib/archive-file-request/kind-labels";
 
 export type ArchiveFileRequestDb = typeof appPrisma;
 
@@ -75,16 +76,16 @@ export async function notifyRequesterArchiveFileItemOutcome(input: {
       ? "ملف الأرشيف جاهز"
       : "الملف غير موجود في الأرشيف";
 
-  const kindLabelEn = input.fileKind.replace(/_/g, " ").toLowerCase();
+  const kindLabels = ARCHIVE_FILE_KIND_BILINGUAL[input.fileKind];
   const messageEn =
     input.status === "FULFILLED_UPLOAD"
-      ? `Operations uploaded ${kindLabelEn} for unit ${input.unitCode}.`
-      : `Operations could not locate ${kindLabelEn} for unit ${input.unitCode} in the archive.`;
+      ? `Operations uploaded ${kindLabels.en} for unit ${input.unitCode}.`
+      : `Operations could not locate ${kindLabels.en} for unit ${input.unitCode} in the archive.`;
 
   const messageAr =
     input.status === "FULFILLED_UPLOAD"
-      ? `رفعت العمليات ملف ${input.fileKind} للوحدة ${input.unitCode}.`
-      : `تعذر على العمليات العثور على ${input.fileKind} للوحدة ${input.unitCode} في الأرشيف.`;
+      ? `رفعت العمليات ملف ${kindLabels.ar} للوحدة ${input.unitCode}.`
+      : `تعذر على العمليات العثور على ${kindLabels.ar} للوحدة ${input.unitCode} في الأرشيف.`;
 
   await createNotification({
     userId: input.requesterId,

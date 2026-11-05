@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { canAccessCsPortfolioDocuments } from "@/lib/auth/cs-portfolio-document-access";
+import { canViewUnitPortfolioDocuments } from "@/lib/auth/cs-portfolio-document-access";
 import { serveStoredObjectResponse } from "@/lib/storage/serve-stored-object";
 import { prisma } from "@/lib/prisma";
 import {
@@ -42,7 +42,7 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (!canAccessCsPortfolioDocuments(session.user.role)) {
+  if (!canViewUnitPortfolioDocuments(session.user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

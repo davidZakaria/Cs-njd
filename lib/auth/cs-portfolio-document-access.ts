@@ -3,6 +3,7 @@ import type { Role } from "@prisma/client";
 import {
   isAdminUnitManager,
   isCsAgentRole,
+  isDepartmentStaffRole,
   isOperationsRole,
 } from "@/lib/auth/unit-roles";
 
@@ -14,6 +15,11 @@ export function canAccessCsPortfolioDocuments(role: Role): boolean {
     role === "SUPER_ADMIN" ||
     isOperationsRole(role)
   );
+}
+
+/** Read/download portfolio files without granting upload rights. */
+export function canViewUnitPortfolioDocuments(role: Role): boolean {
+  return canAccessCsPortfolioDocuments(role) || isDepartmentStaffRole(role);
 }
 
 /** Replace or delete portfolio document files (not initial CS upload). */

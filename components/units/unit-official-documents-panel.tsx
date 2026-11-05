@@ -409,6 +409,7 @@ export function UnitOfficialDocumentsPanel({
           <Textarea
             value={editorBody}
             onChange={(e) => setEditorBody(e.target.value)}
+            readOnly={!canEditDraftText}
             rows={18}
             dir={editorRtl ? "rtl" : "ltr"}
             className={cn(
