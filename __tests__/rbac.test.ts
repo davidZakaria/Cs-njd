@@ -408,6 +408,12 @@ describe("RBAC Navigation Items", () => {
       const items = getNavItems("FINANCE");
       expect(items.map((i) => i.href)).toEqual(["/finance", "/requests"]);
     });
+
+    it("includes overdueTasks nav for MANAGEMENT", () => {
+      const items = getNavItems("MANAGEMENT");
+      const keys = items.map((i) => i.key);
+      expect(keys).toContain("overdueTasks");
+    });
   });
 
   describe("canAccessRoute - LEGAL and FINANCE", () => {

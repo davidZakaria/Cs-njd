@@ -29,6 +29,7 @@ import {
   departmentStaffMayViewApprovedUnitRequest,
 } from "@/lib/requests/permissions-core";
 import type { OrgStaffAvailability } from "@/lib/requests/approver-roles";
+import { requestAwaitingVisibleToUser } from "@/lib/work/personal-scope";
 
 export {
   canCreateUnitRequest,
@@ -52,7 +53,13 @@ export function canViewUnitRequest(input: {
   userId: string;
   request: Pick<
     UnitRequest,
-    "requestedById" | "type" | "status" | "currentStepIndex" | "currentApproverKind"
+    | "requestedById"
+    | "type"
+    | "status"
+    | "currentStepIndex"
+    | "currentApproverKind"
+    | "assignedApproverUserId"
+    | "escalatedToManagement"
   >;
   unitAgentId: string | null;
   csScope?: CsAgentScope | null;
@@ -96,7 +103,16 @@ export function canViewUnitRequest(input: {
 
   if (isDepartmentStaffRole(role)) {
     if (request.status === "PENDING" && request.currentApproverKind) {
-      return userCanApproveAtCurrentStep({ role, request, staff });
+      return requestAwaitingVisibleToUser({
+        mode: "personal",
+        userRole: role,
+        userId,
+        requestedById: request.requestedById,
+        assignedApproverUserId: request.assignedApproverUserId,
+        escalatedToManagement: request.escalatedToManagement,
+        status: request.status,
+        canApprove: userCanApproveAtCurrentStep({ role, request, staff }),
+      });
     }
     if (
       request.status === "APPROVED" &&
@@ -131,7 +147,13 @@ export function canAddRequestComment(input: {
   userId: string;
   request: Pick<
     UnitRequest,
-    "requestedById" | "type" | "status" | "currentStepIndex" | "currentApproverKind"
+    | "requestedById"
+    | "type"
+    | "status"
+    | "currentStepIndex"
+    | "currentApproverKind"
+    | "assignedApproverUserId"
+    | "escalatedToManagement"
   >;
   unitAgentId: string | null;
   csScope?: CsAgentScope | null;

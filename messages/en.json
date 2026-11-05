@@ -3,6 +3,11 @@
     "title": "J Communities",
     "description": "Real Estate Post-Sales & Customer Service"
   },
+  "work": {
+    "claim": {
+      "action": "Claim"
+    }
+  },
   "print": {
     "handover": {
       "printButton": "Print Protocol",
@@ -301,10 +306,17 @@
     }
   },
   "activityNotifications": {
-    "title": "Activity notifications",
-    "subtitle": "Your in-app inbox — activity updates, archive file requests, and other alerts.",
-    "markAllRead": "Mark all as read",
-    "empty": "No answered calls yet. When someone logs an answered call, it will appear here."
+    "title": "Notifications",
+    "subtitle": "Call activity, request and archive file alerts, and overdue unit cycle digests.",
+    "markAllRead": "Mark tab as read",
+    "emptyCallLogs": "No answered calls yet. When someone logs an answered call, it will appear here.",
+    "emptyRequestsAndFiles": "No request or archive file alerts yet.",
+    "emptyOverdueTasks": "No overdue unit cycle digests yet.",
+    "tabs": {
+      "callLogs": "Call logs",
+      "requestsAndFiles": "Requests & files",
+      "overdueTasks": "Overdue tasks"
+    }
   },
   "notificationsLog": {
     "title": "Notifications Log",
@@ -419,6 +431,7 @@
     "systemSettings": "General Settings",
     "legalHome": "Legal home",
     "financeHome": "Finance home",
+    "overdueTasks": "Overdue tasks",
     "administration": "Administration",
     "groups": {
       "usersSecurity": "Users & Security",
@@ -2026,6 +2039,60 @@
       "title": "Overdue stages",
       "empty": "No overdue unit cycle stages.",
       "row": "{stage} · {days} day(s) overdue"
+    },
+    "overdueManagement": {
+      "pageTitle": "Overdue tasks",
+      "pageSubtitle": "Your claimed and assigned unit cycle stages that are past deadline.",
+      "allTasksPageTitle": "All overdue tasks",
+      "allTasksPageSubtitle": "Oversight view across every overdue unit cycle stage in enabled projects.",
+      "backToExecutive": "Back to executive",
+      "summaryTitle": "Overdue unit cycle tasks",
+      "summaryEmpty": "No overdue stages right now.",
+      "summaryTotal": "{count, plural, one {# overdue unit} other {# overdue units}}",
+      "viewAll": "View overdue tasks",
+      "resultsCount": "{count, plural, one {# task} other {# tasks}}",
+      "emptyFiltered": "No overdue tasks match these filters.",
+      "ownerGroupLabel": "{department}{assignee, select, empty {} other { · {assignee}}}",
+      "taskMeta": "{days} day(s) overdue · checklist {checklist}",
+      "deadline": "Deadline {date}",
+      "daysOverdueBadge": "{days}d overdue",
+      "filters": {
+        "project": "Project",
+        "stage": "Stage",
+        "department": "Department",
+        "minDays": "Days overdue",
+        "allProjects": "All projects",
+        "allStages": "All stages",
+        "allDepartments": "All departments",
+        "anyDaysOverdue": "Any overdue age",
+        "atLeastDays": "At least {days} days",
+        "minDaysChip": "≥ {days} days overdue"
+      },
+      "actions": {
+        "openUnit": "Open unit"
+      }
+    },
+    "ownerDepartments": {
+      "MANAGEMENT": "Management",
+      "FINANCE": "Finance",
+      "LEGAL": "Legal",
+      "CS_AGENT": "Customer service"
+    },
+    "yourTask": {
+      "title": "Your task",
+      "stageLabel": "You own the {stage} stage on this unit.",
+      "remaining": "Remaining checklist",
+      "checklistDone": "All checklist items complete.",
+      "notYourTask": "You have no task on this unit right now.",
+      "currentOwner": "Current stage: {stage} — owned by {department}.",
+      "overdue": "Overdue since {date}",
+      "stepDone": "Done",
+      "stepCurrent": "Current",
+      "stepUpcoming": "Upcoming",
+      "actions": {
+        "reviewBlocker": "Review blocking request",
+        "completeChecklist": "Complete checklist to finish stage"
+      }
     },
     "projectSettings": {
       "pageTitle": "Project settings",

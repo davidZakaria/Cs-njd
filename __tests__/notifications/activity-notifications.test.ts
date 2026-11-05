@@ -61,6 +61,7 @@ describe("dispatch answered call log activity", () => {
     expect(userIds).toContain("community-1");
     expect(userIds).not.toContain("agent-2");
     expect(payload.data[0].kind).toBe("ACTIVITY");
+    expect(payload.data[0].inboxTab).toBe("CALL_LOG");
   });
 
   it("does not notify for unanswered calls", async () => {

@@ -12,6 +12,7 @@ export type UnitRequestListRow = {
   dueDate: Date | null;
   submittedAt: Date | null;
   currentApproverKind: UnitRequestApproverKind | null;
+  assignedApproverUserId: string | null;
   escalatedToManagement: boolean;
   requestedById: string;
   requestedByName: string;

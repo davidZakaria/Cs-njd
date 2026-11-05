@@ -3,6 +3,11 @@
     "title": "J Communities",
     "description": "إدارة خدمة العملاء وتسليم الوحدات العقارية"
   },
+  "work": {
+    "claim": {
+      "action": "مطالبة"
+    }
+  },
   "print": {
     "handover": {
       "printButton": "طباعة محضر الاستلام",
@@ -301,10 +306,17 @@
     }
   },
   "activityNotifications": {
-    "title": "إشعارات النشاط",
-    "subtitle": "صندوق الإشعارات — تحديثات النشاط وطلبات ملفات الأرشيف وتنبيهات أخرى.",
-    "markAllRead": "تعليم الكل كمقروء",
-    "empty": "لا توجد مكالمات تم الرد عليها بعد. عند تسجيل مكالمة تم الرد عليها ستظهر هنا."
+    "title": "الإشعارات",
+    "subtitle": "سجل المكالمات، تنبيهات الطلبات وملفات الأرشيف، وملخصات مراحل الدورة المتأخرة.",
+    "markAllRead": "تعليم التبويب كمقروء",
+    "emptyCallLogs": "لا توجد مكالمات تم الرد عليها بعد. عند تسجيل مكالمة تم الرد عليها ستظهر هنا.",
+    "emptyRequestsAndFiles": "لا تنبيهات طلبات أو ملفات أرشيف بعد.",
+    "emptyOverdueTasks": "لا ملخصات دورة متأخرة بعد.",
+    "tabs": {
+      "callLogs": "سجل المكالمات",
+      "requestsAndFiles": "الطلبات والملفات",
+      "overdueTasks": "المهام المتأخرة"
+    }
   },
   "notificationsLog": {
     "title": "سجل الإشعارات",
@@ -419,6 +431,7 @@
     "systemSettings": "الإعدادات العامة",
     "legalHome": "الرئيسية — قانوني",
     "financeHome": "الرئيسية — حسابات",
+    "overdueTasks": "المهام المتأخرة",
     "administration": "الإدارة",
     "groups": {
       "usersSecurity": "المستخدمون والأمان",
@@ -2026,6 +2039,58 @@
       "title": "مراحل متأخرة",
       "empty": "لا مراحل دورة متأخرة.",
       "row": "{stage} · متأخر {days} يوم"
+    },
+    "overdueManagement": {
+      "allTasksPageTitle": "All overdue tasks",
+      "allTasksPageSubtitle": "Oversight view across every overdue unit cycle stage in enabled projects.",
+      "backToExecutive": "العودة للوحة التنفيذية",
+      "summaryTitle": "مهام دورة الوحدة المتأخرة",
+      "summaryEmpty": "لا مراحل متأخرة حالياً.",
+      "summaryTotal": "{count, plural, one {وحدة واحدة متأخرة} other {# وحدة متأخرة}}",
+      "viewAll": "عرض المهام المتأخرة",
+      "resultsCount": "{count, plural, one {مهمة واحدة} other {# مهمة}}",
+      "emptyFiltered": "لا مهام متأخرة تطابق هذه الفلاتر.",
+      "ownerGroupLabel": "{department}{assignee, select, empty {} other { · {assignee}}}",
+      "taskMeta": "متأخر {days} يوم · قائمة {checklist}",
+      "deadline": "المهلة {date}",
+      "daysOverdueBadge": "متأخر {days} ي",
+      "filters": {
+        "project": "المشروع",
+        "stage": "المرحلة",
+        "department": "الإدارة",
+        "minDays": "أيام التأخير",
+        "allProjects": "كل المشاريع",
+        "allStages": "كل المراحل",
+        "allDepartments": "كل الإدارات",
+        "anyDaysOverdue": "أي مدة تأخير",
+        "atLeastDays": "على الأقل {days} أيام",
+        "minDaysChip": "≥ {days} أيام متأخر"
+      },
+      "actions": {
+        "openUnit": "فتح الوحدة"
+      }
+    },
+    "ownerDepartments": {
+      "MANAGEMENT": "الإدارة",
+      "FINANCE": "الحسابات",
+      "LEGAL": "القانوني",
+      "CS_AGENT": "خدمة العملاء"
+    },
+    "yourTask": {
+      "title": "مهمتك",
+      "stageLabel": "أنت مسؤول عن مرحلة {stage} في هذه الوحدة.",
+      "remaining": "بنود القائمة المتبقية",
+      "checklistDone": "اكتملت كل بنود القائمة.",
+      "notYourTask": "لا توجد مهمة لك على هذه الوحدة حالياً.",
+      "currentOwner": "المرحلة الحالية: {stage} — بإشراف {department}.",
+      "overdue": "متأخر منذ {date}",
+      "stepDone": "منتهية",
+      "stepCurrent": "الحالية",
+      "stepUpcoming": "قادمة",
+      "actions": {
+        "reviewBlocker": "مراجعة الطلب المانع",
+        "completeChecklist": "أكمل القائمة لإنهاء المرحلة"
+      }
     },
     "projectSettings": {
       "pageTitle": "إعدادات المشروع",

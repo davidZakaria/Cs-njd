@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 
-import { getMyUnreadActivityNotificationCount } from "@/lib/actions/notifications";
+import { getMyInboxUnreadCounts } from "@/lib/actions/notifications";
 import { Badge } from "@/components/ui/badge";
 import {
   SidebarMenuButton,
@@ -27,8 +27,8 @@ export function SidebarActivityNotificationsLink() {
     let cancelled = false;
 
     async function load() {
-      const count = await getMyUnreadActivityNotificationCount();
-      if (!cancelled) setUnreadCount(count);
+      const counts = await getMyInboxUnreadCounts();
+      if (!cancelled) setUnreadCount(counts.total);
     }
 
     void load();

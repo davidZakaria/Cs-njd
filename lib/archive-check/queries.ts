@@ -3,6 +3,7 @@ import type { Role } from "@prisma/client";
 import { prisma as appPrisma } from "@/lib/prisma";
 import { activeUnitWhere } from "@/lib/prisma/soft-delete";
 import { operationsMayWorkArchiveCheckRequest } from "@/lib/archive-check/permissions";
+import { archiveGapTaskVisibleToUser, requestAwaitingVisibleToUser } from "@/lib/work/personal-scope";
 
 export type ArchiveCheckQueueRow = {
   id: string;
@@ -35,6 +36,7 @@ export { unitIncludeForArchiveSeed };
 
 export async function loadOperationsArchiveCheckQueue(input: {
   role: Role;
+  userId: string;
   limit?: number;
 }): Promise<ArchiveCheckQueueRow[]> {
   if (input.role !== "OPERATIONS" && input.role !== "SUPER_ADMIN") {
@@ -76,6 +78,18 @@ export async function loadOperationsArchiveCheckQueue(input: {
         archiveCheckSubmittedAt: row.archiveCheckSubmittedAt,
         parentRequestId: row.parentRequestId,
         bulkProjectId: row.bulkProjectId,
+      })
+    )
+    .filter((row) =>
+      requestAwaitingVisibleToUser({
+        mode: "personal",
+        userRole: input.role,
+        userId: input.userId,
+        requestedById: row.requestedById,
+        assignedApproverUserId: row.assignedApproverUserId,
+        escalatedToManagement: row.escalatedToManagement,
+        status: row.status,
+        canApprove: true,
       })
     )
     .map((row) => ({
@@ -153,20 +167,23 @@ export async function listActiveUnitsForProject(projectId: string) {
 
 export async function loadDepartmentArchiveGapTasks(input: {
   role: import("@prisma/client").Role;
+  userId: string;
   limit?: number;
 }) {
   const roles =
     input.role === "LEGAL"
-      ? (["LEGAL", "MANAGEMENT"] as const)
+      ? (["LEGAL"] as const)
       : input.role === "FINANCE"
-        ? (["FINANCE", "MANAGEMENT"] as const)
+        ? (["FINANCE"] as const)
+        : input.role === "OPERATIONS"
+          ? (["OPERATIONS"] as const)
         : input.role === "MANAGEMENT" || input.role === "SUPER_ADMIN"
           ? (["LEGAL", "FINANCE", "MANAGEMENT"] as const)
           : ([] as const);
 
   if (roles.length === 0) return [];
 
-  return appPrisma.archiveCheckGapTask.findMany({
+  const rows = await appPrisma.archiveCheckGapTask.findMany({
     where: {
       status: "OPEN",
       ownerRole: { in: [...roles] },
@@ -187,4 +204,14 @@ export async function loadDepartmentArchiveGapTasks(input: {
     orderBy: [{ deadlineAt: "asc" }],
     take: input.limit ?? 50,
   });
+
+  return rows.filter((task) =>
+    archiveGapTaskVisibleToUser({
+      mode: "personal",
+      userRole: input.role,
+      userId: input.userId,
+      ownerRole: task.ownerRole,
+      ownerUserId: task.ownerUserId,
+    })
+  );
 }

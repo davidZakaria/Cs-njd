@@ -11,11 +11,11 @@ import {
   getExecutiveFinancials,
 } from "@/lib/executive/financial-analytics";
 import { ExecutiveCommandCenter } from "@/components/executive/executive-command-center";
-import { getOverdueStagesForManagement, getMyStageTasks } from "@/lib/unit-cycle/queries";
+import { getMyStageTasks, getPersonalOverdueStages } from "@/lib/unit-cycle/queries";
 import {
   MyStageTasksQueue,
-  OverdueStagesList,
 } from "@/components/unit-cycle/stage-task-queues";
+import { OverdueTasksSummaryCard } from "@/components/unit-cycle/overdue-tasks-summary-card";
 import {
   getInitialCommunityDailyActivity,
   type CommunityTrackerViewerRole,
@@ -60,7 +60,11 @@ export default async function ExecutiveDashboardPage() {
         userId: session.user.id,
         role: session.user.role,
       }),
-      getOverdueStagesForManagement(prisma),
+      getPersonalOverdueStages({
+        prisma,
+        userId: session.user.id,
+        role: session.user.role,
+      }),
     ]);
 
   return (
@@ -98,7 +102,7 @@ export default async function ExecutiveDashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <MyStageTasksQueue tasks={myStageTasks} />
-        <OverdueStagesList tasks={overdueStages} />
+        <OverdueTasksSummaryCard tasks={overdueStages} />
       </div>
 
       <div className={cn(entranceAnimationClass, "animate-delay-150")}>

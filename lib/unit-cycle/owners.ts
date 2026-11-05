@@ -30,3 +30,22 @@ export function roleCanOwnStage(
   const owner = resolveStageOwnerRole(stageKey);
   return userRole === owner;
 }
+
+/** Whether this viewer is the designated owner for a stage (ignores management override). */
+export function viewerOwnsStageByRole(
+  userRole: Role,
+  stageKey: UnitCycleStageKey,
+  opts?: { unitAgentId: string | null; userId?: string | null }
+): boolean {
+  if (userRole === "CS_AGENT") {
+    return (
+      stageKey === "ENGINEERING" &&
+      Boolean(opts?.userId) &&
+      opts?.unitAgentId === opts?.userId
+    );
+  }
+  if (managementRolesForCycle().includes(userRole)) {
+    return stageKey === "CONTRACT";
+  }
+  return userRole === resolveStageOwnerRole(stageKey);
+}

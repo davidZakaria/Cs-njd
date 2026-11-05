@@ -36,7 +36,7 @@ export default async function FinanceHomePage() {
       userId: session.user.id,
       role: session.user.role,
     }),
-    loadDepartmentArchiveGapTasks({ role: session.user.role }),
+    loadDepartmentArchiveGapTasks({ role: session.user.role, userId: session.user.id }),
   ]);
 
   return (

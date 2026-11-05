@@ -97,6 +97,7 @@ export async function dispatchAnsweredCallLogActivity(input: {
     data: recipientIds.map((userId) => ({
       userId,
       kind: "ACTIVITY",
+      inboxTab: "CALL_LOG",
       title: encodeBilingual(copy.titleEn, copy.titleAr),
       message: encodeBilingual(copy.messageEn, copy.messageAr),
       link,

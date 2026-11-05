@@ -2,7 +2,6 @@ import { prisma as appPrisma } from "@/lib/prisma";
 
 import { isGapTaskOverdue } from "@/lib/archive-check/gap-tasks";
 import { recordRequestAuditEvent } from "@/lib/requests/audit";
-import { notifyRoles } from "@/lib/services/notifications";
 
 export type ArchiveGapEscalationDb = typeof appPrisma;
 
@@ -32,6 +31,7 @@ export async function runArchiveCheckGapEscalationJob(
   });
 
   let notified = 0;
+  const { notifyRolesInboxTab } = await import("@/lib/notifications/inbox.server");
 
   for (const task of openTasks) {
     if (
@@ -55,14 +55,15 @@ export async function runArchiveCheckGapEscalationJob(
     if (!unit) {
       continue;
     }
-    await notifyRoles(
-      ["MANAGEMENT", "SUPER_ADMIN"],
-      "Overdue archive check gap",
-      "فجوة فحص أرشيف متأخرة",
-      `${unit.project.name} · ${unit.unitCode} · ${task.itemKey}`,
-      `${unit.project.name} · ${unit.unitCode} · ${task.itemKey}`,
-      `/requests/${task.unitRequestId}`
-    );
+    await notifyRolesInboxTab({
+      roles: ["MANAGEMENT", "SUPER_ADMIN"],
+      inboxTab: "REQUESTS_AND_FILES",
+      titleEn: "Overdue archive check gap",
+      titleAr: "فجوة فحص أرشيف متأخرة",
+      messageEn: `${unit.project.name} · ${unit.unitCode} · ${task.itemKey}`,
+      messageAr: `${unit.project.name} · ${unit.unitCode} · ${task.itemKey}`,
+      link: `/requests/${task.unitRequestId}`,
+    });
 
     await prisma.archiveCheckGapTask.update({
       where: { id: task.id },

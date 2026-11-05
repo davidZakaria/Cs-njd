@@ -34,7 +34,7 @@ export default async function OperationsPage({
     loadOperationsProgressUnits(),
     getAssignableAgentUsers(),
     prisma.project.findMany({ orderBy: { name: "asc" }, select: { name: true } }),
-    loadOperationsArchiveCheckQueue({ role: role! }),
+    loadOperationsArchiveCheckQueue({ role: role!, userId: session!.user.id }),
   ]);
 
   const projectNames = projects.map((p) => p.name);

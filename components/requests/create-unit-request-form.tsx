@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
@@ -95,9 +95,10 @@ export function CreateUnitRequestForm({
     [selectedUnit]
   );
 
-  useEffect(() => {
+  const handleUnitChange = useCallback((unit: UnitRequestPickerOption | null) => {
+    setSelectedUnit(unit);
     setSelectedSwapTarget(null);
-  }, [selectedUnit?.unitId]);
+  }, []);
 
   const canSubmit =
     type === UnitRequestType.ARCHIVE_CHECK && archiveScope === "bulk"
@@ -228,7 +229,7 @@ export function CreateUnitRequestForm({
             placeholder={t("unitSearchPlaceholder")}
             emptyHint={t("unitSearchMinChars")}
             value={selectedUnit}
-            onChange={setSelectedUnit}
+            onChange={handleUnitChange}
             onSearch={searchUnits}
             onResolveUnit={resolveUnitForRequestPickerAction}
             initialUnitId={defaultUnitId}

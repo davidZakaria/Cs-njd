@@ -2,11 +2,13 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const notifyRoles = vi.fn();
+const notifyRolesInboxTab = vi.fn();
+const notifyUserInboxTab = vi.fn();
 const recordRequestAuditEvent = vi.fn();
 
-vi.mock("@/lib/services/notifications", () => ({
-  notifyRoles: (...args: unknown[]) => notifyRoles(...args),
+vi.mock("@/lib/notifications/inbox.server", () => ({
+  notifyRolesInboxTab: (...args: unknown[]) => notifyRolesInboxTab(...args),
+  notifyUserInboxTab: (...args: unknown[]) => notifyUserInboxTab(...args),
 }));
 
 vi.mock("@/lib/requests/audit", () => ({
@@ -19,7 +21,7 @@ import { runRequestEscalationJob } from "@/lib/requests/escalation";
 
 describe("request escalation", () => {
   beforeEach(() => {
-    notifyRoles.mockClear();
+    notifyRolesInboxTab.mockClear();
     recordRequestAuditEvent.mockClear();
   });
 
@@ -84,7 +86,7 @@ describe("request escalation", () => {
         }),
       })
     );
-    expect(notifyRoles).toHaveBeenCalled();
+    expect(notifyRolesInboxTab).toHaveBeenCalled();
     expect(recordRequestAuditEvent).toHaveBeenCalled();
   });
 });
