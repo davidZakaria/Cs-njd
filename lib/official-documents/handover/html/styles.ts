@@ -16,7 +16,7 @@ html, body {
 body {
   font-family: "HandoverArabic", "Traditional Arabic", "Simplified Arabic", serif;
   font-size: 11pt;
-  line-height: 1.5;
+  line-height: 1.48;
   direction: rtl;
   text-align: right;
   color: #000;
@@ -24,34 +24,43 @@ body {
   print-color-adjust: exact;
 }
 
-.page-border-outer {
-  width: 210mm;
-  min-height: 297mm;
-  margin: 0 auto;
-  border: 0.6pt solid #000;
-  padding: 1.2pt;
-  background: #fff;
+.handover-green .print-frame {
+  border-style: solid;
 }
 
-.page-border-inner {
-  border: 0.6pt solid #000;
-  min-height: calc(297mm - 4pt);
+.handover-jura .print-frame {
+  border-style: dashed;
 }
 
-.page-frame {
-  width: 100%;
-  min-height: 100%;
-  margin: 0;
-  padding: 10mm 12mm 12mm;
-  border: none;
-  box-shadow: none;
-  position: relative;
-  background: #fff;
-  overflow: hidden;
+.print-frame {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.print-frame-outer {
+  top: 3mm;
+  left: 3mm;
+  right: 3mm;
+  bottom: 3mm;
+  border: 0.55pt solid #000;
+}
+
+.print-frame-inner {
+  top: 4.6mm;
+  left: 4.6mm;
+  right: 4.6mm;
+  bottom: 4.6mm;
+  border: 0.55pt solid #000;
+}
+
+.handover-jura .doc-body {
+  font-size: 11.5pt;
+  line-height: 1.62;
 }
 
 .watermark {
-  position: absolute;
+  position: fixed;
   left: 50%;
   top: 46%;
   transform: translate(-50%, -50%) rotate(-35deg);
@@ -60,40 +69,27 @@ body {
   color: rgba(160, 160, 160, 0.38);
   white-space: nowrap;
   pointer-events: none;
-  z-index: 2;
+  z-index: 999;
   user-select: none;
 }
 
-.page-content {
-  position: relative;
-  z-index: 3;
-}
-
 .doc-header {
-  position: relative;
-  min-height: 22mm;
-  margin-bottom: 5mm;
+  margin-bottom: 4mm;
 }
 
 .doc-logo {
-  position: absolute;
-  left: 0;
-  top: 0;
+  display: block;
   height: 14mm;
   width: auto;
   max-width: 72mm;
   object-fit: contain;
   object-position: left top;
-}
-
-.ltr-isolate {
-  unicode-bidi: isolate;
-  direction: ltr;
+  margin-bottom: 3mm;
 }
 
 .title-block {
   text-align: center;
-  padding-top: 1mm;
+  width: 100%;
 }
 
 .title-line {
@@ -122,8 +118,14 @@ body {
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 2px;
-  margin: 4mm 0 2mm;
+  margin: 3.5mm 0 2mm;
   font-size: 11pt;
+  break-after: avoid;
+}
+
+.section-page-break {
+  break-before: page;
+  page-break-before: always;
 }
 
 .declaration-title {
@@ -132,11 +134,12 @@ body {
   font-size: 16pt;
   text-decoration: underline;
   text-underline-offset: 3px;
-  margin: 5mm 0 3mm;
+  margin: 4mm 0 2.5mm;
+  break-after: avoid;
 }
 
 .field-line {
-  margin: 1.8mm 0;
+  margin: 1.5mm 0;
   line-height: 1.55;
 }
 
@@ -144,46 +147,61 @@ body {
   font-weight: 600;
 }
 
-.field-value {
+.field-value,
+.ltr-field {
   font-weight: 500;
+}
+
+.ltr-field {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+  text-align: left;
 }
 
 .field-row-spread {
   display: flex;
   flex-wrap: wrap;
-  gap: 2mm 10mm;
+  gap: 2mm 8mm;
   align-items: baseline;
-  margin: 1.8mm 0;
+  margin: 1.5mm 0;
 }
 
 p.justified,
 .justified {
   text-align: justify;
   text-justify: inter-word;
-  margin: 2mm 0;
-  line-height: 1.55;
+  margin: 1.8mm 0;
+  line-height: 1.52;
+  orphans: 2;
+  widows: 2;
 }
 
 .declaration-intro {
-  margin: 2mm 0;
+  margin: 1.5mm 0;
   font-weight: 600;
 }
 
 .declaration-intro-center {
   text-align: center;
   font-weight: 700;
-  margin: 2mm 0;
+  margin: 1.5mm 0;
 }
 
 .closing-line {
   text-align: center;
-  margin: 4mm 0 2mm;
+  margin: 3mm 0 2mm;
   font-weight: 600;
 }
 
 .signature-block {
-  margin: 5mm 0 6mm;
+  margin: 4mm 0 5mm;
   break-inside: avoid;
+}
+
+.signature-page-break {
+  break-after: page;
+  page-break-after: always;
 }
 
 .signature-heading {
@@ -191,14 +209,14 @@ p.justified,
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 2px;
-  margin-bottom: 6mm;
+  margin-bottom: 5mm;
 }
 
 .signature-row {
   display: flex;
   justify-content: space-between;
   gap: 8mm;
-  margin-top: 4mm;
+  margin-top: 3mm;
 }
 
 .signature-cell {
@@ -230,7 +248,15 @@ p.justified,
   margin-bottom: 3mm;
 }
 
-.page-break {
-  break-before: page;
+.violations-block {
+  break-inside: auto;
+}
+
+.violations-block p {
+  margin: 1.2mm 0;
+}
+
+.insurance-block {
+  margin-top: 2mm;
 }
 `.trim();

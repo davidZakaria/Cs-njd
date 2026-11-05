@@ -33,6 +33,7 @@ export type OfficialHandoverFieldKey =
   | "owner2_national_id"
   | "owner2_address"
   | "owner2_phone1"
+  | "owner2_phone2"
   | "owner2_email"
   | "unit_number"
   | "floor"
@@ -50,9 +51,9 @@ const OPTIONAL_MISSING_KEYS = new Set<OfficialHandoverFieldKey>([
   "owner1_phone2",
   "owner1_email",
   "owner2_phone1",
+  "owner2_phone2",
   "owner2_email",
 ]);
-
 export type OfficialHandoverFieldBuildResult = {
   values: Record<OfficialHandoverFieldKey, string>;
   missingKeys: OfficialHandoverFieldKey[];
@@ -126,6 +127,7 @@ export function buildOfficialHandoverFieldValues(
     owner2_national_id: coOwner?.nationalId ?? null,
     owner2_address: coOwner ? primaryClientAddress(coOwner) : null,
     owner2_phone1: coOwner ? allClientPhoneValues(coOwner)[0] ?? null : null,
+    owner2_phone2: coOwner ? allClientPhoneValues(coOwner)[1] ?? null : null,
     owner2_email: coOwner?.email ?? null,
     unit_number: unitNumber,
     floor,
@@ -170,6 +172,11 @@ export function buildOfficialHandoverFieldValues(
     nationalId: values.owner1_national_id,
     nationalId2: coOwner ? values.owner2_national_id : undefined,
     address: values.owner1_address,
+    nationality2: coOwner ? values.owner1_nationality : undefined,
+    address2: coOwner ? values.owner2_address : undefined,
+    phone1Owner2: coOwner ? values.owner2_phone1 : undefined,
+    phone2Owner2: coOwner ? values.owner2_phone2 ?? "—" : undefined,
+    emailOwner2: coOwner ? values.owner2_email : undefined,
     phone1: values.owner1_phone1,
     phone2: values.owner1_phone2 ?? formatOfficialHandoverMissingToken("owner1_phone2"),
     email: values.owner1_email,

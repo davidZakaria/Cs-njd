@@ -1,3 +1,8 @@
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
 import { chromium, type Browser } from "playwright";
 
 let browserPromise: Promise<Browser> | null = null;
@@ -68,4 +73,34 @@ export async function closeHandoverPdfBrowser(): Promise<void> {
     browserPromise = null;
     await browser.close();
   }
+}
+
+/** Rasterize every PDF page to PNG files (requires poppler `pdftoppm`). */
+export function renderPdfBufferToPngPages(
+  pdf: Uint8Array,
+  outDir: string,
+  filePrefix: string
+): string[] {
+  fs.mkdirSync(outDir, { recursive: true });
+  const tmpPdf = path.join(
+    os.tmpdir(),
+    `handover-${filePrefix}-${Date.now()}.pdf`
+  );
+  fs.writeFileSync(tmpPdf, pdf);
+  const outPrefix = path.join(outDir, filePrefix);
+  try {
+    execFileSync("pdftoppm", ["-png", "-r", "150", tmpPdf, outPrefix], {
+      stdio: "pipe",
+    });
+  } finally {
+    fs.unlinkSync(tmpPdf);
+  }
+  return fs
+    .readdirSync(outDir)
+    .filter(
+      (name) =>
+        name.startsWith(`${filePrefix}-`) && name.toLowerCase().endsWith(".png")
+    )
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .map((name) => path.join(outDir, name));
 }

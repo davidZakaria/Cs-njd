@@ -24,4 +24,5 @@ export {
   closeHandoverPdfBrowser,
   renderHandoverHtmlPageOnePng,
   renderHandoverHtmlToPdf,
+  renderPdfBufferToPngPages,
 } from "@/lib/official-documents/handover/html/chromium-pdf";

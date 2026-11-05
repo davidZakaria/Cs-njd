@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   normalizeWesternDigits,
+  formatLtrField,
   stripGreenSection2Lead,
   toHandoverHtml,
 } from "@/lib/official-documents/handover/html/utils";
@@ -20,10 +21,11 @@ describe("handover HTML utils", () => {
     expect(normalizeWesternDigits("١٧/٠٥/٢٠٢٦")).toBe("17/05/2026");
   });
 
-  it("wraps phone numbers in LTR bdi", () => {
-    const html = toHandoverHtml("تليفون: +201012345678");
+  it("wraps phone numbers in LTR isolate spans", () => {
+    const html = formatLtrField("+201012345678");
     expect(html).toContain('dir="ltr"');
     expect(html).toContain("+201012345678");
+    expect(html).toContain("<bdi");
   });
 
   it("uses a single primary address line", () => {

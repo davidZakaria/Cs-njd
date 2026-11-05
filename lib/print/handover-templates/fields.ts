@@ -81,8 +81,11 @@ export function buildHandoverFields(
 }
 
 export function interpolateHandoverText(text: string, fields: HandoverFieldValues): string {
+  const phonePlaceholder = fields.phone1.replace(/\s/g, "");
   return text
     .replace(/000000000000000/g, fields.nationalId)
+    .replace(/0000000000000/g, phonePlaceholder)
+    .replace(/رقم التليفون\s*:0+/g, `رقم التليفون :${fields.phone1}`)
     .replace(/\(00\/00\/0000\)/g, fields.handoverDate)
     .replace(/\(00\/00\/\s*م\)/g, fields.contractShortDate)
     .replace(

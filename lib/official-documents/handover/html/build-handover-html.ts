@@ -15,8 +15,18 @@ import type {
 } from "@/lib/print/handover-templates/types";
 
 import { handoverLogoAssetRelativePath } from "@/lib/official-documents/handover/constants";
+import {
+  buildJuraOwnerBlock,
+  splitJuraIntroText,
+  splitJuraSectionHeadingBody,
+} from "./jura-sections";
 import { HANDOVER_PRINT_CSS } from "./styles";
-import { escapeHtml, stripGreenSection2Lead, toHandoverHtml } from "./utils";
+import {
+  escapeHtml,
+  formatLtrField,
+  stripGreenSection2Lead,
+  toHandoverHtml,
+} from "./utils";
 
 const ARABIC_FONT_PATH = "lib/official-documents/assets/NotoNaskhArabic-Regular.ttf";
 
@@ -42,6 +52,10 @@ export function buildOfficialHandoverHtml(input: {
     ? '<div class="watermark" aria-hidden="true">مسودة — DRAFT</div>'
     : "";
 
+  const docClass = input.templateKey.startsWith("jura")
+    ? "handover-jura"
+    : "handover-green";
+
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -56,17 +70,13 @@ export function buildOfficialHandoverHtml(input: {
     ${HANDOVER_PRINT_CSS}
   </style>
 </head>
-<body>
-  <div class="page-border-outer">
-    <div class="page-border-inner">
-      <div class="page-frame">
-        ${watermark}
-        <div class="page-content">
-          ${buildHeaderHtml(logoDataUri, template, input.fields)}
-          ${body}
-        </div>
-      </div>
-    </div>
+<body class="${docClass}">
+  ${watermark}
+  <div class="print-frame print-frame-outer" aria-hidden="true"></div>
+  <div class="print-frame print-frame-inner" aria-hidden="true"></div>
+  <div class="doc-body">
+    ${buildHeaderHtml(logoDataUri, template, input.fields)}
+    ${body}
   </div>
 </body>
 </html>`;
@@ -96,9 +106,7 @@ function buildHeaderHtml(
   }
 
   const headerText = interpolateHandoverText(template.header, fields);
-  const dateMatch = headerText.match(
-    /إنه في يوم:[\s\S]*?(?=\d-أقـر|$)/
-  );
+  const dateMatch = headerText.match(/إنه في يوم:[\s\S]*?(?=\d-أقـر|$)/);
   const dateLine = dateMatch ? dateMatch[0].trim() : "";
 
   return `
@@ -121,7 +129,8 @@ function buildGreenAvenueBody(
     interpolateHandoverText(template.section2, fields)
   );
   const declaration = interpolateHandoverText(template.declaration, fields);
-  const { intro, introIdLine, mainBody, closing } = splitGreenDeclaration(declaration);
+  const { intro, introIdLine, mainBody, closing } =
+    splitGreenDeclaration(declaration);
   const violations = splitViolationItems(
     interpolateHandoverText(template.violationsBody, fields)
   );
@@ -133,24 +142,26 @@ function buildGreenAvenueBody(
     ? buildGreenDualRecipient(fields)
     : buildGreenSingleRecipient(fields);
 
-  const violationHtml = violations
+  const declarationIntroHtml = template.dual
+    ? buildGreenDualDeclarationIntro(fields)
+    : buildGreenSingleDeclarationIntro(intro, introIdLine);
+
+  const violationHtml = `<div class="violations-block">${violations
     .map((chunk) => `<p class="justified">${toHandoverHtml(chunk)}</p>`)
-    .join("\n");
+    .join("\n")}</div>`;
 
   return `
     ${section1Html}
     <h2 class="section-heading">ثانيا : بيانات الوحدة</h2>
     <p class="justified">${toHandoverHtml(section2)}</p>
     <h2 class="declaration-title">إقرار</h2>
-    ${intro ? `<p class="declaration-intro">${toHandoverHtml(intro)}</p>` : ""}
-    ${introIdLine ? `<p class="declaration-intro-center">${toHandoverHtml(introIdLine)}</p>` : ""}
+    ${declarationIntroHtml}
     ${mainBody ? `<p class="justified">${toHandoverHtml(mainBody)}</p>` : ""}
     ${closing ? `<p class="closing-line">${toHandoverHtml(closing)}</p>` : ""}
-    ${buildDeclarantSignatureBlock(template.dual)}
+    ${buildDeclarantSignatureBlock()}
     <h2 class="section-heading">${escapeHtml(template.violationsIntro)}</h2>
     ${violationHtml}
-    ${insurance ? `<p class="justified page-break">${toHandoverHtml(insurance)}</p>` : ""}
-    ${template.dual ? buildDualBuyerSignatures() : ""}
+    ${insurance ? `<p class="justified insurance-block">${toHandoverHtml(insurance)}</p>` : ""}
   `;
 }
 
@@ -161,19 +172,23 @@ function buildGreenSingleRecipient(fields: HandoverFieldValues): string {
     <p class="field-line">
       <span class="field-label">الجنسيه :</span> <span class="field-value">${toHandoverHtml(fields.nationality)}</span>
       &nbsp;&nbsp;&nbsp;
-      <span class="field-label">بطاقة الرقم القومى :</span> <span class="field-value">${toHandoverHtml(fields.nationalId)}</span>
+      <span class="field-label">بطاقة الرقم القومى :</span> ${formatLtrField(fields.nationalId)}
     </p>
     <p class="field-line"><span class="field-label">المقيم في :</span> <span class="field-value">${toHandoverHtml(fields.address)}</span></p>
-    <div class="field-row-spread">
-      <span><span class="field-label">تليفون 1:</span> <span class="field-value">${toHandoverHtml(fields.phone1)}</span></span>
-      <span><span class="field-label">تليفون 2:</span> <span class="field-value">${toHandoverHtml(fields.phone2)}</span></span>
-      <span><span class="field-label">البريد الالكتروني :</span> <span class="field-value">${toHandoverHtml(fields.email)}</span></span>
-    </div>`;
+    <p class="field-line"><span class="field-label">تليفون 1:</span> ${formatLtrField(fields.phone1)}</p>
+    <p class="field-line"><span class="field-label">تليفون 2:</span> ${formatLtrField(fields.phone2)}</p>
+    <p class="field-line"><span class="field-label">البريد الالكتروني :</span> ${formatLtrField(fields.email)}</p>`;
 }
 
 function buildGreenDualRecipient(fields: HandoverFieldValues): string {
   const owner2Name = fields.clientName2 ?? "—";
   const owner2Id = fields.nationalId2 ?? "—";
+  const owner2Nat = fields.nationality2 ?? fields.nationality;
+  const owner2Address = fields.address2 ?? "—";
+  const owner2Phone1 = fields.phone1Owner2 ?? "—";
+  const owner2Phone2 = fields.phone2Owner2 ?? "—";
+  const owner2Email = fields.emailOwner2 ?? "—";
+
   return `
     <h2 class="section-heading">اولا : - بيانات المستلم</h2>
     <div class="owner-block">
@@ -181,22 +196,50 @@ function buildGreenDualRecipient(fields: HandoverFieldValues): string {
       <p class="field-line">
         <span class="field-label">الجنسيه :</span> <span class="field-value">${toHandoverHtml(fields.nationality)}</span>
         &nbsp;&nbsp;
-        <span class="field-label">بطاقة الرقم القومى :</span> <span class="field-value">${toHandoverHtml(fields.nationalId)}</span>
+        <span class="field-label">بطاقة الرقم القومى :</span> ${formatLtrField(fields.nationalId)}
       </p>
       <p class="field-line"><span class="field-label">المقيم في :</span> <span class="field-value">${toHandoverHtml(fields.address)}</span></p>
-      <div class="field-row-spread">
-        <span><span class="field-label">تليفون 1:</span> <span class="field-value">${toHandoverHtml(fields.phone1)}</span></span>
-        <span><span class="field-label">البريد الالكتروني :</span> <span class="field-value">${toHandoverHtml(fields.email)}</span></span>
-      </div>
+      <p class="field-line"><span class="field-label">تليفون 1:</span> ${formatLtrField(fields.phone1)}</p>
+      <p class="field-line"><span class="field-label">تليفون 2:</span> ${formatLtrField(fields.phone2)}</p>
+      <p class="field-line"><span class="field-label">البريد الالكتروني :</span> ${formatLtrField(fields.email)}</p>
     </div>
     <div class="owner-block">
       <p class="field-line"><span class="field-label">2-الاسم :</span> <span class="field-value">${toHandoverHtml(owner2Name)}</span></p>
       <p class="field-line">
-        <span class="field-label">الجنسيه :</span> <span class="field-value">${toHandoverHtml(fields.nationality)}</span>
+        <span class="field-label">الجنسيه :</span> <span class="field-value">${toHandoverHtml(owner2Nat)}</span>
         &nbsp;&nbsp;
-        <span class="field-label">بطاقة الرقم القومى :</span> <span class="field-value">${toHandoverHtml(owner2Id)}</span>
+        <span class="field-label">بطاقة الرقم القومى :</span> ${formatLtrField(owner2Id)}
       </p>
+      <p class="field-line"><span class="field-label">المقيم في :</span> <span class="field-value">${toHandoverHtml(owner2Address)}</span></p>
+      <p class="field-line"><span class="field-label">تليفون 1:</span> ${formatLtrField(owner2Phone1)}</p>
+      <p class="field-line"><span class="field-label">تليفون 2:</span> ${formatLtrField(owner2Phone2)}</p>
+      <p class="field-line"><span class="field-label">البريد الالكتروني :</span> ${formatLtrField(owner2Email)}</p>
     </div>`;
+}
+
+function buildGreenDualDeclarationIntro(fields: HandoverFieldValues): string {
+  return `
+    <p class="declaration-intro">${escapeHtml("أقر أنا الموقع أدناه /")} <span class="field-value">${toHandoverHtml(fields.clientName)}</span> ${escapeHtml("أحمل بطاقة رقم قومى:")} ${formatLtrField(fields.nationalId)}</p>
+    <p class="declaration-intro">${escapeHtml("أقر أنا الموقع أدناه /")} <span class="field-value">${toHandoverHtml(fields.clientName2 ?? "—")}</span> ${escapeHtml("أحمل بطاقة رقم قومى:")} ${formatLtrField(fields.nationalId2 ?? "—")}</p>`;
+}
+
+function buildGreenSingleDeclarationIntro(
+  intro: string,
+  introIdLine: string
+): string {
+  let html = "";
+  if (intro) {
+    html += `<p class="declaration-intro">${toHandoverHtml(intro)}</p>`;
+  }
+  if (introIdLine) {
+    const idMatch = introIdLine.match(/(أحمل بطاق[eh] رقم قوم[ىي]:?\s*)([\s\S]+)/i);
+    if (idMatch) {
+      html += `<p class="declaration-intro-center">${escapeHtml(idMatch[1]!)}${formatLtrField(idMatch[2]!.trim())}</p>`;
+    } else {
+      html += `<p class="declaration-intro-center">${toHandoverHtml(introIdLine)}</p>`;
+    }
+  }
+  return html;
 }
 
 function splitGreenDeclaration(text: string) {
@@ -208,7 +251,7 @@ function splitGreenDeclaration(text: string) {
 
   let intro = introPart;
   let introIdLine = "";
-  const idMarker = introPart.match(/(أحمل بطاق[eh] رقم قوم[ىي]:?\s*[\d⟦\w]+)/i);
+  const idMarker = introPart.match(/(أحمل بطاق[eh] رقم قوم[ىy]:?\s*[\d⟦\w+\s]+)/i);
   if (idMarker) {
     intro = introPart.slice(0, idMarker.index).trim();
     introIdLine = idMarker[1] ?? "";
@@ -228,9 +271,12 @@ function splitGreenDeclaration(text: string) {
   return { intro, introIdLine, mainBody, closing };
 }
 
-function buildDeclarantSignatureBlock(_dual: boolean): string {
+function buildDeclarantSignatureBlock(options?: {
+  pageBreakAfter?: boolean;
+}): string {
+  const extraClass = options?.pageBreakAfter ? " signature-page-break" : "";
   return `
-    <div class="signature-block">
+    <div class="signature-block${extraClass}">
       <p class="signature-heading">المقر بما فيه</p>
       <div class="signature-row">
         <div class="signature-cell">
@@ -243,61 +289,34 @@ function buildDeclarantSignatureBlock(_dual: boolean): string {
     </div>`;
 }
 
-function buildDualBuyerSignatures(): string {
-  return `
-    <div class="signature-block page-break">
-      <div class="signature-row">
-        <div class="signature-cell">
-          <span class="label">توقيع المشتري الأول</span><span class="dotted-line"></span>
-        </div>
-        <div class="signature-cell">
-          <span class="label">توقيع المشتري الثاني</span><span class="dotted-line"></span>
-        </div>
-        <div class="signature-cell">
-          <span class="label">توقيع الشركة</span><span class="dotted-line"></span>
-        </div>
-      </div>
-    </div>`;
-}
-
 function buildJuraBody(template: JuraTemplate, fields: HandoverFieldValues): string {
-  const partsHtml = template.parts
-    .map((part) => {
-      const text = interpolateHandoverText(part.text, fields);
-      const heading = juraPartHeading(part.key, text);
-      const body = stripJuraHeadingPrefix(text);
-      return `
-        <h2 class="section-heading">${escapeHtml(heading)}</h2>
-        <p class="justified">${toHandoverHtml(body)}</p>`;
-    })
-    .join("\n");
+  const introPart = template.parts.find((p) => p.key.trim() === "intro");
+  const rest = template.parts.filter((p) => p.key.trim() !== "intro");
 
-  return `
-    ${partsHtml}
-    ${buildDeclarantSignatureBlock(template.dual)}
-    ${template.dual ? buildDualBuyerSignatures() : buildJuraSingleSignatures()}
-  `;
-}
+  let html = `<h2 class="section-heading">أولاً</h2>`;
+  html += buildJuraOwnerBlock(fields, template.dual);
 
-function buildJuraSingleSignatures(): string {
-  return `
-    <div class="signature-row">
-      <div class="signature-cell">
-        <span class="label">توقيع المالك</span><span class="dotted-line"></span>
-      </div>
-      <div class="signature-cell">
-        <span class="label">توقيع الشركة</span><span class="dotted-line"></span>
-      </div>
-    </div>`;
-}
+  if (introPart) {
+    const { declarationBody } = splitJuraIntroText(introPart.text);
+    if (declarationBody) {
+      html += `<p class="justified">${toHandoverHtml(interpolateHandoverText(declarationBody, fields))}</p>`;
+    }
+  }
 
-function juraPartHeading(partKey: string, text: string): string {
-  if (partKey === "intro") return "أولاً";
-  const inline = text.match(/^([^\s]{2,24}\s*:)/);
-  if (inline) return inline[1]!.replace(/\s*:$/, "").trim();
-  return partKey.replace(/:$/, "").trim();
-}
+  let breakBeforeNextSection = false;
+  for (const part of rest) {
+    const interpolated = interpolateHandoverText(part.text, fields);
+    const { heading, body } = splitJuraSectionHeadingBody(interpolated);
+    const pageBreakClass =
+      breakBeforeNextSection ? " section-page-break" : "";
+    breakBeforeNextSection = false;
+    html += `<h2 class="section-heading${pageBreakClass}">${escapeHtml(heading)}</h2>`;
+    html += `<p class="justified">${toHandoverHtml(body)}</p>`;
+    if (/ثالث/u.test(part.key) || /ثالث/u.test(heading)) {
+      html += buildDeclarantSignatureBlock({ pageBreakAfter: true });
+      breakBeforeNextSection = true;
+    }
+  }
 
-function stripJuraHeadingPrefix(text: string): string {
-  return text.replace(/^([^\s]{2,24}\s*:)\s*/, "").trim() || text;
+  return html;
 }
