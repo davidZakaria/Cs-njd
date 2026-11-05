@@ -43,6 +43,22 @@ export function stripGreenSection2Lead(text: string): string {
 
 export function stripGreenSection1Lead(text: string): string {
   return text
-    .replace(/^ا?ول(?:ا|اً)\s*:\s*[-–]?\s*بيانات المستلم\s*/iu, "")
+    .replace(/^[أا]?ول(?:ا|اً)\s*:\s*[-–]?\s*بيانات المستلم\s*/iu, "")
     .trim();
+}
+
+/** Drop dual-owner declaration preambles; keep main body from بأننى onward. */
+export function stripGreenDualDeclarationPreamble(text: string): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  const bodyStart = normalized.search(/بأننى|بأنني|بانني/i);
+  if (bodyStart >= 0) {
+    return normalized.slice(bodyStart).trim();
+  }
+  return normalized
+    .replace(/أقر أنا الموقع أدناه[\s\S]*?(?=بأننى|بأنني|بانني|$)/gi, "")
+    .trim();
+}
+
+export function countGreenDualOwnerDeclarationIntros(text: string): number {
+  return (text.match(/أقر أنا الموقع أدناه/g) ?? []).length;
 }

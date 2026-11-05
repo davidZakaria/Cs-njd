@@ -28,6 +28,7 @@ import { HANDOVER_PRINT_CSS } from "./styles";
 import {
   escapeHtml,
   formatLtrField,
+  stripGreenDualDeclarationPreamble,
   stripGreenSection1Lead,
   stripGreenSection2Lead,
   toHandoverHtml,
@@ -137,8 +138,9 @@ function buildGreenAvenueBody(
     interpolateHandoverText(template.section2, fields)
   );
   const declaration = interpolateHandoverText(template.declaration, fields);
-  const { intro, introIdLine, mainBody, closing } =
-    splitGreenDeclaration(declaration);
+  const { intro, introIdLine, mainBody, closing } = splitGreenDeclaration(
+    template.dual ? stripGreenDualDeclarationPreamble(declaration) : declaration
+  );
   const violations = splitViolationItems(
     interpolateHandoverText(template.violationsBody, fields)
   );
@@ -398,6 +400,7 @@ function renderGreenAvenueDraftBodyHtml(
 
   let html = "";
   let sawDeclarationSignatures = false;
+  let renderedDualDeclaration = false;
 
   for (const chunk of chunks) {
     const lines = chunk.split("\n");
@@ -433,9 +436,24 @@ function renderGreenAvenueDraftBodyHtml(
           ""
         );
       } else {
-        const body = stripGreenSection1Lead(bodyText || chunk.replace(/^[^\n]+\n?/u, "").trim());
-        html += `<p class="justified">${toHandoverHtml(body)}</p>`;
+        html += buildGreenSingleRecipient(fields).replace(
+          /<h2 class="section-heading">[^<]+<\/h2>/,
+          ""
+        );
       }
+      continue;
+    }
+
+    if (
+      !template.dual &&
+      /^الاسم\s*:/u.test(chunk.trim()) &&
+      !/^1-الاسم/u.test(chunk.trim())
+    ) {
+      html += `<h2 class="section-heading">اولا : - بيانات المستلم</h2>`;
+      html += buildGreenSingleRecipient(fields).replace(
+        /<h2 class="section-heading">[^<]+<\/h2>/,
+        ""
+      );
       continue;
     }
 
@@ -446,12 +464,14 @@ function renderGreenAvenueDraftBodyHtml(
       continue;
     }
 
-    if (/^إقرار/u.test(heading)) {
-      const declarationSource =
-        bodyText || chunk.replace(/^إقرار\s*/u, "").trim();
+    if (/^إقرار/u.test(heading) || (template.dual && /^أقر أنا الموقع/u.test(chunk.trim()))) {
+      const declarationSource = /^إقرار/u.test(heading)
+        ? bodyText || chunk.replace(/^إقرار\s*/u, "").trim()
+        : chunk.trim();
       html += `<h2 class="declaration-title">إقرار</h2>`;
       if (template.dual) {
-        const { mainBody, closing } = splitGreenDeclaration(declarationSource);
+        const mainSource = stripGreenDualDeclarationPreamble(declarationSource);
+        const { mainBody, closing } = splitGreenDeclaration(mainSource);
         html += buildGreenDualDeclarationIntro(fields);
         if (mainBody) {
           html += `<p class="justified">${toHandoverHtml(mainBody)}</p>`;
@@ -459,11 +479,16 @@ function renderGreenAvenueDraftBodyHtml(
         if (closing) {
           html += `<p class="closing-line">${toHandoverHtml(closing)}</p>`;
         }
+        renderedDualDeclaration = true;
       } else {
         html += `<p class="justified">${toHandoverHtml(declarationSource)}</p>`;
       }
       html += buildDeclarantSignatureBlock({ dual: template.dual });
       sawDeclarationSignatures = true;
+      continue;
+    }
+
+    if (template.dual && renderedDualDeclaration && /^أقر أنا الموقع/u.test(chunk.trim())) {
       continue;
     }
 

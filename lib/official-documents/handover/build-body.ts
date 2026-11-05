@@ -59,6 +59,23 @@ function serializeGreenDualSection1(fields: HandoverFieldValues): string {
   );
 }
 
+function serializeGreenSingleSection1(fields: HandoverFieldValues): string {
+  return [
+    `الاسم : ${fields.clientName}`,
+    `الجنسيه : ${fields.nationality}     بطاقة الرقم القومى : ${fields.nationalId}`,
+    `المقيم في : ${fields.address} تليفون 1: ${fields.phone1}                                    تليفون 2: ${fields.phone2}                                       البريد الالكتروني : ${fields.email}`,
+  ].join("\n");
+}
+
+/** Single newline after title so draft chunking keeps titled sections with body. */
+function greenSectionChunk(title: string, body: string): string {
+  return `${title}\n${body}`.trim();
+}
+
+function greenDeclarationChunk(title: string, body: string): string {
+  return greenSectionChunk(title, body);
+}
+
 function serializeGreenDualDeclaration(
   template: GreenAvenueTemplate,
   fields: HandoverFieldValues
@@ -85,7 +102,7 @@ function serializeGreenAvenue(
 
   const section1 = template.dual
     ? serializeGreenDualSection1(fields)
-    : stripGreenSection1Lead(interpolateHandoverText(template.section1, fields));
+    : serializeGreenSingleSection1(fields);
   const section2 = stripGreenSection2Lead(
     interpolateHandoverText(template.section2, fields)
   );
@@ -101,9 +118,9 @@ function serializeGreenAvenue(
 
   const chunks = [
     headerLines,
-    section("أولاً: بيانات المستلم", section1),
-    section("ثانياً: بيانات الوحدة", section2),
-    section("إقرار", declaration),
+    greenSectionChunk("أولاً: بيانات المستلم", section1),
+    greenSectionChunk("ثانياً: بيانات الوحدة", section2),
+    greenDeclarationChunk("إقرار", declaration),
     section(template.violationsIntro, violations),
   ];
   if (insurance) {

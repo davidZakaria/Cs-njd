@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildOfficialHandoverDraftBody } from "@/lib/official-documents/handover/build-body";
+import { countGreenDualOwnerDeclarationIntros } from "@/lib/official-documents/handover/html/utils";
 import { buildOfficialHandoverHtml } from "@/lib/official-documents/handover/render-pdf";
 import type { HandoverFieldValues } from "@/lib/print/handover-templates/types";
 
@@ -64,6 +65,9 @@ describe("official handover PDF uses edited draft body", () => {
     expect(html).toMatch(/insurance-block|تأمين/u);
     expect(html).toContain("Demo Owner");
     expect(html).toContain("26309100200715");
+    expect(html).toContain("+201000000001");
+    expect(html).toContain("owner@example.test");
+    expect(html).toContain("Sample Street");
   });
 
   it("does not duplicate dual Green Avenue owner names in serialized draft", () => {
@@ -89,5 +93,6 @@ describe("official handover PDF uses edited draft body", () => {
     });
     expect(html.match(/<div class="owner-block">/g)?.length ?? 0).toBe(2);
     expect(html).not.toMatch(/Owner One Owner One/);
+    expect(countGreenDualOwnerDeclarationIntros(html)).toBe(2);
   });
 });

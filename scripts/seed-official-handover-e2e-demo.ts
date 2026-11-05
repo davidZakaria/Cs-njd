@@ -44,6 +44,7 @@ async function createDemoClient(suffix: string) {
   const email = `demo-owner-${suffix}@example.test`;
   const name = `Demo Owner ${suffix}`;
   const phone1 = "+201555010001";
+  const phone2 = "+201555010002";
   const address1 = "12 Demo Street, Cairo";
 
   const byEmail = await prisma.client.findFirst({ where: { email } });
@@ -58,6 +59,7 @@ async function createDemoClient(suffix: string) {
         nationalId: keepNationalId,
         name,
         phone1,
+        phone2,
         address1,
         email,
       },
@@ -70,9 +72,13 @@ async function createDemoClient(suffix: string) {
       nationalId,
       email,
       phone1,
+      phone2,
       address1,
       phones: {
-        create: [{ phone: phone1, sortOrder: 0 }],
+        create: [
+          { phone: phone1, sortOrder: 0 },
+          { phone: phone2, sortOrder: 1 },
+        ],
       },
       addresses: {
         create: [{ address: address1, sortOrder: 0 }],

@@ -71,6 +71,9 @@ function assertMandatoryHandoverClauses(pdfPath: string, variant: string) {
 import { chromium, type Page } from "playwright";
 import { authenticator } from "otplib";
 import { PrismaClient } from "@prisma/client";
+import { buildOfficialHandoverFieldValues } from "@/lib/official-documents/handover/field-values";
+import { countGreenDualOwnerDeclarationIntros } from "@/lib/official-documents/handover/html/utils";
+import type { UnitMergeInput } from "@/lib/official-documents/merge-fields";
 
 authenticator.options = { window: 5 };
 
@@ -249,6 +252,119 @@ async function waitForNewGeneratedDocumentId(
     await new Promise((r) => setTimeout(r, 400));
   }
   throw new Error(`Timed out waiting for new generated document on unit ${unitId}`);
+}
+
+function pdfPageOneText(pdfPath: string): string {
+  return execFileSync("pdftotext", ["-f", "1", "-l", "1", pdfPath, "-"], { encoding: "utf8" });
+}
+
+async function loadUnitMergeInput(unitId: string): Promise<UnitMergeInput> {
+  const unit = await prisma.unit.findUniqueOrThrow({
+    where: { id: unitId },
+    include: {
+      project: true,
+      client: {
+        include: {
+          phones: { orderBy: { sortOrder: "asc" } },
+          addresses: { orderBy: { sortOrder: "asc" } },
+        },
+      },
+      unitClients: {
+        include: {
+          client: {
+            include: {
+              phones: { orderBy: { sortOrder: "asc" } },
+              addresses: { orderBy: { sortOrder: "asc" } },
+            },
+          },
+        },
+      },
+      contractWorkflow: true,
+      finishing: true,
+    },
+  });
+  return unit as unknown as UnitMergeInput;
+}
+
+function assertPdfPageContainsValue(
+  pageText: string,
+  value: string,
+  label: string,
+  pdfPath: string
+) {
+  const needle = normalizePdfExtractedText(value);
+  if (!needle || needle === "—") return;
+  const pageNorm = normalizePdfExtractedText(pageText);
+  const compactPage = pageNorm.replace(/ /g, "");
+  const compactNeedle = needle.replace(/ /g, "");
+  if (!compactPage.includes(compactNeedle)) {
+    throw new Error(`${pdfPath}: page-1 missing ${label} (expected "${value}")`);
+  }
+}
+
+async function assertHandoverPdfFieldIntegrity(
+  unitId: string,
+  pdfPath: string,
+  variant: string
+) {
+  const unit = await loadUnitMergeInput(unitId);
+  const { handoverFields } = buildOfficialHandoverFieldValues(unit, "ar");
+  const fullText = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
+  const page1 = pdfPageOneText(pdfPath);
+
+  if (variant.includes("green-avenue-dual")) {
+    const intros = countGreenDualOwnerDeclarationIntros(fullText);
+    if (intros !== 2) {
+      throw new Error(
+        `${pdfPath}: expected exactly 2 "أقر أنا الموقع" dual declaration intros, got ${intros}`
+      );
+    }
+    assertPdfPageContainsValue(page1, handoverFields.clientName, "owner1 name", pdfPath);
+    assertPdfPageContainsValue(
+      page1,
+      handoverFields.clientName2 ?? "",
+      "owner2 name",
+      pdfPath
+    );
+    assertPdfPageContainsValue(page1, handoverFields.nationalId, "owner1 nationalId", pdfPath);
+    assertPdfPageContainsValue(
+      page1,
+      handoverFields.nationalId2 ?? "",
+      "owner2 nationalId",
+      pdfPath
+    );
+  }
+
+  if (variant === "green-avenue" || variant === "green-avenue-no-insurance") {
+    assertPdfPageContainsValue(page1, handoverFields.clientName, "owner1 name", pdfPath);
+    assertPdfPageContainsValue(page1, handoverFields.phone1, "owner1 phone1", pdfPath);
+    assertPdfPageContainsValue(page1, handoverFields.email, "owner1 email", pdfPath);
+    assertPdfPageContainsValue(page1, handoverFields.address, "owner1 address", pdfPath);
+    assertPdfPageContainsValue(page1, handoverFields.nationalId, "owner1 nationalId", pdfPath);
+    const pageNorm = normalizePdfExtractedText(page1);
+    const addr = normalizePdfExtractedText(handoverFields.address);
+    const id = normalizePdfExtractedText(handoverFields.nationalId);
+    if (addr && id && pageNorm.includes(id.replace(/ /g, "")) && !pageNorm.includes(addr.replace(/ /g, ""))) {
+      throw new Error(
+        `${pdfPath}: owner1 nationalId present on page-1 but address missing (field association bug)`
+      );
+    }
+  }
+
+  const draft = await getLatestHandoverDraft(unitId);
+  if (draft && (variant === "green-avenue" || variant === "green-avenue-no-insurance")) {
+    const version = await prisma.officialDocumentTextDraftVersion.findFirst({
+      where: { draftId: draft.id },
+      orderBy: { createdAt: "desc" },
+    });
+    const body = version?.body ?? draft.currentBody;
+    if (!body.includes(handoverFields.phone1)) {
+      throw new Error(`${pdfPath}: saved draft body missing seeded phone1 before PDF render path`);
+    }
+    if (!body.includes(handoverFields.email)) {
+      throw new Error(`${pdfPath}: saved draft body missing seeded email before PDF render path`);
+    }
+  }
 }
 
 function assertHandoverPdfLayout(pdfPath: string, variant: string) {
@@ -782,6 +898,7 @@ async function generateHandoverOnUnit(
   assertPdfEditFidelity(canonicalPdf, editMeta, "authenticated-GET", locale);
   assertMandatoryHandoverClauses(canonicalPdf, variant);
   assertHandoverPdfLayout(canonicalPdf, variant);
+  await assertHandoverPdfFieldIntegrity(unitId, canonicalPdf, variant);
 
   return { pdfPath: canonicalPdf, downloadUrl, editMarker, editMeta, documentId };
 }
