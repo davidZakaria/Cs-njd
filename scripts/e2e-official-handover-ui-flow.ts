@@ -341,21 +341,22 @@ function assertPdfEditFidelity(
 
 async function appendMarkerInEditor(
   page: Page,
-  locale: "en" | "ar",
+  _locale: "en" | "ar",
   marker: string
 ) {
+  void _locale;
   const textarea = handoverEditorTextarea(page);
   await textarea.waitFor({ state: "visible" });
   const current = await textarea.inputValue();
   if (current.includes(marker)) return;
-  await textarea.focus();
-  await textarea.press("Control+End").catch(() => textarea.press("End"));
-  await page.keyboard.type(`\n\n${marker}`, { delay: 12 });
+  const next = `${current.trimEnd()}\n\n${marker}`;
+  await textarea.fill(next);
+  await textarea.dispatchEvent("input");
   await textarea.dispatchEvent("change");
   await page.waitForTimeout(200);
   const after = await textarea.inputValue();
   if (!after.includes(marker)) {
-    throw new Error(`Editor DOM missing marker after typing: ${marker}`);
+    throw new Error(`Editor DOM missing marker after append: ${marker}`);
   }
 }
 
