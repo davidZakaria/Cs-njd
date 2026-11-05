@@ -253,11 +253,14 @@ async function applyFullLegalEdits(
   const phraseOriginal = phraseMatch[0]!;
   const phraseReplacement = `${phraseOriginal} E2E_REPLACED`;
 
-  const deleteMatch = body.match(
-    /وفى حالة مخالفة اياً مما ذكر[\s\S]{0,220}?حكم قضائي\./u
-  );
+  const deletePattern = variant.startsWith("jura")
+    ? /وليس لديه أي تحفظات ، وتم تسليم الوحدة رقم \([^)]*\) بعماره \([^)]*\) بالدور ?\([^)]*\) كامله التشطيب ،/u
+    : /وفى حالة مخالفة اياً مما ذكر[\s\S]{0,220}?حكم قضائي\./u;
+  const deleteMatch = body.match(deletePattern);
   if (!deleteMatch) {
-    throw new Error("E2E setup: optional violations sentence for deletion test not found");
+    throw new Error(
+      `E2E setup: optional sentence for deletion test not found (${variant})`
+    );
   }
   const deletedSentence = deleteMatch[0]!;
   const deletedSentenceFragment = deletedSentence.slice(0, 40);

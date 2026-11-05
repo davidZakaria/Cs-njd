@@ -494,12 +494,8 @@ function renderJuraDraftBodyHtml(
 
     if (i === 0 || /^أولاً|^1-/u.test(headingLine)) {
       html += `<h2 class="section-heading">أولاً</h2>`;
-      html += buildJuraOwnerBlock(fields, template.dual);
-      if (bodyText) {
-        html += `<p class="justified">${toHandoverHtml(bodyText)}</p>`;
-      } else if (!/^أولاً|^1-/u.test(headingLine)) {
-        html += `<p class="justified">${toHandoverHtml(chunk)}</p>`;
-      }
+      const introSource = bodyText || chunk.replace(/^intro\s*/i, "").trim() || chunk;
+      html += `<p class="justified">${toHandoverHtml(introSource)}</p>`;
       partIndex += 1;
       continue;
     }
