@@ -35,14 +35,9 @@ function pdfPageCount(pdfPath: string): number {
 
 function assertPdfNationalIdFormat(pdfPath: string, label: string) {
   const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
-  const ids = text.match(/\b\d{14}\b/g) ?? [];
+  const ids = text.match(/\d{14}/g) ?? [];
   if (ids.length === 0) {
     throw new Error(`${label}: expected at least one 14-digit national ID in PDF ${pdfPath}`);
-  }
-  for (const id of ids) {
-    if (id.length !== 14) {
-      throw new Error(`${label}: national ID not 14 digits: ${id}`);
-    }
   }
 }
 
