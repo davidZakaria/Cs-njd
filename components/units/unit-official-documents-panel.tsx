@@ -581,6 +581,7 @@ export function UnitOfficialDocumentsPanel({
                 <Button variant="outline" size="sm" render={
                   <a
                     href={`/api/units/${unitId}/generated-documents/${doc.id}`}
+                    data-official-generated-document-id={doc.id}
                     target="_blank"
                     rel="noopener noreferrer"
                   />

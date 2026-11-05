@@ -102,6 +102,7 @@ type E2eVariantRecord = {
   unitId: string;
   pdfPath: string;
   downloadUrl: string;
+  documentId: string;
   sha256: string;
   pageCount: number;
   pagePngs: string[];
@@ -191,9 +192,90 @@ async function login(page: Page, locale: "en" | "ar", email: string, password: s
 }
 
 function legalEditMarker(locale: "en" | "ar", variant: string): string {
-  return locale === "ar"
-    ? `LEGAL_E2E_تعديل_${variant}`
-    : `LEGAL_E2E_edit_${variant}`;
+  return `LEGAL_E2E_NONCE_${locale}_${variant}`;
+}
+
+function normalizePdfExtractedText(text: string): string {
+  return text
+    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "")
+    .replace(/\u00ad/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function pdfTextIncludesExactMarker(text: string, marker: string): boolean {
+  if (text.includes(marker)) return true;
+  const normalized = normalizePdfExtractedText(text);
+  const normalizedMarker = normalizePdfExtractedText(marker);
+  if (normalized.includes(normalizedMarker)) return true;
+  const compact = normalized.replace(/ /g, "");
+  const compactMarker = normalizedMarker.replace(/ /g, "");
+  return compact.includes(compactMarker);
+}
+
+function assertMarkerLocaleInPdf(text: string, marker: string, locale: "en" | "ar") {
+  const other = locale === "en" ? "ar" : "en";
+  const wrongNeedle = `LEGAL_E2E_NONCE_${other}_`;
+  if (text.includes(wrongNeedle)) {
+    throw new Error(
+      `PDF contains ${other} locale E2E nonce but expected ${locale} marker ${marker}`
+    );
+  }
+}
+
+async function listGeneratedDocumentIds(unitId: string): Promise<string[]> {
+  const rows = await prisma.unitGeneratedDocument.findMany({
+    where: { unitId },
+    orderBy: { generatedAt: "desc" },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
+}
+
+async function waitForNewGeneratedDocumentId(
+  unitId: string,
+  knownIds: Set<string>,
+  timeoutMs = 120_000
+): Promise<string> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const rows = await prisma.unitGeneratedDocument.findMany({
+      where: { unitId },
+      orderBy: { generatedAt: "desc" },
+      select: { id: true },
+    });
+    const fresh = rows.find((r) => !knownIds.has(r.id));
+    if (fresh) return fresh.id;
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  throw new Error(`Timed out waiting for new generated document on unit ${unitId}`);
+}
+
+function assertHandoverPdfLayout(pdfPath: string, variant: string) {
+  const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
+  if (/\bintro\b/i.test(text)) {
+    throw new Error(`${pdfPath}: leaked template metadata label "intro" in PDF text`);
+  }
+  if (variant.startsWith("jura")) {
+    if (/(^|\n)\s*ثان(?:يا|ي)\s*(\n|$)/m.test(text)) {
+      throw new Error(`${pdfPath}: bare "ثانيا" line without body in Jura PDF`);
+    }
+  }
+  if (variant.includes("green-avenue-dual")) {
+    const ownerLabels = text.match(/1-الاسم/g) ?? [];
+    if (ownerLabels.length > 2) {
+      throw new Error(
+        `${pdfPath}: duplicated Green dual recipient block (${ownerLabels.length}× "1-الاسم")`
+      );
+    }
+  }
+  const pageDir = path.join(path.dirname(pdfPath), ".layout-check", path.basename(pdfPath, ".pdf"));
+  fs.rmSync(pageDir, { recursive: true, force: true });
+  const pngs = rasterizePdf(pdfPath, pageDir, "p");
+  const lastPng = pngs[pngs.length - 1];
+  if (lastPng && fs.statSync(lastPng).size < 12_000) {
+    throw new Error(`${pdfPath}: last page appears nearly blank (${lastPng})`);
+  }
 }
 
 async function getLatestHandoverDraft(unitId: string) {
@@ -237,7 +319,6 @@ async function resetLegacyDraftForE2e(manifest: Manifest) {
   });
   if (!admin) throw new Error("Missing SUPER_ADMIN for legacy reset");
 
-  await prisma.unitGeneratedDocument.deleteMany({ where: { textDraftId: draftId } });
   await prisma.officialDocumentTextDraftVersion.deleteMany({ where: { draftId } });
   await prisma.officialDocumentTextDraft.update({
     where: { id: draftId },
@@ -261,11 +342,7 @@ async function resetLegacyDraftForE2e(manifest: Manifest) {
 }
 
 async function resetMainLoopHandoverDrafts(manifest: Manifest) {
-  const unitIds = manifest.units
-    .filter(
-      (u) => !manifest.legacyDraft || u.unitId !== manifest.legacyDraft.unitId
-    )
-    .map((u) => u.unitId);
+  const unitIds = manifest.units.map((u) => u.unitId);
   const drafts = await prisma.officialDocumentTextDraft.findMany({
     where: {
       unitId: { in: unitIds },
@@ -351,10 +428,11 @@ function assertPdfEditFidelity(
     phraseReplacement: string;
     deletedSentenceFragment: string;
   },
-  label: string
+  label: string,
+  locale: "en" | "ar"
 ) {
   const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
-  assertPdfContainsMarker(pdfPath, input.editMarker, label);
+  assertPdfContainsMarker(pdfPath, input.editMarker, label, locale);
   if (!text.includes("E2E_REPLACED") && !text.includes(input.phraseReplacement)) {
     throw new Error(`${label}: PDF missing replacement phrase (expected E2E_REPLACED or edited Arabic phrase)`);
   }
@@ -434,28 +512,21 @@ async function clickGenerateDraftExpectLegacyBlock(page: Page, locale: "en" | "a
 }
 
 function pdfTextIncludesMarker(text: string, marker: string): boolean {
-  if (text.includes(marker)) return true;
-  const compact = text.replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\s]/g, "");
-  const structured = marker.match(/^LEGAL_E2E_(edit_|تعديل_)(.+)$/);
-  if (structured) {
-    const variant = structured[2]!;
-    const variantEscaped = variant.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (new RegExp(`LEGAL_E2E_?(?:edit_|تعديل_)?${variantEscaped}`, "u").test(compact)) {
-      return true;
-    }
-    return (
-      /LEGAL_E2E/i.test(compact) &&
-      compact.includes(variant) &&
-      (/تعديل/u.test(compact) || /edit/i.test(compact))
-    );
-  }
-  return compact.includes(marker.replace(/\s/g, ""));
+  return pdfTextIncludesExactMarker(text, marker);
 }
 
-function assertPdfContainsMarker(pdfPath: string, marker: string, label: string) {
+function assertPdfContainsMarker(
+  pdfPath: string,
+  marker: string,
+  label: string,
+  locale?: "en" | "ar"
+) {
   const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
-  if (!pdfTextIncludesMarker(text, marker)) {
-    throw new Error(`${label}: pdftotext missing marker "${marker}" in ${pdfPath}`);
+  if (!pdfTextIncludesExactMarker(text, marker)) {
+    throw new Error(`${label}: pdftotext missing exact marker "${marker}" in ${pdfPath}`);
+  }
+  if (locale) {
+    assertMarkerLocaleInPdf(text, marker, locale);
   }
   return text;
 }
@@ -557,6 +628,7 @@ async function generateHandoverOnUnit(
   downloadUrl: string;
   editMarker: string;
   editMeta: LegalEditMeta;
+  documentId: string;
 }> {
   await page.goto(`${BASE_URL}/${locale}/units/${unitId}`, {
     waitUntil: "domcontentloaded",
@@ -652,46 +724,39 @@ async function generateHandoverOnUnit(
     throw new Error("Version history missing Load into editor control after save");
   }
 
+  const knownDocIds = new Set(await listGeneratedDocumentIds(unitId));
   await generateDraftInDialog(page, locale);
   await page.getByRole("dialog").waitFor({ state: "hidden", timeout: 30_000 }).catch(() => {});
 
-  const downloadControl = page
-    .getByRole("link", {
-      name: locale === "ar" ? /تحميل PDF/i : /Download PDF/i,
-    })
-    .first();
-  const downloadButton = page
-    .getByRole("button", {
-      name: locale === "ar" ? /تحميل PDF/i : /Download PDF/i,
-    })
-    .first();
-  const downloadTarget = (await downloadControl.isVisible().catch(() => false))
-    ? downloadControl
-    : downloadButton;
-  await downloadTarget.waitFor({ state: "visible", timeout: 30_000 });
+  const documentId = await waitForNewGeneratedDocumentId(unitId, knownDocIds);
+  const downloadUrl = `/api/units/${unitId}/generated-documents/${documentId}`;
 
-  const href =
-    (await downloadTarget.getAttribute("href")) ??
-    (await downloadTarget
-      .locator("a")
-      .first()
-      .getAttribute("href")
-      .catch(() => null));
-  if (!href) throw new Error("Missing download href");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  const downloadLink = page
+    .locator(`[data-official-generated-document-id="${documentId}"]`)
+    .first();
+  await downloadLink.waitFor({ state: "visible", timeout: 60_000 });
 
   const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
-  await downloadTarget.click();
+  await downloadLink.click();
   const download = await downloadPromise;
-  const pdfPath = path.join(ARTIFACT_ROOT, "pdfs", `${locale}-${path.basename(href)}.pdf`);
-  fs.mkdirSync(path.dirname(pdfPath), { recursive: true });
-  await download.saveAs(pdfPath);
   const canonicalPdf = path.join(ARTIFACT_ROOT, "pdfs", `${locale}-${variant}.pdf`);
-  const getBuf = await (await page.request.get(`${BASE_URL}${href}`)).body();
-  fs.writeFileSync(canonicalPdf, getBuf);
-  assertPdfEditFidelity(canonicalPdf, editMeta, "authenticated-GET");
-  assertMandatoryHandoverClauses(canonicalPdf, variant);
+  await download.saveAs(canonicalPdf);
 
-  return { pdfPath: canonicalPdf, downloadUrl: href, editMarker, editMeta };
+  const getStatus = await page.request.get(`${BASE_URL}${downloadUrl}`);
+  if (!getStatus.ok()) {
+    throw new Error(`GET stored document failed: ${getStatus.status()} ${downloadUrl}`);
+  }
+  const getBuf = await getStatus.body();
+  if (!getBuf.subarray(0, 5).toString("utf8").startsWith("%PDF")) {
+    throw new Error(`GET body is not PDF for ${downloadUrl}`);
+  }
+  fs.writeFileSync(canonicalPdf, getBuf);
+  assertPdfEditFidelity(canonicalPdf, editMeta, "authenticated-GET", locale);
+  assertMandatoryHandoverClauses(canonicalPdf, variant);
+  assertHandoverPdfLayout(canonicalPdf, variant);
+
+  return { pdfPath: canonicalPdf, downloadUrl, editMarker, editMeta, documentId };
 }
 
 async function verifyPdfIsOfficial(pdfPath: string, editMarker: string): Promise<void> {
@@ -783,28 +848,34 @@ async function runLegacyDraftFlow(
     throw new Error("Legacy USER_EDIT_KEEP version row disappeared from DB history");
   }
 
+  const knownDocIds = new Set(await listGeneratedDocumentIds(unitId));
   await generateDraftInDialog(page, locale);
   await page.getByRole("dialog").waitFor({ state: "hidden", timeout: 120_000 }).catch(() => {});
 
-  const downloadControl = page
-    .getByRole("link", {
-      name: locale === "ar" ? /تحميل PDF/i : /Download PDF/i,
-    })
+  const documentId = await waitForNewGeneratedDocumentId(unitId, knownDocIds);
+  const downloadUrl = `/api/units/${unitId}/generated-documents/${documentId}`;
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  const downloadLink = page
+    .locator(`[data-official-generated-document-id="${documentId}"]`)
     .first();
-  await downloadControl.waitFor({ state: "visible", timeout: 60_000 });
-  const href = await downloadControl.getAttribute("href");
-  if (!href) throw new Error("Legacy flow: missing download href after generate");
+  await downloadLink.waitFor({ state: "visible", timeout: 60_000 });
 
   const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
-  await downloadControl.click();
+  await downloadLink.click();
   const download = await downloadPromise;
   const pdfPath = path.join(ARTIFACT_ROOT, "pdfs", `${locale}-legacy-after-proposed.pdf`);
   await download.saveAs(pdfPath);
-  assertPdfContainsMarker(pdfPath, legacyMarker, `legacy-${locale}-download`);
-  const getBuf = await (await page.request.get(`${BASE_URL}${href}`)).body();
+  assertPdfContainsMarker(pdfPath, legacyMarker, `legacy-${locale}-download`, locale);
+
+  const getStatus = await page.request.get(`${BASE_URL}${downloadUrl}`);
+  if (!getStatus.ok()) {
+    throw new Error(`Legacy GET failed: ${getStatus.status()} ${downloadUrl}`);
+  }
+  const getBuf = await getStatus.body();
   const getTmp = path.join(ARTIFACT_ROOT, "pdfs", `.get-${locale}-legacy.pdf`);
   fs.writeFileSync(getTmp, getBuf);
-  assertPdfContainsMarker(getTmp, legacyMarker, `legacy-${locale}-GET`);
+  assertPdfContainsMarker(getTmp, legacyMarker, `legacy-${locale}-GET`, locale);
 
   await page.screenshot({
     path: path.join(ARTIFACT_ROOT, `legacy-draft-${locale}-editor.png`),
@@ -927,15 +998,6 @@ async function main() {
       }
 
       for (const unit of manifest.units) {
-        if (
-          manifest.legacyDraft &&
-          unit.unitId === manifest.legacyDraft.unitId
-        ) {
-          report.steps.push(
-            `${locale}: skip ${unit.variant} in main loop (legacy flow owns this unit)`
-          );
-          continue;
-        }
         const shot = path.join(
           ARTIFACT_ROOT,
           "screenshots",
@@ -951,15 +1013,7 @@ async function main() {
           unit.variant,
           shot
         );
-        const { pdfPath, downloadUrl } = result;
-        const getStatus = await page.request.get(`${BASE_URL}${downloadUrl}`);
-        if (!getStatus.ok()) {
-          throw new Error(`GET stored document failed: ${getStatus.status()} ${downloadUrl}`);
-        }
-        const getBuf = await getStatus.body();
-        if (!getBuf.subarray(0, 5).toString("utf8").startsWith("%PDF")) {
-          throw new Error(`GET body is not PDF for ${downloadUrl}`);
-        }
+        const { pdfPath, downloadUrl, documentId } = result;
         const pageDir = path.join(ARTIFACT_ROOT, "pages", `${locale}-${unit.variant}`);
         fs.rmSync(pageDir, { recursive: true, force: true });
         const pages = rasterizePdf(pdfPath, pageDir, "page");
@@ -972,6 +1026,7 @@ async function main() {
           unitId: unit.unitId,
           pdfPath,
           downloadUrl,
+          documentId,
           sha256: sha256File(pdfPath),
           pageCount: pdfPageCount(pdfPath),
           pagePngs: pages,
@@ -985,14 +1040,24 @@ async function main() {
       await context.close();
     }
 
-    const mainLoopUnits = manifest.units.filter(
-      (u) => !manifest.legacyDraft || u.unitId !== manifest.legacyDraft.unitId
-    ).length;
-    const expectedPdfRows = locales.length * mainLoopUnits;
+    const expectedPdfRows = locales.length * manifest.units.length;
     if (report.variants.length !== expectedPdfRows) {
       throw new Error(
-        `Expected ${expectedPdfRows} variant PDF records (locales=${locales.join(",")} × ${mainLoopUnits} units), got ${report.variants.length}`
+        `Expected ${expectedPdfRows} variant PDF records (locales=${locales.join(",")} × ${manifest.units.length} units), got ${report.variants.length}`
       );
+    }
+    const juraDualRows = report.variants.filter((v) => v.variant === "jura-dual");
+    if (juraDualRows.length === 2) {
+      const [a, b] = juraDualRows;
+      if (a!.documentId === b!.documentId || a!.sha256 === b!.sha256) {
+        throw new Error(
+          `en/ar jura-dual must be independent generated documents (shared id=${a!.documentId} sha=${a!.sha256})`
+        );
+      }
+    }
+    const docIds = report.variants.map((v) => v.documentId);
+    if (new Set(docIds).size !== docIds.length) {
+      throw new Error("Duplicate generated document IDs across variant PDF records");
     }
     for (const row of report.variants) {
       if (!fs.existsSync(row.pdfPath)) {

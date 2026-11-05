@@ -40,3 +40,9 @@ export function stripGreenSection2Lead(text: string): string {
     .replace(/^ثانيا\s*:\s*بيانات\s*الوحدة\s*/i, "")
     .trim();
 }
+
+export function stripGreenSection1Lead(text: string): string {
+  return text
+    .replace(/^ا?ول(?:ا|اً)\s*:\s*[-–]?\s*بيانات المستلم\s*/iu, "")
+    .trim();
+}

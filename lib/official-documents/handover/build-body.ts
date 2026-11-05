@@ -2,6 +2,8 @@ import {
   interpolateHandoverText,
   splitViolationItems,
 } from "@/lib/print/handover-templates/fields";
+import { splitJuraSectionHeadingBody } from "@/lib/official-documents/handover/html/jura-sections";
+import { stripGreenSection1Lead, stripGreenSection2Lead } from "@/lib/official-documents/handover/html/utils";
 import { loadHandoverTemplate } from "@/lib/print/handover-templates/resolve";
 import type {
   GreenAvenueTemplate,
@@ -44,8 +46,12 @@ function serializeGreenAvenue(
     .filter(Boolean)
     .join("\n");
 
-  const section1 = interpolateHandoverText(template.section1, fields);
-  const section2 = interpolateHandoverText(template.section2, fields);
+  const section1 = stripGreenSection1Lead(
+    interpolateHandoverText(template.section1, fields)
+  );
+  const section2 = stripGreenSection2Lead(
+    interpolateHandoverText(template.section2, fields)
+  );
   const declaration = interpolateHandoverText(template.declaration, fields);
   const violations = splitViolationItems(
     interpolateHandoverText(template.violationsBody, fields)
@@ -69,9 +75,17 @@ function serializeGreenAvenue(
 
 function serializeJura(template: JuraTemplate, fields: HandoverFieldValues): string {
   const header = interpolateHandoverText(template.header, fields);
-  const parts = template.parts.map((part) =>
-    section(part.key, interpolateHandoverText(part.text, fields))
-  );
+  const parts = template.parts.map((part) => {
+    const text = interpolateHandoverText(part.text, fields);
+    if (part.key.trim() === "intro") {
+      return section("أولاً", text);
+    }
+    const { heading, body } = splitJuraSectionHeadingBody(text);
+    if (heading && body) {
+      return `${heading}\n\n${body}`;
+    }
+    return text.trim();
+  });
   return [header, ...parts].filter(Boolean).join("\n\n");
 }
 
