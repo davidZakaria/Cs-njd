@@ -4,7 +4,6 @@ import {
   normalizeWesternDigits,
   formatLtrField,
   stripGreenSection2Lead,
-  toHandoverHtml,
 } from "@/lib/official-documents/handover/html/utils";
 import { buildOfficialHandoverFieldValues } from "@/lib/official-documents/handover/field-values";
 

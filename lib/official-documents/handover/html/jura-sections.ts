@@ -7,8 +7,13 @@ export function splitJuraSectionHeadingBody(text: string): {
   body: string;
 } {
   const t = text.trim();
-  const parenSplit = t.match(/^(.+?\))\s*(.+)$/s);
-  if (parenSplit && parenSplit[1].includes(":")) {
+  const parenSplit = t.match(/^(.+?\))\s*([\s\S]+)$/);
+  if (
+    parenSplit &&
+    parenSplit[1].includes(":") &&
+    parenSplit[1].length < 120 &&
+    !parenSplit[1].includes("أقر")
+  ) {
     return { heading: parenSplit[1].trim(), body: parenSplit[2].trim() };
   }
 

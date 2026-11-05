@@ -39,6 +39,14 @@ vi.mock("@/lib/actions/official-documents", () => ({
 }));
 
 describe("UnitOfficialDocumentsPanel", () => {
+  const baseProps = {
+    unitId: "unit-1",
+    projectName: "GREEN AVENUE",
+    generatedDocuments: [],
+    textDrafts: [],
+    approvedRequests: [],
+  };
+
   it("shows empty-state notice and disables edit when no approved request exists", async () => {
     const { UnitOfficialDocumentsPanel } = await import(
       "@/components/units/unit-official-documents-panel"
@@ -46,14 +54,11 @@ describe("UnitOfficialDocumentsPanel", () => {
 
     const html = renderToString(
       React.createElement(UnitOfficialDocumentsPanel, {
-        unitId: "unit-1",
+        ...baseProps,
         canEditDraftText: true,
         canViewDraftText: false,
         canGeneratePdf: true,
         canCreateUnitRequest: true,
-        generatedDocuments: [],
-        textDrafts: [],
-        approvedRequests: [],
       })
     );
 
@@ -70,14 +75,11 @@ describe("UnitOfficialDocumentsPanel", () => {
 
     const html = renderToString(
       React.createElement(UnitOfficialDocumentsPanel, {
-        unitId: "unit-1",
+        ...baseProps,
         canEditDraftText: true,
         canViewDraftText: false,
         canGeneratePdf: true,
         canCreateUnitRequest: false,
-        generatedDocuments: [],
-        textDrafts: [],
-        approvedRequests: [],
       })
     );
 
@@ -92,13 +94,11 @@ describe("UnitOfficialDocumentsPanel", () => {
 
     const html = renderToString(
       React.createElement(UnitOfficialDocumentsPanel, {
-        unitId: "unit-1",
+        ...baseProps,
         canEditDraftText: true,
         canViewDraftText: false,
         canGeneratePdf: true,
         canCreateUnitRequest: false,
-        generatedDocuments: [],
-        textDrafts: [],
         approvedRequests: [
           {
             id: "req-1",
@@ -124,14 +124,11 @@ describe("UnitOfficialDocumentsPanel", () => {
 
     const html = renderToString(
       React.createElement(UnitOfficialDocumentsPanel, {
-        unitId: "unit-1",
+        ...baseProps,
         canEditDraftText: false,
         canViewDraftText: true,
         canGeneratePdf: false,
         canCreateUnitRequest: true,
-        generatedDocuments: [],
-        textDrafts: [],
-        approvedRequests: [],
       })
     );
 

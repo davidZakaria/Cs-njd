@@ -180,7 +180,7 @@ describe("official handover HTML placeholders", () => {
 
       if (key.startsWith("jura")) {
         expect(html).toContain("ثانيا : سداد المرافق والعدادات");
-        expect(html).toMatch(/ثالثa?\s*:\s*وديعة الصيانة وفروق الصيانة/);
+        expect(html).toMatch(/ثالثا\s*:\s*وديعة الصيانة وفروق الصيانة/);
         expect(html).toContain("المقر بما فيه");
       }
 
