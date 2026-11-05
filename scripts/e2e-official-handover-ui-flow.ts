@@ -971,7 +971,7 @@ async function main() {
       console.log("Total page PNGs:", totalPages);
       console.log("E2E PASS", report.variants.length, "canonical PDFs");
     } else {
-      process.exitCode = 1;
+      process.exit(1);
     }
   }
 }
