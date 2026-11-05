@@ -30,9 +30,11 @@ const ARCHIVE_FILE_KINDS = Object.values(ArchiveFileKind);
 
 export function CreateUnitRequestForm({
   defaultUnitId,
+  defaultRequestType,
   projects = [],
 }: {
   defaultUnitId?: string;
+  defaultRequestType?: UnitRequestType;
   projects?: Array<{ id: string; name: string }>;
 }) {
   const t = useTranslations("requests.create");
@@ -45,7 +47,7 @@ export function CreateUnitRequestForm({
   const [selectedSwapTarget, setSelectedSwapTarget] =
     useState<UnitRequestPickerOption | null>(null);
   const [type, setType] = useState<UnitRequestType>(
-    UnitRequestType.CONTRACT_ISSUE_OR_AMENDMENT
+    defaultRequestType ?? UnitRequestType.CONTRACT_ISSUE_OR_AMENDMENT
   );
   const [description, setDescription] = useState("");
   const [archiveScope, setArchiveScope] = useState<"single" | "bulk">("single");

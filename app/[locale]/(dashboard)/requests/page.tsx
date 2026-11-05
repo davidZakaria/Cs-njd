@@ -7,6 +7,7 @@ import { filterRequestRowsForUser } from "@/lib/requests/queries.server";
 import { parseRequestsPageFilters } from "@/lib/requests/requests-filter-url";
 import { basePrisma, prisma } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
+import { UnitRequestType } from "@prisma/client";
 import { RequestsTable } from "@/components/requests/requests-table";
 import { CreateUnitRequestForm } from "@/components/requests/create-unit-request-form";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
@@ -27,8 +28,20 @@ export default async function RequestsPage({
     redirect("/login");
   }
 
-  const filters = parseRequestsPageFilters(await searchParams);
-  const workScope = parseWorkScopeFromSearchParams(await searchParams);
+  const rawSearchParams = await searchParams;
+  const filters = parseRequestsPageFilters(rawSearchParams);
+  const workScope = parseWorkScopeFromSearchParams(rawSearchParams);
+  const pickSearchParam = (key: string) => {
+    const value = rawSearchParams[key];
+    return typeof value === "string" ? value : undefined;
+  };
+  const prefillUnitId = pickSearchParam("unitId");
+  const prefillTypeRaw = pickSearchParam("type");
+  const prefillRequestType =
+    prefillTypeRaw &&
+    (Object.values(UnitRequestType) as string[]).includes(prefillTypeRaw)
+      ? (prefillTypeRaw as UnitRequestType)
+      : undefined;
   const t = await getTranslations("requests");
   const csScope =
     session.user.role === "CS_AGENT"
@@ -74,7 +87,11 @@ export default async function RequestsPage({
         <p className="text-muted-foreground">{t("subtitle")}</p>
       </div>
       {canCreate ? (
-        <CreateUnitRequestForm projects={projectOptions} />
+        <CreateUnitRequestForm
+          projects={projectOptions}
+          defaultUnitId={prefillUnitId}
+          defaultRequestType={prefillRequestType}
+        />
       ) : null}
       <RequestsTable
         rows={tableRows}
