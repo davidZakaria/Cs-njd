@@ -16,7 +16,11 @@ import {
   buildOfficialHandoverDraftBody,
   handoverDraftTitleForKey,
 } from "@/lib/official-documents/handover/build-body";
-import { handoverUsesOfficialMasters } from "@/lib/official-documents/handover/constants";
+import {
+  isLegacyGenericHandoverDraftBody,
+  resolveOfficialDocumentTemplateLocale,
+  usesOfficialHandoverLegalMasters,
+} from "@/lib/official-documents/handover/document-locale";
 import { buildOfficialHandoverFieldValues } from "@/lib/official-documents/handover/field-values";
 import { resolveOfficialHandoverTemplateKey } from "@/lib/official-documents/handover/infer-variant";
 import type { HandoverTemplateKey } from "@/lib/print/handover-templates/types";
@@ -115,10 +119,16 @@ export async function resolveOfficialDocumentGenerationContext(input: {
     };
   }
 
+  const templateLocale = resolveOfficialDocumentTemplateLocale({
+    documentType: input.documentType,
+    projectName: unit.project.name,
+    requestedLocale: input.locale,
+  });
+
   const template = await prisma.officialDocumentTemplate.findFirst({
     where: {
       documentType: input.documentType,
-      locale: input.locale,
+      locale: templateLocale,
       isActive: true,
     },
   });
@@ -169,10 +179,10 @@ export async function resolveOfficialDocumentGenerationContext(input: {
     locale: template.locale,
   };
 
-  const usesOfficialHandover =
-    input.documentType === "HANDOVER_RECORD" &&
-    input.locale === "ar" &&
-    handoverUsesOfficialMasters(mergeUnit.project.name);
+  const usesOfficialHandover = usesOfficialHandoverLegalMasters({
+    documentType: input.documentType,
+    projectName: mergeUnit.project.name,
+  });
 
   if (usesOfficialHandover) {
     handoverTemplateKey = resolveOfficialHandoverTemplateKey(
@@ -182,7 +192,7 @@ export async function resolveOfficialDocumentGenerationContext(input: {
     if (!handoverTemplateKey) {
       return { ok: false, error: "Could not resolve handover template variant" };
     }
-    const built = buildOfficialHandoverFieldValues(mergeUnit, input.locale);
+    const built = buildOfficialHandoverFieldValues(mergeUnit, templateLocale);
     handoverMissingFieldKeys = built.missingKeys;
     initialBody = buildOfficialHandoverDraftBody({
       templateKey: handoverTemplateKey,
@@ -193,7 +203,7 @@ export async function resolveOfficialDocumentGenerationContext(input: {
       title: handoverDraftTitleForKey(handoverTemplateKey),
     };
   } else {
-    const fields = buildOfficialDocumentMergeFields(mergeUnit, input.locale, {
+    const fields = buildOfficialDocumentMergeFields(mergeUnit, templateLocale, {
       requestDescription,
     });
     initialBody = interpolateOfficialDocumentTemplate(template.body, fields);

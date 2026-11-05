@@ -139,7 +139,6 @@ export function UnitOfficialDocumentsPanel({
 
   const showHandoverVariantPicker =
     documentType === "HANDOVER_RECORD" &&
-    editorLocale === "ar" &&
     handoverUsesOfficialMasters(projectName) &&
     handoverVariantKeys.length > 0;
 
