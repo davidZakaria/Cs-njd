@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { canAccessRequestsDashboard } from "@/lib/auth/role-permissions";
 import { getUnitRequestDetailAction } from "@/lib/actions/unit-requests";
+import { loadArchiveCheckDetail } from "@/lib/archive-check/queries";
+import { isBulkArchiveCheckParent } from "@/lib/archive-check/permissions";
 import {
   canAddRequestComment,
   canCancelRequest,
@@ -74,7 +76,60 @@ export default async function RequestDetailPage({
     userId: session.user.id,
     requestedById: request.requestedById,
     status: request.status,
+    type: request.type,
   });
+
+  let archiveProgressUnits:
+    | Array<{
+        unitCode: string;
+        projectName: string;
+        items: Array<{ itemKey: string; status: import("@prisma/client").ArchiveCheckItemStatus }>;
+        gapTasks: Array<{ itemKey: string; status: import("@prisma/client").ArchiveCheckGapTaskStatus }>;
+      }>
+    | undefined;
+  let bulkProjectName: string | null = null;
+
+  if (request.type === "ARCHIVE_CHECK") {
+    const archiveDetail = await loadArchiveCheckDetail(request.id);
+    if (archiveDetail) {
+      bulkProjectName = archiveDetail.bulkProject?.name ?? null;
+      if (
+        isBulkArchiveCheckParent({
+          type: archiveDetail.type,
+          bulkProjectId: archiveDetail.bulkProjectId,
+          parentRequestId: archiveDetail.parentRequestId,
+        })
+      ) {
+        archiveProgressUnits = archiveDetail.childRequests.map((child) => ({
+          unitCode: child.unit.unitCode,
+          projectName: child.unit.project.name,
+          items: child.archiveCheckItems.map((item) => ({
+            itemKey: item.itemKey,
+            status: item.status,
+          })),
+          gapTasks: child.archiveCheckGapTasks.map((task) => ({
+            itemKey: task.itemKey,
+            status: task.status,
+          })),
+        }));
+      } else {
+        archiveProgressUnits = [
+          {
+            unitCode: archiveDetail.unit.unitCode,
+            projectName: archiveDetail.unit.project.name,
+            items: archiveDetail.archiveCheckItems.map((item) => ({
+              itemKey: item.itemKey,
+              status: item.status,
+            })),
+            gapTasks: archiveDetail.archiveCheckGapTasks.map((task) => ({
+              itemKey: task.itemKey,
+              status: task.status,
+            })),
+          },
+        ];
+      }
+    }
+  }
 
   return (
     <div className={cn("max-w-3xl", entranceAnimationClass)}>
@@ -114,6 +169,8 @@ export default async function RequestDetailPage({
         canCancel={canCancel}
         canComment={canComment}
         canUpload={canUpload}
+        archiveProgressUnits={archiveProgressUnits}
+        bulkProjectName={bulkProjectName}
       />
     </div>
   );

@@ -61,7 +61,16 @@ export function canViewUnitRequest(input: {
     return communityMayViewRequestType(request.type);
   }
 
-  if (isOperationsRole(role)) return false;
+  if (isOperationsRole(role)) {
+    if (
+      request.type === "ARCHIVE_CHECK" &&
+      request.status === "PENDING" &&
+      request.currentApproverKind === "OPERATIONS"
+    ) {
+      return true;
+    }
+    return false;
+  }
 
   if (isDepartmentStaffRole(role)) {
     if (request.status === "PENDING" && request.currentApproverKind) {

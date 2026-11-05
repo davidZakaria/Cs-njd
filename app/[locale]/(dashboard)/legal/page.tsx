@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { DepartmentAwaitingRequestsQueue } from "@/components/department/department-home-sections";
+import { DepartmentArchiveGapTasksQueue } from "@/components/department/department-archive-gap-queue";
+import { loadDepartmentArchiveGapTasks } from "@/lib/archive-check/queries";
 import { MyStageTasksQueue } from "@/components/unit-cycle/stage-task-queues";
 import { loadAllUnitRequestRows } from "@/lib/requests/load-requests";
 import { filterRequestRowsForUser } from "@/lib/requests/queries.server";
@@ -22,7 +24,7 @@ export default async function LegalHomePage() {
 
   const t = await getTranslations("departmentHome");
 
-  const [awaitingRows, myStageTasks] = await Promise.all([
+  const [awaitingRows, myStageTasks, gapTasks] = await Promise.all([
     filterRequestRowsForUser({
       rows: await loadAllUnitRequestRows(basePrisma),
       role: session.user.role,
@@ -34,6 +36,7 @@ export default async function LegalHomePage() {
       userId: session.user.id,
       role: session.user.role,
     }),
+    loadDepartmentArchiveGapTasks({ role: session.user.role }),
   ]);
 
   return (
@@ -45,6 +48,16 @@ export default async function LegalHomePage() {
       <DepartmentAwaitingRequestsQueue
         rows={awaitingRows}
         viewAllHref="/requests?view=awaiting"
+      />
+      <DepartmentArchiveGapTasksQueue
+        tasks={gapTasks.map((task) => ({
+          id: task.id,
+          itemKey: task.itemKey,
+          deadlineAt: task.deadlineAt,
+          ownerRole: task.ownerRole,
+          unitRequestId: task.unitRequestId,
+          unit: task.unitRequest.unit,
+        }))}
       />
       <MyStageTasksQueue tasks={myStageTasks} />
     </div>

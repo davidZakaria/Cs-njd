@@ -14,10 +14,16 @@ import {
   getRequestEscalationCronSchedule,
   runRequestEscalationJob,
 } from "../lib/requests/escalation";
+import {
+  getArchiveGapEscalationCronSchedule,
+  runArchiveCheckGapEscalationJob,
+  type ArchiveGapEscalationDb,
+} from "../lib/archive-check/escalation";
 import { prisma, basePrisma } from "../lib/prisma";
 
 const backupSchedule = getBackupCronSchedule();
 const unitCycleSchedule = getUnitCycleCronSchedule();
+const archiveGapSchedule = getArchiveGapEscalationCronSchedule();
 const requestEscalationSchedule = getRequestEscalationCronSchedule();
 
 async function runScheduledBackup() {
@@ -62,10 +68,24 @@ async function runScheduledRequestEscalation() {
   }
 }
 
+async function runScheduledArchiveGapEscalation() {
+  try {
+    const result = await runArchiveCheckGapEscalationJob(basePrisma as ArchiveGapEscalationDb);
+    console.log(
+      `[archive-gap-cron] scanned=${result.scanned} notified=${result.notified}`
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown archive gap job failure";
+    console.error("[archive-gap-cron] FAILED:", message);
+  }
+}
+
 for (const [label, schedule] of [
   ["backup-cron", backupSchedule],
   ["unit-cycle-cron", unitCycleSchedule],
   ["request-escalation-cron", requestEscalationSchedule],
+  ["archive-gap-cron", archiveGapSchedule],
 ] as const) {
   if (!cron.validate(schedule)) {
     console.error(`[${label}] Invalid cron schedule: ${schedule}`);
@@ -85,3 +105,8 @@ console.log(
   `[request-escalation-cron] Overdue escalation scheduled: ${requestEscalationSchedule}`
 );
 cron.schedule(requestEscalationSchedule, runScheduledRequestEscalation);
+
+console.log(
+  `[archive-gap-cron] Overdue escalation scheduled: ${archiveGapSchedule}`
+);
+cron.schedule(archiveGapSchedule, runScheduledArchiveGapEscalation);

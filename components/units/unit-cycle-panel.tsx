@@ -41,10 +41,16 @@ export async function UnitCyclePanel({
       <UnitCycleStepper
         unitId={unitId}
         activeStageKey={activeKey}
-        blockingRequests={cycle.blockingRequests.map((request) => ({
-          id: request.id,
-          type: request.type,
-        }))}
+        blockingRequests={[
+          ...cycle.blockingRequests.map((request) => ({
+            id: request.id,
+            type: request.type,
+          })),
+          ...cycle.blockingGapTasks.map((gap) => ({
+            id: gap.unitRequestId,
+            type: "ARCHIVE_CHECK" as const,
+          })),
+        ]}
         stages={cycle.stages.map((stage) => ({
           stageKey: stage.stageKey,
           status: stage.status,

@@ -25,15 +25,26 @@ describe("request permissions", () => {
     expect(canAccessRequestsDashboard("COMMUNITY_MANAGEMENT")).toBe(true);
   });
 
-  it("never treats Operations as an approver step", () => {
-    expect(isOperationsAnApprover()).toBe(false);
-    for (const type of [
-      "CONTRACT_ISSUE_OR_AMENDMENT",
-      "UNIT_SWAP",
-      "REFUND",
-    ] as const) {
-      expect(getApprovalPathForType(type)).not.toContain("OPERATIONS" as never);
-    }
+  it("treats Operations as approver only for archive checks", () => {
+    expect(isOperationsAnApprover()).toBe(true);
+    expect(getApprovalPathForType("ARCHIVE_CHECK")).toEqual(["OPERATIONS"]);
+    expect(getApprovalPathForType("CONTRACT_ISSUE_OR_AMENDMENT")).not.toContain(
+      "OPERATIONS" as never
+    );
+  });
+
+  it("lets operations approve pending archive check at operations step", () => {
+    expect(
+      userCanApproveAtCurrentStep({
+        role: "OPERATIONS",
+        request: {
+          type: "ARCHIVE_CHECK",
+          status: "PENDING",
+          currentStepIndex: 0,
+          currentApproverKind: "OPERATIONS",
+        },
+      })
+    ).toBe(true);
   });
 
   it("lets management approve Finance-mapped pending requests when no finance staff", () => {

@@ -15,6 +15,7 @@ export const APPROVAL_PATH_BY_TYPE: Record<
   SNAG_OR_DEFECT: ["CS_AGENT"],
   HANDOVER_APPOINTMENT: ["CS_AGENT"],
   DOCUMENT_CORRECTION: ["LEGAL"],
+  ARCHIVE_CHECK: ["OPERATIONS"],
 };
 
 export function getApprovalPathForType(

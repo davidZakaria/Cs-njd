@@ -1755,7 +1755,8 @@
       "SITE_VISIT": "Site visit",
       "SNAG_OR_DEFECT": "Snag or defect",
       "HANDOVER_APPOINTMENT": "Handover appointment",
-      "DOCUMENT_CORRECTION": "Document correction"
+      "DOCUMENT_CORRECTION": "Document correction",
+      "ARCHIVE_CHECK": "Archive check"
     },
     "officialDocumentType": {
       "GRACE_PERIOD_ANNEX": "Grace period annex (ملحق المد)",
@@ -1775,7 +1776,8 @@
       "LEGAL": "Legal",
       "FINANCE": "Finance",
       "MANAGEMENT": "Management",
-      "CS_AGENT": "CS agent"
+      "CS_AGENT": "CS agent",
+      "OPERATIONS": "Operations"
     }
   },
   "requests": {
@@ -1823,7 +1825,13 @@
       "swapTargetUnitId": "Target empty unit ID",
       "submit": "Create draft",
       "created": "Draft created",
-      "failed": "Could not create request"
+      "failed": "Could not create request",
+      "archiveScope": "Archive check scope",
+      "archiveScopeSingle": "Single unit",
+      "archiveScopeBulk": "Whole project (one check per unit)",
+      "project": "Project",
+      "projectPlaceholder": "Select project",
+      "projectRequired": "Select a project"
     },
     "detail": {
       "description": "Description",
@@ -1844,6 +1852,7 @@
       "escalated": "Escalated to management",
       "unitSwapHint": "After management approval, complete the swap from the unit profile (management only).",
       "openUnitSwap": "Open unit profile",
+      "archiveBulkProject": "Bulk archive check — {project}",
       "auditActions": {
         "created": "Created",
         "submitted": "Submitted",
@@ -1862,6 +1871,51 @@
       "create": "New request",
       "viewAll": "All requests",
       "stageTitle": "Open requests for this cycle stage"
+    }
+  },
+  "archiveCheck": {
+    "operations": {
+      "queueTitle": "Archive checks awaiting operations",
+      "queueEmpty": "No archive checks in your queue.",
+      "requestedBy": "Requested by {name}",
+      "itemsPending": "{pending} of {total} items pending",
+      "workspaceHint": "Mark each archive item as found, missing, or unsigned. Upload scans where available (upload-only — files cannot be replaced or deleted).",
+      "checklistTitle": "Archive checklist",
+      "itemColumn": "Item",
+      "statusColumn": "Status",
+      "scanColumn": "Scans",
+      "chooseStatus": "Choose status",
+      "uploadScan": "Upload scan",
+      "viewScan": "View",
+      "scanUploaded": "Scan uploaded",
+      "submitCheck": "Submit archive check",
+      "pendingItems": "{count} items still need a status",
+      "submitted": "Archive check submitted",
+      "failed": "Action failed",
+      "backToQueue": "Back to operations"
+    },
+    "itemStatus": {
+      "FOUND": "Found",
+      "MISSING": "Missing",
+      "UNSIGNED": "Unsigned"
+    },
+    "progress": {
+      "title": "Archive check progress",
+      "overallCount": "{done} of {total} items complete",
+      "unitColumn": "Unit",
+      "itemColumn": "Item",
+      "statusColumn": "Status",
+      "done": "Done",
+      "missing": "Missing",
+      "beingFixed": "Being fixed by {department}"
+    },
+    "gapTasks": {
+      "title": "Archive gap follow-ups",
+      "empty": "No open archive gaps assigned to you.",
+      "openRequest": "Open request",
+      "markDone": "Mark gap resolved",
+      "completed": "Gap marked resolved",
+      "failed": "Could not update gap"
     }
   },
   "unitCycle": {

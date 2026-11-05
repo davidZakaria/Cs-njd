@@ -175,6 +175,7 @@ enum UnitRequestType {
   SNAG_OR_DEFECT
   HANDOVER_APPOINTMENT
   DOCUMENT_CORRECTION
+  ARCHIVE_CHECK
 }
 
 enum UnitRequestStatus {
@@ -190,6 +191,19 @@ enum UnitRequestApproverKind {
   FINANCE
   MANAGEMENT
   CS_AGENT
+  OPERATIONS
+}
+
+enum ArchiveCheckItemStatus {
+  PENDING
+  FOUND
+  MISSING
+  UNSIGNED
+}
+
+enum ArchiveCheckGapTaskStatus {
+  OPEN
+  COMPLETED
 }
 
 enum OfficialDocumentType {
@@ -228,6 +242,8 @@ model User {
   engineeringApprovals   UnitEngineeringApproval[]
   submittedRequests      UnitRequest[]             @relation("UnitRequestRequestedBy")
   resolvedRequests       UnitRequest[]             @relation("UnitRequestResolvedBy")
+  ownedArchiveCheckGapTasks ArchiveCheckGapTask[]  @relation("ArchiveCheckGapTaskOwner")
+  completedArchiveCheckGapTasks ArchiveCheckGapTask[] @relation("ArchiveCheckGapTaskCompletedBy")
   requestComments        RequestComment[]
   requestAttachments     RequestAttachment[]
   requestAuditEvents     RequestAuditEvent[]
@@ -266,6 +282,7 @@ model Project {
   updatedAt DateTime @updatedAt
 
   units Unit[]
+  bulkArchiveCheckRequests UnitRequest[] @relation("BulkArchiveCheckProject")
 }
 
 model Client {
@@ -688,6 +705,9 @@ model UnitRequest {
   unitCycleStageKey       UnitCycleStageKey?
   linkedSwapTargetUnitId  String?
   engineeringApprovalId   String?                  @unique
+  parentRequestId         String?
+  bulkProjectId           String?
+  archiveCheckSubmittedAt DateTime?
   escalatedToManagement   Boolean                  @default(false)
   lastEscalatedAt         DateTime?
   submittedAt             DateTime?
@@ -697,6 +717,9 @@ model UnitRequest {
   updatedAt               DateTime                 @updatedAt
 
   unit                  Unit                     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  parentRequest         UnitRequest?             @relation("ArchiveCheckChildren", fields: [parentRequestId], references: [id], onDelete: Cascade)
+  childRequests         UnitRequest[]            @relation("ArchiveCheckChildren")
+  bulkProject           Project?                 @relation("BulkArchiveCheckProject", fields: [bulkProjectId], references: [id], onDelete: SetNull)
   client                Client?                  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   requestedBy           User                     @relation("UnitRequestRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
   resolvedBy            User?                    @relation("UnitRequestResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
@@ -705,8 +728,12 @@ model UnitRequest {
   attachments           RequestAttachment[]
   auditEvents           RequestAuditEvent[]
   generatedOfficialDocuments UnitGeneratedDocument[]
+  archiveCheckItems     ArchiveCheckItem[]
+  archiveCheckGapTasks  ArchiveCheckGapTask[]
 
   @@index([unitId])
+  @@index([parentRequestId])
+  @@index([bulkProjectId])
   @@index([clientId])
   @@index([requestedById])
   @@index([status])
@@ -801,12 +828,54 @@ model RequestAttachment {
   mimeType     String
   sizeBytes    Int
   uploadedById String
+  archiveCheckItemKey String?
   createdAt    DateTime @default(now())
 
   request    UnitRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   uploadedBy User        @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
 
   @@index([requestId])
+  @@index([requestId, archiveCheckItemKey])
+}
+
+model ArchiveCheckItem {
+  id            String                 @id @default(cuid())
+  unitRequestId String
+  itemKey       String
+  status        ArchiveCheckItemStatus @default(PENDING)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  unitRequest UnitRequest @relation(fields: [unitRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([unitRequestId, itemKey])
+  @@index([unitRequestId])
+}
+
+model ArchiveCheckGapTask {
+  id                    String                    @id @default(cuid())
+  unitRequestId         String
+  itemKey               String
+  ownerUserId           String?
+  ownerRole             Role
+  deadlineAt            DateTime
+  status                ArchiveCheckGapTaskStatus @default(OPEN)
+  unitCycleStageKey     UnitCycleStageKey?
+  escalatedToManagement Boolean                   @default(false)
+  lastEscalatedAt       DateTime?
+  completedAt           DateTime?
+  completedById         String?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  unitRequest UnitRequest @relation(fields: [unitRequestId], references: [id], onDelete: Cascade)
+  owner       User?       @relation("ArchiveCheckGapTaskOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  completedBy User?       @relation("ArchiveCheckGapTaskCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+
+  @@index([unitRequestId])
+  @@index([ownerUserId, status])
+  @@index([ownerRole, status])
+  @@index([status, deadlineAt])
 }
 
 model RequestAuditEvent {

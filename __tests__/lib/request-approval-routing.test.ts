@@ -91,5 +91,7 @@ describe("request approval paths", () => {
       "LEGAL_HANDOVER"
     );
     expect(unitCycleStageForRequestType("UNIT_SWAP")).toBeNull();
+    expect(unitCycleStageForRequestType("ARCHIVE_CHECK")).toBe("LEGAL_HANDOVER");
+    expect(getApprovalPathForType("ARCHIVE_CHECK")).toEqual(["OPERATIONS"]);
   });
 });

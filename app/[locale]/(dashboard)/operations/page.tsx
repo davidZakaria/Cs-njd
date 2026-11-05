@@ -7,6 +7,8 @@ import { parseOperationsPageFilters } from "@/lib/operations/operations-filter-u
 import { aggregateOperationsProjectSummaries } from "@/lib/operations/operations-project-summary";
 import { OperationsUnitsTable } from "@/components/operations/operations-units-table";
 import { OperationsProjectSummaryBar } from "@/components/operations/operations-project-summary-bar";
+import { OperationsArchiveCheckQueue } from "@/components/archive-check/operations-archive-check-queue";
+import { loadOperationsArchiveCheckQueue } from "@/lib/archive-check/queries";
 import { getAssignableAgentUsers } from "@/lib/units/assignable-agents";
 import { prisma } from "@/lib/prisma";
 
@@ -28,10 +30,11 @@ export default async function OperationsPage({
   const t = await getTranslations("operations");
   const filters = parseOperationsPageFilters(await searchParams);
 
-  const [rows, agents, projects] = await Promise.all([
+  const [rows, agents, projects, archiveChecks] = await Promise.all([
     loadOperationsProgressUnits(),
     getAssignableAgentUsers(),
     prisma.project.findMany({ orderBy: { name: "asc" }, select: { name: true } }),
+    loadOperationsArchiveCheckQueue({ role: role! }),
   ]);
 
   const projectNames = projects.map((p) => p.name);
@@ -51,6 +54,10 @@ export default async function OperationsPage({
       </div>
 
       <OperationsProjectSummaryBar summaries={summaries} />
+
+      {role === "OPERATIONS" || role === "SUPER_ADMIN" ? (
+        <OperationsArchiveCheckQueue rows={archiveChecks} />
+      ) : null}
 
       <OperationsUnitsTable
         rows={rows}

@@ -33,6 +33,10 @@ import {
   blockingRequestsForStage,
   type UnitRequestStageBlocker,
 } from "@/lib/unit-cycle/stage-request-blocking";
+import { loadOpenArchiveGapTasksForUnit } from "@/lib/archive-check/queries";
+import {
+  blockingGapTasksForStage,
+} from "@/lib/archive-check/stage-blocking";
 
 const projectSettingsSchema = z.object({
   projectId: z.string().min(1),
@@ -196,6 +200,7 @@ export async function completeUnitCycleStageAction(input: {
   if (!canCompleteStage(activeKey, stage.status, snapshot, {
     unitCycleEnabled: true,
     openRequests: await loadOpenUnitRequestBlockers(unit.id),
+    openGapTasks: await loadOpenArchiveGapTasksForUnit(unit.id),
   })) {
     return actionFail("Checklist incomplete or blocked by open request");
   }
@@ -286,6 +291,7 @@ export async function loadUnitCycleForUnit(unitId: string) {
   });
 
   const openRequests = await loadOpenUnitRequestBlockers(unitId);
+  const openGapTasks = await loadOpenArchiveGapTasksForUnit(unitId);
   const activeStageKey = resolveActiveStageKey(unit.unitCycle.stages);
 
   const stages = unit.unitCycle.stages.map((stage) => {
@@ -296,23 +302,35 @@ export async function loadUnitCycleForUnit(unitId: string) {
       openRequests,
       true
     );
+    const gapBlockers = blockingGapTasksForStage(
+      stage.stageKey,
+      openGapTasks,
+      true
+    );
     return {
       ...stage,
       checklist,
       checklistComplete,
-      blockedByRequest: stageBlockers.length > 0,
+      blockedByRequest: stageBlockers.length > 0 || gapBlockers.length > 0,
     };
   });
+
+  const activeRequestBlockers =
+    activeStageKey != null
+      ? blockingRequestsForStage(activeStageKey, openRequests, true)
+      : [];
+  const activeGapBlockers =
+    activeStageKey != null
+      ? blockingGapTasksForStage(activeStageKey, openGapTasks, true)
+      : [];
 
   return {
     unitCycleId: unit.unitCycle.id,
     activeStageKey: resolveActiveStageKey(stages),
     stages,
     events: unit.unitCycle.events,
-    blockingRequests:
-      activeStageKey != null
-        ? blockingRequestsForStage(activeStageKey, openRequests, true)
-        : [],
+    blockingRequests: activeRequestBlockers,
+    blockingGapTasks: activeGapBlockers,
   };
 }
 

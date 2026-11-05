@@ -14,6 +14,10 @@ import {
   type UnitRequestPickerOption,
 } from "@/lib/units/unit-request-search";
 import { recordRequestAuditEvent } from "@/lib/requests/audit";
+import { seedArchiveCheckItemsForRequest } from "@/lib/archive-check/seed-items";
+import { unitIncludeForArchiveSeed } from "@/lib/archive-check/queries";
+import { mapUnitToOperationsProgressInput } from "@/lib/operations/map-unit-to-progress-input";
+import { isBulkArchiveCheckParent } from "@/lib/archive-check/permissions";
 import {
   canAddRequestComment,
   canCancelRequest,
@@ -46,6 +50,7 @@ const createSchema = z.object({
   description: z.string().max(4000).optional(),
   dueDate: z.string().optional(),
   linkedSwapTargetUnitId: z.string().optional(),
+  projectId: z.string().optional(),
 });
 
 const idSchema = z.object({
@@ -227,6 +232,20 @@ export async function createUnitRequestAction(
     },
   });
 
+  if (parsed.data.type === "ARCHIVE_CHECK") {
+    const unitRow = await prisma.unit.findFirst({
+      where: activeUnitWhere({ id: unit.id }),
+      include: unitIncludeForArchiveSeed,
+    });
+    if (unitRow) {
+      await seedArchiveCheckItemsForRequest({
+        prisma,
+        unitRequestId: created.id,
+        progressInput: mapUnitToOperationsProgressInput(unitRow),
+      });
+    }
+  }
+
   await recordRequestAuditEvent({
     requestId: created.id,
     userId: session.user.id,
@@ -267,15 +286,51 @@ export async function submitUnitRequestAction(
   const submit = buildSubmitState(request.type);
   const now = new Date();
 
-  await prisma.unitRequest.update({
-    where: { id: request.id },
-    data: {
-      status: "PENDING",
-      submittedAt: now,
-      currentStepIndex: submit.currentStepIndex,
-      currentApproverKind: submit.currentApproverKind,
-      dueDate: request.dueDate ?? computeDefaultDueDate(now),
-    },
+  const childIds =
+    isBulkArchiveCheckParent({
+      type: request.type,
+      bulkProjectId: request.bulkProjectId,
+      parentRequestId: request.parentRequestId,
+    })
+      ? (
+          await prisma.unitRequest.findMany({
+            where: { parentRequestId: request.id },
+            select: { id: true },
+          })
+        ).map((row) => row.id)
+      : [];
+
+  await prisma.$transaction(async (tx) => {
+    await tx.unitRequest.update({
+      where: { id: request.id },
+      data: {
+        status: "PENDING",
+        submittedAt: now,
+        currentStepIndex: submit.currentStepIndex,
+        currentApproverKind: submit.currentApproverKind,
+        dueDate: request.dueDate ?? computeDefaultDueDate(now),
+        unitCycleStageKey: isBulkArchiveCheckParent({
+          type: request.type,
+          bulkProjectId: request.bulkProjectId,
+          parentRequestId: request.parentRequestId,
+        })
+          ? null
+          : request.unitCycleStageKey ?? submit.unitCycleStageKey,
+      },
+    });
+
+    if (childIds.length > 0) {
+      await tx.unitRequest.updateMany({
+        where: { id: { in: childIds } },
+        data: {
+          status: "PENDING",
+          submittedAt: now,
+          currentStepIndex: submit.currentStepIndex,
+          currentApproverKind: submit.currentApproverKind,
+          dueDate: request.dueDate ?? computeDefaultDueDate(now),
+        },
+      });
+    }
   });
 
   await recordRequestAuditEvent({
@@ -552,6 +607,7 @@ export async function uploadUnitRequestAttachmentAction(
       userId: session.user.id,
       requestedById: request.requestedById,
       status: request.status,
+      type: request.type,
     }) &&
     !userCanApproveAtCurrentStep({
       role: session.user.role,

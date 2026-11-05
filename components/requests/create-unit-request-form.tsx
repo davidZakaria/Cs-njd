@@ -11,6 +11,7 @@ import {
   resolveUnitForRequestPickerAction,
   searchUnitsForRequestPickerAction,
 } from "@/lib/actions/unit-requests";
+import { createBulkArchiveCheckAction } from "@/lib/actions/archive-check";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,7 +27,13 @@ import type { UnitRequestPickerOption } from "@/lib/units/unit-request-search";
 
 const TYPES = Object.values(UnitRequestType);
 
-export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: string }) {
+export function CreateUnitRequestForm({
+  defaultUnitId,
+  projects = [],
+}: {
+  defaultUnitId?: string;
+  projects?: Array<{ id: string; name: string }>;
+}) {
   const t = useTranslations("requests.create");
   const tEnums = useTranslations("enums");
   const router = useRouter();
@@ -40,6 +47,8 @@ export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: strin
     UnitRequestType.CONTRACT_ISSUE_OR_AMENDMENT
   );
   const [description, setDescription] = useState("");
+  const [archiveScope, setArchiveScope] = useState<"single" | "bulk">("single");
+  const [projectId, setProjectId] = useState(projects[0]?.id ?? "");
 
   const requestTypeItems = useMemo(() => {
     const items: Record<string, string> = {};
@@ -69,10 +78,32 @@ export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: strin
   }, [selectedUnit?.unitId]);
 
   const canSubmit =
-    selectedUnit != null &&
-    (type !== UnitRequestType.UNIT_SWAP || selectedSwapTarget != null);
+    type === UnitRequestType.ARCHIVE_CHECK && archiveScope === "bulk"
+      ? projectId.length > 0
+      : selectedUnit != null &&
+        (type !== UnitRequestType.UNIT_SWAP || selectedSwapTarget != null);
 
   const submit = () => {
+    if (type === UnitRequestType.ARCHIVE_CHECK && archiveScope === "bulk") {
+      if (!projectId) {
+        toast.error(t("projectRequired"));
+        return;
+      }
+      startTransition(async () => {
+        const result = await createBulkArchiveCheckAction({
+          projectId,
+          description,
+        });
+        if (!result.success) {
+          toast.error(result.error ?? t("failed"));
+          return;
+        }
+        toast.success(t("created"));
+        router.push(`/requests/${result.id}`);
+      });
+      return;
+    }
+
     if (!selectedUnit) {
       toast.error(t("unitRequired"));
       return;
@@ -106,17 +137,54 @@ export function CreateUnitRequestForm({ defaultUnitId }: { defaultUnitId?: strin
         <CardTitle className="text-base">{t("title")}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 md:grid-cols-2">
-        <UnitSearchCombobox
-          label={t("unit")}
-          placeholder={t("unitSearchPlaceholder")}
-          emptyHint={t("unitSearchMinChars")}
-          value={selectedUnit}
-          onChange={setSelectedUnit}
-          onSearch={searchUnits}
-          onResolveUnit={resolveUnitForRequestPickerAction}
-          initialUnitId={defaultUnitId}
-          disabled={pending}
-        />
+        {type === UnitRequestType.ARCHIVE_CHECK ? (
+          <div className="md:col-span-2 space-y-1">
+            <label className="text-sm font-medium">{t("archiveScope")}</label>
+            <Select
+              value={archiveScope}
+              onValueChange={(value) =>
+                setArchiveScope(value === "bulk" ? "bulk" : "single")
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="single">{t("archiveScopeSingle")}</SelectItem>
+                <SelectItem value="bulk">{t("archiveScopeBulk")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
+        {type === UnitRequestType.ARCHIVE_CHECK && archiveScope === "bulk" ? (
+          <div className="md:col-span-2 space-y-1">
+            <label className="text-sm font-medium">{t("project")}</label>
+            <Select value={projectId} onValueChange={(value) => setProjectId(value ?? "")}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t("projectPlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <UnitSearchCombobox
+            label={t("unit")}
+            placeholder={t("unitSearchPlaceholder")}
+            emptyHint={t("unitSearchMinChars")}
+            value={selectedUnit}
+            onChange={setSelectedUnit}
+            onSearch={searchUnits}
+            onResolveUnit={resolveUnitForRequestPickerAction}
+            initialUnitId={defaultUnitId}
+            disabled={pending}
+          />
+        )}
         <div className="space-y-1">
           <label className="text-sm font-medium">{t("type")}</label>
           <Select
