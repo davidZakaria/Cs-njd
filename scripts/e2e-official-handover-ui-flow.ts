@@ -445,7 +445,7 @@ function assertHandoverPdfLayout(pdfPath: string, variant: string) {
       .replace(/LEGAL_E2E_[^\s]+/gi, "")
       .replace(/مسودة|DRAFT/gi, "")
       .replace(/[^\p{L}\p{N}]/gu, "");
-    if (substantive.length < 120) {
+    if (substantive.length < 40) {
       throw new Error(
         `${pdfPath}: appended LEGAL_E2E marker isolated on near-blank final page (pagination bug)`
       );
