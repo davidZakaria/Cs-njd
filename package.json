@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run build:strict",
-    "build:strict": "npm run db:generate && tsc --noEmit && next build",
+    "build:strict": "npm run db:generate && tsc --noEmit && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
