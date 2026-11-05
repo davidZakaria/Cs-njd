@@ -81,8 +81,11 @@ export function buildHandoverFields(
 }
 
 export function interpolateHandoverText(text: string, fields: HandoverFieldValues): string {
+  const phonePlaceholder = fields.phone1.replace(/\s/g, "");
   return text
     .replace(/000000000000000/g, fields.nationalId)
+    .replace(/0000000000000/g, phonePlaceholder)
+    .replace(/رقم التليفون\s*:0+/g, `رقم التليفون :${fields.phone1}`)
     .replace(/\(00\/00\/0000\)/g, fields.handoverDate)
     .replace(/\(00\/00\/\s*م\)/g, fields.contractShortDate)
     .replace(
@@ -103,7 +106,12 @@ export function interpolateHandoverText(text: string, fields: HandoverFieldValue
     .replace(/أقر أنا الموقع أدناه\s*\/\s+أحمل/g, `أقر أنا الموقع أدناه / ${fields.clientName} أحمل`)
     .replace(/الاسم :\s+/g, `الاسم : ${fields.clientName} `)
     .replace(/1-الاسم :\s+/g, `1-الاسم : ${fields.clientName} `)
-    .replace(/2-الاسم :\s+/g, `2-الاسم : ${fields.clientName2 ?? "—"} `);
+    .replace(/2-الاسم :\s+/g, `2-الاسم : ${fields.clientName2 ?? "—"} `)
+    .replace(/1-بطاقة الرقم القومى :\s+/g, `1-بطاقة الرقم القومى : ${fields.nationalId} `)
+    .replace(/2-بطاقة الرقم القومى :\s+/g, `2-بطاقة الرقم القومى : ${fields.nationalId2 ?? "—"} `)
+    .replace(/بطاقة الرقم القومى :\s+/g, `بطاقة الرقم القومى : ${fields.nationalId} `)
+    .replace(/بطاقة رقم قومى:\s*/g, `بطاقة رقم قومى: ${fields.nationalId} `)
+    .replace(/\(000000000000000\)/g, fields.nationalId);
 }
 
 export function splitViolationItems(body: string): string[] {

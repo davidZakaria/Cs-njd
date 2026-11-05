@@ -8,6 +8,7 @@ import type { OfficialDocumentType, UnitRequestType } from "@prisma/client";
 
 import {
   generateOfficialDocumentAction,
+  applyOfficialHandoverVariantAction,
   getOfficialDocumentTextDraftAction,
   prepareOfficialDocumentTextDraftAction,
   saveOfficialDocumentTextDraftAction,
@@ -40,6 +41,16 @@ import {
 } from "@/lib/official-documents/approved-request-option";
 import { requiredRequestTypeForDocument } from "@/lib/official-documents/request-binding";
 import { cn } from "@/lib/utils";
+import { handoverUsesOfficialMasters } from "@/lib/official-documents/handover/constants";
+import {
+  listOfficialHandoverTemplateKeysForProject,
+  officialHandoverVariantLabelKey,
+} from "@/lib/official-documents/handover/variant-options";
+import {
+  listMissingFieldsInBody,
+  officialHandoverMissingFieldLabel,
+} from "@/lib/official-documents/handover/missing-fields-ui";
+import type { HandoverTemplateKey } from "@/lib/print/handover-templates/types";
 
 type GeneratedRow = {
   id: string;
@@ -73,6 +84,7 @@ export type UnitRequestOption = {
 
 export function UnitOfficialDocumentsPanel({
   unitId,
+  projectName,
   canEditDraftText,
   canViewDraftText,
   canGeneratePdf,
@@ -82,6 +94,7 @@ export function UnitOfficialDocumentsPanel({
   approvedRequests,
 }: {
   unitId: string;
+  projectName: string;
   canEditDraftText: boolean;
   canViewDraftText: boolean;
   canGeneratePdf: boolean;
@@ -104,6 +117,9 @@ export function UnitOfficialDocumentsPanel({
   const [editorLocale, setEditorLocale] = useState<string>(locale);
   const [editorTitle, setEditorTitle] = useState("");
   const [editorBody, setEditorBody] = useState("");
+  const [handoverTemplateKey, setHandoverTemplateKey] = useState<
+    HandoverTemplateKey | null
+  >(null);
   const [versionHistory, setVersionHistory] = useState<
     Array<{ id: string; createdAt: string; editorName: string }>
   >([]);
@@ -115,6 +131,34 @@ export function UnitOfficialDocumentsPanel({
     }
     return items;
   }, [tEnums]);
+
+  const handoverVariantKeys = useMemo(
+    () => listOfficialHandoverTemplateKeysForProject(projectName),
+    [projectName]
+  );
+
+  const showHandoverVariantPicker =
+    documentType === "HANDOVER_RECORD" &&
+    editorLocale === "ar" &&
+    handoverUsesOfficialMasters(projectName) &&
+    handoverVariantKeys.length > 0;
+
+  const missingFieldKeys = useMemo(
+    () => listMissingFieldsInBody(editorBody),
+    [editorBody]
+  );
+
+  const handoverVariantItems = useMemo(() => {
+    const items: Record<string, string> = {};
+    for (const key of handoverVariantKeys) {
+      items[key] = t(officialHandoverVariantLabelKey(key));
+    }
+    return items;
+  }, [handoverVariantKeys, t]);
+
+  const handoverVariantLabel =
+    (handoverTemplateKey && handoverVariantItems[handoverTemplateKey]) ||
+    t("handoverVariantAuto");
 
   const documentTypeLabel =
     documentTypeItems[documentType] ?? tEnums(`officialDocumentType.${documentType}`);
@@ -201,6 +245,11 @@ export function UnitOfficialDocumentsPanel({
       setEditorTitle(result.title ?? detail?.title ?? "");
       setEditorBody(result.body ?? detail?.currentBody ?? "");
       setEditorLocale(result.locale ?? detail?.templateLocale ?? locale);
+      setHandoverTemplateKey(
+        (result.handoverTemplateKey ??
+          detail?.handoverTemplateKey ??
+          null) as HandoverTemplateKey | null
+      );
       setVersionHistory(
         detail?.versions.map((v) => ({
           id: v.id,
@@ -223,6 +272,9 @@ export function UnitOfficialDocumentsPanel({
       setEditorTitle(detail.title);
       setEditorBody(detail.currentBody);
       setEditorLocale(detail.templateLocale);
+      setHandoverTemplateKey(
+        (detail.handoverTemplateKey ?? null) as HandoverTemplateKey | null
+      );
       setVersionHistory(
         detail.versions.map((v) => ({
           id: v.id,
@@ -231,6 +283,27 @@ export function UnitOfficialDocumentsPanel({
         }))
       );
       setEditorOpen(true);
+    });
+  };
+
+  const applyHandoverVariant = (key: HandoverTemplateKey) => {
+    if (!activeDraftId) return;
+    startTransition(async () => {
+      const result = await applyOfficialHandoverVariantAction({
+        draftId: activeDraftId,
+        handoverTemplateKey: key,
+      });
+      if (!result.success) {
+        toast.error(result.error ?? t("handoverVariantApplyFailed"));
+        return;
+      }
+      setHandoverTemplateKey(key);
+      if (result.body) setEditorBody(result.body);
+      if (result.title) setEditorTitle(result.title);
+      if (result.handoverMissingFieldKeys?.length) {
+        toast.warning(t("handoverMissingFieldsWarning"));
+      }
+      router.refresh();
     });
   };
 
@@ -490,6 +563,44 @@ export function UnitOfficialDocumentsPanel({
             <DialogTitle>{t("editTextDialogTitle")}</DialogTitle>
             <p className="text-sm text-muted-foreground">{editorTitle}</p>
           </DialogHeader>
+          {showHandoverVariantPicker && canEditDraftText ? (
+            <div className="space-y-1.5">
+              <Label>{t("handoverVariantLabel")}</Label>
+              <Select
+                value={handoverTemplateKey ?? handoverVariantKeys[0]!}
+                items={handoverVariantItems}
+                onValueChange={(v) =>
+                  applyHandoverVariant(v as HandoverTemplateKey)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue>{handoverVariantLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {handoverVariantKeys.map((key) => (
+                    <SelectItem key={key} value={key}>
+                      {handoverVariantItems[key]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {t("handoverVariantHint")}
+              </p>
+            </div>
+          ) : null}
+          {missingFieldKeys.length > 0 ? (
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+              <p className="font-medium">{t("handoverMissingFieldsWarning")}</p>
+              <ul className="mt-1 list-inside list-disc text-xs">
+                {missingFieldKeys.map((key) => (
+                  <li key={key}>
+                    {officialHandoverMissingFieldLabel(key, editorLocale)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <Textarea
             value={editorBody}
             onChange={(e) => setEditorBody(e.target.value)}
@@ -498,7 +609,8 @@ export function UnitOfficialDocumentsPanel({
             dir={editorRtl ? "rtl" : "ltr"}
             className={cn(
               "min-h-[320px] font-mono text-sm leading-relaxed",
-              editorRtl && "font-[family-name:var(--font-arabic)] text-right"
+              editorRtl && "font-[family-name:var(--font-arabic)] text-right",
+              missingFieldKeys.length > 0 && "ring-1 ring-amber-500/50"
             )}
           />
           {versionHistory.length > 0 ? (
@@ -535,7 +647,11 @@ export function UnitOfficialDocumentsPanel({
               </Button>
             ) : null}
             {canGeneratePdf ? (
-              <Button type="button" disabled={pending} onClick={generatePdf}>
+              <Button
+                type="button"
+                disabled={pending || missingFieldKeys.length > 0}
+                onClick={generatePdf}
+              >
                 {pending ? t("generating") : t("generateDraft")}
               </Button>
             ) : null}

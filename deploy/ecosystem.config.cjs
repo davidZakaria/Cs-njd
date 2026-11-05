@@ -12,6 +12,9 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         PORT: "3001",
+        PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH:
+          process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ||
+          "/usr/bin/chromium-browser",
       },
     },
     {

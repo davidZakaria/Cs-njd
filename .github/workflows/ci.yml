@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      - name: Install Chromium for handover PDF tests
+        run: npx playwright install chromium
+
       - name: Run tests
         run: npm run test:ci
 

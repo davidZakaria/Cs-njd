@@ -18,14 +18,47 @@ import {
 } from "@/lib/official-documents/permissions";
 import { renderOfficialDocumentPdf } from "@/lib/official-documents/render-pdf";
 import {
+  listMissingFieldsInBody,
+  officialHandoverMissingFieldLabel,
+} from "@/lib/official-documents/handover/missing-fields-ui";
+import { buildOfficialHandoverFieldValues } from "@/lib/official-documents/handover/field-values";
+import { renderOfficialHandoverRecordPdf } from "@/lib/official-documents/handover/render-pdf";
+import { getCompanyProfileSettings } from "@/lib/system/settings-store";
+import type { HandoverTemplateKey } from "@/lib/print/handover-templates/types";
+import {
   buildGeneratedDocumentStoredFilename,
   writeGeneratedDocumentFile,
 } from "@/lib/official-documents/storage";
 import { prisma } from "@/lib/prisma";
 
+function parseHandoverTemplateKey(value: unknown): HandoverTemplateKey | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const allowed: HandoverTemplateKey[] = [
+    "green-avenue",
+    "green-avenue-no-insurance",
+    "green-avenue-dual",
+    "green-avenue-dual-no-insurance",
+    "jura",
+    "jura-dual",
+  ];
+  return allowed.includes(value as HandoverTemplateKey)
+    ? (value as HandoverTemplateKey)
+    : null;
+}
+
 function parseLocale(value: unknown): "en" | "ar" | null {
   if (value === "en" || value === "ar") return value;
   return null;
+}
+
+function formatHandoverMissingFieldsMessage(
+  keys: string[],
+  locale: string
+): string {
+  const labels = keys.map((key) => officialHandoverMissingFieldLabel(key, locale));
+  return locale === "ar"
+    ? `لا يمكن إنشاء PDF — أكمل الحقول التالية: ${labels.join("؛ ")}`
+    : `Cannot generate PDF — complete the following fields: ${labels.join("; ")}`;
 }
 
 export async function listActiveOfficialDocumentTemplatesAction() {
@@ -175,7 +208,17 @@ export async function prepareOfficialDocumentTextDraftAction(input: {
   locale: string;
   unitRequestId?: string | null;
   draftId?: string | null;
-}): Promise<ActionResult & { draftId?: string; body?: string; title?: string; locale?: string }> {
+  handoverTemplateKey?: string | null;
+}): Promise<
+  ActionResult & {
+    draftId?: string;
+    body?: string;
+    title?: string;
+    locale?: string;
+    handoverTemplateKey?: string | null;
+    handoverMissingFieldKeys?: string[];
+  }
+> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
   if (!canEditOfficialDocumentDraftText(session.user.role)) {
@@ -193,17 +236,21 @@ export async function prepareOfficialDocumentTextDraftAction(input: {
       body: existing.currentBody,
       title: existing.title,
       locale: existing.templateLocale,
+      handoverTemplateKey: existing.handoverTemplateKey,
     };
   }
 
   const locale = parseLocale(input.locale);
   if (!locale) return actionFail("Invalid locale");
 
+  const handoverKeyOverride = parseHandoverTemplateKey(input.handoverTemplateKey);
+
   const ctx = await resolveOfficialDocumentGenerationContext({
     unitId: input.unitId,
     documentType: input.documentType,
     locale,
     unitRequestId: input.unitRequestId,
+    handoverTemplateKey: handoverKeyOverride,
   });
   if (!ctx.ok) return actionFail(ctx.error);
 
@@ -224,6 +271,7 @@ export async function prepareOfficialDocumentTextDraftAction(input: {
       body: existingDraft.currentBody,
       title: existingDraft.title,
       locale,
+      handoverTemplateKey: existingDraft.handoverTemplateKey,
     };
   }
 
@@ -238,6 +286,7 @@ export async function prepareOfficialDocumentTextDraftAction(input: {
         templateLocale: locale,
         title: ctx.template.title,
         currentBody: ctx.initialBody,
+        handoverTemplateKey: ctx.handoverTemplateKey,
         createdById: session.user!.id,
         updatedById: session.user!.id,
       },
@@ -271,6 +320,72 @@ export async function prepareOfficialDocumentTextDraftAction(input: {
     body: created.currentBody,
     title: created.title,
     locale,
+    handoverTemplateKey: created.handoverTemplateKey,
+    handoverMissingFieldKeys: ctx.handoverMissingFieldKeys,
+  };
+}
+
+export async function applyOfficialHandoverVariantAction(input: {
+  draftId: string;
+  handoverTemplateKey: string;
+}): Promise<
+  ActionResult & {
+    body?: string;
+    title?: string;
+    handoverMissingFieldKeys?: string[];
+  }
+> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+  if (!canEditOfficialDocumentDraftText(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
+
+  const key = parseHandoverTemplateKey(input.handoverTemplateKey);
+  if (!key) return actionFail("Invalid handover variant");
+
+  const draft = await prisma.officialDocumentTextDraft.findUnique({
+    where: { id: input.draftId },
+  });
+  if (!draft) return actionFail("Draft not found");
+  if (draft.documentType !== "HANDOVER_RECORD") {
+    return actionFail("Variant override applies to handover records only");
+  }
+
+  const ctx = await resolveOfficialDocumentGenerationContext({
+    unitId: draft.unitId,
+    documentType: draft.documentType,
+    locale: draft.templateLocale as "en" | "ar",
+    unitRequestId: draft.unitRequestId,
+    handoverTemplateKey: key,
+  });
+  if (!ctx.ok) return actionFail(ctx.error);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.officialDocumentTextDraft.update({
+      where: { id: draft.id },
+      data: {
+        handoverTemplateKey: key,
+        title: ctx.template.title,
+        currentBody: ctx.initialBody,
+        updatedById: session.user!.id,
+      },
+    });
+    await tx.officialDocumentTextDraftVersion.create({
+      data: {
+        draftId: draft.id,
+        body: ctx.initialBody,
+        editedById: session.user!.id,
+      },
+    });
+  });
+
+  revalidatePath(`/units/${draft.unitId}`);
+  return {
+    success: true,
+    body: ctx.initialBody,
+    title: ctx.template.title,
+    handoverMissingFieldKeys: ctx.handoverMissingFieldKeys,
   };
 }
 
@@ -353,14 +468,36 @@ export async function generateOfficialDocumentAction(input: {
   });
   if (!ctx.ok) return actionFail(ctx.error);
 
-  const pdfBytes = await renderOfficialDocumentPdf({
-    title: draft.title,
-    bodyTemplate: draft.currentBody,
-    fields: {},
-    locale: draft.templateLocale,
-    watermarkDraft: true,
-    bodyIsFinal: true,
-  });
+  const missingInBody = listMissingFieldsInBody(draft.currentBody);
+  if (missingInBody.length > 0) {
+    return actionFail(
+      formatHandoverMissingFieldsMessage(missingInBody, draft.templateLocale)
+    );
+  }
+
+  const companyProfile = await getCompanyProfileSettings();
+  const handoverFields = draft.handoverTemplateKey
+    ? buildOfficialHandoverFieldValues(
+        ctx.mergeUnit,
+        draft.templateLocale
+      ).handoverFields
+    : null;
+
+  const pdfBytes = draft.handoverTemplateKey && handoverFields
+    ? await renderOfficialHandoverRecordPdf({
+        templateKey: draft.handoverTemplateKey as HandoverTemplateKey,
+        fields: handoverFields,
+        companyAddress: companyProfile.address,
+        watermarkDraft: true,
+      })
+    : await renderOfficialDocumentPdf({
+        title: draft.title,
+        bodyTemplate: draft.currentBody,
+        fields: {},
+        locale: draft.templateLocale,
+        watermarkDraft: true,
+        bodyIsFinal: true,
+      });
 
   const storedName = buildGeneratedDocumentStoredFilename(
     draft.documentType,

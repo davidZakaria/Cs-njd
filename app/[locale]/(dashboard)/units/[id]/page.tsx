@@ -479,6 +479,7 @@ export default async function UnitProfilePage({
       {officialDocsEnabled && session?.user && canViewOfficialDocuments(session.user.role) ? (
         <UnitOfficialDocumentsPanel
           unitId={unit.id}
+          projectName={unit.project.name}
           canEditDraftText={canEditOfficialDocText}
           canViewDraftText={canViewOfficialDocDraftText}
           canGeneratePdf={canGenerateOfficialDocs}
