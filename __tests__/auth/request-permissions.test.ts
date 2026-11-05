@@ -196,4 +196,55 @@ describe("request permissions", () => {
       })
     ).toBe(false);
   });
+
+  it("lets legal view approved unit swap requests on a unit", () => {
+    expect(
+      canViewUnitRequest({
+        role: "LEGAL",
+        userId: "legal-1",
+        request: {
+          requestedById: "agent-1",
+          type: "UNIT_SWAP",
+          status: "APPROVED",
+          currentStepIndex: 0,
+          currentApproverKind: null,
+        },
+        unitAgentId: "agent-1",
+      })
+    ).toBe(true);
+  });
+
+  it("denies legal viewing unrelated pending finance requests", () => {
+    expect(
+      canViewUnitRequest({
+        role: "LEGAL",
+        userId: "legal-1",
+        request: {
+          requestedById: "agent-1",
+          type: "REFUND",
+          status: "PENDING",
+          currentStepIndex: 0,
+          currentApproverKind: "FINANCE",
+        },
+        unitAgentId: "agent-1",
+      })
+    ).toBe(false);
+  });
+
+  it("lets operations view completed archive file requests", () => {
+    expect(
+      canViewUnitRequest({
+        role: "OPERATIONS",
+        userId: "ops-1",
+        request: {
+          requestedById: "agent-1",
+          type: "ARCHIVE_FILE_REQUEST",
+          status: "APPROVED",
+          currentStepIndex: 0,
+          currentApproverKind: null,
+        },
+        unitAgentId: "agent-1",
+      })
+    ).toBe(true);
+  });
 });

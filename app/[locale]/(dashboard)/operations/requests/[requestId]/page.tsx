@@ -1,11 +1,9 @@
 import { auth } from "@/lib/auth";
 import { notFound, redirect } from "next/navigation";
 import { canAccessOperationsArchiveFileInbox } from "@/lib/archive-file-request/permissions";
-import {
-  getArchiveFileRequestDetailForOperationsAction,
-  markOperationsArchiveFileRequestReadAction,
-} from "@/lib/actions/archive-file-request";
+import { getArchiveFileRequestDetailForOperationsAction } from "@/lib/actions/archive-file-request";
 import { OperationsArchiveFileRequestWorkspace } from "@/components/archive-file-request/operations-archive-file-request-workspace";
+import { MarkOperationsArchiveFileRequestReadOnMount } from "@/components/archive-file-request/mark-operations-archive-file-request-read-on-mount";
 
 export default async function OperationsArchiveFileRequestDetailPage({
   params,
@@ -18,23 +16,27 @@ export default async function OperationsArchiveFileRequestDetailPage({
   }
 
   const { requestId } = await params;
-  await markOperationsArchiveFileRequestReadAction({ requestId });
-
   const request = await getArchiveFileRequestDetailForOperationsAction(requestId);
-  if (!request || request.status !== "PENDING") {
+  if (!request || request.type !== "ARCHIVE_FILE_REQUEST") {
     notFound();
   }
 
+  const isOpenForOps =
+    request.status === "PENDING" && request.currentApproverKind === "OPERATIONS";
+
   return (
     <div className="mx-auto max-w-3xl">
+      <MarkOperationsArchiveFileRequestReadOnMount requestId={requestId} />
       <OperationsArchiveFileRequestWorkspace
         request={{
           id: request.id,
+          status: request.status,
           description: request.description,
           archiveFilePriority: request.archiveFilePriority,
           unit: request.unit,
           archiveFileItems: request.archiveFileItems,
         }}
+        readOnly={!isOpenForOps}
       />
     </div>
   );

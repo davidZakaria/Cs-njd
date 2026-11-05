@@ -1873,6 +1873,8 @@
       "saveDescription": "حفظ",
       "cancelEdit": "إلغاء",
       "noDescription": "لا يوجد وصف.",
+      "archiveFileStatusTitle": "الملفات المطلوبة",
+      "archiveFileDownload": "فتح الملف",
       "previousDescription": "النص السابق",
       "viewArchivedAttachment": "عرض الملف المؤرشف: {name}",
       "auditUnknownUser": "النظام",
@@ -1902,7 +1904,10 @@
         "archive_check_bulk_created": "تم إنشاء فحص أرشيف جماعي",
         "archive_gap_completed": "تم حل فجوة الأرشيف",
         "archive_gap_escalated": "تم تصعيد فجوة الأرشيف",
-        "archive_scan_uploaded": "تم رفع مسح الأرشيف"
+        "archive_scan_uploaded": "تم رفع مسح الأرشيف",
+        "archive_file_uploaded": "تم رفع ملف من الأرشيف",
+        "archive_file_not_found": "تعذر العثور على الملف في الأرشيف",
+        "archive_file_request_completed": "اكتمل طلب ملف الأرشيف"
       }
     },
     "unitPanel": {
@@ -2053,7 +2058,9 @@
     "urgent": "عاجل",
     "unreadBadge": "{count} غير مقروء",
     "requestedBy": "طلب {name}",
-    "pendingFiles": "{count} ملفات معلّقة",
+    "pendingFiles": "{count, plural, one {ملف واحد معلّق} other {# ملفات معلّقة}}",
+    "requestCompleted": "اكتمل هذا الطلب.",
+    "backToInbox": "العودة إلى صندوق الطلبات",
     "detailTitle": "تنفيذ طلب ملف أرشيف",
     "openUnit": "فتح الوحدة",
     "note": "ملاحظة مقدّم الطلب",
@@ -2083,6 +2090,8 @@
     "draftPrepareFailed": "تعذّر تجهيز نص المسودة.",
     "draftSaveFailed": "تعذّر حفظ نص المسودة.",
     "viewOnlyHint": "يمكنك عرض مسودات النص وملفات PDF. القانوني والإدارة فقط يعدّلان النص أو يولّدان PDF.",
+    "viewDraft": "عرض المسودة",
+    "draftLoadFailed": "تعذر تحميل المسودة",
     "textDraftsTitle": "مسودات نص محفوظة",
     "draftVersionCount": "{count} نسخ",
     "reopenDraft": "إعادة فتح",

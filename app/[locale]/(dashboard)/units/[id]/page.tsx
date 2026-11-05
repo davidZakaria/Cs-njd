@@ -155,6 +155,10 @@ export default async function UnitProfilePage({
     session?.user && officialDocsEnabled
       ? canEditOfficialDocumentDraftText(session.user.role)
       : false;
+  const canViewOfficialDocDraftText =
+    session?.user && officialDocsEnabled
+      ? canViewOfficialDocuments(session.user.role) && !canEditOfficialDocText
+      : false;
   const canGenerateOfficialDocs =
     session?.user && officialDocsEnabled
       ? canGenerateOfficialDocuments(session.user.role)
@@ -464,6 +468,7 @@ export default async function UnitProfilePage({
         <UnitOfficialDocumentsPanel
           unitId={unit.id}
           canEditDraftText={canEditOfficialDocText}
+          canViewDraftText={canViewOfficialDocDraftText}
           canGeneratePdf={canGenerateOfficialDocs}
           generatedDocuments={generatedOfficialDocuments.map((doc) => ({
             ...doc,

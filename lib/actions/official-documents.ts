@@ -207,6 +207,26 @@ export async function prepareOfficialDocumentTextDraftAction(input: {
   });
   if (!ctx.ok) return actionFail(ctx.error);
 
+  const existingDraft = await prisma.officialDocumentTextDraft.findFirst({
+    where: {
+      unitId: ctx.unit.id,
+      documentType: input.documentType,
+      templateLocale: locale,
+      unitRequestId: ctx.unitRequestId,
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  if (existingDraft) {
+    return {
+      success: true,
+      draftId: existingDraft.id,
+      body: existingDraft.currentBody,
+      title: existingDraft.title,
+      locale,
+    };
+  }
+
   const created = await prisma.$transaction(async (tx) => {
     const draft = await tx.officialDocumentTextDraft.create({
       data: {

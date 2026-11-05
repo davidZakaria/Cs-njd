@@ -64,6 +64,7 @@ export type UnitRequestOption = {
 export function UnitOfficialDocumentsPanel({
   unitId,
   canEditDraftText,
+  canViewDraftText,
   canGeneratePdf,
   generatedDocuments,
   textDrafts,
@@ -71,6 +72,7 @@ export function UnitOfficialDocumentsPanel({
 }: {
   unitId: string;
   canEditDraftText: boolean;
+  canViewDraftText: boolean;
   canGeneratePdf: boolean;
   generatedDocuments: GeneratedRow[];
   textDrafts: TextDraftRow[];
@@ -162,6 +164,28 @@ export function UnitOfficialDocumentsPanel({
           createdAt: v.createdAt.toISOString(),
           editorName: v.editedBy.name,
         })) ?? []
+      );
+      setEditorOpen(true);
+    });
+  };
+
+  const openViewDraft = (draftId: string) => {
+    startTransition(async () => {
+      const detail = await getOfficialDocumentTextDraftAction(draftId);
+      if (!detail) {
+        toast.error(t("draftLoadFailed"));
+        return;
+      }
+      setActiveDraftId(draftId);
+      setEditorTitle(detail.title);
+      setEditorBody(detail.currentBody);
+      setEditorLocale(detail.templateLocale);
+      setVersionHistory(
+        detail.versions.map((v) => ({
+          id: v.id,
+          createdAt: v.createdAt.toISOString(),
+          editorName: v.editedBy.name,
+        }))
       );
       setEditorOpen(true);
     });
@@ -320,6 +344,16 @@ export function UnitOfficialDocumentsPanel({
                     onClick={() => openEditor({ draftId: draft.id })}
                   >
                     {t("reopenDraft")}
+                  </Button>
+                ) : canViewDraftText ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={pending}
+                    onClick={() => openViewDraft(draft.id)}
+                  >
+                    {t("viewDraft")}
                   </Button>
                 ) : null}
               </li>

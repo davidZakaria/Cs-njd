@@ -48,7 +48,10 @@ import {
 } from "@/lib/uploads/unit-document-storage";
 import { ArchiveFileKind } from "@prisma/client";
 
-const markReadSchema = z.object({ requestId: z.string().min(1) });
+const markReadSchema = z.object({
+  requestId: z.string().min(1),
+  skipRevalidate: z.boolean().optional(),
+});
 
 const notFoundSchema = z.object({
   itemId: z.string().min(1),
@@ -109,7 +112,7 @@ export async function getUnreadOperationsArchiveFileInboxCountAction(): Promise<
 }
 
 export async function markOperationsArchiveFileRequestReadAction(
-  input: z.input<typeof markReadSchema>
+  input: z.input<typeof markReadSchema> & { skipRevalidate?: boolean }
 ): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user || !canAccessOperationsArchiveFileInbox(session.user.role)) {
@@ -139,7 +142,9 @@ export async function markOperationsArchiveFileRequestReadAction(
     update: { readAt: new Date() },
   });
 
-  revalidatePath("/operations/requests");
+  if (!parsed.data.skipRevalidate) {
+    revalidatePath("/operations/requests");
+  }
   return actionOk();
 }
 

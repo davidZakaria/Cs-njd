@@ -18,9 +18,11 @@ import { Textarea } from "@/components/ui/textarea";
 
 export function OperationsArchiveFileRequestWorkspace({
   request,
+  readOnly = false,
 }: {
   request: {
     id: string;
+    status: import("@prisma/client").UnitRequestStatus;
     description: string | null;
     archiveFilePriority: "NORMAL" | "URGENT" | null;
     unit: {
@@ -36,6 +38,7 @@ export function OperationsArchiveFileRequestWorkspace({
       resultAttachmentId: string | null;
     }>;
   };
+  readOnly?: boolean;
 }) {
   const t = useTranslations("operationsArchiveFileRequests");
   const tEnums = useTranslations("enums");
@@ -48,9 +51,24 @@ export function OperationsArchiveFileRequestWorkspace({
   }
 
   const unitId = request.unit.id;
+  const completed =
+    readOnly ||
+    request.status === "APPROVED" ||
+    request.status === "REJECTED" ||
+    request.status === "CANCELLED";
 
   return (
     <div className="space-y-6">
+      {completed ? (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <p className="text-sm font-medium">{t("requestCompleted")}</p>
+            <Button variant="outline" size="sm" render={<Link href="/operations/requests" />}>
+              {t("backToInbox")}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">{t("detailTitle")}</h1>
@@ -89,7 +107,7 @@ export function OperationsArchiveFileRequestWorkspace({
               </Badge>
             </div>
 
-            {item.status === "PENDING" ? (
+            {item.status === "PENDING" && !completed ? (
               <div className="flex flex-col gap-3">
                 <form
                   className="flex flex-wrap items-end gap-2"

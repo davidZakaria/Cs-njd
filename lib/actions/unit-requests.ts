@@ -99,6 +99,7 @@ async function loadRequestContext(requestId: string) {
         take: 100,
         include: { user: { select: { id: true, name: true } } },
       },
+      archiveFileItems: { orderBy: { createdAt: "asc" } },
     },
   });
 }

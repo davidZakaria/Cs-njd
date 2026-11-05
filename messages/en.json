@@ -1873,6 +1873,8 @@
       "saveDescription": "Save",
       "cancelEdit": "Cancel",
       "noDescription": "No description provided.",
+      "archiveFileStatusTitle": "Requested files",
+      "archiveFileDownload": "Open file",
       "previousDescription": "Previous text",
       "viewArchivedAttachment": "View archived file: {name}",
       "auditUnknownUser": "System",
@@ -1902,7 +1904,10 @@
         "archive_check_bulk_created": "Bulk archive check created",
         "archive_gap_completed": "Archive gap resolved",
         "archive_gap_escalated": "Archive gap escalated",
-        "archive_scan_uploaded": "Archive scan uploaded"
+        "archive_scan_uploaded": "Archive scan uploaded",
+        "archive_file_uploaded": "Archive file uploaded",
+        "archive_file_not_found": "Archive file marked not found in archive",
+        "archive_file_request_completed": "Archive file request completed"
       }
     },
     "unitPanel": {
@@ -2053,7 +2058,9 @@
     "urgent": "Urgent",
     "unreadBadge": "{count} unread",
     "requestedBy": "Requested by {name}",
-    "pendingFiles": "{count} files pending",
+    "pendingFiles": "{count, plural, one {# file pending} other {# files pending}}",
+    "requestCompleted": "This request is complete.",
+    "backToInbox": "Back to requests inbox",
     "detailTitle": "Fulfill archive file request",
     "openUnit": "Open unit",
     "note": "Requester note",
@@ -2083,6 +2090,8 @@
     "draftPrepareFailed": "Could not prepare draft text.",
     "draftSaveFailed": "Could not save draft text.",
     "viewOnlyHint": "You can view saved text drafts and PDFs. Only legal and management can edit draft text or generate PDFs.",
+    "viewDraft": "View draft",
+    "draftLoadFailed": "Could not load draft",
     "textDraftsTitle": "Saved text drafts",
     "draftVersionCount": "{count} versions",
     "reopenDraft": "Reopen",

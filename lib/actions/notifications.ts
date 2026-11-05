@@ -71,7 +71,7 @@ export async function getMyActivityNotifications(): Promise<
   const locale = await getLocale();
 
   const items = await basePrisma.notification.findMany({
-    where: { userId: session.user.id, kind: "ACTIVITY" },
+    where: { userId: session.user.id, kind: { in: ["ACTIVITY", "GENERAL"] } },
     orderBy: { createdAt: "desc" },
     take: 60,
     select: {
@@ -105,7 +105,7 @@ export async function getMyUnreadActivityNotificationCount(): Promise<number> {
     where: {
       userId: session.user.id,
       isRead: false,
-      kind: "ACTIVITY",
+      kind: { in: ["ACTIVITY", "GENERAL"] },
     },
   });
 }
@@ -117,7 +117,11 @@ export async function markActivityNotificationAsRead(
   if (!session?.user?.id) return actionFail("Unauthorized");
 
   const notification = await basePrisma.notification.findFirst({
-    where: { id, userId: session.user.id, kind: "ACTIVITY" },
+    where: {
+      id,
+      userId: session.user.id,
+      kind: { in: ["ACTIVITY", "GENERAL"] },
+    },
   });
 
   if (!notification) return actionFail("Notification not found");
@@ -141,7 +145,7 @@ export async function markAllActivityNotificationsAsRead(): Promise<ActionResult
     where: {
       userId: session.user.id,
       isRead: false,
-      kind: "ACTIVITY",
+      kind: { in: ["ACTIVITY", "GENERAL"] },
     },
     data: { isRead: true },
   });

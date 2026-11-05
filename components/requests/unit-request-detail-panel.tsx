@@ -23,7 +23,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { UnitRequestStatus, UnitRequestType } from "@prisma/client";
 import { ArchiveCheckProgressPanel } from "@/components/archive-check/archive-check-progress-panel";
-import type { ArchiveCheckItemStatus, ArchiveCheckGapTaskStatus } from "@prisma/client";
+import { fulfillmentLinkForArchiveFileItem } from "@/lib/archive-file-request/links";
+import type {
+  ArchiveCheckItemStatus,
+  ArchiveCheckGapTaskStatus,
+  ArchiveFileItemStatus,
+  ArchiveFileKind,
+} from "@prisma/client";
 
 type AuditEventRow = {
   id: string;
@@ -78,6 +84,14 @@ export function UnitRequestDetailPanel({
     comments: Array<{ id: string; body: string; authorName: string; createdAt: string }>;
     attachments: Array<{ id: string; originalName: string; createdAt: string }>;
     auditEvents: AuditEventRow[];
+    archiveFileItems?: Array<{
+      id: string;
+      fileKind: ArchiveFileKind;
+      status: ArchiveFileItemStatus;
+      notFoundNote: string | null;
+      resultAttachmentId: string | null;
+    }>;
+    archiveFilePriority?: "NORMAL" | "URGENT" | null;
   };
   canApprove: boolean;
   canReject: boolean;
@@ -271,6 +285,56 @@ export function UnitRequestDetailPanel({
           bulkProjectName={bulkProjectName}
           units={archiveProgressUnits}
         />
+      ) : null}
+
+      {request.type === "ARCHIVE_FILE_REQUEST" && request.archiveFileItems?.length ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">{t("archiveFileStatusTitle")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3 text-sm">
+              {request.archiveFileItems.map((item) => {
+                const fileLabel = tEnums(`archiveFileKind.${item.fileKind}`);
+                const statusLabel = tEnums(`archiveFileItemStatus.${item.status}`);
+                const fileLink =
+                  item.status === "FULFILLED_UPLOAD"
+                    ? fulfillmentLinkForArchiveFileItem({
+                        unitId: request.unitId,
+                        requestId: request.id,
+                        fileKind: item.fileKind,
+                        attachmentId: item.resultAttachmentId,
+                      })
+                    : null;
+                return (
+                  <li
+                    key={item.id}
+                    className="flex flex-wrap items-start justify-between gap-2 border-b border-border/40 pb-3 last:border-0 last:pb-0"
+                  >
+                    <div>
+                      <p className="font-medium">{fileLabel}</p>
+                      <p className="text-muted-foreground">{statusLabel}</p>
+                      {item.status === "NOT_FOUND" && item.notFoundNote ? (
+                        <p className="mt-1 text-muted-foreground">{item.notFoundNote}</p>
+                      ) : null}
+                    </div>
+                    {fileLink ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        render={
+                          <a href={fileLink} target="_blank" rel="noopener noreferrer" />
+                        }
+                      >
+                        {t("archiveFileDownload")}
+                      </Button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
       ) : null}
 
       <div className="flex flex-wrap gap-2">

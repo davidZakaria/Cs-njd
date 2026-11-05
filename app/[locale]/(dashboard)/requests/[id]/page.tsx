@@ -190,6 +190,14 @@ export default async function RequestDetailPage({
                 ? (e.details as Record<string, unknown>)
                 : null,
           })),
+          archiveFileItems: request.archiveFileItems.map((item) => ({
+            id: item.id,
+            fileKind: item.fileKind,
+            status: item.status,
+            notFoundNote: item.notFoundNote,
+            resultAttachmentId: item.resultAttachmentId,
+          })),
+          archiveFilePriority: request.archiveFilePriority,
         }}
         canApprove={canApprove}
         canReject={canReject}

@@ -30,6 +30,19 @@ export function canCreateUnitRequest(role: Role): boolean {
   return isCsAgentRole(role) || isAdminUnitManager(role) || role === "SUPER_ADMIN";
 }
 
+/** Approved requests Legal/Finance need when linking official document drafts on a unit. */
+export const DEPARTMENT_STAFF_APPROVED_UNIT_REQUEST_TYPES: UnitRequestType[] = [
+  "GRACE_PERIOD_ANNEX",
+  "CONTRACT_ISSUE_OR_AMENDMENT",
+  "UNIT_SWAP",
+];
+
+export function departmentStaffMayViewApprovedUnitRequest(
+  type: UnitRequestType
+): boolean {
+  return DEPARTMENT_STAFF_APPROVED_UNIT_REQUEST_TYPES.includes(type);
+}
+
 export function communityMayViewRequestType(type: UnitRequestType): boolean {
   return type === "HANDOVER_APPOINTMENT";
 }
