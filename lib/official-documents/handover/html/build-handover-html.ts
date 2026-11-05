@@ -162,6 +162,7 @@ function buildGreenAvenueBody(
     <h2 class="section-heading">${escapeHtml(template.violationsIntro)}</h2>
     ${violationHtml}
     ${insurance ? `<p class="justified insurance-block">${toHandoverHtml(insurance)}</p>` : ""}
+    ${template.dual ? buildGreenDualClosingSignatures() : ""}
   `;
 }
 
@@ -272,18 +273,94 @@ function splitGreenDeclaration(text: string) {
 }
 
 function buildDeclarantSignatureBlock(options?: {
-  pageBreakAfter?: boolean;
+  dual?: boolean;
+  ownerRows?: 1 | 2;
 }): string {
-  const extraClass = options?.pageBreakAfter ? " signature-page-break" : "";
-  return `
-    <div class="signature-block${extraClass}">
-      <p class="signature-heading">المقر بما فيه</p>
+  const rows =
+    options?.ownerRows ?? (options?.dual ? 2 : 1);
+  const ownerRowsHtml =
+    rows === 2
+      ? `
+      <div class="signature-row">
+        <div class="signature-cell">
+          <span class="label">1-الاسم :</span><span class="dotted-line"></span>
+        </div>
+        <div class="signature-cell">
+          <span class="label">التوقيع :</span><span class="dotted-line"></span>
+        </div>
+      </div>
+      <div class="signature-row">
+        <div class="signature-cell">
+          <span class="label">2-الاسم :</span><span class="dotted-line"></span>
+        </div>
+        <div class="signature-cell">
+          <span class="label">التوقيع :</span><span class="dotted-line"></span>
+        </div>
+      </div>`
+      : `
       <div class="signature-row">
         <div class="signature-cell">
           <span class="label">الاسم :</span><span class="dotted-line"></span>
         </div>
         <div class="signature-cell">
           <span class="label">التوقيع :</span><span class="dotted-line"></span>
+        </div>
+      </div>`;
+
+  return `
+    <div class="signature-block">
+      <p class="signature-heading">المقر بما فيه</p>
+      ${ownerRowsHtml}
+    </div>`;
+}
+
+function buildJuraClosingSignatures(dual: boolean): string {
+  if (dual) {
+    return `
+      <div class="signature-block signature-block-closing">
+        <div class="signature-row">
+          <div class="signature-cell">
+            <span class="label">توقيع المالك الأول</span><span class="dotted-line"></span>
+          </div>
+          <div class="signature-cell">
+            <span class="label">توقيع المالك الثاني</span><span class="dotted-line"></span>
+          </div>
+        </div>
+        <div class="signature-row">
+          <div class="signature-cell">
+            <span class="label">توقيع الشركة</span><span class="dotted-line"></span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div class="signature-block signature-block-closing">
+      <div class="signature-row">
+        <div class="signature-cell">
+          <span class="label">توقيع المالك</span><span class="dotted-line"></span>
+        </div>
+        <div class="signature-cell">
+          <span class="label">توقيع الشركة</span><span class="dotted-line"></span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildGreenDualClosingSignatures(): string {
+  return `
+    <div class="signature-block signature-block-closing">
+      <div class="signature-row">
+        <div class="signature-cell">
+          <span class="label">توقيع المشتري الأول</span><span class="dotted-line"></span>
+        </div>
+        <div class="signature-cell">
+          <span class="label">توقيع المشتري الثاني</span><span class="dotted-line"></span>
+        </div>
+      </div>
+      <div class="signature-row">
+        <div class="signature-cell">
+          <span class="label">توقيع الشركة</span><span class="dotted-line"></span>
         </div>
       </div>
     </div>`;
@@ -303,19 +380,36 @@ function buildJuraBody(template: JuraTemplate, fields: HandoverFieldValues): str
     }
   }
 
-  let breakBeforeNextSection = false;
-  for (const part of rest) {
+  for (let i = 0; i < rest.length; i++) {
+    const part = rest[i]!;
+    const isLast = i === rest.length - 1;
     const interpolated = interpolateHandoverText(part.text, fields);
     const { heading, body } = splitJuraSectionHeadingBody(interpolated);
-    const pageBreakClass =
-      breakBeforeNextSection ? " section-page-break" : "";
-    breakBeforeNextSection = false;
-    html += `<h2 class="section-heading${pageBreakClass}">${escapeHtml(heading)}</h2>`;
-    html += `<p class="justified">${toHandoverHtml(body)}</p>`;
-    if (/ثالث/u.test(part.key) || /ثالث/u.test(heading)) {
-      html += buildDeclarantSignatureBlock({ pageBreakAfter: true });
-      breakBeforeNextSection = true;
+    const isThalitha = /ثالث/u.test(part.key) || /ثالث/u.test(heading);
+
+    if (isThalitha) {
+      html += `<div class="jura-thalitha-wrap">`;
+      html += `<h2 class="section-heading">${escapeHtml(heading)}</h2>`;
+      html += `<p class="justified section-body">${toHandoverHtml(body)}</p>`;
+      html += buildDeclarantSignatureBlock({
+        dual: template.dual,
+        ownerRows: template.dual ? 2 : 1,
+      });
+      html += `</div>`;
+      continue;
     }
+
+    if (isLast) {
+      html += `<div class="jura-finale">`;
+      html += `<h2 class="section-heading">${escapeHtml(heading)}</h2>`;
+      html += `<p class="justified section-body">${toHandoverHtml(body)}</p>`;
+      html += buildJuraClosingSignatures(template.dual);
+      html += `</div>`;
+      continue;
+    }
+
+    html += `<h2 class="section-heading">${escapeHtml(heading)}</h2>`;
+    html += `<p class="justified section-body">${toHandoverHtml(body)}</p>`;
   }
 
   return html;

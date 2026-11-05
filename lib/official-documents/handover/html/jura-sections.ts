@@ -2,46 +2,62 @@ import type { HandoverFieldValues } from "@/lib/print/handover-templates/types";
 
 import { escapeHtml, formatLtrField, toHandoverHtml } from "./utils";
 
+/**
+ * Split Jura section template text into a short title line and body paragraph.
+ */
 export function splitJuraSectionHeadingBody(text: string): {
   heading: string;
   body: string;
 } {
   const t = text.trim();
-  const parenSplit = t.match(/^(.+?\))\s*([\s\S]+)$/);
-  if (
-    parenSplit &&
-    parenSplit[1].includes(":") &&
-    parenSplit[1].length < 120 &&
-    !parenSplit[1].includes("أقر")
-  ) {
-    return { heading: parenSplit[1].trim(), body: parenSplit[2].trim() };
+
+  const sec2 = t.match(/^(ثانيا\s*:\s*.+?\))\s*(.+)$/u);
+  if (sec2) {
+    return { heading: sec2[1]!.trim(), body: sec2[2]!.trim() };
   }
 
-  const stuckIdx = t.search(/(?<=[^\s])أقر/u);
-  if (stuckIdx > 0) {
+  const sec5 = t.match(/^(خامسا\s*:\s*.+?)(?=\d+\.\s*)/u);
+  if (sec5) {
     return {
-      heading: t.slice(0, stuckIdx).trim(),
-      body: t.slice(stuckIdx).trim(),
+      heading: sec5[1]!.trim(),
+      body: t.slice(sec5[1]!.length).trim(),
     };
   }
 
-  const spacedIdx = t.search(/\s+(?:و\s*)?أقر\b/u);
-  if (spacedIdx > 0) {
+  const sec7 = t.match(/^(سابعا\s*:\s*.+?\))\s*(.+)$/u);
+  if (sec7) {
+    return { heading: sec7[1]!.trim(), body: sec7[2]!.trim() };
+  }
+
+  const sec10 = t.match(
+    /^(عاشر[أاً]+\s*:\s*الإخلاء الإداري وإنهاء الإقامة)([\s\S]*)$/u
+  );
+  if (sec10) {
+    return { heading: sec10[1]!.trim(), body: sec10[2]!.trim() };
+  }
+
+  const stuckAqr = t.match(/^(.+?:\s*.+?)(?<=[^\s])أقر([\s\S]*)$/u);
+  if (stuckAqr) {
     return {
-      heading: t.slice(0, spacedIdx).trim(),
-      body: t.slice(spacedIdx).trim(),
+      heading: stuckAqr[1]!.trim(),
+      body: (`أقر${stuckAqr[2]}`).trim(),
+    };
+  }
+
+  const spacedAqr = t.match(/^(.+?)\s+(?:و\s*)?أقر\s([\s\S]*)$/u);
+  if (spacedAqr && spacedAqr[1]!.includes(":")) {
+    return {
+      heading: spacedAqr[1]!.trim(),
+      body: `أقر ${spacedAqr[2]!.trim()}`,
     };
   }
 
   const colon = t.indexOf(":");
   if (colon > 0) {
-    const lineEnd = t.indexOf(".", colon);
-    if (lineEnd > colon) {
-      return {
-        heading: t.slice(0, lineEnd + 1).trim(),
-        body: t.slice(lineEnd + 1).trim(),
-      };
-    }
+    return {
+      heading: t.slice(0, colon + 1).trim(),
+      body: t.slice(colon + 1).trim(),
+    };
   }
 
   return { heading: t, body: "" };

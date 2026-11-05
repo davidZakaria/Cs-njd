@@ -15,13 +15,10 @@ export function normalizeWesternDigits(text: string): string {
     .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
 }
 
-const LRI = "\u2066";
-const PDI = "\u2069";
 
 export function formatLtrField(value: string): string {
-  const cleaned = normalizeWesternDigits(value);
-  const isolated = `${LRI}${cleaned}${PDI}`;
-  return `<bdi class="ltr-field" dir="ltr">${escapeHtml(isolated)}</bdi>`;
+  const cleaned = normalizeWesternDigits(value).trim();
+  return `<span class="ltr-field" dir="ltr">\u200E${escapeHtml(cleaned)}</span>`;
 }
 
 export function toHandoverHtml(text: string): string {

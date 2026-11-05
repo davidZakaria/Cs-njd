@@ -182,6 +182,13 @@ describe("official handover HTML placeholders", () => {
         expect(html).toContain("ثانيا : سداد المرافق والعدادات");
         expect(html).toMatch(/ثالثا\s*:\s*وديعة الصيانة وفروق الصيانة/);
         expect(html).toContain("المقر بما فيه");
+        expect(html).toContain("توقيع الشركة");
+        expect(html).toMatch(/توقيع المالك/);
+      }
+
+      if (key.startsWith("green-avenue-dual")) {
+        expect(html).toContain("توقيع المشتري الأول");
+        expect(html).toContain("توقيع المشتري الثاني");
       }
 
       expect(html).toContain("print-frame-outer");

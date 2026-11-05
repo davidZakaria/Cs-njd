@@ -24,7 +24,7 @@ describe("handover HTML utils", () => {
     const html = formatLtrField("+201012345678");
     expect(html).toContain('dir="ltr"');
     expect(html).toContain("+201012345678");
-    expect(html).toContain("<bdi");
+    expect(html).toContain("<span");
   });
 
   it("uses a single primary address line", () => {

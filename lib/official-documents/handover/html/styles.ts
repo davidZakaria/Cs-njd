@@ -1,7 +1,7 @@
 export const HANDOVER_PRINT_CSS = `
 @page {
   size: A4;
-  margin: 0;
+  margin: 10mm 18mm 11mm 11mm;
 }
 
 * {
@@ -11,6 +11,8 @@ export const HANDOVER_PRINT_CSS = `
 html, body {
   margin: 0;
   padding: 0;
+  width: auto;
+  max-width: none;
 }
 
 body {
@@ -20,8 +22,26 @@ body {
   direction: rtl;
   text-align: right;
   color: #000;
+  overflow-x: hidden;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
+}
+
+.doc-body {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.handover-jura .doc-body {
+  font-size: 11.5pt;
+  line-height: 1.62;
 }
 
 .handover-green .print-frame {
@@ -39,24 +59,19 @@ body {
 }
 
 .print-frame-outer {
-  top: 3mm;
-  left: 3mm;
-  right: 3mm;
-  bottom: 3mm;
+  top: 5mm;
+  left: 5mm;
+  right: 5mm;
+  bottom: 5mm;
   border: 0.55pt solid #000;
 }
 
 .print-frame-inner {
-  top: 4.6mm;
-  left: 4.6mm;
-  right: 4.6mm;
-  bottom: 4.6mm;
+  top: 6.5mm;
+  left: 6.5mm;
+  right: 6.5mm;
+  bottom: 6.5mm;
   border: 0.55pt solid #000;
-}
-
-.handover-jura .doc-body {
-  font-size: 11.5pt;
-  line-height: 1.62;
 }
 
 .watermark {
@@ -75,16 +90,19 @@ body {
 
 .doc-header {
   margin-bottom: 4mm;
+  max-width: 100%;
 }
 
 .doc-logo {
   display: block;
-  height: 14mm;
+  height: 12mm;
   width: auto;
-  max-width: 72mm;
+  max-width: 58mm;
   object-fit: contain;
-  object-position: left top;
+  object-position: right top;
   margin-bottom: 3mm;
+  margin-inline-start: auto;
+  margin-inline-end: 0;
 }
 
 .title-block {
@@ -121,6 +139,35 @@ body {
   margin: 3.5mm 0 2mm;
   font-size: 11pt;
   break-after: avoid;
+  max-width: 100%;
+}
+
+.section-body {
+  font-weight: 400;
+  text-decoration: none;
+  text-align: justify;
+  text-justify: inter-word;
+  margin: 1.8mm 0;
+  line-height: 1.52;
+  orphans: 2;
+  widows: 2;
+}
+
+p.justified,
+.justified {
+  text-align: justify;
+  text-justify: inter-word;
+  margin: 1.8mm 0;
+  line-height: 1.52;
+  orphans: 2;
+  widows: 2;
+  font-weight: 400;
+  text-decoration: none;
+}
+
+.jura-thalitha-wrap {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .section-page-break {
@@ -167,16 +214,6 @@ body {
   margin: 1.5mm 0;
 }
 
-p.justified,
-.justified {
-  text-align: justify;
-  text-justify: inter-word;
-  margin: 1.8mm 0;
-  line-height: 1.52;
-  orphans: 2;
-  widows: 2;
-}
-
 .declaration-intro {
   margin: 1.5mm 0;
   font-weight: 600;
@@ -200,8 +237,19 @@ p.justified,
 }
 
 .signature-page-break {
-  break-after: page;
-  page-break-after: always;
+  break-after: auto;
+  page-break-after: auto;
+}
+
+.signature-block-closing {
+  margin-top: 6mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.jura-finale {
+  break-inside: avoid-page;
+  page-break-inside: avoid;
 }
 
 .signature-heading {
