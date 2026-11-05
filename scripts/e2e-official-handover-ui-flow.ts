@@ -451,6 +451,14 @@ function assertHandoverPdfLayout(pdfPath: string, variant: string) {
       );
     }
   }
+  if (variant === "green-avenue") {
+    const page3 = pdfPageText(pdfPath, Math.min(3, pageCount));
+    if (!page3.includes("LEGAL_E2E_")) {
+      throw new Error(
+        `${pdfPath}: green-avenue LEGAL_E2E marker must stay on page 3 with insurance tail, not a trailing orphan page`
+      );
+    }
+  }
 }
 
 async function getLatestHandoverDraft(unitId: string) {

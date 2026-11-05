@@ -525,12 +525,7 @@ function renderGreenAvenueDraftBodyHtml(
         bodyText && !isHandoverDraftAppendixChunk(bodyText)
           ? `${heading}\n${bodyText}`.trim()
           : chunk.trim();
-      if (trailingAppendix) {
-        html += `<p class="justified insurance-block">${toHandoverHtml(insuranceText)} <span class="draft-legal-appendix">${toHandoverHtml(trailingAppendix)}</span></p>`;
-        trailingAppendix = null;
-      } else {
-        html += `<p class="justified insurance-block">${toHandoverHtml(insuranceText)}</p>`;
-      }
+      html += `<p class="justified insurance-block">${toHandoverHtml(insuranceText)}</p>`;
       continue;
     }
 
