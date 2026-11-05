@@ -73,6 +73,7 @@ import {
 } from "@/lib/official-documents/permissions";
 import { listUnitGeneratedDocumentsAction, listUnitOfficialDocumentTextDraftsAction } from "@/lib/actions/official-documents";
 import { UnitOfficialDocumentsPanel } from "@/components/units/unit-official-documents-panel";
+import { canCreateUnitRequest } from "@/lib/requests/permissions-core";
 
 export default async function UnitProfilePage({
   params,
@@ -163,9 +164,20 @@ export default async function UnitProfilePage({
     session?.user && officialDocsEnabled
       ? canGenerateOfficialDocuments(session.user.role)
       : false;
+  const canCreateUnitRequestForDocs =
+    session?.user && officialDocsEnabled
+      ? canCreateUnitRequest(session.user.role)
+      : false;
   const approvedRequestsForDocs = unitRequests
     .filter((r) => r.status === "APPROVED")
-    .map((r) => ({ id: r.id, type: r.type, status: r.status }));
+    .map((r) => ({
+      id: r.id,
+      type: r.type,
+      status: r.status,
+      submittedAt: r.submittedAt,
+      updatedAt: r.updatedAt,
+      description: r.description,
+    }));
 
   const projectLabel = await labels.project(unit.project.name);
   const agentLabel = unit.agent
@@ -471,6 +483,7 @@ export default async function UnitProfilePage({
           canEditDraftText={canEditOfficialDocText}
           canViewDraftText={canViewOfficialDocDraftText}
           canGeneratePdf={canGenerateOfficialDocs}
+          canCreateUnitRequest={canCreateUnitRequestForDocs}
           generatedDocuments={generatedOfficialDocuments.map((doc) => ({
             ...doc,
             generatedAt: doc.generatedAt,
