@@ -10,6 +10,9 @@ import {
   getHomeRoute,
   getCoreNavItems,
   getNavItems,
+  isUnitsListRoute,
+  isUnitDetailRoute,
+  isNotificationsRoute,
 } from "@/lib/rbac";
 
 describe("RBAC Route Helpers", () => {
@@ -286,8 +289,15 @@ describe("RBAC Role Access Control", () => {
     });
 
     it("can access units for read-only archive work", () => {
-      expect(canAccessRoute(role, "/units")).toBe(true);
+      expect(canAccessRoute(role, "/units")).toBe(false);
       expect(canAccessRoute(role, "/units/123")).toBe(true);
+    });
+
+    it("cannot access units list or notifications", () => {
+      expect(isUnitsListRoute("/units")).toBe(true);
+      expect(isNotificationsRoute("/notifications")).toBe(true);
+      expect(canAccessRoute(role, "/units")).toBe(false);
+      expect(canAccessRoute(role, "/notifications")).toBe(false);
     });
 
     it("cannot access cases, dashboard, executive, or admin routes", () => {
@@ -344,7 +354,7 @@ describe("RBAC Navigation Items", () => {
     it("returns operations and units only for OPERATIONS", () => {
       const items = getCoreNavItems("OPERATIONS");
       const hrefs = items.map((i) => i.href);
-      expect(hrefs).toEqual(["/operations", "/units"]);
+      expect(hrefs).toEqual(["/operations"]);
     });
 
     it("returns dashboard but not engineering or executive for CS_AGENT", () => {
@@ -376,7 +386,7 @@ describe("RBAC Navigation Items", () => {
     it("returns operations and units for OPERATIONS in full nav", () => {
       const items = getNavItems("OPERATIONS");
       const keys = items.map((i) => i.key);
-      expect(keys).toEqual(["operations", "units"]);
+      expect(keys).toEqual(["operations"]);
     });
 
     it("excludes admin items for MANAGEMENT", () => {
@@ -386,6 +396,34 @@ describe("RBAC Navigation Items", () => {
       expect(keys).not.toContain("auditLogs");
       expect(keys).not.toContain("backups");
       expect(keys).not.toContain("system");
+    });
+
+    it("returns legal home and requests only for LEGAL nav", () => {
+      const items = getNavItems("LEGAL");
+      expect(items.map((i) => i.href)).toEqual(["/legal", "/requests"]);
+    });
+
+    it("returns finance home and requests only for FINANCE nav", () => {
+      const items = getNavItems("FINANCE");
+      expect(items.map((i) => i.href)).toEqual(["/finance", "/requests"]);
+    });
+  });
+
+  describe("canAccessRoute - LEGAL and FINANCE", () => {
+    it("blocks units list and notifications but allows unit detail", () => {
+      for (const role of ["LEGAL", "FINANCE"] as const) {
+        expect(canAccessRoute(role, "/units")).toBe(false);
+        expect(canAccessRoute(role, "/notifications")).toBe(false);
+        expect(canAccessRoute(role, "/units/abc")).toBe(true);
+        expect(isUnitDetailRoute("/units/abc/timeline")).toBe(true);
+      }
+    });
+
+    it("allows department home and requests inbox", () => {
+      expect(canAccessRoute("LEGAL", "/legal")).toBe(true);
+      expect(canAccessRoute("LEGAL", "/requests")).toBe(true);
+      expect(canAccessRoute("FINANCE", "/finance")).toBe(true);
+      expect(canAccessRoute("FINANCE", "/requests/abc")).toBe(true);
     });
   });
 });

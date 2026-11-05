@@ -5,6 +5,7 @@ import {
   interpolateOfficialDocumentTemplate,
 } from "@/lib/official-documents/merge-fields";
 import {
+  canEditOfficialDocumentDraftText,
   canEditOfficialDocumentTemplates,
   canGenerateOfficialDocuments,
   canViewOfficialDocuments,
@@ -106,14 +107,20 @@ describe("official-document merge fields", () => {
 });
 
 describe("official-document permissions", () => {
-  it("allows CS and management to generate", () => {
-    expect(canGenerateOfficialDocuments("CS_AGENT")).toBe(true);
+  it("allows legal and management to edit text and generate PDFs", () => {
+    expect(canEditOfficialDocumentDraftText("LEGAL")).toBe(true);
+    expect(canEditOfficialDocumentDraftText("MANAGEMENT")).toBe(true);
     expect(canGenerateOfficialDocuments("MANAGEMENT")).toBe(true);
+    expect(canGenerateOfficialDocuments("LEGAL")).toBe(true);
+    expect(canEditOfficialDocumentDraftText("CS_AGENT")).toBe(false);
+    expect(canGenerateOfficialDocuments("CS_AGENT")).toBe(false);
     expect(canGenerateOfficialDocuments("OPERATIONS")).toBe(false);
   });
 
-  it("allows operations to view only", () => {
+  it("allows CS and operations to view drafts only", () => {
+    expect(canViewOfficialDocuments("CS_AGENT")).toBe(true);
     expect(canViewOfficialDocuments("OPERATIONS")).toBe(true);
+    expect(canViewOfficialDocuments("LEGAL")).toBe(true);
     expect(canGenerateOfficialDocuments("OPERATIONS")).toBe(false);
   });
 

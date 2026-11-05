@@ -20,15 +20,16 @@ export async function renderOfficialDocumentPdf(input: {
   fields: MergeFieldValues;
   locale: string;
   watermarkDraft: boolean;
+  /** When true, bodyTemplate is final text (no merge interpolation). */
+  bodyIsFinal?: boolean;
 }): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   const fonts = await prepareOfficialPdfFonts(pdf);
 
   const useArabic = input.locale === "ar";
-  const body = interpolateOfficialDocumentTemplate(
-    input.bodyTemplate,
-    input.fields
-  );
+  const body = input.bodyIsFinal
+    ? input.bodyTemplate
+    : interpolateOfficialDocumentTemplate(input.bodyTemplate, input.fields);
   const fullText = `${input.title}\n\n${body}`;
 
   const pageWidth = 595.28;

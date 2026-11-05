@@ -28,7 +28,40 @@ export function isMaintenanceRoute(path: string): boolean {
   return path.startsWith("/maintenance");
 }
 
-const departmentStaffRoutes = ["/requests", "/units", "/notifications", "/print"];
+const departmentStaffRoutes = ["/requests", "/print"];
+
+const rolesWithUnitsList: Role[] = [
+  "SUPER_ADMIN",
+  "MANAGEMENT",
+  "CS_AGENT",
+  "COMMUNITY_MANAGEMENT",
+];
+
+const rolesWithNotifications: Role[] = [
+  "SUPER_ADMIN",
+  "MANAGEMENT",
+  "CS_AGENT",
+  "COMMUNITY_MANAGEMENT",
+];
+
+const rolesWithUnitDetailAccess: Role[] = [
+  ...rolesWithUnitsList,
+  "LEGAL",
+  "FINANCE",
+  "OPERATIONS",
+];
+
+export function isUnitsListRoute(path: string): boolean {
+  return path === "/units";
+}
+
+export function isUnitDetailRoute(path: string): boolean {
+  return /^\/units\/[^/]+(\/.*)?$/.test(path);
+}
+
+export function isNotificationsRoute(path: string): boolean {
+  return path === "/notifications" || path.startsWith("/notifications/");
+}
 
 const roleRoutes: Record<Role, string[]> = {
   SUPER_ADMIN: [
@@ -77,7 +110,7 @@ const roleRoutes: Record<Role, string[]> = {
     "/print",
   ],
   ENGINEER: ["/engineering"],
-  OPERATIONS: ["/operations", "/units", "/print"],
+  OPERATIONS: ["/operations", "/print"],
   LEGAL: ["/legal", ...departmentStaffRoutes],
   FINANCE: ["/finance", ...departmentStaffRoutes],
 };
@@ -92,6 +125,16 @@ export function getHomeRoute(role: Role): string {
 }
 
 export function canAccessRoute(role: Role, path: string): boolean {
+  if (isUnitsListRoute(path)) {
+    return rolesWithUnitsList.includes(role);
+  }
+  if (isNotificationsRoute(path)) {
+    return rolesWithNotifications.includes(role);
+  }
+  if (isUnitDetailRoute(path)) {
+    return rolesWithUnitDetailAccess.includes(role);
+  }
+
   const allowed = roleRoutes[role] ?? [];
   return allowed.some(
     (route) => path === route || path.startsWith(`${route}/`)
@@ -135,12 +178,6 @@ export function getCoreNavItems(role: Role) {
     return [
       { href: "/legal", key: "legalHome" as const, roles: ["LEGAL" as Role] },
       { href: "/requests", key: "requests" as const, roles: ["LEGAL" as Role] },
-      { href: "/units", key: "units" as const, roles: ["LEGAL" as Role] },
-      {
-        href: "/notifications",
-        key: "activityNotifications" as const,
-        roles: ["LEGAL" as Role],
-      },
     ];
   }
 
@@ -148,12 +185,6 @@ export function getCoreNavItems(role: Role) {
     return [
       { href: "/finance", key: "financeHome" as const, roles: ["FINANCE" as Role] },
       { href: "/requests", key: "requests" as const, roles: ["FINANCE" as Role] },
-      { href: "/units", key: "units" as const, roles: ["FINANCE" as Role] },
-      {
-        href: "/notifications",
-        key: "activityNotifications" as const,
-        roles: ["FINANCE" as Role],
-      },
     ];
   }
 
@@ -192,7 +223,6 @@ export function getCoreNavItems(role: Role) {
         "MANAGEMENT",
         "CS_AGENT",
         "COMMUNITY_MANAGEMENT",
-        "OPERATIONS",
       ],
     },
     {
@@ -300,7 +330,6 @@ export function getNavItems(role: Role) {
         "MANAGEMENT",
         "CS_AGENT",
         "COMMUNITY_MANAGEMENT",
-        "OPERATIONS",
       ],
     },
     {

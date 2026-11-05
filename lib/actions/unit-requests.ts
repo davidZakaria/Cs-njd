@@ -26,6 +26,8 @@ import {
   canCancelRequest,
   canCreateUnitRequest,
   canEditDraftRequest,
+  canManageOpenRequestContent,
+  canManageRequestAttachment,
   canUploadRequestAttachment,
   canViewUnitRequest,
   userCanApproveAtCurrentStep,
@@ -64,6 +66,14 @@ const commentSchema = idSchema.extend({
   body: z.string().min(1).max(2000),
 });
 
+const descriptionSchema = idSchema.extend({
+  description: z.string().max(4000),
+});
+
+const attachmentIdSchema = idSchema.extend({
+  attachmentId: z.string().min(1),
+});
+
 const decisionSchema = idSchema.extend({
   note: z.string().max(2000).optional(),
 });
@@ -78,8 +88,15 @@ async function loadRequestContext(requestId: string) {
         orderBy: { createdAt: "asc" },
         include: { author: { select: { id: true, name: true } } },
       },
-      attachments: { orderBy: { createdAt: "asc" } },
-      auditEvents: { orderBy: { createdAt: "desc" }, take: 50 },
+      attachments: {
+        where: { removedAt: null },
+        orderBy: { createdAt: "asc" },
+      },
+      auditEvents: {
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        include: { user: { select: { id: true, name: true } } },
+      },
     },
   });
 }
@@ -645,11 +662,6 @@ export async function uploadUnitRequestAttachmentAction(
       requestedById: request.requestedById,
       status: request.status,
       type: request.type,
-    }) &&
-    !userCanApproveAtCurrentStep({
-      role: session.user.role,
-      request,
-      staff: await getOrgStaffAvailability(basePrisma),
     })
   ) {
     return actionFail("Unauthorized");
@@ -686,6 +698,194 @@ export async function uploadUnitRequestAttachmentAction(
     userId: session.user.id,
     action: "attachment_added",
     details: { originalName: file.name },
+  });
+
+  revalidatePath(`/requests/${requestId}`);
+  return actionOk(undefined);
+}
+
+export async function updateUnitRequestDescriptionAction(
+  input: z.input<typeof descriptionSchema>
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const parsed = descriptionSchema.safeParse(input);
+  if (!parsed.success) return actionFail("Invalid input");
+
+  const request = await prisma.unitRequest.findUnique({
+    where: { id: parsed.data.requestId },
+  });
+  if (!request) return actionFail("Request not found");
+
+  if (
+    !canManageOpenRequestContent({
+      role: session.user.role,
+      userId: session.user.id,
+      requestedById: request.requestedById,
+      status: request.status,
+      type: request.type,
+    })
+  ) {
+    return actionFail("Unauthorized");
+  }
+
+  const nextDescription = parsed.data.description.trim();
+  const previousDescription = request.description?.trim() ?? "";
+  if (nextDescription === previousDescription) {
+    return actionOk(undefined);
+  }
+
+  await prisma.unitRequest.update({
+    where: { id: request.id },
+    data: { description: nextDescription.length > 0 ? nextDescription : null },
+  });
+
+  await recordRequestAuditEvent({
+    requestId: request.id,
+    userId: session.user.id,
+    action: "description_updated",
+    details: {
+      previousDescription: request.description,
+      newDescription: nextDescription.length > 0 ? nextDescription : null,
+    },
+  });
+
+  revalidatePath(`/requests/${request.id}`);
+  revalidateUnitPath(request.unitId);
+  return actionOk(undefined);
+}
+
+export async function removeUnitRequestAttachmentAction(
+  input: z.input<typeof attachmentIdSchema>
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const parsed = attachmentIdSchema.safeParse(input);
+  if (!parsed.success) return actionFail("Invalid input");
+
+  const attachment = await prisma.requestAttachment.findFirst({
+    where: {
+      id: parsed.data.attachmentId,
+      requestId: parsed.data.requestId,
+      removedAt: null,
+    },
+    include: { request: true },
+  });
+  if (!attachment) return actionFail("Attachment not found");
+
+  if (
+    !canManageRequestAttachment({
+      role: session.user.role,
+      userId: session.user.id,
+      requestedById: attachment.request.requestedById,
+      status: attachment.request.status,
+      type: attachment.request.type,
+    })
+  ) {
+    return actionFail("Unauthorized");
+  }
+
+  await prisma.requestAttachment.update({
+    where: { id: attachment.id },
+    data: {
+      removedAt: new Date(),
+      removedById: session.user.id,
+    },
+  });
+
+  await recordRequestAuditEvent({
+    requestId: attachment.requestId,
+    userId: session.user.id,
+    action: "attachment_removed",
+    details: {
+      attachmentId: attachment.id,
+      originalName: attachment.originalName,
+    },
+  });
+
+  revalidatePath(`/requests/${attachment.requestId}`);
+  return actionOk(undefined);
+}
+
+export async function replaceUnitRequestAttachmentAction(
+  formData: FormData
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const requestId = String(formData.get("requestId") ?? "");
+  const attachmentId = String(formData.get("attachmentId") ?? "");
+  const file = formData.get("file");
+  if (!requestId || !attachmentId) return actionFail("Invalid input");
+  if (!(file instanceof File)) return actionFail("No file provided");
+
+  const attachment = await prisma.requestAttachment.findFirst({
+    where: { id: attachmentId, requestId, removedAt: null },
+    include: { request: true },
+  });
+  if (!attachment) return actionFail("Attachment not found");
+
+  if (
+    !canManageRequestAttachment({
+      role: session.user.role,
+      userId: session.user.id,
+      requestedById: attachment.request.requestedById,
+      status: attachment.request.status,
+      type: attachment.request.type,
+    })
+  ) {
+    return actionFail("Unauthorized");
+  }
+
+  if (file.size === 0) return actionFail("File is empty");
+  if (file.size > REQUEST_ATTACHMENT_MAX_BYTES) {
+    return actionFail("File exceeds size limit");
+  }
+  if (!isAllowedRequestAttachmentMime(file.type)) {
+    return actionFail("File type not allowed");
+  }
+
+  const storedName = buildRequestAttachmentStoredFilename(requestId, file.name);
+  const bytes = Buffer.from(await file.arrayBuffer());
+  await writeRequestAttachmentFile(storedName, bytes);
+
+  const now = new Date();
+
+  await prisma.$transaction(async (tx) => {
+    await tx.requestAttachment.update({
+      where: { id: attachment.id },
+      data: {
+        removedAt: now,
+        removedById: session.user!.id,
+      },
+    });
+
+    const created = await tx.requestAttachment.create({
+      data: {
+        requestId,
+        storedName,
+        originalName: file.name,
+        mimeType: file.type,
+        sizeBytes: file.size,
+        uploadedById: session.user!.id,
+      },
+    });
+
+    await tx.requestAuditEvent.create({
+      data: {
+        requestId,
+        userId: session.user!.id,
+        action: "attachment_replaced",
+        details: {
+          previousAttachmentId: attachment.id,
+          previousName: attachment.originalName,
+          newAttachmentId: created.id,
+          newName: file.name,
+        },
+      },
+    });
   });
 
   revalidatePath(`/requests/${requestId}`);

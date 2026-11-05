@@ -246,9 +246,13 @@ model User {
   completedArchiveCheckGapTasks ArchiveCheckGapTask[] @relation("ArchiveCheckGapTaskCompletedBy")
   requestComments        RequestComment[]
   requestAttachments     RequestAttachment[]
+  removedRequestAttachments RequestAttachment[] @relation("RequestAttachmentRemovedBy")
   requestAuditEvents     RequestAuditEvent[]
   generatedOfficialDocuments UnitGeneratedDocument[] @relation("GeneratedOfficialDocumentBy")
   officialDocumentTemplates  OfficialDocumentTemplate[] @relation("OfficialDocumentTemplateAuthor")
+  officialDocumentTextDraftsCreated OfficialDocumentTextDraft[] @relation("OfficialDocumentTextDraftCreatedBy")
+  officialDocumentTextDraftsUpdated OfficialDocumentTextDraft[] @relation("OfficialDocumentTextDraftUpdatedBy")
+  officialDocumentTextDraftVersions OfficialDocumentTextDraftVersion[] @relation("OfficialDocumentTextDraftVersionEditor")
   officialDocumentAuditEvents OfficialDocumentAuditEvent[]
 
   @@index([role])
@@ -381,6 +385,7 @@ model Unit {
   engineeringApprovals UnitEngineeringApproval[]
   unitRequests     UnitRequest[]
   generatedOfficialDocuments UnitGeneratedDocument[]
+  officialDocumentTextDrafts OfficialDocumentTextDraft[]
 
   @@unique([projectId, unitCode])
   @@index([projectId])
@@ -728,6 +733,7 @@ model UnitRequest {
   attachments           RequestAttachment[]
   auditEvents           RequestAuditEvent[]
   generatedOfficialDocuments UnitGeneratedDocument[]
+  officialDocumentTextDrafts OfficialDocumentTextDraft[]
   archiveCheckItems     ArchiveCheckItem[]
   archiveCheckGapTasks  ArchiveCheckGapTask[]
 
@@ -757,6 +763,7 @@ model OfficialDocumentTemplate {
 
   createdBy User? @relation("OfficialDocumentTemplateAuthor", fields: [createdById], references: [id], onDelete: SetNull)
   generatedDocuments UnitGeneratedDocument[]
+  textDrafts OfficialDocumentTextDraft[]
 
   @@unique([documentType, locale, version])
   @@index([documentType, locale, isActive])
@@ -775,17 +782,62 @@ model UnitGeneratedDocument {
   mimeType            String               @default("application/pdf")
   sizeBytes           Int
   signedCopyOnFileAt  DateTime?
+  textDraftId         String?
+  textDraftVersionId  String?
   generatedById       String
   generatedAt         DateTime             @default(now())
 
   unit        Unit                     @relation(fields: [unitId], references: [id], onDelete: Cascade)
   unitRequest UnitRequest?             @relation(fields: [unitRequestId], references: [id], onDelete: SetNull)
   template    OfficialDocumentTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  textDraft   OfficialDocumentTextDraft? @relation(fields: [textDraftId], references: [id], onDelete: SetNull)
+  textDraftVersion OfficialDocumentTextDraftVersion? @relation(fields: [textDraftVersionId], references: [id], onDelete: SetNull)
   generatedBy User                     @relation("GeneratedOfficialDocumentBy", fields: [generatedById], references: [id], onDelete: Cascade)
 
   @@index([unitId, generatedAt])
   @@index([unitRequestId])
   @@index([documentType])
+  @@index([textDraftId])
+}
+
+model OfficialDocumentTextDraft {
+  id              String               @id @default(cuid())
+  unitId          String
+  unitRequestId   String?
+  documentType    OfficialDocumentType
+  templateId      String
+  templateVersion Int
+  templateLocale  String
+  title           String
+  currentBody     String
+  createdById     String
+  updatedById     String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  unit              Unit                              @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  unitRequest       UnitRequest?                      @relation(fields: [unitRequestId], references: [id], onDelete: SetNull)
+  template          OfficialDocumentTemplate          @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  createdBy         User                              @relation("OfficialDocumentTextDraftCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  updatedBy         User?                             @relation("OfficialDocumentTextDraftUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  versions          OfficialDocumentTextDraftVersion[]
+  generatedDocuments UnitGeneratedDocument[]
+
+  @@index([unitId, updatedAt])
+}
+
+model OfficialDocumentTextDraftVersion {
+  id         String   @id @default(cuid())
+  draftId    String
+  body       String
+  editedById String
+  createdAt  DateTime @default(now())
+
+  draft     OfficialDocumentTextDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  editedBy  User                      @relation("OfficialDocumentTextDraftVersionEditor", fields: [editedById], references: [id], onDelete: Cascade)
+  generatedDocuments UnitGeneratedDocument[]
+
+  @@index([draftId, createdAt])
 }
 
 model OfficialDocumentAuditEvent {
@@ -829,13 +881,17 @@ model RequestAttachment {
   sizeBytes    Int
   uploadedById String
   archiveCheckItemKey String?
+  removedAt    DateTime?
+  removedById  String?
   createdAt    DateTime @default(now())
 
   request    UnitRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   uploadedBy User        @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  removedBy  User?       @relation("RequestAttachmentRemovedBy", fields: [removedById], references: [id], onDelete: SetNull)
 
   @@index([requestId])
   @@index([requestId, archiveCheckItemKey])
+  @@index([requestId, removedAt])
 }
 
 model ArchiveCheckItem {

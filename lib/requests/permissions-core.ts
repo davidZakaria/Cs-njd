@@ -107,6 +107,29 @@ export function canCancelRequest(input: {
   );
 }
 
+export function isClosedUnitRequestStatus(status: UnitRequestStatus): boolean {
+  return (
+    status === "APPROVED" || status === "REJECTED" || status === "CANCELLED"
+  );
+}
+
+/** Requester or management may edit open request text/attachments (not archive-check ops flow). */
+export function canManageOpenRequestContent(input: {
+  role: Role;
+  userId: string;
+  requestedById: string;
+  status: UnitRequestStatus;
+  type: UnitRequestType;
+}): boolean {
+  if (isClosedUnitRequestStatus(input.status)) return false;
+  if (input.type === "ARCHIVE_CHECK") return false;
+  return (
+    input.requestedById === input.userId ||
+    isAdminUnitManager(input.role) ||
+    input.role === "SUPER_ADMIN"
+  );
+}
+
 export function canUploadRequestAttachment(input: {
   role: Role;
   userId: string;
@@ -114,11 +137,7 @@ export function canUploadRequestAttachment(input: {
   status: UnitRequestStatus;
   type?: UnitRequestType;
 }): boolean {
-  if (
-    input.status === "APPROVED" ||
-    input.status === "REJECTED" ||
-    input.status === "CANCELLED"
-  ) {
+  if (isClosedUnitRequestStatus(input.status)) {
     return false;
   }
   if (
@@ -128,11 +147,30 @@ export function canUploadRequestAttachment(input: {
   ) {
     return true;
   }
-  return canEditDraftRequest({
+  if (!input.type) {
+    return canEditDraftRequest({
+      role: input.role,
+      userId: input.userId,
+      requestedById: input.requestedById,
+    });
+  }
+  return canManageOpenRequestContent({
     role: input.role,
     userId: input.userId,
     requestedById: input.requestedById,
+    status: input.status,
+    type: input.type,
   });
+}
+
+export function canManageRequestAttachment(input: {
+  role: Role;
+  userId: string;
+  requestedById: string;
+  status: UnitRequestStatus;
+  type: UnitRequestType;
+}): boolean {
+  return canManageOpenRequestContent(input);
 }
 
 export function requestMatchesRoleInbox(input: {

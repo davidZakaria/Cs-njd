@@ -69,8 +69,9 @@ import { UnitCyclePanel } from "@/components/units/unit-cycle-panel";
 import {
   canGenerateOfficialDocuments,
   canViewOfficialDocuments,
+  canEditOfficialDocumentDraftText,
 } from "@/lib/official-documents/permissions";
-import { listUnitGeneratedDocumentsAction } from "@/lib/actions/official-documents";
+import { listUnitGeneratedDocumentsAction, listUnitOfficialDocumentTextDraftsAction } from "@/lib/actions/official-documents";
 import { UnitOfficialDocumentsPanel } from "@/components/units/unit-official-documents-panel";
 
 export default async function UnitProfilePage({
@@ -146,6 +147,14 @@ export default async function UnitProfilePage({
     session?.user && officialDocsEnabled && canViewOfficialDocuments(session.user.role)
       ? await listUnitGeneratedDocumentsAction(id)
       : [];
+  const officialDocumentTextDrafts =
+    session?.user && officialDocsEnabled && canViewOfficialDocuments(session.user.role)
+      ? await listUnitOfficialDocumentTextDraftsAction(id)
+      : [];
+  const canEditOfficialDocText =
+    session?.user && officialDocsEnabled
+      ? canEditOfficialDocumentDraftText(session.user.role)
+      : false;
   const canGenerateOfficialDocs =
     session?.user && officialDocsEnabled
       ? canGenerateOfficialDocuments(session.user.role)
@@ -454,10 +463,20 @@ export default async function UnitProfilePage({
       {officialDocsEnabled && session?.user && canViewOfficialDocuments(session.user.role) ? (
         <UnitOfficialDocumentsPanel
           unitId={unit.id}
-          canGenerate={canGenerateOfficialDocs}
+          canEditDraftText={canEditOfficialDocText}
+          canGeneratePdf={canGenerateOfficialDocs}
           generatedDocuments={generatedOfficialDocuments.map((doc) => ({
             ...doc,
             generatedAt: doc.generatedAt,
+          }))}
+          textDrafts={officialDocumentTextDrafts.map((draft) => ({
+            id: draft.id,
+            documentType: draft.documentType,
+            templateLocale: draft.templateLocale,
+            title: draft.title,
+            updatedAt: draft.updatedAt,
+            versionCount: draft._count.versions,
+            updatedByName: draft.updatedBy?.name ?? draft.createdBy.name,
           }))}
           approvedRequests={approvedRequestsForDocs}
         />

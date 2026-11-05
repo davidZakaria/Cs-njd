@@ -5,6 +5,9 @@ vi.mock("server-only", () => ({}));
 import { canAccessRequestsDashboard } from "@/lib/auth/role-permissions";
 import {
   canCreateUnitRequest,
+  canManageOpenRequestContent,
+  canManageRequestAttachment,
+  canUploadRequestAttachment,
   userCanApproveAtCurrentStep,
 } from "@/lib/requests/permissions-core";
 import { canViewUnitRequest } from "@/lib/requests/permissions.server";
@@ -105,6 +108,91 @@ describe("request permissions", () => {
           currentApproverKind: "FINANCE",
         },
         unitAgentId: null,
+      })
+    ).toBe(false);
+  });
+
+  it("lets requester and management edit open contract request content", () => {
+    const base = {
+      type: "CONTRACT_ISSUE_OR_AMENDMENT" as const,
+      status: "PENDING" as const,
+      requestedById: "agent-1",
+    };
+    expect(
+      canManageOpenRequestContent({
+        role: "CS_AGENT",
+        userId: "agent-1",
+        ...base,
+      })
+    ).toBe(true);
+    expect(
+      canManageOpenRequestContent({
+        role: "MANAGEMENT",
+        userId: "mgr",
+        ...base,
+      })
+    ).toBe(true);
+    expect(
+      canManageOpenRequestContent({
+        role: "LEGAL",
+        userId: "legal",
+        ...base,
+      })
+    ).toBe(false);
+    expect(
+      canUploadRequestAttachment({
+        role: "CS_AGENT",
+        userId: "agent-1",
+        ...base,
+      })
+    ).toBe(true);
+    expect(
+      canManageRequestAttachment({
+        role: "MANAGEMENT",
+        userId: "mgr",
+        ...base,
+      })
+    ).toBe(true);
+  });
+
+  it("locks content edits when request is closed", () => {
+    expect(
+      canManageOpenRequestContent({
+        role: "CS_AGENT",
+        userId: "agent-1",
+        requestedById: "agent-1",
+        status: "APPROVED",
+        type: "CONTRACT_ISSUE_OR_AMENDMENT",
+      })
+    ).toBe(false);
+    expect(
+      canUploadRequestAttachment({
+        role: "MANAGEMENT",
+        userId: "mgr",
+        requestedById: "agent-1",
+        status: "REJECTED",
+        type: "PAYMENT_PLAN_CHANGE",
+      })
+    ).toBe(false);
+  });
+
+  it("still lets operations upload on pending archive checks only", () => {
+    expect(
+      canUploadRequestAttachment({
+        role: "OPERATIONS",
+        userId: "ops",
+        requestedById: "other",
+        status: "PENDING",
+        type: "ARCHIVE_CHECK",
+      })
+    ).toBe(true);
+    expect(
+      canManageOpenRequestContent({
+        role: "OPERATIONS",
+        userId: "ops",
+        requestedById: "other",
+        status: "PENDING",
+        type: "ARCHIVE_CHECK",
       })
     ).toBe(false);
   });
