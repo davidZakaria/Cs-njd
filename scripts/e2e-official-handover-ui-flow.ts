@@ -7,16 +7,72 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 
-import { chromium, type Browser, type Page } from "playwright";
+import crypto from "node:crypto";
+
+function initFreshArtifactRun(): string {
+  const runId = new Date().toISOString().replace(/[:.]/g, "-");
+  ARTIFACT_ROOT = path.join(STORE_BASE, "runs", runId);
+  for (const sub of ["pdfs", "pages", "screenshots"] as const) {
+    fs.mkdirSync(path.join(ARTIFACT_ROOT, sub), { recursive: true });
+  }
+  fs.writeFileSync(
+    path.join(STORE_BASE, "LATEST_RUN.txt"),
+    `${runId}\n${ARTIFACT_ROOT}\n`
+  );
+  return runId;
+}
+
+function sha256File(filePath: string): string {
+  return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+}
+
+function pdfPageCount(pdfPath: string): number {
+  const info = execFileSync("pdfinfo", [pdfPath], { encoding: "utf8" });
+  const match = info.match(/Pages:\s+(\d+)/);
+  if (!match) throw new Error(`pdfinfo missing Pages for ${pdfPath}`);
+  return Number(match[1]);
+}
+
+function assertMandatoryHandoverClauses(pdfPath: string, variant: string) {
+  const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
+  if (!/مخالف|الإلتزامات|فسخ العقد/u.test(text)) {
+    throw new Error(`${pdfPath}: missing violations clause block (Green/Jura handover)`);
+  }
+  if (variant.includes("no-insurance")) {
+    if (/تأمين الأعمال/u.test(text) && /بشيك تأمين/u.test(text)) {
+      throw new Error(`${pdfPath}: no-insurance variant must not include deposit insurance clause`);
+    }
+  } else if (variant.startsWith("green-avenue")) {
+    if (!/تأمين/u.test(text)) {
+      throw new Error(`${pdfPath}: Green deposit variant missing insurance clause`);
+    }
+  }
+  if (variant.startsWith("jura")) {
+    if (!/ثان/u.test(text) || !/ثالث/u.test(text)) {
+      throw new Error(`${pdfPath}: Jura PDF missing numbered section headings`);
+    }
+  }
+  if (/Primary owner:/i.test(text) && text.includes("Unit Handover Record")) {
+    throw new Error(`${pdfPath}: generic English pdf-lib template detected`);
+  }
+}
+
+
+
+import { chromium, type Page } from "playwright";
 import { authenticator } from "otplib";
+import { PrismaClient } from "@prisma/client";
 
 authenticator.options = { window: 5 };
 
-const STORE =
+const prisma = new PrismaClient();
+
+const STORE_BASE =
   process.env.HANDOVER_E2E_STORE?.trim() ||
   "/cursor/stores/self/handover-e2e-ui-evidence";
+let ARTIFACT_ROOT = STORE_BASE;
 const BASE_URL = process.env.AUTH_URL?.trim() || "http://localhost:3000";
-const MANIFEST_PATH = path.join(STORE, "manifest.json");
+const MANIFEST_PATH = path.join(STORE_BASE, "manifest.json");
 
 type Manifest = {
   loginEmail: string;
@@ -44,7 +100,7 @@ function rasterizePdf(pdfPath: string, outDir: string, prefix: string): string[]
 
 async function login(page: Page, locale: "en" | "ar", email: string, password: string) {
   const twoFactorSecret = fs.readFileSync(
-    path.join(STORE, "two-factor-secret.txt"),
+    path.join(STORE_BASE, "two-factor-secret.txt"),
     "utf8"
   ).trim();
 
@@ -66,7 +122,7 @@ async function login(page: Page, locale: "en" | "ar", email: string, password: s
     const submit = page.locator("form").getByRole("button", { name: /continue|متابعة/i });
     await submit.waitFor({ state: "visible" });
     if (!(await submit.isEnabled())) {
-      await page.screenshot({ path: path.join(STORE, "debug-verify-2fa-disabled.png") });
+      await page.screenshot({ path: path.join(ARTIFACT_ROOT, "debug-verify-2fa-disabled.png") });
       throw new Error("2FA Continue button stayed disabled after entering code");
     }
     await Promise.all([
@@ -83,6 +139,135 @@ async function login(page: Page, locale: "en" | "ar", email: string, password: s
   await page.waitForURL(/\/(en|ar)\/(dashboard|units|executive)/, {
     timeout: 60_000,
   });
+}
+
+function legalEditMarker(locale: "en" | "ar", variant: string): string {
+  return locale === "ar"
+    ? `LEGAL_E2E_تعديل_${variant}`
+    : `LEGAL_E2E_edit_${variant}`;
+}
+
+async function getLatestHandoverDraft(unitId: string) {
+  return prisma.officialDocumentTextDraft.findFirst({
+    where: { unitId, documentType: "HANDOVER_RECORD" },
+    orderBy: { updatedAt: "desc" },
+    include: { _count: { select: { versions: true } } },
+  });
+}
+
+async function assertDbLatestVersionContains(draftId: string, marker: string) {
+  const version = await prisma.officialDocumentTextDraftVersion.findFirst({
+    where: { draftId },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!version?.body.includes(marker)) {
+    throw new Error(
+      `DB latest version missing marker "${marker}" (cause: save did not persist editor text)`
+    );
+  }
+  return version;
+}
+
+async function resetLegacyDraftForE2e(manifest: Manifest) {
+  if (!manifest.legacyDraft) return;
+  const { draftId, userEditMarker } = manifest.legacyDraft;
+  const userMarker = `${userEditMarker}: legal note added before official master migration.`;
+  const body = `Unit Handover Record\n\nProject: GREEN AVENUE\n\n${userMarker}`;
+  const enTemplate = await prisma.officialDocumentTemplate.findFirst({
+    where: {
+      documentType: "HANDOVER_RECORD",
+      locale: "en",
+      isActive: true,
+    },
+  });
+  if (!enTemplate) throw new Error("Missing en HANDOVER_RECORD template for legacy reset");
+
+  const admin = await prisma.user.findFirst({
+    where: { role: "SUPER_ADMIN" },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!admin) throw new Error("Missing SUPER_ADMIN for legacy reset");
+
+  await prisma.unitGeneratedDocument.deleteMany({ where: { textDraftId: draftId } });
+  await prisma.officialDocumentTextDraftVersion.deleteMany({ where: { draftId } });
+  await prisma.officialDocumentTextDraft.update({
+    where: { id: draftId },
+    data: {
+      templateId: enTemplate.id,
+      templateVersion: enTemplate.version,
+      templateLocale: "en",
+      title: enTemplate.title,
+      currentBody: body,
+      handoverTemplateKey: null,
+      updatedById: admin.id,
+    },
+  });
+  await prisma.officialDocumentTextDraftVersion.create({
+    data: {
+      draftId,
+      body,
+      editedById: admin.id,
+    },
+  });
+}
+
+async function appendMarkerInEditor(
+  page: Page,
+  locale: "en" | "ar",
+  marker: string
+) {
+  const textarea = page.locator('[data-slot="textarea"]').first();
+  await textarea.waitFor({ state: "visible" });
+  const current = await textarea.inputValue();
+  if (current.includes(marker)) return;
+  await textarea.focus();
+  await textarea.press("Control+End").catch(() => textarea.press("End"));
+  await page.keyboard.type(`\n\n${marker}`, { delay: 12 });
+  await textarea.dispatchEvent("change");
+  await page.waitForTimeout(200);
+  const after = await textarea.inputValue();
+  if (!after.includes(marker)) {
+    throw new Error(`Editor DOM missing marker after typing: ${marker}`);
+  }
+}
+
+async function saveDraftInDialog(
+  page: Page,
+  locale: "en" | "ar",
+  expectedMarker?: string
+) {
+  if (expectedMarker) {
+    const v = await page.locator('[data-slot="textarea"]').first().inputValue();
+    if (!v.includes(expectedMarker)) {
+      throw new Error(`Pre-save editor missing marker ${expectedMarker}`);
+    }
+  }
+  await page
+    .getByRole("button", {
+      name: locale === "ar" ? /حفظ/i : /Save text version/i,
+    })
+    .click({ force: true });
+  await page
+    .getByText(locale === "ar" ? /تم حفظ/i : /Draft text saved/i)
+    .waitFor({ timeout: 60_000 });
+}
+
+async function generateDraftInDialog(page: Page, locale: "en" | "ar") {
+  const generateBtn = page.getByRole("button", {
+    name: locale === "ar" ? /إنشاء مسودة PDF/i : /Generate draft PDF/i,
+  });
+  await generateBtn.click({ force: true });
+  await page
+    .getByText(locale === "ar" ? /تم إنشاء مسودة PDF/i : /Draft PDF generated/i)
+    .waitFor({ timeout: 120_000 });
+}
+
+function assertPdfContainsMarker(pdfPath: string, marker: string, label: string) {
+  const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
+  if (!text.includes(marker)) {
+    throw new Error(`${label}: pdftotext missing marker "${marker}" in ${pdfPath}`);
+  }
+  return text;
 }
 
 async function openHandoverEditor(page: Page, locale: "en" | "ar") {
@@ -143,44 +328,55 @@ async function generateHandoverOnUnit(
   await openHandoverEditor(page, locale);
   await page.getByRole("dialog").waitFor({ state: "visible", timeout: 30_000 });
 
+  await page.waitForFunction(
+    () => {
+      const btn = Array.from(document.querySelectorAll("button")).find((b) =>
+        /Save text version|حفظ/i.test(b.textContent ?? "")
+      );
+      return Boolean(btn && !(btn as HTMLButtonElement).disabled);
+    },
+    null,
+    { timeout: 120_000 }
+  );
+
   const dialogShot = screenshotPath.replace(".png", "-dialog.png");
   await page.screenshot({ path: dialogShot });
 
-  const editMarker = `E2E_EDIT_${variant}_${locale}`;
-  const textarea = page.locator("textarea").first();
-  const proposedLoad = page.getByRole("button", {
-    name: locale === "ar" ? /تحميل النص الرسمي/i : /Load proposed official/i,
-  });
-  if (await proposedLoad.isVisible().catch(() => false)) {
-    await proposedLoad.click();
-  }
-  const current = await textarea.inputValue();
-  const nextBody = current.includes(editMarker)
-    ? current
-    : `${current.trimEnd()}\n\n${editMarker}`;
-  if (!current.includes(editMarker)) {
-    await textarea.fill(nextBody);
-  }
-  await page.waitForTimeout(300);
-  await page
-    .getByRole("button", {
-      name: locale === "ar" ? /حفظ/i : /Save text version/i,
-    })
-    .click({ force: true });
-  await page.waitForTimeout(1500);
+  const editMarker = legalEditMarker(locale, variant);
+  const versionCountBefore =
+    (await getLatestHandoverDraft(unitId))?._count.versions ?? 0;
 
-  const generateBtn = page.getByRole("button", {
-    name:
-      locale === "ar" ? /إنشاء مسودة PDF/i : /Generate draft PDF/i,
-  });
-  await generateBtn.waitFor({ state: "visible", timeout: 15_000 });
-  await generateBtn.click({ force: true });
+  await appendMarkerInEditor(page, locale, editMarker);
+  await saveDraftInDialog(page, locale, editMarker);
 
-  await page
-    .getByText(
-      locale === "ar" ? /تم إنشاء مسودة PDF/i : /Draft PDF generated/i
-    )
-    .waitFor({ timeout: 120_000 });
+  const draft = await getLatestHandoverDraft(unitId);
+  if (!draft) throw new Error("No handover draft row after save");
+  await assertDbLatestVersionContains(draft.id, editMarker);
+  if (draft._count.versions < versionCountBefore + 1) {
+    throw new Error(
+      `Expected new version row after save (before=${versionCountBefore} after=${draft._count.versions})`
+    );
+  }
+
+  await page.keyboard.press("Escape");
+  await page.getByRole("dialog").waitFor({ state: "hidden", timeout: 30_000 }).catch(() => {});
+
+  await openHandoverEditor(page, locale);
+  await page.getByRole("dialog").waitFor({ state: "visible" });
+  const reopened = page.locator('[data-slot="textarea"]').first();
+  const reopenedBody = await reopened.inputValue();
+  if (!reopenedBody.includes(editMarker)) {
+    throw new Error(`Reopen editor missing saved marker ${editMarker}`);
+  }
+
+  const loadVersionButtons = page.getByRole("button", {
+    name: locale === "ar" ? /تحميل في المحرر/i : /Load into editor/i,
+  });
+  if ((await loadVersionButtons.count()) < 1) {
+    throw new Error("Version history missing Load into editor control after save");
+  }
+
+  await generateDraftInDialog(page, locale);
   await page.getByRole("dialog").waitFor({ state: "hidden", timeout: 30_000 }).catch(() => {});
 
   const downloadControl = page
@@ -210,16 +406,19 @@ async function generateHandoverOnUnit(
   const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
   await downloadTarget.click();
   const download = await downloadPromise;
-  const pdfPath = path.join(STORE, "pdfs", `${locale}-${path.basename(href)}.pdf`);
+  const pdfPath = path.join(ARTIFACT_ROOT, "pdfs", `${locale}-${path.basename(href)}.pdf`);
   fs.mkdirSync(path.dirname(pdfPath), { recursive: true });
   await download.saveAs(pdfPath);
-  const canonicalPdf = path.join(STORE, "pdfs", `${locale}-${variant}.pdf`);
-  fs.copyFileSync(pdfPath, canonicalPdf);
+  const canonicalPdf = path.join(ARTIFACT_ROOT, "pdfs", `${locale}-${variant}.pdf`);
+  const getBuf = await (await page.request.get(`${BASE_URL}${href}`)).body();
+  fs.writeFileSync(canonicalPdf, getBuf);
+  assertPdfContainsMarker(canonicalPdf, editMarker, "authenticated-GET");
+  assertMandatoryHandoverClauses(canonicalPdf, variant);
 
   return { pdfPath: canonicalPdf, downloadUrl: href, editMarker };
 }
 
-async function verifyPdfIsOfficial(pdfPath: string, editMarker?: string): Promise<void> {
+async function verifyPdfIsOfficial(pdfPath: string, editMarker: string): Promise<void> {
   const buf = fs.readFileSync(pdfPath);
   const head = buf.subarray(0, 5).toString("utf8");
   if (!head.startsWith("%PDF")) throw new Error(`Not a PDF: ${pdfPath}`);
@@ -227,24 +426,33 @@ async function verifyPdfIsOfficial(pdfPath: string, editMarker?: string): Promis
   if (text.includes("Unit Handover Record") && text.includes("Primary owner:")) {
     throw new Error(`Generic English template detected in ${pdfPath}`);
   }
-  if (!/محضر|Green Avenue|Jura|جورا|جرين/i.test(text)) {
-    throw new Error(`Expected Arabic official content in ${pdfPath}`);
+  if (!/Green Avenue|Jura|جورا|جرين|محض/i.test(text)) {
+    throw new Error(`Expected official handover content in ${pdfPath}`);
   }
-  if (editMarker && !text.includes(editMarker)) {
-    console.warn(
-      `Warning: edit marker not extracted by pdftotext (${editMarker}); see vitest official-handover-draft-body-render.test.ts`
-    );
-  }
+  assertPdfContainsMarker(pdfPath, editMarker, "verifyPdfIsOfficial");
 }
 
 async function runLegacyDraftFlow(
   page: Page,
   locale: "en" | "ar",
-  manifest: Manifest,
-  browser: Browser
+  manifest: Manifest
 ) {
   if (!manifest.legacyDraft) return;
-  const { unitId, userEditMarker } = manifest.legacyDraft;
+  const { unitId, draftId, userEditMarker } = manifest.legacyDraft;
+  const legacyMarker = legalEditMarker(locale, "legacy-after-proposed");
+
+  const versionsBefore = await prisma.officialDocumentTextDraftVersion.count({
+    where: { draftId },
+  });
+  const historyHasUserEdit = await prisma.officialDocumentTextDraftVersion.findFirst({
+    where: { draftId, body: { contains: userEditMarker } },
+  });
+  if (!historyHasUserEdit) {
+    throw new Error(
+      `Legacy DB seed missing version containing ${userEditMarker} (draftId=${draftId})`
+    );
+  }
+
   await page.goto(`${BASE_URL}/${locale}/units/${unitId}`, {
     waitUntil: "networkidle",
   });
@@ -253,61 +461,116 @@ async function runLegacyDraftFlow(
       name: /Official document drafts|مسودات المستندات الرسمية/i,
     })
     .waitFor({ timeout: 30_000 });
-  await page
-    .getByRole("button", {
-      name: locale === "ar" ? /إعادة فتح/i : /Reopen draft/i,
-    })
-    .first()
-    .click({ timeout: 60_000 });
-  await page.getByRole("dialog").waitFor({ state: "visible" });
-  const body = await page.locator("textarea").first().inputValue();
-  const loadVersionButtons = page.getByRole("button", {
-    name: locale === "ar" ? /تحميل في المحرر/i : /Load into editor/i,
-  });
-  const versionHistoryPresent = (await loadVersionButtons.count()) > 0;
 
-  let historyBodyIncludesMarker = false;
-  if (versionHistoryPresent) {
-    const count = await loadVersionButtons.count();
-    for (let i = count - 1; i >= 0; i -= 1) {
-      await loadVersionButtons.nth(i).click();
-      const loaded = await page.locator("textarea").first().inputValue();
-      if (loaded.includes(userEditMarker)) {
-        historyBodyIncludesMarker = true;
-        break;
-      }
-    }
+  await openHandoverEditor(page, locale);
+  await page.getByRole("dialog").waitFor({ state: "visible" });
+
+  const textarea = page.locator('[data-slot="textarea"]').first();
+  const bodyOnReopen = await textarea.inputValue();
+  if (!bodyOnReopen.includes(userEditMarker)) {
+    throw new Error(
+      `${locale} legacy reopen: editor must still show preserved English body with ${userEditMarker}`
+    );
   }
 
+  const proposedLoad = page.getByRole("button", {
+    name: locale === "ar" ? /تحميل النص الرسمي/i : /Load proposed official/i,
+  });
+  if (!(await proposedLoad.isVisible())) {
+    throw new Error(`${locale} legacy reopen: proposed official body banner missing`);
+  }
+
+  await generateDraftInDialog(page, locale);
+  const legacyBlock = page.getByText(
+    locale === "ar"
+      ? /legacy English placeholder|النص الإنجليزي/i
+      : /legacy English placeholder/i
+  );
+  await legacyBlock.waitFor({ timeout: 30_000 });
+
+  await proposedLoad.click();
+  const afterProposed = await textarea.inputValue();
+  if (afterProposed.includes(userEditMarker)) {
+    throw new Error("Load proposed must replace legacy English body in editor");
+  }
+
+  await appendMarkerInEditor(page, locale, legacyMarker);
+  await saveDraftInDialog(page, locale);
+  await assertDbLatestVersionContains(draftId, legacyMarker);
+
+  const versionsAfterSave = await prisma.officialDocumentTextDraftVersion.count({
+    where: { draftId },
+  });
+  if (versionsAfterSave < versionsBefore + 1) {
+    throw new Error(
+      `Legacy save must append version (before=${versionsBefore} after=${versionsAfterSave})`
+    );
+  }
+
+  const stillInHistory = await prisma.officialDocumentTextDraftVersion.findFirst({
+    where: { draftId, body: { contains: userEditMarker } },
+  });
+  if (!stillInHistory) {
+    throw new Error("Legacy USER_EDIT_KEEP version row disappeared from DB history");
+  }
+
+  await generateDraftInDialog(page, locale);
+  await page.getByRole("dialog").waitFor({ state: "hidden", timeout: 120_000 }).catch(() => {});
+
+  const downloadControl = page
+    .getByRole("link", {
+      name: locale === "ar" ? /تحميل PDF/i : /Download PDF/i,
+    })
+    .first();
+  await downloadControl.waitFor({ state: "visible", timeout: 60_000 });
+  const href = await downloadControl.getAttribute("href");
+  if (!href) throw new Error("Legacy flow: missing download href after generate");
+
+  const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
+  await downloadControl.click();
+  const download = await downloadPromise;
+  const pdfPath = path.join(ARTIFACT_ROOT, "pdfs", `${locale}-legacy-after-proposed.pdf`);
+  await download.saveAs(pdfPath);
+  assertPdfContainsMarker(pdfPath, legacyMarker, `legacy-${locale}-download`);
+  const getBuf = await (await page.request.get(`${BASE_URL}${href}`)).body();
+  const getTmp = path.join(ARTIFACT_ROOT, "pdfs", `.get-${locale}-legacy.pdf`);
+  fs.writeFileSync(getTmp, getBuf);
+  assertPdfContainsMarker(getTmp, legacyMarker, `legacy-${locale}-GET`);
+
   await page.screenshot({
-    path: path.join(STORE, `legacy-draft-${locale}-editor.png`),
+    path: path.join(ARTIFACT_ROOT, `legacy-draft-${locale}-editor.png`),
     fullPage: true,
   });
 
   fs.writeFileSync(
-    path.join(STORE, `legacy-draft-${locale}-snapshot.json`),
+    path.join(ARTIFACT_ROOT, `legacy-draft-${locale}-snapshot.json`),
     JSON.stringify(
       {
         locale,
-        bodyIncludesMarker: body.includes(userEditMarker),
-        bodyIncludesOfficialArabic: /محضر|أولاً/i.test(body),
-        versionHistoryPresent,
-        historyBodyIncludesMarker,
-        note:
-          "After reopen, currentBody is synced to official Arabic master; USER_EDIT_KEEP remains in an older saved version.",
+        passed: true,
+        bodyOnReopenIncludesUserEdit: true,
+        proposedBannerVisible: true,
+        generateBlockedOnLegacyEnglish: true,
+        versionsAfterSave,
+        historyStillContainsUserEdit: true,
+        pdfPath,
+        marker: legacyMarker,
       },
       null,
       2
     )
   );
-
-  void browser;
 }
+
 
 function runRegressionUnitTests(): Record<string, unknown> {
   const suites = [
     "__tests__/lib/official-document-approved-request-option.test.ts",
+    "__tests__/lib/official-document-mutation-guards.test.ts",
     "__tests__/lib/official-handover-document-locale.test.ts",
+    "__tests__/lib/official-handover-draft-body-render.test.ts",
+    "__tests__/lib/official-handover-guards.test.ts",
+    "__tests__/lib/official-handover-sync-metadata.test.ts",
     "__tests__/server-actions/official-handover-generation.test.ts",
   ];
   const output = execFileSync(
@@ -333,9 +596,9 @@ async function main() {
     throw new Error("Set SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASSWORD in .env");
   }
 
-  fs.mkdirSync(path.join(STORE, "pdfs"), { recursive: true });
-  fs.mkdirSync(path.join(STORE, "pages"), { recursive: true });
-  fs.mkdirSync(path.join(STORE, "screenshots"), { recursive: true });
+  const runId = initFreshArtifactRun();
+  fs.mkdirSync(path.join(ARTIFACT_ROOT, "pages"), { recursive: true });
+  fs.mkdirSync(path.join(ARTIFACT_ROOT, "screenshots"), { recursive: true });
 
   const browser = await chromium.launch({
     headless: true,
@@ -345,13 +608,16 @@ async function main() {
   const report: Record<string, unknown> = {
     executedAt: new Date().toISOString(),
     baseUrl: BASE_URL,
-    evidenceRoot: STORE,
+    runId,
+    evidenceRoot: ARTIFACT_ROOT,
     executionHonesty: {
       browserUiLoginAndPanel: true,
       generateOfficialDocumentAction: "invoked via real UI Generate draft PDF button",
       renderOfficialHandoverRecordPdfOnlyScript:
         "NOT part of this report — see scripts/verify-official-handover-production-flow.ts",
       vitestMocks: "separate regression block below",
+      nextJsDevOverlay:
+        "Bottom-left “N Issues” in dev is the Next.js dev-tools indicator, not a CRM validation error.",
     },
     steps: [] as string[],
     variants: [] as unknown[],
@@ -382,14 +648,24 @@ async function main() {
 
       if (legacyOnly) {
         report.steps.push(`${locale}: legacy English draft reopen check`);
-        await runLegacyDraftFlow(page, locale, manifest, browser);
+        await resetLegacyDraftForE2e(manifest);
+        await runLegacyDraftFlow(page, locale, manifest);
         await context.close();
         continue;
       }
 
       for (const unit of manifest.units) {
+        if (
+          manifest.legacyDraft &&
+          unit.unitId === manifest.legacyDraft.unitId
+        ) {
+          report.steps.push(
+            `${locale}: skip ${unit.variant} in main loop (legacy flow owns this unit)`
+          );
+          continue;
+        }
         const shot = path.join(
-          STORE,
+          ARTIFACT_ROOT,
           "screenshots",
           `${locale}-${unit.variant}-unit-panel.png`
         );
@@ -412,35 +688,40 @@ async function main() {
         if (!getBuf.subarray(0, 5).toString("utf8").startsWith("%PDF")) {
           throw new Error(`GET body is not PDF for ${downloadUrl}`);
         }
-        const pages = rasterizePdf(
-          pdfPath,
-          path.join(STORE, "pages", `${locale}-${unit.variant}`),
-          "page"
-        );
+        const pageDir = path.join(ARTIFACT_ROOT, "pages", `${locale}-${unit.variant}`);
+        fs.rmSync(pageDir, { recursive: true, force: true });
+        const pages = rasterizePdf(pdfPath, pageDir, "page");
+        if (pages.length !== pdfPageCount(pdfPath)) {
+          throw new Error(`Page PNG count ${pages.length} != pdf pages ${pdfPageCount(pdfPath)} for ${pdfPath}`);
+        }
         report.variants.push({
           locale,
           variant: unit.variant,
           unitId: unit.unitId,
           pdfPath,
           downloadUrl,
-          pageCount: pages.length,
+          sha256: sha256File(pdfPath),
+          pageCount: pdfPageCount(pdfPath),
           pagePngs: pages,
+          pagePngCount: pages.length,
         });
       }
 
       report.steps.push(`${locale}: legacy English draft reopen check`);
-      await runLegacyDraftFlow(page, locale, manifest, browser);
+      await resetLegacyDraftForE2e(manifest);
+      await runLegacyDraftFlow(page, locale, manifest);
       await context.close();
     }
   } finally {
     await browser.close();
+    await prisma.$disconnect();
   }
 
   fs.writeFileSync(
-    path.join(STORE, "e2e-report.json"),
+    path.join(ARTIFACT_ROOT, "e2e-report.json"),
     JSON.stringify(report, null, 2)
   );
-  console.log("E2E complete. Report:", path.join(STORE, "e2e-report.json"));
+  console.log("E2E complete. Report:", path.join(ARTIFACT_ROOT, "e2e-report.json"));
   const totalPages = (report.variants as Array<{ pageCount: number }>).reduce(
     (n, v) => n + v.pageCount,
     0

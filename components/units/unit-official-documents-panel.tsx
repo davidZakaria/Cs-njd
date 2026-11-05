@@ -127,6 +127,21 @@ export function UnitOfficialDocumentsPanel({
     null
   );
   const editorTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const editorLiveBodyRef = useRef("");
+  const [editorTextKey, setEditorTextKey] = useState(0);
+
+  const remountEditorTextarea = () => setEditorTextKey((k) => k + 1);
+
+  const readEditorBodyFromDom = () => {
+    const fromQuery = document.querySelector(
+      '[data-slot="textarea"]'
+    ) as HTMLTextAreaElement | null;
+    const domValue = fromQuery?.value ?? editorTextareaRef.current?.value;
+    if (domValue != null && domValue !== "") {
+      return domValue.trimEnd();
+    }
+    return (editorLiveBodyRef.current || editorBody).trimEnd();
+  };
 
   const documentTypeItems = useMemo(() => {
     const items: Record<string, string> = {};
@@ -247,6 +262,8 @@ export function UnitOfficialDocumentsPanel({
       setActiveDraftId(result.draftId);
       setEditorTitle(result.title ?? detail?.title ?? "");
       setEditorBody(result.body ?? detail?.currentBody ?? "");
+      editorLiveBodyRef.current = result.body ?? detail?.currentBody ?? "";
+      remountEditorTextarea();
       setProposedOfficialBody(result.proposedOfficialBody ?? null);
       setEditorLocale(result.locale ?? detail?.templateLocale ?? locale);
       setHandoverTemplateKey(
@@ -275,6 +292,7 @@ export function UnitOfficialDocumentsPanel({
       setActiveDraftId(draftId);
       setEditorTitle(detail.title);
       setEditorBody(detail.currentBody);
+      remountEditorTextarea();
       setProposedOfficialBody(null);
       setEditorLocale(detail.templateLocale);
       setHandoverTemplateKey(
@@ -303,7 +321,10 @@ export function UnitOfficialDocumentsPanel({
         return;
       }
       setHandoverTemplateKey(key);
-      if (result.body) setEditorBody(result.body);
+      if (result.body) {
+        setEditorBody(result.body);
+        remountEditorTextarea();
+      }
       if (result.title) setEditorTitle(result.title);
       if (result.handoverMissingFieldKeys?.length) {
         toast.warning(t("handoverMissingFieldsWarning"));
@@ -314,11 +335,8 @@ export function UnitOfficialDocumentsPanel({
 
   const saveDraft = () => {
     if (!activeDraftId) return;
+    const bodyToPersist = readEditorBodyFromDom();
     startTransition(async () => {
-      const bodyToPersist = (
-        editorTextareaRef.current?.value ??
-        editorBody
-      ).trimEnd();
       const result = await saveOfficialDocumentTextDraftAction({
         draftId: activeDraftId,
         body: bodyToPersist,
@@ -342,11 +360,8 @@ export function UnitOfficialDocumentsPanel({
 
   const generatePdf = () => {
     if (!activeDraftId) return;
+    const bodyToPersist = readEditorBodyFromDom();
     startTransition(async () => {
-      const bodyToPersist = (
-        editorTextareaRef.current?.value ??
-        editorBody
-      ).trimEnd();
       const saveResult = await saveOfficialDocumentTextDraftAction({
         draftId: activeDraftId,
         body: bodyToPersist,
@@ -377,6 +392,7 @@ export function UnitOfficialDocumentsPanel({
       const version = detail?.versions.find((v) => v.id === versionId);
       if (!version) return;
       setEditorBody(version.body);
+      remountEditorTextarea();
     });
   };
 
@@ -597,6 +613,7 @@ export function UnitOfficialDocumentsPanel({
                 onClick={() => {
                   setEditorBody(proposedOfficialBody);
                   setProposedOfficialBody(null);
+                  remountEditorTextarea();
                 }}
               >
                 {t("loadProposedOfficialBody")}
@@ -642,9 +659,13 @@ export function UnitOfficialDocumentsPanel({
             </div>
           ) : null}
           <Textarea
+            key={`${activeDraftId ?? "new"}-${editorTextKey}`}
             ref={editorTextareaRef}
-            value={editorBody}
-            onChange={(e) => setEditorBody(e.target.value)}
+            defaultValue={editorBody}
+            onChange={(e) => {
+              editorLiveBodyRef.current = e.target.value;
+              setEditorBody(e.target.value);
+            }}
             readOnly={!canEditDraftText}
             rows={18}
             dir={editorRtl ? "rtl" : "ltr"}

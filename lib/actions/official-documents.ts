@@ -8,6 +8,10 @@ import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { auth } from "@/lib/auth";
 import { recordOfficialDocumentAudit } from "@/lib/official-documents/audit";
 import {
+  assertLinkedUnitRequestAllowsOfficialDocumentMutation,
+  assertOfficialTextDraftMutable,
+} from "@/lib/official-documents/document-mutation-guards";
+import {
   resolveOfficialDocumentGenerationContext,
 } from "@/lib/official-documents/draft-context";
 import {
@@ -135,6 +139,7 @@ async function syncOfficialHandoverTextDraftIfNeeded(input: {
       title: ctx.template.title,
       handoverTemplateKey: ctx.handoverTemplateKey,
       updatedById: input.userId,
+      // Intentionally does NOT set currentBody — legacy/user text stays until explicit save or “Load proposed”.
     },
   });
 
@@ -541,6 +546,16 @@ export async function saveOfficialDocumentTextDraftAction(input: {
   });
   if (!draft) return actionFail("Draft not found");
 
+  const signedGuard = await assertOfficialTextDraftMutable(draft.id);
+  if (signedGuard && !signedGuard.success) return signedGuard;
+
+  const requestGuard = await assertLinkedUnitRequestAllowsOfficialDocumentMutation({
+    unitId: draft.unitId,
+    documentType: draft.documentType,
+    unitRequestId: draft.unitRequestId,
+  });
+  if (requestGuard && !requestGuard.success) return requestGuard;
+
   const body = input.body.trimEnd();
   if (!body.trim()) return actionFail("Draft text is required");
 
@@ -590,6 +605,16 @@ export async function generateOfficialDocumentAction(input: {
     where: { id: input.textDraftId, unitId: input.unitId },
   });
   if (!draft) return actionFail("Text draft not found");
+
+  const signedGuard = await assertOfficialTextDraftMutable(draft.id);
+  if (signedGuard && !signedGuard.success) return signedGuard;
+
+  const requestGuard = await assertLinkedUnitRequestAllowsOfficialDocumentMutation({
+    unitId: draft.unitId,
+    documentType: draft.documentType,
+    unitRequestId: draft.unitRequestId,
+  });
+  if (requestGuard && !requestGuard.success) return requestGuard;
 
   const sync = await syncOfficialHandoverTextDraftIfNeeded({
     draft,

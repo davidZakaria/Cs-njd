@@ -13,7 +13,7 @@ describe("official handover authorization guards", () => {
     ).toBe(false);
   });
 
-  it("allows legal/management roles to edit draft text (no signed-copy editor lock)", () => {
+  it("restricts draft edit/generate to legal and management roles", () => {
     expect(canEditOfficialDocumentDraftText("LEGAL")).toBe(true);
     expect(canEditOfficialDocumentDraftText("MANAGEMENT")).toBe(true);
     expect(canGenerateOfficialDocuments("LEGAL")).toBe(true);

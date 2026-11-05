@@ -33,21 +33,38 @@ async function ensureProject(name: string) {
 let demoClientSeq = 7000;
 async function createDemoClient(suffix: string) {
   demoClientSeq += 1;
-  const nationalId = `290010${String(demoClientSeq).padStart(8, "0")}`;
-  return prisma.client.upsert({
-    where: { nationalId },
-    update: {},
-    create: {
-      name: `Demo Owner ${suffix}`,
+  const nationalId = `2990101${String(demoClientSeq).padStart(7, "0")}`;
+  const email = `demo-owner-${suffix}@example.test`;
+  const name = `Demo Owner ${suffix}`;
+  const phone1 = "+201555010001";
+  const address1 = "12 Demo Street, Cairo";
+
+  const byEmail = await prisma.client.findFirst({ where: { email } });
+  if (byEmail) {
+    return prisma.client.update({
+      where: { id: byEmail.id },
+      data: {
+        nationalId,
+        name,
+        phone1,
+        address1,
+        email,
+      },
+    });
+  }
+
+  return prisma.client.create({
+    data: {
+      name,
       nationalId,
-      email: `demo-owner-${suffix}@example.test`,
-      phone1: "+201000000001",
-      address1: "12 Demo Street, Cairo",
+      email,
+      phone1,
+      address1,
       phones: {
-        create: [{ phone: "+201000000001", sortOrder: 0 }],
+        create: [{ phone: phone1, sortOrder: 0 }],
       },
       addresses: {
-        create: [{ address: "12 Demo Street, Cairo", sortOrder: 0 }],
+        create: [{ address: address1, sortOrder: 0 }],
       },
     },
   });

@@ -99,6 +99,7 @@ vi.mock("@/lib/prisma", () => ({
       }),
     },
     unitGeneratedDocument: {
+      findFirst: vi.fn().mockResolvedValue(null),
       create: (...args: unknown[]) => mockCreate(...args),
     },
     unitRequest: {

@@ -43,5 +43,26 @@ describe("official handover PDF uses edited draft body", () => {
 
     expect(html).toContain("LEGAL_EDIT_MARKER");
     expect(html).toContain("clause adjusted by legal");
+    expect(html).toContain("violations-block");
+    expect(html).toContain("المخالفات");
+  });
+
+  it("keeps full Green Avenue clauses when draft matches canonical serialized body", () => {
+    const canonical = buildOfficialHandoverDraftBody({
+      templateKey: "green-avenue",
+      fields: baseFields,
+    });
+
+    const html = buildOfficialHandoverHtml({
+      templateKey: "green-avenue",
+      fields: baseFields,
+      watermarkDraft: true,
+      draftBody: canonical,
+    });
+
+    expect(html).toContain("violations-block");
+    expect(html).toContain("insurance-block");
+    expect(html).toContain("field-value");
+    expect(html).toContain("Sample Street");
   });
 });
