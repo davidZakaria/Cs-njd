@@ -916,6 +916,10 @@ async function ensureOfficialArabicHandoverBodyLoaded(
 }
 
 async function openHandoverEditor(page: Page, locale: "en" | "ar") {
+  if (await page.getByRole("dialog").isVisible().catch(() => false)) {
+    return;
+  }
+
   const reopenCount = await page
     .getByRole("button", {
       name: locale === "ar" ? /^إعادة فتح$/ : /^Reopen$/i,
