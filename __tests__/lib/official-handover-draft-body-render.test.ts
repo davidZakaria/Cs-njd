@@ -120,4 +120,25 @@ describe("official handover PDF uses edited draft body", () => {
     expect(html).toContain("E2E_REPLACED");
     expect(countGreenDualOwnerDeclarationIntros(html)).toBe(2);
   });
+
+  it("renders Green violations section heading exactly once", () => {
+    const fields: HandoverFieldValues = {
+      ...baseFields,
+    };
+    const draftBody = buildOfficialHandoverDraftBody({
+      templateKey: "green-avenue",
+      fields,
+    });
+    const html = buildOfficialHandoverHtml({
+      templateKey: "green-avenue",
+      fields,
+      watermarkDraft: true,
+      draftBody,
+    });
+    const heading = "المخالفات المتسببة فى فسخ العقد";
+    const matches = html.match(
+      new RegExp(`<h2 class="section-heading">${heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</h2>`, "g")
+    );
+    expect(matches?.length ?? 0).toBe(1);
+  });
 });

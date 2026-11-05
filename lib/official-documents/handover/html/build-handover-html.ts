@@ -410,6 +410,7 @@ function renderGreenAvenueDraftBodyHtml(
   let html = "";
   let sawDeclarationSignatures = false;
   let renderedDualDeclaration = false;
+  let sawViolationsSection = false;
 
   for (const chunk of chunks) {
     const lines = chunk.split("\n");
@@ -501,19 +502,32 @@ function renderGreenAvenueDraftBodyHtml(
       continue;
     }
 
-    if (
-      heading.includes(template.violationsIntro.slice(0, 10)) ||
-      (/مخالف|الإلتزامات/u.test(chunk) && !/تأمين/u.test(chunk))
-    ) {
-      const violationText =
-        bodyText ||
-        chunk.replace(new RegExp(`^${heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`), "").trim() ||
-        chunk;
-      const violations = splitViolationItems(violationText);
-      html += `<h2 class="section-heading">${escapeHtml(template.violationsIntro)}</h2>`;
-      html += `<div class="violations-block">${violations
-        .map((part) => `<p class="justified">${toHandoverHtml(part)}</p>`)
-        .join("\n")}</div>`;
+    const violationsIntroNeedle = template.violationsIntro.slice(0, 10);
+    const isViolationsHeadingChunk =
+      heading === template.violationsIntro.trim() ||
+      (violationsIntroNeedle.length > 0 && heading.includes(violationsIntroNeedle));
+    const isViolationsBodyChunk =
+      !isViolationsHeadingChunk &&
+      /مخالف|الإلتزامات/u.test(chunk) &&
+      !/تأمين|التشطيبات/u.test(chunk);
+
+    if (isViolationsHeadingChunk || isViolationsBodyChunk) {
+      const violationText = isViolationsHeadingChunk
+        ? bodyText
+        : bodyText ||
+          chunk.replace(new RegExp(`^${heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`), "").trim() ||
+          chunk;
+      if (!sawViolationsSection) {
+        html += `<h2 class="section-heading">${escapeHtml(template.violationsIntro)}</h2>`;
+        html += `<div class="violations-block">`;
+        sawViolationsSection = true;
+      }
+      if (violationText.trim()) {
+        const violations = splitViolationItems(violationText);
+        html += violations
+          .map((part) => `<p class="justified">${toHandoverHtml(part)}</p>`)
+          .join("\n");
+      }
       continue;
     }
 
@@ -538,6 +552,9 @@ function renderGreenAvenueDraftBodyHtml(
 
   if (!sawDeclarationSignatures) {
     html += buildDeclarantSignatureBlock({ dual: template.dual });
+  }
+  if (sawViolationsSection) {
+    html += `</div>`;
   }
   if (template.dual) {
     html += buildGreenDualClosingSignatures();

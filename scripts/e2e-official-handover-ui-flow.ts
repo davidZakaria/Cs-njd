@@ -12,7 +12,14 @@ import crypto from "node:crypto";
 function initFreshArtifactRun(): string {
   const runId = new Date().toISOString().replace(/[:.]/g, "-");
   ARTIFACT_ROOT = path.join(STORE_BASE, "runs", runId);
-  for (const sub of ["pdfs", "pages", "screenshots"] as const) {
+  for (const sub of [
+    "baseline/pdfs",
+    "baseline/pages",
+    "edited/pdfs",
+    "edited/pages",
+    "legacy/pdfs",
+    "screenshots",
+  ] as const) {
     fs.mkdirSync(path.join(ARTIFACT_ROOT, sub), { recursive: true });
   }
   fs.writeFileSync(
@@ -66,6 +73,67 @@ function assertMandatoryHandoverClauses(pdfPath: string, variant: string) {
   }
 }
 
+/** Exact optional sentence appended then deleted in edited E2E — not part of official master. */
+export const E2E_OPTIONAL_DELETE_SENTENCE =
+  "جملة اختبار E2E اختيارية للحذف — ليست بندًا في النموذج الرسمي.";
+
+const GREEN_VIOLATIONS_HEADING = "المخالفات المتسببة فى فسخ العقد";
+
+/** Prior Green E2E regex (removed): deleted master voiding clause through حكم قضائي — not used anymore. */
+const LEGACY_GREEN_E2E_VOIDING_DELETE_REGEX =
+  "وف[ىي] حالة مخالف[ةه] ايا[ًٍ]? مما ذكر … حكم قضائي.";
+
+function countGreenViolationsHeadingInPdf(pdfPath: string): number {
+  const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
+  const compact = normalizePdfExtractedText(text).replace(/ /g, "");
+  const needle = normalizePdfExtractedText(GREEN_VIOLATIONS_HEADING).replace(/ /g, "");
+  let count = 0;
+  let idx = 0;
+  while ((idx = compact.indexOf(needle, idx)) !== -1) {
+    count++;
+    idx += needle.length;
+  }
+  return count;
+}
+
+function assertGreenMasterBaselinePdf(pdfPath: string, variant: string) {
+  if (!variant.includes("green-avenue")) return;
+  const headingCount = countGreenViolationsHeadingInPdf(pdfPath);
+  if (headingCount !== 1) {
+    throw new Error(
+      `${pdfPath}: Green violations heading must appear exactly once (found ${headingCount})`
+    );
+  }
+  const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
+  if (!/مفسوخ|فسخ/u.test(text) || !/حكم قضائي/u.test(text)) {
+    throw new Error(
+      `${pdfPath}: baseline Green PDF missing master voiding clause (مفسوخ / حكم قضائي)`
+    );
+  }
+  if (/LEGAL_E2E_/i.test(text)) {
+    throw new Error(`${pdfPath}: baseline PDF must not contain LEGAL_E2E test markers`);
+  }
+}
+
+function assertGreenEditedMasterVoidingPreserved(pdfPath: string, variant: string, label: string) {
+  if (!variant.includes("green-avenue")) return;
+  const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
+  if (!/مفسوخ|فسخ/u.test(text) || !/حكم قضائي/u.test(text)) {
+    throw new Error(
+      `${label}: edited Green PDF missing master voiding clause — product defect (not an intentional E2E deletion)`
+    );
+  }
+  if (text.includes(E2E_OPTIONAL_DELETE_SENTENCE)) {
+    throw new Error(`${label}: PDF still contains deleted E2E optional test sentence`);
+  }
+  const headingCount = countGreenViolationsHeadingInPdf(pdfPath);
+  if (headingCount !== 1) {
+    throw new Error(
+      `${label}: Green violations heading must appear exactly once (found ${headingCount})`
+    );
+  }
+}
+
 
 
 import { chromium, type Page } from "playwright";
@@ -97,6 +165,12 @@ type LegalEditMeta = {
   phraseOriginal: string;
   phraseReplacement: string;
   deletedSentenceFragment: string;
+  deletionManifest: {
+    targetKind: "e2e_optional_test_sentence" | "jura_fixture_sentence";
+    exactDeletedText: string;
+    masterVoidingClauseIntentionallyRemoved: false;
+    replacedLegacyGreenVoidingDeleteRegex: string;
+  };
 };
 
 type E2eVariantRecord = {
@@ -110,6 +184,7 @@ type E2eVariantRecord = {
   pageCount: number;
   pagePngs: string[];
   pagePngCount: number;
+  artifactKind: "baseline" | "edited";
 };
 
 type E2eReport = {
@@ -119,6 +194,14 @@ type E2eReport = {
   evidenceRoot: string;
   executionHonesty: Record<string, string | boolean>;
   steps: string[];
+  baselineVariants: E2eVariantRecord[];
+  editedVariants: E2eVariantRecord[];
+  editManifests: Array<{
+    locale: string;
+    variant: string;
+    manifest: LegalEditMeta;
+  }>;
+  deletionPolicyNote: string;
   variants: E2eVariantRecord[];
   failed?: boolean;
   error?: string;
@@ -451,7 +534,16 @@ function assertHandoverPdfLayout(pdfPath: string, variant: string) {
       );
     }
   }
-  if (variant === "green-avenue") {
+  if (variant.includes("green-avenue")) {
+    const headingCount = countGreenViolationsHeadingInPdf(pdfPath);
+    if (headingCount !== 1) {
+      throw new Error(
+        `${pdfPath}: Green violations heading count ${headingCount} (expected exactly 1)`
+      );
+    }
+  }
+  const fullText = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
+  if (variant === "green-avenue" && /LEGAL_E2E_/i.test(fullText)) {
     const page3 = pdfPageText(pdfPath, Math.min(3, pageCount));
     if (!page3.includes("LEGAL_E2E_")) {
       throw new Error(
@@ -574,12 +666,7 @@ async function applyFullLegalEdits(
   page: Page,
   locale: "en" | "ar",
   variant: string
-): Promise<{
-  editMarker: string;
-  phraseOriginal: string;
-  phraseReplacement: string;
-  deletedSentenceFragment: string;
-}> {
+): Promise<LegalEditMeta> {
   const textarea = handoverEditorTextarea(page);
   await textarea.waitFor({ state: "visible" });
   let body = await textarea.inputValue();
@@ -591,23 +678,35 @@ async function applyFullLegalEdits(
   const phraseOriginal = phraseMatch[0]!;
   const phraseReplacement = `${phraseOriginal} E2E_REPLACED`;
 
-  const deletePattern = variant.startsWith("jura")
-    ? /وليس لديه أي تحفظات ، وتم تسليم الوحدة رقم \([^)]*\) بعماره \([^)]*\) بالدور ?\([^)]*\) كامله التشطيب ،/u
-    : /وف[ىي] حالة مخالف[ةه] ايا[ًٍ]? مما ذكر[\s\S]{0,260}?حكم قضائي\./u;
-  const deleteMatch = body.match(deletePattern);
-  if (!deleteMatch) {
-    throw new Error(
-      `E2E setup: optional sentence for deletion test not found (${variant})`
-    );
+  let exactDeletedText: string;
+  let targetKind: "e2e_optional_test_sentence" | "jura_fixture_sentence";
+  let deletedSentenceFragment: string;
+
+  if (variant.startsWith("jura")) {
+    const deletePattern =
+      /وليس لديه أي تحفظات ، وتم تسليم الوحدة رقم \([^)]*\) بعماره \([^)]*\) بالدور ?\([^)]*\) كامله التشطيب ،/u;
+    const deleteMatch = body.match(deletePattern);
+    if (!deleteMatch) {
+      throw new Error(
+        `E2E setup: Jura fixture sentence for deletion test not found (${variant})`
+      );
+    }
+    exactDeletedText = deleteMatch[0]!;
+    targetKind = "jura_fixture_sentence";
+    deletedSentenceFragment = exactDeletedText.slice(0, 40);
+    body = body.replace(exactDeletedText, "").trimEnd();
+  } else {
+    targetKind = "e2e_optional_test_sentence";
+    exactDeletedText = E2E_OPTIONAL_DELETE_SENTENCE;
+    deletedSentenceFragment = exactDeletedText.slice(0, 40);
+    if (!body.includes(exactDeletedText)) {
+      body = `${body.trimEnd()}\n\n${exactDeletedText}`;
+    }
+    body = body.replace(exactDeletedText, "").replace(/\n{3,}/g, "\n\n").trimEnd();
   }
-  const deletedSentence = deleteMatch[0]!;
-  const deletedSentenceFragment = deletedSentence.slice(0, 40);
 
   const editMarker = legalEditMarker(locale, variant);
-  body = body
-    .replace(phraseOriginal, phraseReplacement)
-    .replace(deletedSentence, "")
-    .trimEnd();
+  body = body.replace(phraseOriginal, phraseReplacement).trimEnd();
   body = `${body}\n\n${editMarker}`;
 
   await textarea.fill(body);
@@ -617,34 +716,47 @@ async function applyFullLegalEdits(
   if (!after.includes(editMarker) || !after.includes(phraseReplacement)) {
     throw new Error("Editor body missing structured legal edits before save");
   }
+  if (targetKind === "e2e_optional_test_sentence" && after.includes(exactDeletedText)) {
+    throw new Error("Saved editor body still contains E2E optional delete sentence");
+  }
 
   return {
     editMarker,
     phraseOriginal,
     phraseReplacement,
     deletedSentenceFragment,
+    deletionManifest: {
+      targetKind,
+      exactDeletedText,
+      masterVoidingClauseIntentionallyRemoved: false,
+      replacedLegacyGreenVoidingDeleteRegex: LEGACY_GREEN_E2E_VOIDING_DELETE_REGEX,
+    },
   };
 }
 
 function assertPdfEditFidelity(
   pdfPath: string,
-  input: {
-    editMarker: string;
-    phraseOriginal: string;
-    phraseReplacement: string;
-    deletedSentenceFragment: string;
-  },
+  input: LegalEditMeta,
   label: string,
-  locale: "en" | "ar"
+  locale: "en" | "ar",
+  variant: string
 ) {
   const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
   assertPdfContainsMarker(pdfPath, input.editMarker, label, locale);
   if (!text.includes("E2E_REPLACED") && !text.includes(input.phraseReplacement)) {
     throw new Error(`${label}: PDF missing replacement phrase (expected E2E_REPLACED or edited Arabic phrase)`);
   }
-  if (text.includes(input.deletedSentenceFragment)) {
-    throw new Error(`${label}: PDF still contains deleted sentence fragment`);
+  if (text.includes(input.deletionManifest.exactDeletedText)) {
+    throw new Error(
+      `${label}: PDF still contains deleted text (${input.deletionManifest.targetKind}): ${input.deletionManifest.exactDeletedText.slice(0, 50)}…`
+    );
   }
+  if (input.deletionManifest.targetKind === "jura_fixture_sentence") {
+    if (text.includes(input.deletedSentenceFragment)) {
+      throw new Error(`${label}: PDF still contains deleted Jura fixture sentence fragment`);
+    }
+  }
+  assertGreenEditedMasterVoidingPreserved(pdfPath, variant, label);
   if (!/مخالف|الإلتزامات/u.test(text)) {
     throw new Error(`${label}: unrelated violations block missing after edits`);
   }
@@ -828,13 +940,15 @@ async function generateHandoverOnUnit(
   locale: "en" | "ar",
   unitId: string,
   variant: string,
-  screenshotPath: string
+  screenshotPath: string,
+  mode: "baseline" | "edited"
 ): Promise<{
   pdfPath: string;
   downloadUrl: string;
   editMarker: string;
-  editMeta: LegalEditMeta;
+  editMeta: LegalEditMeta | null;
   documentId: string;
+  artifactKind: "baseline" | "edited";
 }> {
   await page.goto(`${BASE_URL}/${locale}/units/${unitId}`, {
     waitUntil: "domcontentloaded",
@@ -899,13 +1013,21 @@ async function generateHandoverOnUnit(
   const versionCountBefore =
     (await getLatestHandoverDraft(unitId))?._count.versions ?? 0;
 
-  const editMeta = await applyFullLegalEdits(page, locale, variant);
-  const { editMarker } = editMeta;
-  await saveDraftInDialog(page, locale, editMarker);
+  let editMeta: LegalEditMeta | null = null;
+  let editMarker = "";
+  if (mode === "edited") {
+    editMeta = await applyFullLegalEdits(page, locale, variant);
+    editMarker = editMeta.editMarker;
+    await saveDraftInDialog(page, locale, editMarker);
+  } else {
+    await saveDraftInDialog(page, locale);
+  }
 
   const draft = await getLatestHandoverDraft(unitId);
   if (!draft) throw new Error("No handover draft row after save");
-  await assertDbLatestVersionContains(draft.id, editMarker);
+  if (mode === "edited" && editMeta) {
+    await assertDbLatestVersionContains(draft.id, editMarker);
+  }
   if (draft._count.versions < versionCountBefore + 1) {
     throw new Error(
       `Expected new version row after save (before=${versionCountBefore} after=${draft._count.versions})`
@@ -915,22 +1037,25 @@ async function generateHandoverOnUnit(
   await page.keyboard.press("Escape");
   await page.getByRole("dialog").waitFor({ state: "hidden", timeout: 30_000 }).catch(() => {});
 
-  await openHandoverEditor(page, locale);
-  await page.getByRole("dialog").waitFor({ state: "visible" });
-  const reopened = handoverEditorTextarea(page);
-  const reopenedBody = await reopened.inputValue();
-  if (!reopenedBody.includes(editMarker)) {
-    throw new Error(`Reopen editor missing saved marker ${editMarker}`);
-  }
-
-  const loadVersionButtons = page.getByRole("button", {
-    name: locale === "ar" ? /تحميل في المحرر/i : /Load into editor/i,
-  });
-  if ((await loadVersionButtons.count()) < 1) {
-    throw new Error("Version history missing Load into editor control after save");
+  if (mode === "edited" && editMeta) {
+    await openHandoverEditor(page, locale);
+    await page.getByRole("dialog").waitFor({ state: "visible" });
+    const reopened = handoverEditorTextarea(page);
+    const reopenedBody = await reopened.inputValue();
+    if (!reopenedBody.includes(editMarker)) {
+      throw new Error(`Reopen editor missing saved marker ${editMarker}`);
+    }
+    const loadVersionButtons = page.getByRole("button", {
+      name: locale === "ar" ? /تحميل في المحرر/i : /Load into editor/i,
+    });
+    if ((await loadVersionButtons.count()) < 1) {
+      throw new Error("Version history missing Load into editor control after save");
+    }
   }
 
   const knownDocIds = new Set(await listGeneratedDocumentIds(unitId));
+  await openHandoverEditor(page, locale);
+  await page.getByRole("dialog").waitFor({ state: "visible", timeout: 30_000 });
   await generateDraftInDialog(page, locale);
   await page.getByRole("dialog").waitFor({ state: "hidden", timeout: 30_000 }).catch(() => {});
 
@@ -946,7 +1071,13 @@ async function generateHandoverOnUnit(
   const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
   await downloadLink.click();
   const download = await downloadPromise;
-  const canonicalPdf = path.join(ARTIFACT_ROOT, "pdfs", `${locale}-${variant}.pdf`);
+  const artifactKind = mode;
+  const canonicalPdf = path.join(
+    ARTIFACT_ROOT,
+    artifactKind,
+    "pdfs",
+    `${locale}-${variant}.pdf`
+  );
   await download.saveAs(canonicalPdf);
 
   const getStatus = await page.request.get(`${BASE_URL}${downloadUrl}`);
@@ -958,13 +1089,25 @@ async function generateHandoverOnUnit(
     throw new Error(`GET body is not PDF for ${downloadUrl}`);
   }
   fs.writeFileSync(canonicalPdf, getBuf);
-  assertPdfEditFidelity(canonicalPdf, editMeta, "authenticated-GET", locale);
+  if (mode === "edited" && editMeta) {
+    assertPdfEditFidelity(canonicalPdf, editMeta, "authenticated-GET", locale, variant);
+  }
   assertMandatoryHandoverClauses(canonicalPdf, variant);
   assertHandoverPdfLayout(canonicalPdf, variant);
+  if (mode === "baseline") {
+    assertGreenMasterBaselinePdf(canonicalPdf, variant);
+  }
   assertPdfArabicOnlyOfficialContent(canonicalPdf);
   await assertHandoverPdfFieldIntegrity(unitId, canonicalPdf, variant);
 
-  return { pdfPath: canonicalPdf, downloadUrl, editMarker, editMeta, documentId };
+  return {
+    pdfPath: canonicalPdf,
+    downloadUrl,
+    editMarker,
+    editMeta,
+    documentId,
+    artifactKind,
+  };
 }
 
 async function verifyPdfIsOfficial(pdfPath: string, editMarker: string): Promise<void> {
@@ -1072,7 +1215,7 @@ async function runLegacyDraftFlow(
   const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
   await downloadLink.click();
   const download = await downloadPromise;
-  const pdfPath = path.join(ARTIFACT_ROOT, "pdfs", `${locale}-legacy-after-proposed.pdf`);
+  const pdfPath = path.join(ARTIFACT_ROOT, "legacy/pdfs", `${locale}-legacy-after-proposed.pdf`);
   await download.saveAs(pdfPath);
   assertPdfContainsMarker(pdfPath, legacyMarker, `legacy-${locale}-download`, locale);
 
@@ -1081,7 +1224,7 @@ async function runLegacyDraftFlow(
     throw new Error(`Legacy GET failed: ${getStatus.status()} ${downloadUrl}`);
   }
   const getBuf = await getStatus.body();
-  const getTmp = path.join(ARTIFACT_ROOT, "pdfs", `.get-${locale}-legacy.pdf`);
+  const getTmp = path.join(ARTIFACT_ROOT, "legacy/pdfs", `.get-${locale}-legacy.pdf`);
   fs.writeFileSync(getTmp, getBuf);
   assertPdfContainsMarker(getTmp, legacyMarker, `legacy-${locale}-GET`, locale);
 
@@ -1168,6 +1311,10 @@ async function main() {
         "Bottom-left “N Issues” in dev is the Next.js dev-tools indicator, not a CRM validation error.",
     },
     steps: [],
+    baselineVariants: [],
+    editedVariants: [],
+    editManifests: [],
+    deletionPolicyNote: `Green edited E2E deletes only the exact optional test sentence "${E2E_OPTIONAL_DELETE_SENTENCE}" (master voiding clause preserved). Replaced legacy regex that removed text through حكم قضائي: ${LEGACY_GREEN_E2E_VOIDING_DELETE_REGEX}`,
     variants: [],
   };
 
@@ -1209,38 +1356,91 @@ async function main() {
         const shot = path.join(
           ARTIFACT_ROOT,
           "screenshots",
-          `${locale}-${unit.variant}-unit-panel.png`
+          `${locale}-${unit.variant}-baseline-unit-panel.png`
         );
         report.steps.push(
-          `${locale}: unit ${unit.variant} → Edit text → Generate → Download`
+          `${locale}: baseline ${unit.variant} → Edit text → Generate → Download (no edits)`
         );
-        const result = await generateHandoverOnUnit(
+        const baseline = await generateHandoverOnUnit(
           page,
           locale,
           unit.unitId,
           unit.variant,
-          shot
+          shot,
+          "baseline"
         );
-        const { pdfPath, downloadUrl, documentId } = result;
-        const pageDir = path.join(ARTIFACT_ROOT, "pages", `${locale}-${unit.variant}`);
-        fs.rmSync(pageDir, { recursive: true, force: true });
-        const pages = rasterizePdf(pdfPath, pageDir, "page");
-        if (pages.length !== pdfPageCount(pdfPath)) {
-          throw new Error(`Page PNG count ${pages.length} != pdf pages ${pdfPageCount(pdfPath)} for ${pdfPath}`);
-        }
-        report.variants.push({
+        const baselinePageDir = path.join(
+          ARTIFACT_ROOT,
+          "baseline/pages",
+          `${locale}-${unit.variant}`
+        );
+        fs.rmSync(baselinePageDir, { recursive: true, force: true });
+        const baselinePages = rasterizePdf(baseline.pdfPath, baselinePageDir, "page");
+        report.baselineVariants.push({
           locale,
           variant: unit.variant,
           unitId: unit.unitId,
-          pdfPath,
-          downloadUrl,
-          documentId,
-          sha256: sha256File(pdfPath),
-          pageCount: pdfPageCount(pdfPath),
-          pagePngs: pages,
-          pagePngCount: pages.length,
+          pdfPath: baseline.pdfPath,
+          downloadUrl: baseline.downloadUrl,
+          documentId: baseline.documentId,
+          sha256: sha256File(baseline.pdfPath),
+          pageCount: pdfPageCount(baseline.pdfPath),
+          pagePngs: baselinePages,
+          pagePngCount: baselinePages.length,
+          artifactKind: "baseline",
         });
       }
+
+      await resetMainLoopHandoverDrafts(manifest);
+
+      for (const unit of manifest.units) {
+        const shot = path.join(
+          ARTIFACT_ROOT,
+          "screenshots",
+          `${locale}-${unit.variant}-edited-unit-panel.png`
+        );
+        report.steps.push(
+          `${locale}: edited ${unit.variant} → replace/delete/append → Generate → Download`
+        );
+        const edited = await generateHandoverOnUnit(
+          page,
+          locale,
+          unit.unitId,
+          unit.variant,
+          shot,
+          "edited"
+        );
+        if (!edited.editMeta) {
+          throw new Error(`Edited run missing edit manifest for ${locale}-${unit.variant}`);
+        }
+        report.editManifests.push({
+          locale,
+          variant: unit.variant,
+          manifest: edited.editMeta,
+        });
+        const editedPageDir = path.join(
+          ARTIFACT_ROOT,
+          "edited/pages",
+          `${locale}-${unit.variant}`
+        );
+        fs.rmSync(editedPageDir, { recursive: true, force: true });
+        const editedPages = rasterizePdf(edited.pdfPath, editedPageDir, "page");
+        report.editedVariants.push({
+          locale,
+          variant: unit.variant,
+          unitId: unit.unitId,
+          pdfPath: edited.pdfPath,
+          downloadUrl: edited.downloadUrl,
+          documentId: edited.documentId,
+          sha256: sha256File(edited.pdfPath),
+          pageCount: pdfPageCount(edited.pdfPath),
+          pagePngs: editedPages,
+          pagePngCount: editedPages.length,
+          artifactKind: "edited",
+        });
+      }
+
+      report.variants = report.editedVariants;
 
       report.steps.push(`${locale}: legacy English draft reopen check`);
       await resetLegacyDraftForE2e(manifest);
@@ -1248,13 +1448,19 @@ async function main() {
       await context.close();
     }
 
-    const expectedPdfRows = locales.length * manifest.units.length;
-    if (report.variants.length !== expectedPdfRows) {
+    const expectedPerKind = locales.length * manifest.units.length;
+    if (report.baselineVariants.length !== expectedPerKind) {
       throw new Error(
-        `Expected ${expectedPdfRows} variant PDF records (locales=${locales.join(",")} × ${manifest.units.length} units), got ${report.variants.length}`
+        `Expected ${expectedPerKind} baseline PDF records, got ${report.baselineVariants.length}`
       );
     }
-    const juraDualRows = report.variants.filter((v) => v.variant === "jura-dual");
+    if (report.editedVariants.length !== expectedPerKind) {
+      throw new Error(
+        `Expected ${expectedPerKind} edited PDF records, got ${report.editedVariants.length}`
+      );
+    }
+    const allRows = [...report.baselineVariants, ...report.editedVariants];
+    const juraDualRows = report.editedVariants.filter((v) => v.variant === "jura-dual");
     if (juraDualRows.length === 2) {
       const [a, b] = juraDualRows;
       if (a!.documentId === b!.documentId || a!.sha256 === b!.sha256) {
@@ -1263,11 +1469,11 @@ async function main() {
         );
       }
     }
-    const docIds = report.variants.map((v) => v.documentId);
+    const docIds = allRows.map((v) => v.documentId);
     if (new Set(docIds).size !== docIds.length) {
-      throw new Error("Duplicate generated document IDs across variant PDF records");
+      throw new Error("Duplicate generated document IDs across baseline/edited PDF records");
     }
-    for (const row of report.variants) {
+    for (const row of allRows) {
       if (!fs.existsSync(row.pdfPath)) {
         throw new Error(`Missing canonical PDF ${row.pdfPath}`);
       }
@@ -1292,9 +1498,17 @@ async function main() {
     );
     console.log("E2E report written:", path.join(ARTIFACT_ROOT, "e2e-report.json"));
     if (!report.failed) {
-      const totalPages = report.variants.reduce((n, v) => n + v.pageCount, 0);
+      const totalPages =
+        report.baselineVariants.reduce((n, v) => n + v.pageCount, 0) +
+        report.editedVariants.reduce((n, v) => n + v.pageCount, 0);
       console.log("Total page PNGs:", totalPages);
-      console.log("E2E PASS", report.variants.length, "canonical PDFs");
+      console.log(
+        "E2E PASS",
+        report.baselineVariants.length,
+        "baseline +",
+        report.editedVariants.length,
+        "edited PDFs"
+      );
     } else {
       process.exit(1);
     }
