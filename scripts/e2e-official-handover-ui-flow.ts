@@ -353,11 +353,15 @@ async function assertHandoverPdfFieldIntegrity(
     assertPdfPageContainsValue(page1, handoverFields.address, "owner1 address", pdfPath);
     assertPdfPageContainsValue(page1, handoverFields.nationalId, "owner1 nationalId", pdfPath);
     const pageNorm = normalizePdfExtractedText(page1);
-    const addr = normalizePdfExtractedText(handoverFields.address);
-    const id = normalizePdfExtractedText(handoverFields.nationalId);
-    if (addr && id && pageNorm.includes(id.replace(/ /g, "")) && !pageNorm.includes(addr.replace(/ /g, ""))) {
+    const addrTokens = normalizePdfExtractedText(handoverFields.address)
+      .split(/[\s,]+/)
+      .map((t) => t.trim())
+      .filter((t) => t.length > 2);
+    const compactPage = pageNorm.replace(/ /g, "");
+    const addrPresent = addrTokens.every((t) => compactPage.includes(t.replace(/ /g, "")));
+    if (handoverFields.address && handoverFields.address !== "—" && !addrPresent) {
       throw new Error(
-        `${pdfPath}: owner1 nationalId present on page-1 but address missing (field association bug)`
+        `${pdfPath}: owner1 address tokens missing on page-1 (field association bug)`
       );
     }
   }
