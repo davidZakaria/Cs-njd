@@ -1,5 +1,4 @@
 import {
-  canAccessUnitAsCsAgent,
   resolveCsAgentScope,
   type CsAgentScope,
 } from "@/lib/auth/cs-agent-scope";
@@ -29,10 +28,10 @@ export async function resolveSignedProtocolAccess(
     return { canUpload: true, csScope: null };
   }
 
-  if (user.role === "CS_AGENT") {
+  if (isCsAgentRole(user.role)) {
     const csScope = await resolveCsAgentScope(user);
     return {
-      canUpload: canAccessUnitAsCsAgent(csScope, unitAgentId),
+      canUpload: true,
       csScope,
     };
   }

@@ -1,6 +1,25 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { canDownloadSignedProtocol } from "@/lib/auth/signed-protocol-access";
+vi.mock("@/lib/auth/cs-agent-scope", () => ({
+  resolveCsAgentScope: vi.fn(async () => ({
+    loginUserId: "cs-1",
+    effectiveAgentId: "cs-1",
+    isPreview: false,
+  })),
+  canAccessUnitAsCsAgent: vi.fn(() => false),
+}));
+
+import { canDownloadSignedProtocol, resolveSignedProtocolAccess } from "@/lib/auth/signed-protocol-access";
+
+describe("resolveSignedProtocolAccess", () => {
+  it("lets CS agents upload portfolio files on any unit", async () => {
+    const result = await resolveSignedProtocolAccess(
+      { id: "cs-1", role: "CS_AGENT" },
+      "other-agent-id"
+    );
+    expect(result.canUpload).toBe(true);
+  });
+});
 
 describe("canDownloadSignedProtocol", () => {
   const unassignedUnit = { id: "u1", agentId: "other-agent" };
