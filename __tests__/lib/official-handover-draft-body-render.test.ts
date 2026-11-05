@@ -65,4 +65,29 @@ describe("official handover PDF uses edited draft body", () => {
     expect(html).toContain("Demo Owner");
     expect(html).toContain("26309100200715");
   });
+
+  it("does not duplicate dual Green Avenue owner names in serialized draft", () => {
+    const fields: HandoverFieldValues = {
+      ...baseFields,
+      clientName: "Owner One",
+      clientName2: "Owner Two",
+      nationalId2: "26309100200716",
+    };
+    const canonical = buildOfficialHandoverDraftBody({
+      templateKey: "green-avenue-dual",
+      fields,
+    });
+    expect(canonical).not.toMatch(/Owner One Owner One/);
+    expect(canonical).not.toMatch(/Owner Two Owner One/);
+    expect(canonical).toContain("Owner Two");
+
+    const html = buildOfficialHandoverHtml({
+      templateKey: "green-avenue-dual",
+      fields,
+      watermarkDraft: true,
+      draftBody: canonical,
+    });
+    expect(html.match(/<div class="owner-block">/g)?.length ?? 0).toBe(2);
+    expect(html).not.toMatch(/Owner One Owner One/);
+  });
 });

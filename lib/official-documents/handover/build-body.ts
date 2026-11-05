@@ -36,6 +36,43 @@ export function serializeHandoverTemplateBody(
   return serializeJura(template, fields);
 }
 
+function greenDualOwnerBlockLines(fields: HandoverFieldValues, owner: 1 | 2): string[] {
+  const isFirst = owner === 1;
+  const name = isFirst ? fields.clientName : (fields.clientName2 ?? "—");
+  const nationalId = isFirst ? fields.nationalId : (fields.nationalId2 ?? "—");
+  const nationality = isFirst ? fields.nationality : (fields.nationality2 ?? fields.nationality);
+  const address = isFirst ? fields.address : (fields.address2 ?? "—");
+  const phone1 = isFirst ? fields.phone1 : (fields.phone1Owner2 ?? "—");
+  const phone2 = isFirst ? fields.phone2 : (fields.phone2Owner2 ?? "—");
+  const email = isFirst ? fields.email : (fields.emailOwner2 ?? "—");
+  const prefix = isFirst ? "1" : "2";
+  return [
+    `${prefix}-الاسم : ${name}`,
+    `الجنسيه : ${nationality}     بطاقة الرقم القومى : ${nationalId}`,
+    `المقيم في : ${address} تليفون 1: ${phone1}                                    تليفون 2: ${phone2}                                       البريد الالكتروني : ${email}`,
+  ];
+}
+
+function serializeGreenDualSection1(fields: HandoverFieldValues): string {
+  return [...greenDualOwnerBlockLines(fields, 1), ...greenDualOwnerBlockLines(fields, 2)].join(
+    "\n"
+  );
+}
+
+function serializeGreenDualDeclaration(
+  template: GreenAvenueTemplate,
+  fields: HandoverFieldValues
+): string {
+  const interpolated = interpolateHandoverText(template.declaration, fields);
+  const bodyStart = interpolated.search(/بأننى|بأنني|بانني/i);
+  const rest = bodyStart >= 0 ? interpolated.slice(bodyStart).trim() : interpolated.trim();
+  const intro = [
+    `أقر أنا الموقع أدناه / ${fields.clientName} أحمل بطاقه رقم قومى: ${fields.nationalId}`,
+    `أقر أنا الموقع أدناه / ${fields.clientName2 ?? "—"} أحمل بطاقه رقم قومى: ${fields.nationalId2 ?? "—"}`,
+  ].join("");
+  return `${intro}${rest}`;
+}
+
 function serializeGreenAvenue(
   template: GreenAvenueTemplate,
   fields: HandoverFieldValues
@@ -46,13 +83,15 @@ function serializeGreenAvenue(
     .filter(Boolean)
     .join("\n");
 
-  const section1 = stripGreenSection1Lead(
-    interpolateHandoverText(template.section1, fields)
-  );
+  const section1 = template.dual
+    ? serializeGreenDualSection1(fields)
+    : stripGreenSection1Lead(interpolateHandoverText(template.section1, fields));
   const section2 = stripGreenSection2Lead(
     interpolateHandoverText(template.section2, fields)
   );
-  const declaration = interpolateHandoverText(template.declaration, fields);
+  const declaration = template.dual
+    ? serializeGreenDualDeclaration(template, fields)
+    : interpolateHandoverText(template.declaration, fields);
   const violations = splitViolationItems(
     interpolateHandoverText(template.violationsBody, fields)
   ).join(" ");

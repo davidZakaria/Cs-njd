@@ -268,6 +268,10 @@ function assertHandoverPdfLayout(pdfPath: string, variant: string) {
         `${pdfPath}: duplicated Green dual recipient block (${ownerLabels.length}× "1-الاسم")`
       );
     }
+    const dupName = text.match(/(Demo Owner[^\n]{0,80})\1/u);
+    if (dupName) {
+      throw new Error(`${pdfPath}: duplicated owner name fragment in Green dual PDF`);
+    }
   }
   const pageDir = path.join(path.dirname(pdfPath), ".layout-check", path.basename(pdfPath, ".pdf"));
   fs.rmSync(pageDir, { recursive: true, force: true });
@@ -410,7 +414,7 @@ async function applyFullLegalEdits(
 
   const deletePattern = variant.startsWith("jura")
     ? /وليس لديه أي تحفظات ، وتم تسليم الوحدة رقم \([^)]*\) بعماره \([^)]*\) بالدور ?\([^)]*\) كامله التشطيب ،/u
-    : /وفى حالة مخالفة اياً مما ذكر[\s\S]{0,220}?حكم قضائي\./u;
+    : /وف[ىي] حالة مخالف[ةه] ايا[ًٍ]? مما ذكر[\s\S]{0,260}?حكم قضائي\./u;
   const deleteMatch = body.match(deletePattern);
   if (!deleteMatch) {
     throw new Error(
@@ -1000,10 +1004,10 @@ async function main() {
   }
 
   try {
+    if (!legacyOnly) {
+      await resetMainLoopHandoverDrafts(manifest);
+    }
     for (const locale of locales) {
-      if (locale === "ar") {
-        await resetMainLoopHandoverDrafts(manifest);
-      }
       const context = await browser.newContext({
         acceptDownloads: true,
         locale: locale === "ar" ? "ar-EG" : "en-US",

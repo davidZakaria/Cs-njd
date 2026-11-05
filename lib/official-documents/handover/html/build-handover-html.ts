@@ -385,12 +385,13 @@ function buildBodyFromEditedDraftText(
   return renderJuraDraftBodyHtml(template, fields, draftBody);
 }
 
+const GREEN_SECTION1_HEADING = /^[أا]?ول(?:ا|اً)/u;
+
 function renderGreenAvenueDraftBodyHtml(
   template: GreenAvenueTemplate,
-  _fields: HandoverFieldValues,
+  fields: HandoverFieldValues,
   draftBody: string
 ): string {
-  void _fields;
   const chunks = greenAvenueBodyChunksWithoutHeader(
     splitHandoverDraftChunks(draftBody)
   );
@@ -406,10 +407,35 @@ function renderGreenAvenueDraftBodyHtml(
       bodyText = "";
     }
 
-    if (/^ا?ول(?:ا|اً)/u.test(heading)) {
-      const body = stripGreenSection1Lead(bodyText || chunk.replace(/^[^\n]+\n?/u, "").trim());
+    if (
+      template.dual &&
+      GREEN_SECTION1_HEADING.test(heading) &&
+      !bodyText &&
+      lines.length === 1
+    ) {
       html += `<h2 class="section-heading">${escapeHtml(heading.replace(/:$/, ""))}</h2>`;
-      html += `<p class="justified">${toHandoverHtml(body)}</p>`;
+      continue;
+    }
+
+    if (template.dual && /^1-الاسم/u.test(chunk.trim())) {
+      html += buildGreenDualRecipient(fields).replace(
+        /<h2 class="section-heading">[^<]+<\/h2>/,
+        ""
+      );
+      continue;
+    }
+
+    if (GREEN_SECTION1_HEADING.test(heading)) {
+      html += `<h2 class="section-heading">${escapeHtml(heading.replace(/:$/, ""))}</h2>`;
+      if (template.dual) {
+        html += buildGreenDualRecipient(fields).replace(
+          /<h2 class="section-heading">[^<]+<\/h2>/,
+          ""
+        );
+      } else {
+        const body = stripGreenSection1Lead(bodyText || chunk.replace(/^[^\n]+\n?/u, "").trim());
+        html += `<p class="justified">${toHandoverHtml(body)}</p>`;
+      }
       continue;
     }
 
@@ -424,7 +450,18 @@ function renderGreenAvenueDraftBodyHtml(
       const declarationSource =
         bodyText || chunk.replace(/^إقرار\s*/u, "").trim();
       html += `<h2 class="declaration-title">إقرار</h2>`;
-      html += `<p class="justified">${toHandoverHtml(declarationSource)}</p>`;
+      if (template.dual) {
+        const { mainBody, closing } = splitGreenDeclaration(declarationSource);
+        html += buildGreenDualDeclarationIntro(fields);
+        if (mainBody) {
+          html += `<p class="justified">${toHandoverHtml(mainBody)}</p>`;
+        }
+        if (closing) {
+          html += `<p class="closing-line">${toHandoverHtml(closing)}</p>`;
+        }
+      } else {
+        html += `<p class="justified">${toHandoverHtml(declarationSource)}</p>`;
+      }
       html += buildDeclarantSignatureBlock({ dual: template.dual });
       sawDeclarationSignatures = true;
       continue;
