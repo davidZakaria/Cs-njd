@@ -256,16 +256,22 @@ function buildGreenSingleDeclarationIntro(
 function splitGreenDeclaration(text: string) {
   const normalized = text.replace(/\s+/g, " ").trim();
   const bodyStart = normalized.search(/بأننى|بأنني|بانني/i);
-  const introPart =
-    bodyStart > 0 ? normalized.slice(0, bodyStart).trim() : normalized;
-  const rest = bodyStart > 0 ? normalized.slice(bodyStart).trim() : "";
+
+  if (bodyStart < 0) {
+    return { intro: normalized, introIdLine: "", mainBody: "", closing: "" };
+  }
+
+  const introPart = bodyStart > 0 ? normalized.slice(0, bodyStart).trim() : "";
+  const rest = normalized.slice(bodyStart).trim();
 
   let intro = introPart;
   let introIdLine = "";
-  const idMarker = introPart.match(/(أحمل بطاق[eh] رقم قوم[ىy]:?\s*[\d⟦\w+\s]+)/i);
-  if (idMarker) {
-    intro = introPart.slice(0, idMarker.index).trim();
-    introIdLine = idMarker[1] ?? "";
+  if (introPart) {
+    const idMarker = introPart.match(/(أحمل بطاق[eh] رقم قوم[ىy]:?\s*[\d⟦\w+\s]+)/i);
+    if (idMarker) {
+      intro = introPart.slice(0, idMarker.index).trim();
+      introIdLine = idMarker[1] ?? "";
+    }
   }
 
   const closingMarker = "هذا اقرار منى بذلك";
@@ -276,9 +282,7 @@ function splitGreenDeclaration(text: string) {
     mainBody = rest.slice(0, closeIdx).trim();
     closing = rest.slice(closeIdx).trim();
   }
-  if (!rest && bodyStart <= 0) {
-    return { intro: normalized, introIdLine: "", mainBody: "", closing: "" };
-  }
+
   return { intro, introIdLine, mainBody, closing };
 }
 

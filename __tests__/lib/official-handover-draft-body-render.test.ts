@@ -95,4 +95,29 @@ describe("official handover PDF uses edited draft body", () => {
     expect(html).not.toMatch(/Owner One Owner One/);
     expect(countGreenDualOwnerDeclarationIntros(html)).toBe(2);
   });
+
+  it("preserves dual declaration main body when preamble was stripped to بأننى", () => {
+    const fields: HandoverFieldValues = {
+      ...baseFields,
+      clientName: "Owner One",
+      clientName2: "Owner Two",
+      nationalId2: "26309100200716",
+    };
+    const canonical = buildOfficialHandoverDraftBody({
+      templateKey: "green-avenue-dual-no-insurance",
+      fields,
+    });
+    const decl = canonical.split(/\n\n+/).find((c) => c.startsWith("إقرار")) ?? "";
+    const bodyOnly = decl.replace(/^إقرار\s*/u, "").trim();
+    const edited = bodyOnly.replace(/مسئ[^\s]+ كاملة/u, (m) => `${m} E2E_REPLACED`);
+    const draftBody = canonical.replace(bodyOnly, edited);
+    const html = buildOfficialHandoverHtml({
+      templateKey: "green-avenue-dual-no-insurance",
+      fields,
+      watermarkDraft: true,
+      draftBody,
+    });
+    expect(html).toContain("E2E_REPLACED");
+    expect(countGreenDualOwnerDeclarationIntros(html)).toBe(2);
+  });
 });
