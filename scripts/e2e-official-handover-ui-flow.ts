@@ -417,7 +417,10 @@ function assertPdfContainsMarker(pdfPath: string, marker: string, label: string)
 async function reopenSavedTextDraft(page: Page, locale: "en" | "ar") {
   await page
     .getByRole("heading", {
-      name: locale === "ar" ? /مسودات/i : /Saved text drafts/i,
+      name:
+        locale === "ar" ?
+          /^مسودات نص محفوظة$/
+        : /^Saved text drafts$/i,
     })
     .waitFor({ timeout: 30_000 });
 
