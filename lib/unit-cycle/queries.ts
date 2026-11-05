@@ -21,6 +21,9 @@ import {
 } from "@/lib/unit-cycle/overdue-filter-url";
 import { resolveOverdueOwnerAssigneeName } from "@/lib/unit-cycle/overdue-assignee";
 import {
+  isDepartmentOverdueHomeRole,
+} from "@/lib/unit-cycle/department-overdue";
+import {
   resolveUnitCycleAssigneeUserId,
   unitCycleStageClaimableByUser,
   unitCycleStageVisibleToUser,
@@ -384,6 +387,64 @@ export async function getPersonalOverdueStages(input: {
     }) &&
     (row.assigneeUserId == null || row.assigneeUserId === input.userId)
   );
+}
+
+export function splitPersonalAndPoolOverdueRows(
+  rows: OverdueStageRow[],
+  userId: string
+): { personal: OverdueStageRow[]; pool: OverdueStageRow[] } {
+  return {
+    personal: rows.filter((row) => row.assigneeUserId === userId),
+    pool: rows.filter((row) => row.assigneeUserId == null),
+  };
+}
+
+function enrichOverdueRowForUser(
+  row: OverdueStageRow,
+  input: { userId: string; role: Role }
+): OverdueStageRow {
+  return {
+    ...row,
+    claimable: unitCycleStageClaimableByUser({
+      userRole: input.role,
+      userId: input.userId,
+      stageKey: row.stageKey as never,
+      stageOwnerRole: row.ownerRole,
+      assignedUserId: row.assignedUserId,
+      unitAgentId: row.unitAgentId,
+    }),
+  };
+}
+
+export async function getDepartmentStaffOverdueStages(input: {
+  prisma: UnitCycleDb;
+  userId: string;
+  role: Role;
+  limit?: number;
+}): Promise<OverdueStageRow[]> {
+  if (!isDepartmentOverdueHomeRole(input.role)) {
+    return [];
+  }
+
+  const all = await loadAllOverdueStageRows(input.prisma, input.limit ?? 200);
+  return all
+    .filter((row) => {
+      if (row.ownerRole !== input.role) return false;
+      if (row.assigneeUserId != null && row.assigneeUserId !== input.userId) {
+        return false;
+      }
+      return unitCycleStageVisibleToUser({
+        mode: "personal",
+        userRole: input.role,
+        userId: input.userId,
+        stageKey: row.stageKey as never,
+        stageOwnerRole: row.ownerRole,
+        assignedUserId: row.assignedUserId,
+        unitAgentId: row.unitAgentId,
+        active: true,
+      });
+    })
+    .map((row) => enrichOverdueRowForUser(row, input));
 }
 
 async function loadAllOverdueStageRows(

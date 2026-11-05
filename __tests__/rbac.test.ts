@@ -428,8 +428,10 @@ describe("RBAC Navigation Items", () => {
 
     it("allows department home and requests inbox", () => {
       expect(canAccessRoute("LEGAL", "/legal")).toBe(true);
+      expect(canAccessRoute("LEGAL", "/legal/overdue-tasks")).toBe(true);
       expect(canAccessRoute("LEGAL", "/requests")).toBe(true);
       expect(canAccessRoute("FINANCE", "/finance")).toBe(true);
+      expect(canAccessRoute("FINANCE", "/finance/overdue-tasks")).toBe(true);
       expect(canAccessRoute("FINANCE", "/requests/abc")).toBe(true);
     });
   });

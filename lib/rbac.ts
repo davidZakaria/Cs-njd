@@ -111,8 +111,8 @@ const roleRoutes: Record<Role, string[]> = {
   ],
   ENGINEER: ["/engineering"],
   OPERATIONS: ["/operations", "/operations/requests", "/print"],
-  LEGAL: ["/legal", ...departmentStaffRoutes],
-  FINANCE: ["/finance", ...departmentStaffRoutes],
+  LEGAL: ["/legal", "/legal/overdue-tasks", ...departmentStaffRoutes],
+  FINANCE: ["/finance", "/finance/overdue-tasks", ...departmentStaffRoutes],
 };
 
 export function getHomeRoute(role: Role): string {

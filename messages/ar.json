@@ -2119,7 +2119,22 @@
     "financeSubtitle": "موافقات مالية معلّقة ومهام مرحلة الحسابات.",
     "awaitingTitle": "بانتظار موافقتك",
     "awaitingEmpty": "لا طلبات بانتظارك حالياً.",
-    "viewAllRequests": "فتح صندوق الطلبات"
+    "viewAllRequests": "فتح صندوق الطلبات",
+    "overdue": {
+      "title": "متأخر",
+      "empty": "لا مهام دورة متأخرة لإدارتك.",
+      "viewAll": "عرض كل المتأخر",
+      "personalHeading": "مهامك المتأخرة",
+      "personalEmpty": "لا شيء مُسنَد إليك متأخراً.",
+      "poolHeading": "مجمع غير مُسنَد ({count})",
+      "poolEmpty": "لا مهام متأخرة غير مُسنَدة في إدارتك.",
+      "poolMore": "{count} أخرى في المجمع",
+      "daysOverdue": "متأخر {days} يوم",
+      "openUnit": "فتح الوحدة",
+      "pageTitle": "مهام دورة الوحدة المتأخرة",
+      "pageSubtitle": "مراحلك المتأخرة المُسنَدة والمهام غير المُسنَدة في مجمع إدارتك.",
+      "backToHome": "العودة للقائمة"
+    }
   },
   "operationsArchiveFileRequests": {
     "pageTitle": "طلبات ملفات الأرشيف",

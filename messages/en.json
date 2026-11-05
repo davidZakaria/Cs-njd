@@ -2121,7 +2121,22 @@
     "financeSubtitle": "Pending finance approvals and finance cycle tasks.",
     "awaitingTitle": "Awaiting your approval",
     "awaitingEmpty": "No requests waiting on you right now.",
-    "viewAllRequests": "Open requests inbox"
+    "viewAllRequests": "Open requests inbox",
+    "overdue": {
+      "title": "Overdue",
+      "empty": "No overdue unit cycle tasks for your department.",
+      "viewAll": "View all overdue",
+      "personalHeading": "Your overdue tasks",
+      "personalEmpty": "Nothing assigned to you is overdue.",
+      "poolHeading": "Unclaimed pool ({count})",
+      "poolEmpty": "No unclaimed overdue tasks in your department.",
+      "poolMore": "{count} more in pool",
+      "daysOverdue": "{days} day(s) overdue",
+      "openUnit": "Open unit",
+      "pageTitle": "Overdue unit cycle tasks",
+      "pageSubtitle": "Your assigned overdue stages and unclaimed tasks in your department pool.",
+      "backToHome": "Back to queue"
+    }
   },
   "operationsArchiveFileRequests": {
     "pageTitle": "Archive file requests",

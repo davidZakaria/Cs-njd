@@ -1,7 +1,8 @@
-import type { UnitCycleStageKey } from "@prisma/client";
+import type { Role, UnitCycleStageKey } from "@prisma/client";
 
 import { projectNameToSlug } from "@/lib/cases/cases-filter-url";
 import { buildOverdueTasksPageUrl } from "@/lib/unit-cycle/overdue-filter-url";
+import { departmentOverdueHomePath } from "@/lib/unit-cycle/department-overdue";
 import {
   groupOverdueStagesForDigest,
   groupOverdueStagesForOwnerDigest,
@@ -21,6 +22,17 @@ function digestDayKey(now: Date): string {
 }
 
 export { groupOverdueStagesForDigest, groupOverdueStagesForOwnerDigest } from "@/lib/unit-cycle/overdue-digest";
+
+function overdueInboxLinkForRole(role: Role): string {
+  const basePath = departmentOverdueHomePath(role);
+  if (basePath) {
+    return buildOverdueTasksPageUrl({ department: role }, { basePath });
+  }
+  if (role === "OPERATIONS") {
+    return "/operations";
+  }
+  return buildOverdueTasksPageUrl({});
+}
 
 export async function runUnitCycleEscalationJob(
   prisma: UnitCycleDb
@@ -63,10 +75,11 @@ export async function runUnitCycleEscalationJob(
 
   for (const ownerGroup of groupOverdueStagesForOwnerDigest(overdue)) {
     const digest = formatOverdueDigestMessage(ownerGroup.rows);
-    const sample = ownerGroup.rows[0]!;
-    const link = buildOverdueTasksPageUrl({
-      project: projectNameToSlug(sample.projectName),
+    const owner = await prisma.user.findFirst({
+      where: { id: ownerGroup.userId, deletedAt: null },
+      select: { role: true },
     });
+    const link = overdueInboxLinkForRole(owner?.role ?? "MANAGEMENT");
     const sent = await notifyUserInboxTab({
       userId: ownerGroup.userId,
       inboxTab: "OVERDUE_TASKS",
@@ -82,7 +95,7 @@ export async function runUnitCycleEscalationJob(
 
   for (const poolGroup of groupOverdueStagesForDepartmentPoolDigest(overdue)) {
     const digest = formatOverdueDigestMessage(poolGroup.rows);
-    const link = buildOverdueTasksPageUrl({});
+    const link = overdueInboxLinkForRole(poolGroup.ownerRole);
     const created = await notifyRolesInboxTab({
       roles: [poolGroup.ownerRole],
       inboxTab: "OVERDUE_TASKS",

@@ -77,6 +77,8 @@ export async function claimUnitCycleStageAction(input: {
   revalidatePath("/legal");
   revalidatePath("/finance");
   revalidatePath("/executive");
+  revalidatePath("/legal/overdue-tasks");
+  revalidatePath("/finance/overdue-tasks");
   revalidatePath("/executive/overdue-tasks");
   return actionOk();
 }

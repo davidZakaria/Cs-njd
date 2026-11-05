@@ -38,10 +38,14 @@ export function OverdueTasksWorkspace({
   rows,
   projects,
   initialFilters,
+  basePath = "/executive/overdue-tasks",
+  hideDepartmentFilter = false,
 }: {
   rows: OverdueStageRow[];
   projects: Array<{ id: string; name: string }>;
   initialFilters: OverdueTasksPageFilters;
+  basePath?: string;
+  hideDepartmentFilter?: boolean;
 }) {
   const t = useTranslations("unitCycle.overdueManagement");
   const tStages = useTranslations("unitCycle.stages");
@@ -53,12 +57,15 @@ export function OverdueTasksWorkspace({
   const syncUrl = (next: OverdueTasksPageFilters) => {
     setFilters(next);
     router.replace(
-      buildOverdueTasksPageUrl({
-        project: next.project !== "all" ? next.project : undefined,
-        stage: next.stage !== "all" ? next.stage : undefined,
-        department: next.department !== "all" ? next.department : undefined,
-        minDays: next.minDays !== "all" ? next.minDays : undefined,
-      })
+      buildOverdueTasksPageUrl(
+        {
+          project: next.project !== "all" ? next.project : undefined,
+          stage: next.stage !== "all" ? next.stage : undefined,
+          department: next.department !== "all" ? next.department : undefined,
+          minDays: next.minDays !== "all" ? next.minDays : undefined,
+        },
+        { basePath }
+      )
     );
   };
 
@@ -197,6 +204,7 @@ export function OverdueTasksWorkspace({
           </SelectContent>
         </Select>
 
+        {!hideDepartmentFilter ? (
         <Select
           value={filters.department}
           items={selectOptionItems(departmentOptions)}
@@ -222,6 +230,7 @@ export function OverdueTasksWorkspace({
             ))}
           </SelectContent>
         </Select>
+        ) : null}
 
         <Select
           value={filters.minDays}

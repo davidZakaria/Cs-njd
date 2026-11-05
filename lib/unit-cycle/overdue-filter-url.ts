@@ -61,8 +61,10 @@ export function parseOverdueTasksPageFilters(
 }
 
 export function buildOverdueTasksPageUrl(
-  params: OverdueTasksFilterParams = {}
+  params: OverdueTasksFilterParams = {},
+  options?: { basePath?: string }
 ): string {
+  const basePath = options?.basePath ?? "/executive/overdue-tasks";
   const search = new URLSearchParams();
   if (params.project && params.project !== "all") {
     search.set("project", params.project);
@@ -71,7 +73,7 @@ export function buildOverdueTasksPageUrl(
   if (params.department) search.set("department", params.department);
   if (params.minDays) search.set("minDays", params.minDays);
   const query = search.toString();
-  return query ? `/executive/overdue-tasks?${query}` : "/executive/overdue-tasks";
+  return query ? `${basePath}?${query}` : basePath;
 }
 
 export function resolveOverdueProjectFilterParam(
