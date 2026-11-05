@@ -301,7 +301,7 @@ async function assertDbLatestVersionContains(draftId: string, marker: string) {
 
 async function resetLegacyDraftForE2e(manifest: Manifest) {
   if (!manifest.legacyDraft) return;
-  const { draftId, userEditMarker } = manifest.legacyDraft;
+  const { unitId, userEditMarker } = manifest.legacyDraft;
   const userMarker = `${userEditMarker}: legal note added before official master migration.`;
   const body = `Unit Handover Record\n\nProject: GREEN AVENUE\n\n${userMarker}`;
   const enTemplate = await prisma.officialDocumentTemplate.findFirst({
@@ -319,22 +319,45 @@ async function resetLegacyDraftForE2e(manifest: Manifest) {
   });
   if (!admin) throw new Error("Missing SUPER_ADMIN for legacy reset");
 
-  await prisma.officialDocumentTextDraftVersion.deleteMany({ where: { draftId } });
-  await prisma.officialDocumentTextDraft.update({
-    where: { id: draftId },
-    data: {
-      templateId: enTemplate.id,
-      templateVersion: enTemplate.version,
-      templateLocale: "en",
-      title: enTemplate.title,
-      currentBody: body,
-      handoverTemplateKey: null,
-      updatedById: admin.id,
-    },
+  let draft = await prisma.officialDocumentTextDraft.findFirst({
+    where: { unitId, documentType: "HANDOVER_RECORD" },
+    orderBy: { updatedAt: "desc" },
   });
+  if (!draft) {
+    draft = await prisma.officialDocumentTextDraft.create({
+      data: {
+        unitId,
+        documentType: "HANDOVER_RECORD",
+        templateId: enTemplate.id,
+        templateVersion: enTemplate.version,
+        templateLocale: "en",
+        title: enTemplate.title,
+        currentBody: body,
+        handoverTemplateKey: null,
+        createdById: admin.id,
+        updatedById: admin.id,
+      },
+    });
+  } else {
+    await prisma.officialDocumentTextDraft.update({
+      where: { id: draft.id },
+      data: {
+        templateId: enTemplate.id,
+        templateVersion: enTemplate.version,
+        templateLocale: "en",
+        title: enTemplate.title,
+        currentBody: body,
+        handoverTemplateKey: null,
+        updatedById: admin.id,
+      },
+    });
+  }
+
+  manifest.legacyDraft.draftId = draft.id;
+  await prisma.officialDocumentTextDraftVersion.deleteMany({ where: { draftId: draft.id } });
   await prisma.officialDocumentTextDraftVersion.create({
     data: {
-      draftId,
+      draftId: draft.id,
       body,
       editedById: admin.id,
     },
