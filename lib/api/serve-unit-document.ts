@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { canAccessCsPortfolioDocuments } from "@/lib/auth/cs-portfolio-document-access";
+import { canViewUnitPortfolioDocuments } from "@/lib/auth/cs-portfolio-document-access";
 import {
   canDownloadSignedProtocol,
   resolveSignedProtocolAccess,
@@ -35,7 +35,7 @@ export async function serveUnitDocument(
   }
 
   if (access === "csPortfolio") {
-    if (!canAccessCsPortfolioDocuments(session.user.role)) {
+    if (!canViewUnitPortfolioDocuments(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   } else {

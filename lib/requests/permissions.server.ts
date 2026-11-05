@@ -19,10 +19,14 @@ import {
   canEditDraftRequest,
   canCancelRequest,
   canUploadRequestAttachment,
+  canManageOpenRequestContent,
+  canManageRequestAttachment,
+  isClosedUnitRequestStatus,
   requestMatchesRoleInbox,
   listApproverKindsForRole,
   describeApprovalPath,
   initialApproverKindForType,
+  departmentStaffMayViewApprovedUnitRequest,
 } from "@/lib/requests/permissions-core";
 import type { OrgStaffAvailability } from "@/lib/requests/approver-roles";
 
@@ -34,6 +38,9 @@ export {
   canEditDraftRequest,
   canCancelRequest,
   canUploadRequestAttachment,
+  canManageOpenRequestContent,
+  canManageRequestAttachment,
+  isClosedUnitRequestStatus,
   requestMatchesRoleInbox,
   listApproverKindsForRole,
   describeApprovalPath,
@@ -69,12 +76,33 @@ export function canViewUnitRequest(input: {
     ) {
       return true;
     }
+    if (request.type === "ARCHIVE_FILE_REQUEST") {
+      if (
+        request.status === "PENDING" &&
+        request.currentApproverKind === "OPERATIONS"
+      ) {
+        return true;
+      }
+      if (
+        request.status === "APPROVED" ||
+        request.status === "REJECTED" ||
+        request.status === "CANCELLED"
+      ) {
+        return true;
+      }
+    }
     return false;
   }
 
   if (isDepartmentStaffRole(role)) {
     if (request.status === "PENDING" && request.currentApproverKind) {
       return userCanApproveAtCurrentStep({ role, request, staff });
+    }
+    if (
+      request.status === "APPROVED" &&
+      departmentStaffMayViewApprovedUnitRequest(request.type)
+    ) {
+      return true;
     }
     return false;
   }

@@ -11,7 +11,11 @@ const nextConfig: NextConfig = {
     "tesseract.js",
     "tesseract.js-core",
     "@aws-sdk/client-s3",
+    "harfbuzzjs",
   ],
+  outputFileTracingIncludes: {
+    "/**/*": ["./node_modules/harfbuzzjs/**/*.wasm"],
+  },
   async headers() {
     return [
       {

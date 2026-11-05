@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Link } from "@/i18n/navigation";
@@ -12,6 +12,9 @@ import {
   submitUnitRequestAction,
   addUnitRequestCommentAction,
   uploadUnitRequestAttachmentAction,
+  updateUnitRequestDescriptionAction,
+  removeUnitRequestAttachmentAction,
+  replaceUnitRequestAttachmentAction,
 } from "@/lib/actions/unit-requests";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,7 +23,37 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { UnitRequestStatus, UnitRequestType } from "@prisma/client";
 import { ArchiveCheckProgressPanel } from "@/components/archive-check/archive-check-progress-panel";
-import type { ArchiveCheckItemStatus, ArchiveCheckGapTaskStatus } from "@prisma/client";
+import { fulfillmentLinkForArchiveFileItem } from "@/lib/archive-file-request/links";
+import type {
+  ArchiveCheckItemStatus,
+  ArchiveCheckGapTaskStatus,
+  ArchiveFileItemStatus,
+  ArchiveFileKind,
+} from "@prisma/client";
+
+type AuditEventRow = {
+  id: string;
+  action: string;
+  createdAt: string;
+  userName: string | null;
+  details: Record<string, unknown> | null;
+};
+
+function formatAuditTimestamp(iso: string, locale: string): string {
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+function auditDetailString(value: unknown): string {
+  if (value == null || value === "") return "—";
+  return String(value);
+}
 
 export function UnitRequestDetailPanel({
   request,
@@ -30,6 +63,8 @@ export function UnitRequestDetailPanel({
   canCancel,
   canComment,
   canUpload,
+  canManageContent,
+  locale,
   archiveProgressUnits,
   bulkProjectName,
   isBulkArchiveCheckParentRequest,
@@ -48,7 +83,15 @@ export function UnitRequestDetailPanel({
     projectName: string;
     comments: Array<{ id: string; body: string; authorName: string; createdAt: string }>;
     attachments: Array<{ id: string; originalName: string; createdAt: string }>;
-    auditEvents: Array<{ id: string; action: string; createdAt: string }>;
+    auditEvents: AuditEventRow[];
+    archiveFileItems?: Array<{
+      id: string;
+      fileKind: ArchiveFileKind;
+      status: ArchiveFileItemStatus;
+      notFoundNote: string | null;
+      resultAttachmentId: string | null;
+    }>;
+    archiveFilePriority?: "NORMAL" | "URGENT" | null;
   };
   canApprove: boolean;
   canReject: boolean;
@@ -56,6 +99,8 @@ export function UnitRequestDetailPanel({
   canCancel: boolean;
   canComment: boolean;
   canUpload: boolean;
+  canManageContent: boolean;
+  locale: string;
   archiveProgressUnits?: Array<{
     unitCode: string;
     projectName: string;
@@ -74,6 +119,10 @@ export function UnitRequestDetailPanel({
   const [pending, startTransition] = useTransition();
   const [note, setNote] = useState("");
   const [comment, setComment] = useState("");
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState(
+    request.description ?? ""
+  );
 
   const run = (fn: () => Promise<{ success: boolean; error?: string }>) => {
     startTransition(async () => {
@@ -82,6 +131,48 @@ export function UnitRequestDetailPanel({
       else toast.error(result.error ?? t("failed"));
     });
   };
+
+  const auditLines = useMemo(() => {
+    return request.auditEvents.map((event) => {
+      const when = formatAuditTimestamp(event.createdAt, locale);
+      const who = event.userName ?? t("auditUnknownUser");
+      const details = event.details ?? {};
+      let body = t(`auditActions.${event.action}`, {
+        defaultValue: event.action,
+        user: who,
+        when,
+        name: auditDetailString(details.originalName ?? details.previousName),
+        previousName: auditDetailString(details.previousName),
+        newName: auditDetailString(details.newName ?? details.newOriginalName),
+      });
+
+      if (event.action === "description_updated") {
+        body = t("auditActions.description_updated", { user: who, when });
+      }
+      if (event.action === "attachment_removed") {
+        body = t("auditActions.attachment_removed", {
+          user: who,
+          when,
+          name: auditDetailString(details.originalName),
+        });
+      }
+      if (event.action === "attachment_replaced") {
+        body = t("auditActions.attachment_replaced", {
+          user: who,
+          when,
+          previousName: auditDetailString(details.previousName),
+          newName: auditDetailString(details.newName),
+        });
+      }
+
+      return { id: event.id, header: body, event, details };
+    });
+  }, [locale, request.auditEvents, t]);
+
+  const showDescriptionCard =
+    request.description != null ||
+    canManageContent ||
+    request.type !== "ARCHIVE_CHECK";
 
   return (
     <div className="space-y-6">
@@ -109,13 +200,71 @@ export function UnitRequestDetailPanel({
         </div>
       </div>
 
-      {request.description ? (
+      {showDescriptionCard ? (
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-base">{t("description")}</CardTitle>
+            {canManageContent && !editingDescription ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={pending}
+                onClick={() => {
+                  setDescriptionDraft(request.description ?? "");
+                  setEditingDescription(true);
+                }}
+              >
+                {t("editDescription")}
+              </Button>
+            ) : null}
           </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap text-sm">{request.description}</p>
+          <CardContent className="space-y-3">
+            {editingDescription ? (
+              <>
+                <Textarea
+                  value={descriptionDraft}
+                  onChange={(e) => setDescriptionDraft(e.target.value)}
+                  rows={5}
+                  maxLength={4000}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={pending}
+                    onClick={() =>
+                      run(async () => {
+                        const result = await updateUnitRequestDescriptionAction({
+                          requestId: request.id,
+                          description: descriptionDraft,
+                        });
+                        if (result.success) setEditingDescription(false);
+                        return result;
+                      })
+                    }
+                  >
+                    {t("saveDescription")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={pending}
+                    onClick={() => {
+                      setDescriptionDraft(request.description ?? "");
+                      setEditingDescription(false);
+                    }}
+                  >
+                    {t("cancelEdit")}
+                  </Button>
+                </div>
+              </>
+            ) : request.description ? (
+              <p className="whitespace-pre-wrap text-sm">{request.description}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t("noDescription")}</p>
+            )}
           </CardContent>
         </Card>
       ) : null}
@@ -136,6 +285,56 @@ export function UnitRequestDetailPanel({
           bulkProjectName={bulkProjectName}
           units={archiveProgressUnits}
         />
+      ) : null}
+
+      {request.type === "ARCHIVE_FILE_REQUEST" && request.archiveFileItems?.length ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">{t("archiveFileStatusTitle")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3 text-sm">
+              {request.archiveFileItems.map((item) => {
+                const fileLabel = tEnums(`archiveFileKind.${item.fileKind}`);
+                const statusLabel = tEnums(`archiveFileItemStatus.${item.status}`);
+                const fileLink =
+                  item.status === "FULFILLED_UPLOAD"
+                    ? fulfillmentLinkForArchiveFileItem({
+                        unitId: request.unitId,
+                        requestId: request.id,
+                        fileKind: item.fileKind,
+                        attachmentId: item.resultAttachmentId,
+                      })
+                    : null;
+                return (
+                  <li
+                    key={item.id}
+                    className="flex flex-wrap items-start justify-between gap-2 border-b border-border/40 pb-3 last:border-0 last:pb-0"
+                  >
+                    <div>
+                      <p className="font-medium">{fileLabel}</p>
+                      <p className="text-muted-foreground">{statusLabel}</p>
+                      {item.status === "NOT_FOUND" && item.notFoundNote ? (
+                        <p className="mt-1 text-muted-foreground">{item.notFoundNote}</p>
+                      ) : null}
+                    </div>
+                    {fileLink ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        render={
+                          <a href={fileLink} target="_blank" rel="noopener noreferrer" />
+                        }
+                      >
+                        {t("archiveFileDownload")}
+                      </Button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
       ) : null}
 
       <div className="flex flex-wrap gap-2">
@@ -200,15 +399,59 @@ export function UnitRequestDetailPanel({
           {request.attachments.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("noAttachments")}</p>
           ) : (
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-3 text-sm">
               {request.attachments.map((file) => (
-                <li key={file.id}>
+                <li key={file.id} className="flex flex-wrap items-center gap-2">
                   <a
                     className="text-primary underline"
                     href={`/api/unit-requests/${request.id}/attachments/${file.id}`}
                   >
                     {file.originalName}
                   </a>
+                  {canManageContent ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={pending}
+                        onClick={() =>
+                          run(() =>
+                            removeUnitRequestAttachmentAction({
+                              requestId: request.id,
+                              attachmentId: file.id,
+                            })
+                          )
+                        }
+                      >
+                        {t("removeAttachment")}
+                      </Button>
+                      <form
+                        className="inline-flex flex-wrap items-center gap-2"
+                        action={async (fd) => {
+                          fd.set("requestId", request.id);
+                          fd.set("attachmentId", file.id);
+                          startTransition(async () => {
+                            const result =
+                              await replaceUnitRequestAttachmentAction(fd);
+                            if (result.success) toast.success(t("replaced"));
+                            else toast.error(result.error ?? t("failed"));
+                          });
+                        }}
+                      >
+                        <Input
+                          type="file"
+                          name="file"
+                          accept=".pdf,image/*"
+                          required
+                          className="max-w-xs"
+                        />
+                        <Button type="submit" size="sm" variant="secondary" disabled={pending}>
+                          {t("replaceAttachment")}
+                        </Button>
+                      </form>
+                    </>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -278,10 +521,37 @@ export function UnitRequestDetailPanel({
           <CardTitle className="text-base">{t("audit")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-1 text-sm text-muted-foreground">
-            {request.auditEvents.map((event) => (
-              <li key={event.id}>
-                {t(`auditActions.${event.action}`, { defaultValue: event.action })}
+          <ul className="space-y-3 text-sm text-muted-foreground">
+            {auditLines.map(({ id, header, event, details }) => (
+              <li key={id} className="space-y-1">
+                <p>{header}</p>
+                {event.action === "description_updated" ? (
+                  <blockquote className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-foreground">
+                    <span className="font-medium">{t("previousDescription")}</span>
+                    <p className="mt-1 whitespace-pre-wrap">
+                      {auditDetailString(details.previousDescription)}
+                    </p>
+                  </blockquote>
+                ) : null}
+                {event.action === "attachment_removed" ||
+                event.action === "attachment_replaced" ? (
+                  <p className="text-xs">
+                    <a
+                      className="text-primary underline"
+                      href={`/api/unit-requests/${request.id}/attachments/${auditDetailString(
+                        event.action === "attachment_replaced"
+                          ? details.previousAttachmentId
+                          : details.attachmentId
+                      )}`}
+                    >
+                      {t("viewArchivedAttachment", {
+                        name: auditDetailString(
+                          details.previousName ?? details.originalName
+                        ),
+                      })}
+                    </a>
+                  </p>
+                ) : null}
               </li>
             ))}
           </ul>

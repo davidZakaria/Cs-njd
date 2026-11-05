@@ -9,6 +9,7 @@ import {
   canAddRequestComment,
   canCancelRequest,
   canEditDraftRequest,
+  canManageOpenRequestContent,
   canUploadRequestAttachment,
   userCanApproveAtCurrentStep,
   userCanRejectAtCurrentStep,
@@ -29,7 +30,7 @@ export default async function RequestDetailPage({
     redirect("/login");
   }
 
-  const { id } = await params;
+  const { id, locale } = await params;
   const request = await getUnitRequestDetailAction(id);
   if (!request) notFound();
 
@@ -72,6 +73,14 @@ export default async function RequestDetailPage({
   });
 
   const canUpload = canUploadRequestAttachment({
+    role: session.user.role,
+    userId: session.user.id,
+    requestedById: request.requestedById,
+    status: request.status,
+    type: request.type,
+  });
+
+  const canManageContent = canManageOpenRequestContent({
     role: session.user.role,
     userId: session.user.id,
     requestedById: request.requestedById,
@@ -175,7 +184,20 @@ export default async function RequestDetailPage({
             id: e.id,
             action: e.action,
             createdAt: e.createdAt.toISOString(),
+            userName: e.user?.name ?? null,
+            details:
+              e.details != null && typeof e.details === "object"
+                ? (e.details as Record<string, unknown>)
+                : null,
           })),
+          archiveFileItems: request.archiveFileItems.map((item) => ({
+            id: item.id,
+            fileKind: item.fileKind,
+            status: item.status,
+            notFoundNote: item.notFoundNote,
+            resultAttachmentId: item.resultAttachmentId,
+          })),
+          archiveFilePriority: request.archiveFilePriority,
         }}
         canApprove={canApprove}
         canReject={canReject}
@@ -183,6 +205,8 @@ export default async function RequestDetailPage({
         canCancel={canCancel}
         canComment={canComment}
         canUpload={canUpload}
+        canManageContent={canManageContent}
+        locale={locale}
         archiveProgressUnits={archiveProgressUnits}
         bulkProjectName={bulkProjectName}
         isBulkArchiveCheckParentRequest={isBulkParent}

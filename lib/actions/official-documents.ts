@@ -8,66 +8,24 @@ import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
 import { auth } from "@/lib/auth";
 import { recordOfficialDocumentAudit } from "@/lib/official-documents/audit";
 import {
-  buildOfficialDocumentMergeFields,
-  type UnitMergeInput,
-} from "@/lib/official-documents/merge-fields";
+  resolveOfficialDocumentGenerationContext,
+} from "@/lib/official-documents/draft-context";
 import {
+  canEditOfficialDocumentDraftText,
   canEditOfficialDocumentTemplates,
   canGenerateOfficialDocuments,
   canViewOfficialDocuments,
-  isOfficialDocumentsFeatureEnabledForProject,
 } from "@/lib/official-documents/permissions";
 import { renderOfficialDocumentPdf } from "@/lib/official-documents/render-pdf";
-import {
-  documentTypeMatchesRequest,
-  requiredRequestTypeForDocument,
-} from "@/lib/official-documents/request-binding";
 import {
   buildGeneratedDocumentStoredFilename,
   writeGeneratedDocumentFile,
 } from "@/lib/official-documents/storage";
 import { prisma } from "@/lib/prisma";
-import { activeUnitWhere } from "@/lib/prisma/soft-delete";
-
-const UNIT_INCLUDE = {
-  project: true,
-  client: {
-    include: { phones: true, addresses: true },
-  },
-  unitClients: {
-    orderBy: { position: "asc" as const },
-    include: {
-      client: { include: { phones: true, addresses: true } },
-    },
-  },
-  contractWorkflow: true,
-  finishing: true,
-} as const;
-
-function parseDocumentType(value: unknown): OfficialDocumentType | null {
-  if (typeof value !== "string") return null;
-  const types: OfficialDocumentType[] = [
-    "GRACE_PERIOD_ANNEX",
-    "CONTRACT_AMENDMENT",
-    "HANDOVER_RECORD",
-    "FINISHING_CONTRACT_SUMMARY",
-    "UNIT_SWAP_ADDENDUM",
-  ];
-  return types.includes(value as OfficialDocumentType)
-    ? (value as OfficialDocumentType)
-    : null;
-}
 
 function parseLocale(value: unknown): "en" | "ar" | null {
   if (value === "en" || value === "ar") return value;
   return null;
-}
-
-async function loadUnitForMerge(unitId: string) {
-  return prisma.unit.findFirst({
-    where: activeUnitWhere({ id: unitId }),
-    include: UNIT_INCLUDE,
-  });
 }
 
 export async function listActiveOfficialDocumentTemplatesAction() {
@@ -176,11 +134,199 @@ export async function listUnitGeneratedDocumentsAction(unitId: string) {
   });
 }
 
-export async function generateOfficialDocumentAction(input: {
+export async function listUnitOfficialDocumentTextDraftsAction(unitId: string) {
+  const session = await auth();
+  if (!session?.user) return [];
+  if (!canViewOfficialDocuments(session.user.role)) return [];
+
+  return prisma.officialDocumentTextDraft.findMany({
+    where: { unitId },
+    orderBy: { updatedAt: "desc" },
+    include: {
+      createdBy: { select: { id: true, name: true } },
+      updatedBy: { select: { id: true, name: true } },
+      _count: { select: { versions: true } },
+    },
+  });
+}
+
+export async function getOfficialDocumentTextDraftAction(draftId: string) {
+  const session = await auth();
+  if (!session?.user) return null;
+  if (!canViewOfficialDocuments(session.user.role)) return null;
+
+  return prisma.officialDocumentTextDraft.findUnique({
+    where: { id: draftId },
+    include: {
+      versions: {
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        include: { editedBy: { select: { id: true, name: true } } },
+      },
+      createdBy: { select: { id: true, name: true } },
+      updatedBy: { select: { id: true, name: true } },
+    },
+  });
+}
+
+export async function prepareOfficialDocumentTextDraftAction(input: {
   unitId: string;
   documentType: OfficialDocumentType;
   locale: string;
   unitRequestId?: string | null;
+  draftId?: string | null;
+}): Promise<ActionResult & { draftId?: string; body?: string; title?: string; locale?: string }> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+  if (!canEditOfficialDocumentDraftText(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
+
+  if (input.draftId) {
+    const existing = await getOfficialDocumentTextDraftAction(input.draftId);
+    if (!existing || existing.unitId !== input.unitId) {
+      return actionFail("Draft not found");
+    }
+    return {
+      success: true,
+      draftId: existing.id,
+      body: existing.currentBody,
+      title: existing.title,
+      locale: existing.templateLocale,
+    };
+  }
+
+  const locale = parseLocale(input.locale);
+  if (!locale) return actionFail("Invalid locale");
+
+  const ctx = await resolveOfficialDocumentGenerationContext({
+    unitId: input.unitId,
+    documentType: input.documentType,
+    locale,
+    unitRequestId: input.unitRequestId,
+  });
+  if (!ctx.ok) return actionFail(ctx.error);
+
+  const existingDraft = await prisma.officialDocumentTextDraft.findFirst({
+    where: {
+      unitId: ctx.unit.id,
+      documentType: input.documentType,
+      templateLocale: locale,
+      unitRequestId: ctx.unitRequestId,
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  if (existingDraft) {
+    return {
+      success: true,
+      draftId: existingDraft.id,
+      body: existingDraft.currentBody,
+      title: existingDraft.title,
+      locale,
+    };
+  }
+
+  const created = await prisma.$transaction(async (tx) => {
+    const draft = await tx.officialDocumentTextDraft.create({
+      data: {
+        unitId: ctx.unit.id,
+        unitRequestId: ctx.unitRequestId,
+        documentType: input.documentType,
+        templateId: ctx.template.id,
+        templateVersion: ctx.template.version,
+        templateLocale: locale,
+        title: ctx.template.title,
+        currentBody: ctx.initialBody,
+        createdById: session.user!.id,
+        updatedById: session.user!.id,
+      },
+    });
+
+    await tx.officialDocumentTextDraftVersion.create({
+      data: {
+        draftId: draft.id,
+        body: ctx.initialBody,
+        editedById: session.user!.id,
+      },
+    });
+
+    return draft;
+  });
+
+  await recordOfficialDocumentAudit({
+    unitId: ctx.unit.id,
+    documentType: input.documentType,
+    templateVersion: ctx.template.version,
+    templateLocale: locale,
+    action: "TEXT_DRAFT_CREATED",
+    userId: session.user.id,
+    details: { draftId: created.id, unitRequestId: ctx.unitRequestId },
+  });
+
+  revalidatePath(`/units/${ctx.unit.id}`);
+  return {
+    success: true,
+    draftId: created.id,
+    body: created.currentBody,
+    title: created.title,
+    locale,
+  };
+}
+
+export async function saveOfficialDocumentTextDraftAction(input: {
+  draftId: string;
+  body: string;
+}): Promise<ActionResult & { versionId?: string }> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+  if (!canEditOfficialDocumentDraftText(session.user.role)) {
+    return actionFail("Unauthorized");
+  }
+
+  const draft = await prisma.officialDocumentTextDraft.findUnique({
+    where: { id: input.draftId },
+  });
+  if (!draft) return actionFail("Draft not found");
+
+  const body = input.body.trimEnd();
+  if (!body.trim()) return actionFail("Draft text is required");
+
+  const version = await prisma.$transaction(async (tx) => {
+    await tx.officialDocumentTextDraft.update({
+      where: { id: draft.id },
+      data: {
+        currentBody: body,
+        updatedById: session.user!.id,
+      },
+    });
+
+    return tx.officialDocumentTextDraftVersion.create({
+      data: {
+        draftId: draft.id,
+        body,
+        editedById: session.user!.id,
+      },
+    });
+  });
+
+  await recordOfficialDocumentAudit({
+    unitId: draft.unitId,
+    documentType: draft.documentType,
+    templateVersion: draft.templateVersion,
+    templateLocale: draft.templateLocale,
+    action: "TEXT_DRAFT_SAVED",
+    userId: session.user.id,
+    details: { draftId: draft.id, versionId: version.id },
+  });
+
+  revalidatePath(`/units/${draft.unitId}`);
+  return { success: true, versionId: version.id };
+}
+
+export async function generateOfficialDocumentAction(input: {
+  unitId: string;
+  textDraftId: string;
 }): Promise<ActionResult & { documentId?: string }> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
@@ -188,161 +334,93 @@ export async function generateOfficialDocumentAction(input: {
     return actionFail("Unauthorized");
   }
 
-  const unit = await loadUnitForMerge(input.unitId);
-  if (!unit) return actionFail("Unit not found");
-
-  if (
-    !isOfficialDocumentsFeatureEnabledForProject({
-      unitCycleEnabled: unit.project.unitCycleEnabled,
-    })
-  ) {
-    return actionFail("Official document generation is not enabled for this project");
-  }
-
-  const locale = parseLocale(input.locale);
-  if (!locale) return actionFail("Invalid locale");
-
-  const template = await prisma.officialDocumentTemplate.findFirst({
-    where: {
-      documentType: input.documentType,
-      locale,
-      isActive: true,
+  const draft = await prisma.officialDocumentTextDraft.findFirst({
+    where: { id: input.textDraftId, unitId: input.unitId },
+    include: {
+      versions: { orderBy: { createdAt: "desc" }, take: 1 },
     },
   });
-  if (!template) {
-    return actionFail("No active template for this document and language");
-  }
+  if (!draft) return actionFail("Text draft not found");
 
-  let requestDescription: string | null = null;
-  const unitRequestId: string | null = input.unitRequestId ?? null;
+  const latestVersion = draft.versions[0];
+  if (!latestVersion) return actionFail("Draft has no saved versions");
 
-  const requiredType = requiredRequestTypeForDocument(input.documentType);
-  if (requiredType) {
-    if (!unitRequestId) {
-      return actionFail("An approved request is required for this document type");
-    }
-    const request = await prisma.unitRequest.findFirst({
-      where: {
-        id: unitRequestId,
-        unitId: unit.id,
-        type: requiredType,
-        status: "APPROVED",
-      },
-    });
-    if (!request) {
-      return actionFail("Linked request must be approved before generation");
-    }
-    requestDescription = request.description;
-  } else if (unitRequestId) {
-    const request = await prisma.unitRequest.findFirst({
-      where: { id: unitRequestId, unitId: unit.id },
-    });
-    if (!request) return actionFail("Request not found for this unit");
-    if (!documentTypeMatchesRequest(input.documentType, request.type)) {
-      return actionFail("Request type does not match this document");
-    }
-    requestDescription = request.description;
-  }
-
-  const mergeUnit = mapUnitMergeInput(unit);
-  const fields = buildOfficialDocumentMergeFields(mergeUnit, locale, {
-    requestDescription,
+  const ctx = await resolveOfficialDocumentGenerationContext({
+    unitId: draft.unitId,
+    documentType: draft.documentType,
+    locale: draft.templateLocale as "en" | "ar",
+    unitRequestId: draft.unitRequestId,
   });
+  if (!ctx.ok) return actionFail(ctx.error);
 
   const pdfBytes = await renderOfficialDocumentPdf({
-    title: template.title,
-    bodyTemplate: template.body,
-    fields,
-    locale,
+    title: draft.title,
+    bodyTemplate: draft.currentBody,
+    fields: {},
+    locale: draft.templateLocale,
     watermarkDraft: true,
+    bodyIsFinal: true,
   });
 
   const storedName = buildGeneratedDocumentStoredFilename(
-    input.documentType,
-    locale
+    draft.documentType,
+    draft.templateLocale
   );
-  await writeGeneratedDocumentFile(unit.id, storedName, pdfBytes);
+  await writeGeneratedDocumentFile(ctx.unit.id, storedName, pdfBytes);
 
-  const displayName = `${template.title} — ${unit.unitCode}`;
+  const displayName = `${draft.title} — ${ctx.unit.unitCode}`;
 
   const created = await prisma.unitGeneratedDocument.create({
     data: {
-      unitId: unit.id,
-      unitRequestId,
-      documentType: input.documentType,
-      templateId: template.id,
-      templateVersion: template.version,
-      templateLocale: locale,
+      unitId: ctx.unit.id,
+      unitRequestId: draft.unitRequestId,
+      documentType: draft.documentType,
+      templateId: draft.templateId,
+      templateVersion: draft.templateVersion,
+      templateLocale: draft.templateLocale,
       storedName,
       displayName,
       sizeBytes: pdfBytes.length,
+      textDraftId: draft.id,
+      textDraftVersionId: latestVersion.id,
       generatedById: session.user.id,
     },
   });
 
   await recordOfficialDocumentAudit({
-    unitId: unit.id,
-    documentType: input.documentType,
-    templateVersion: template.version,
-    templateLocale: locale,
+    unitId: ctx.unit.id,
+    documentType: draft.documentType,
+    templateVersion: draft.templateVersion,
+    templateLocale: draft.templateLocale,
     action: "GENERATE_DRAFT",
     userId: session.user.id,
     details: {
       documentId: created.id,
-      unitRequestId,
+      textDraftId: draft.id,
+      textDraftVersionId: latestVersion.id,
+      unitRequestId: draft.unitRequestId,
       storedName,
     },
   });
 
-  revalidatePath(`/units/${unit.id}`);
+  revalidatePath(`/units/${ctx.unit.id}`);
   return { success: true, documentId: created.id };
-}
-
-function mapUnitMergeInput(
-  unit: NonNullable<Awaited<ReturnType<typeof loadUnitForMerge>>>
-): UnitMergeInput {
-  return {
-    unitCode: unit.unitCode,
-    area: unit.area,
-    gracePeriod: unit.gracePeriod,
-    contractPricePerMeter: unit.contractPricePerMeter,
-    swapOutgoingUnitCode: unit.swapOutgoingUnitCode,
-    swapOutgoingProjectName: unit.swapOutgoingProjectName,
-    swappedFromUnitCode: unit.swappedFromUnitCode,
-    swappedFromProjectName: unit.swappedFromProjectName,
-    project: unit.project,
-    client: unit.client,
-    unitClients: unit.unitClients.map((link) => ({
-      role: link.role,
-      client: link.client,
-    })),
-    contractWorkflow: unit.contractWorkflow,
-    finishing: unit.finishing,
-  };
 }
 
 export async function generateOfficialDocumentFormAction(
   _prev: ActionResult | undefined,
   formData: FormData
 ): Promise<ActionResult> {
-  const documentType = parseDocumentType(formData.get("documentType"));
+  const textDraftId = String(formData.get("textDraftId") ?? "");
   const unitId = String(formData.get("unitId") ?? "");
-  const locale = parseLocale(formData.get("locale"));
-  const unitRequestIdRaw = formData.get("unitRequestId");
-  const unitRequestId =
-    typeof unitRequestIdRaw === "string" && unitRequestIdRaw
-      ? unitRequestIdRaw
-      : null;
 
-  if (!documentType || !unitId || !locale) {
+  if (!textDraftId || !unitId) {
     return actionFail("Invalid form data");
   }
 
   const result = await generateOfficialDocumentAction({
     unitId,
-    documentType,
-    locale,
-    unitRequestId,
+    textDraftId,
   });
   return result.success
     ? actionOk()

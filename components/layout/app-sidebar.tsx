@@ -45,6 +45,7 @@ import { signOutAction } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
 import { AdminNavGroups } from "@/components/layout/admin-nav-groups";
 import { SidebarActivityNotificationsLink } from "@/components/layout/sidebar-activity-notifications-link";
+import { SidebarOperationsRequestsLink } from "@/components/layout/sidebar-operations-requests-link";
 import { GlobalAnnouncementBanner } from "@/components/layout/global-announcement-banner";
 import { GlobalSpotlight } from "@/components/layout/global-spotlight";
 import { JCommunitiesLogo } from "@/components/brand/j-communities-logo";
@@ -53,6 +54,7 @@ const iconMap = {
   dashboard: LayoutDashboard,
   executive: BarChart3,
   operations: ListChecks,
+  operationsRequests: FileText,
   requests: FileText,
   cases: ClipboardList,
   units: Building2,
@@ -125,6 +127,9 @@ export function AppSidebar({ role }: { role: Role }) {
               {flatItems.map((item) => {
                 if (item.key === "activityNotifications") {
                   return <SidebarActivityNotificationsLink key={item.href} />;
+                }
+                if (item.key === "operationsRequests") {
+                  return <SidebarOperationsRequestsLink key={item.href} />;
                 }
                 const Icon = iconMap[item.key];
                 const active =

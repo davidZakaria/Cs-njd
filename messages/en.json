@@ -302,7 +302,7 @@
   },
   "activityNotifications": {
     "title": "Activity notifications",
-    "subtitle": "Live feed of answered calls logged across your portfolio.",
+    "subtitle": "Your in-app inbox — activity updates, archive file requests, and other alerts.",
     "markAllRead": "Mark all as read",
     "empty": "No answered calls yet. When someone logs an answered call, it will appear here."
   },
@@ -415,6 +415,7 @@
     "systemHealth": "System Health",
     "notificationsLog": "Notifications Log",
     "activityNotifications": "Notifications",
+    "operationsRequests": "Requests",
     "systemSettings": "General Settings",
     "legalHome": "Legal home",
     "financeHome": "Finance home",
@@ -1756,7 +1757,24 @@
       "SNAG_OR_DEFECT": "Snag or defect",
       "HANDOVER_APPOINTMENT": "Handover appointment",
       "DOCUMENT_CORRECTION": "Document correction",
-      "ARCHIVE_CHECK": "Archive check"
+      "ARCHIVE_CHECK": "Archive check",
+      "ARCHIVE_FILE_REQUEST": "Archive file request"
+    },
+    "archiveFileKind": {
+      "CONTRACT": "Contract",
+      "NATIONAL_ID": "National ID",
+      "ANNEX": "Annex",
+      "RECEIPT": "Receipt",
+      "OTHER": "Other"
+    },
+    "archiveFileRequestPriority": {
+      "NORMAL": "Normal",
+      "URGENT": "Urgent"
+    },
+    "archiveFileItemStatus": {
+      "PENDING": "Pending",
+      "FULFILLED_UPLOAD": "Uploaded",
+      "NOT_FOUND": "Not found in archive"
     },
     "officialDocumentType": {
       "GRACE_PERIOD_ANNEX": "Grace period annex (ملحق المد)",
@@ -1832,7 +1850,10 @@
       "project": "Project",
       "projectPlaceholder": "Select project",
       "projectRequired": "Select a project",
-      "createdBulkWithSkipped": "Draft created for {included} units ({skipped} skipped — already have an open check)"
+      "createdBulkWithSkipped": "Draft created for {included} units ({skipped} skipped — already have an open check)",
+      "archiveFileKinds": "Files needed from archive",
+      "archiveFileKindsRequired": "Select at least one file type",
+      "archiveFilePriority": "Priority"
     },
     "detail": {
       "description": "Description",
@@ -1845,6 +1866,18 @@
       "noAttachments": "No files uploaded yet.",
       "upload": "Upload",
       "uploaded": "File uploaded",
+      "replaced": "Attachment replaced",
+      "removeAttachment": "Remove",
+      "replaceAttachment": "Replace",
+      "editDescription": "Edit",
+      "saveDescription": "Save",
+      "cancelEdit": "Cancel",
+      "noDescription": "No description provided.",
+      "archiveFileStatusTitle": "Requested files",
+      "archiveFileDownload": "Open file",
+      "previousDescription": "Previous text",
+      "viewArchivedAttachment": "View archived file: {name}",
+      "auditUnknownUser": "System",
       "comments": "Comments",
       "addComment": "Add comment",
       "audit": "Audit history",
@@ -1863,12 +1896,18 @@
         "cancelled": "Cancelled",
         "comment_added": "Comment added",
         "attachment_added": "Attachment uploaded",
+        "attachment_removed": "{user} removed attachment {name} · {when}",
+        "attachment_replaced": "{user} replaced {previousName} with {newName} · {when}",
+        "description_updated": "{user} updated the description · {when}",
         "escalated_overdue": "Escalated (overdue)",
         "archive_check_submitted": "Archive check submitted by operations",
         "archive_check_bulk_created": "Bulk archive check created",
         "archive_gap_completed": "Archive gap resolved",
         "archive_gap_escalated": "Archive gap escalated",
-        "archive_scan_uploaded": "Archive scan uploaded"
+        "archive_scan_uploaded": "Archive scan uploaded",
+        "archive_file_uploaded": "Archive file uploaded",
+        "archive_file_not_found": "Archive file marked not found in archive",
+        "archive_file_request_completed": "Archive file request completed"
       }
     },
     "unitPanel": {
@@ -2011,9 +2050,32 @@
     "awaitingEmpty": "No requests waiting on you right now.",
     "viewAllRequests": "Open requests inbox"
   },
+  "operationsArchiveFileRequests": {
+    "pageTitle": "Archive file requests",
+    "pageSubtitle": "CS and management requests for scans from the physical archive.",
+    "title": "Open requests",
+    "empty": "No open archive file requests.",
+    "urgent": "Urgent",
+    "unreadBadge": "{count} unread",
+    "requestedBy": "Requested by {name}",
+    "pendingFiles": "{count, plural, one {# file pending} other {# files pending}}",
+    "requestCompleted": "This request is complete.",
+    "backToInbox": "Back to requests inbox",
+    "detailTitle": "Fulfill archive file request",
+    "openUnit": "Open unit",
+    "note": "Requester note",
+    "uploadScan": "Upload scan",
+    "uploaded": "Scan uploaded",
+    "markNotFound": "Not found in archive",
+    "markedNotFound": "Marked as not found",
+    "notFoundNotePlaceholder": "Note for the requester (required)",
+    "fileOnRecord": "File recorded on the unit or request.",
+    "unitMissing": "Unit is missing for this request.",
+    "failed": "Action failed"
+  },
   "officialDocuments": {
     "panelTitle": "Official document drafts",
-    "panelHint": "Generate watermarked PDF drafts from management templates. Upload the signed copy to the unit contract fields when ready — uploads never replace existing signed files.",
+    "panelHint": "Legal and management edit draft text from the template and unit data, then generate a watermarked PDF. CS and other roles can view drafts and PDFs only. Upload signed copies to unit contract fields when ready — uploads never replace existing signed files.",
     "documentType": "Document type",
     "selectType": "Select type",
     "linkedRequest": "Linked request",
@@ -2021,6 +2083,20 @@
     "linkedRequestNone": "No request",
     "linkedRequestHint": "Grace period annex, contract amendment, and unit swap require an approved request of the matching type.",
     "generateDraft": "Generate draft PDF",
+    "editText": "Edit text",
+    "editTextDialogTitle": "Edit draft text",
+    "saveDraftText": "Save text version",
+    "draftSaved": "Draft text saved.",
+    "draftPrepareFailed": "Could not prepare draft text.",
+    "draftSaveFailed": "Could not save draft text.",
+    "viewOnlyHint": "You can view saved text drafts and PDFs. Only legal and management can edit draft text or generate PDFs.",
+    "viewDraft": "View draft",
+    "draftLoadFailed": "Could not load draft",
+    "textDraftsTitle": "Saved text drafts",
+    "draftVersionCount": "{count} versions",
+    "reopenDraft": "Reopen",
+    "versionHistory": "Saved versions",
+    "loadVersion": "Load into editor",
     "generating": "Generating…",
     "generateSuccess": "Draft PDF generated.",
     "generateFailed": "Could not generate document.",

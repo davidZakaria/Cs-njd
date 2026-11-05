@@ -134,7 +134,10 @@ export async function loadArchiveCheckDetail(requestId: string) {
       },
       archiveCheckItems: { orderBy: { itemKey: "asc" } },
       archiveCheckGapTasks: { orderBy: { createdAt: "asc" } },
-      attachments: { orderBy: { createdAt: "asc" } },
+      attachments: {
+        where: { removedAt: null },
+        orderBy: { createdAt: "asc" },
+      },
       bulkProject: { select: { id: true, name: true } },
     },
   });

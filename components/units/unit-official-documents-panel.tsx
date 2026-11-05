@@ -6,8 +6,20 @@ import { useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
 import type { OfficialDocumentType, UnitRequestType } from "@prisma/client";
 
-import { generateOfficialDocumentAction } from "@/lib/actions/official-documents";
+import {
+  generateOfficialDocumentAction,
+  getOfficialDocumentTextDraftAction,
+  prepareOfficialDocumentTextDraftAction,
+  saveOfficialDocumentTextDraftAction,
+} from "@/lib/actions/official-documents";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -17,8 +29,10 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { OFFICIAL_DOCUMENT_TYPES } from "@/lib/official-documents/types";
 import { requiredRequestTypeForDocument } from "@/lib/official-documents/request-binding";
+import { cn } from "@/lib/utils";
 
 type GeneratedRow = {
   id: string;
@@ -31,6 +45,16 @@ type GeneratedRow = {
   generatedBy: { name: string };
 };
 
+type TextDraftRow = {
+  id: string;
+  documentType: OfficialDocumentType;
+  templateLocale: string;
+  title: string;
+  updatedAt: Date;
+  versionCount: number;
+  updatedByName: string;
+};
+
 export type UnitRequestOption = {
   id: string;
   type: UnitRequestType;
@@ -39,13 +63,19 @@ export type UnitRequestOption = {
 
 export function UnitOfficialDocumentsPanel({
   unitId,
-  canGenerate,
+  canEditDraftText,
+  canViewDraftText,
+  canGeneratePdf,
   generatedDocuments,
+  textDrafts,
   approvedRequests,
 }: {
   unitId: string;
-  canGenerate: boolean;
+  canEditDraftText: boolean;
+  canViewDraftText: boolean;
+  canGeneratePdf: boolean;
   generatedDocuments: GeneratedRow[];
+  textDrafts: TextDraftRow[];
   approvedRequests: UnitRequestOption[];
 }) {
   const t = useTranslations("officialDocuments");
@@ -57,6 +87,14 @@ export function UnitOfficialDocumentsPanel({
     "GRACE_PERIOD_ANNEX"
   );
   const [unitRequestId, setUnitRequestId] = useState<string>("");
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
+  const [editorLocale, setEditorLocale] = useState<string>(locale);
+  const [editorTitle, setEditorTitle] = useState("");
+  const [editorBody, setEditorBody] = useState("");
+  const [versionHistory, setVersionHistory] = useState<
+    Array<{ id: string; createdAt: string; editorName: string }>
+  >([]);
 
   const documentTypeItems = useMemo(() => {
     const items: Record<string, string> = {};
@@ -94,22 +132,117 @@ export function UnitOfficialDocumentsPanel({
     );
   }, [approvedRequests, documentType]);
 
-  const generate = () => {
+  const openEditor = (input: {
+    draftId?: string;
+    create?: boolean;
+  }) => {
     startTransition(async () => {
-      const result = await generateOfficialDocumentAction({
+      const result = await prepareOfficialDocumentTextDraftAction({
         unitId,
         documentType,
         locale,
         unitRequestId: unitRequestId || null,
+        draftId: input.draftId ?? null,
+      });
+      if (!result.success) {
+        toast.error(result.error ?? t("draftPrepareFailed"));
+        return;
+      }
+      if (!result.draftId) {
+        toast.error(t("draftPrepareFailed"));
+        return;
+      }
+
+      const detail = await getOfficialDocumentTextDraftAction(result.draftId);
+      setActiveDraftId(result.draftId);
+      setEditorTitle(result.title ?? detail?.title ?? "");
+      setEditorBody(result.body ?? detail?.currentBody ?? "");
+      setEditorLocale(result.locale ?? detail?.templateLocale ?? locale);
+      setVersionHistory(
+        detail?.versions.map((v) => ({
+          id: v.id,
+          createdAt: v.createdAt.toISOString(),
+          editorName: v.editedBy.name,
+        })) ?? []
+      );
+      setEditorOpen(true);
+    });
+  };
+
+  const openViewDraft = (draftId: string) => {
+    startTransition(async () => {
+      const detail = await getOfficialDocumentTextDraftAction(draftId);
+      if (!detail) {
+        toast.error(t("draftLoadFailed"));
+        return;
+      }
+      setActiveDraftId(draftId);
+      setEditorTitle(detail.title);
+      setEditorBody(detail.currentBody);
+      setEditorLocale(detail.templateLocale);
+      setVersionHistory(
+        detail.versions.map((v) => ({
+          id: v.id,
+          createdAt: v.createdAt.toISOString(),
+          editorName: v.editedBy.name,
+        }))
+      );
+      setEditorOpen(true);
+    });
+  };
+
+  const saveDraft = () => {
+    if (!activeDraftId) return;
+    startTransition(async () => {
+      const result = await saveOfficialDocumentTextDraftAction({
+        draftId: activeDraftId,
+        body: editorBody,
+      });
+      if (!result.success) {
+        toast.error(result.error ?? t("draftSaveFailed"));
+        return;
+      }
+      toast.success(t("draftSaved"));
+      const detail = await getOfficialDocumentTextDraftAction(activeDraftId);
+      setVersionHistory(
+        detail?.versions.map((v) => ({
+          id: v.id,
+          createdAt: v.createdAt.toISOString(),
+          editorName: v.editedBy.name,
+        })) ?? []
+      );
+      router.refresh();
+    });
+  };
+
+  const generatePdf = () => {
+    if (!activeDraftId) return;
+    startTransition(async () => {
+      const result = await generateOfficialDocumentAction({
+        unitId,
+        textDraftId: activeDraftId,
       });
       if (!result.success) {
         toast.error(result.error ?? t("generateFailed"));
         return;
       }
       toast.success(t("generateSuccess"));
+      setEditorOpen(false);
       router.refresh();
     });
   };
+
+  const reopenVersion = (versionId: string) => {
+    if (!activeDraftId) return;
+    startTransition(async () => {
+      const detail = await getOfficialDocumentTextDraftAction(activeDraftId);
+      const version = detail?.versions.find((v) => v.id === versionId);
+      if (!version) return;
+      setEditorBody(version.body);
+    });
+  };
+
+  const editorRtl = editorLocale === "ar";
 
   return (
     <div className="space-y-4 rounded-xl border border-border/60 bg-card p-4">
@@ -118,7 +251,7 @@ export function UnitOfficialDocumentsPanel({
         <p className="text-sm text-muted-foreground">{t("panelHint")}</p>
       </div>
 
-      {canGenerate ? (
+      {canEditDraftText ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>{t("documentType")}</Label>
@@ -170,10 +303,62 @@ export function UnitOfficialDocumentsPanel({
             <p className="text-xs text-muted-foreground">{t("linkedRequestHint")}</p>
           </div>
           <div className="sm:col-span-2">
-            <Button type="button" disabled={pending} onClick={generate}>
-              {pending ? t("generating") : t("generateDraft")}
+            <Button
+              type="button"
+              disabled={pending}
+              onClick={() => openEditor({ create: true })}
+            >
+              {t("editText")}
             </Button>
           </div>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">{t("viewOnlyHint")}</p>
+      )}
+
+      {textDrafts.length > 0 ? (
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium">{t("textDraftsTitle")}</h4>
+          <ul className="divide-y divide-border/50 rounded-lg border border-border/40">
+            {textDrafts.map((draft) => (
+              <li
+                key={draft.id}
+                className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm [dir=rtl]:flex-row-reverse"
+              >
+                <div>
+                  <p className="font-medium">{draft.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {tEnums(`officialDocumentType.${draft.documentType}`)}
+                    {" · "}
+                    {draft.templateLocale} · {t("draftVersionCount", { count: draft.versionCount })}
+                    {" · "}
+                    {draft.updatedByName}
+                  </p>
+                </div>
+                {canEditDraftText ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={pending}
+                    onClick={() => openEditor({ draftId: draft.id })}
+                  >
+                    {t("reopenDraft")}
+                  </Button>
+                ) : canViewDraftText ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={pending}
+                    onClick={() => openViewDraft(draft.id)}
+                  >
+                    {t("viewDraft")}
+                  </Button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 
@@ -214,6 +399,65 @@ export function UnitOfficialDocumentsPanel({
           ))
         )}
       </ul>
+
+      <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t("editTextDialogTitle")}</DialogTitle>
+            <p className="text-sm text-muted-foreground">{editorTitle}</p>
+          </DialogHeader>
+          <Textarea
+            value={editorBody}
+            onChange={(e) => setEditorBody(e.target.value)}
+            readOnly={!canEditDraftText}
+            rows={18}
+            dir={editorRtl ? "rtl" : "ltr"}
+            className={cn(
+              "min-h-[320px] font-mono text-sm leading-relaxed",
+              editorRtl && "font-[family-name:var(--font-arabic)] text-right"
+            )}
+          />
+          {versionHistory.length > 0 ? (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">
+                {t("versionHistory")}
+              </p>
+              <ul className="max-h-32 space-y-1 overflow-y-auto text-xs text-muted-foreground">
+                {versionHistory.map((v) => (
+                  <li key={v.id} className="flex flex-wrap items-center gap-2">
+                    <span>
+                      {v.editorName} · {new Date(v.createdAt).toLocaleString(locale)}
+                    </span>
+                    {canEditDraftText ? (
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0"
+                        onClick={() => reopenVersion(v.id)}
+                      >
+                        {t("loadVersion")}
+                      </Button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <DialogFooter className="gap-2 sm:justify-start">
+            {canEditDraftText ? (
+              <Button type="button" variant="secondary" disabled={pending} onClick={saveDraft}>
+                {t("saveDraftText")}
+              </Button>
+            ) : null}
+            {canGeneratePdf ? (
+              <Button type="button" disabled={pending} onClick={generatePdf}>
+                {pending ? t("generating") : t("generateDraft")}
+              </Button>
+            ) : null}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

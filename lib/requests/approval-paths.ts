@@ -16,6 +16,7 @@ export const APPROVAL_PATH_BY_TYPE: Record<
   HANDOVER_APPOINTMENT: ["CS_AGENT"],
   DOCUMENT_CORRECTION: ["LEGAL"],
   ARCHIVE_CHECK: ["OPERATIONS"],
+  ARCHIVE_FILE_REQUEST: ["OPERATIONS"],
 };
 
 export function getApprovalPathForType(

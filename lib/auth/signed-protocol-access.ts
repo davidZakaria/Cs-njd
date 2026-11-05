@@ -1,8 +1,13 @@
 import {
-  canAccessUnitAsCsAgent,
   resolveCsAgentScope,
   type CsAgentScope,
 } from "@/lib/auth/cs-agent-scope";
+import {
+  isAdminUnitManager,
+  isCsAgentRole,
+  isDepartmentStaffRole,
+  isOperationsRole,
+} from "@/lib/auth/unit-roles";
 import type { Role } from "@prisma/client";
 
 type SessionUser = {
@@ -15,18 +20,18 @@ export async function resolveSignedProtocolAccess(
   user: SessionUser,
   unitAgentId: string | null | undefined
 ): Promise<{ canUpload: boolean; csScope: CsAgentScope | null }> {
-  if (user.role === "SUPER_ADMIN" || user.role === "MANAGEMENT") {
+  if (isAdminUnitManager(user.role) || user.role === "SUPER_ADMIN") {
     return { canUpload: true, csScope: null };
   }
 
-  if (user.role === "OPERATIONS") {
+  if (isOperationsRole(user.role)) {
     return { canUpload: true, csScope: null };
   }
 
-  if (user.role === "CS_AGENT") {
+  if (isCsAgentRole(user.role)) {
     const csScope = await resolveCsAgentScope(user);
     return {
-      canUpload: canAccessUnitAsCsAgent(csScope, unitAgentId),
+      canUpload: true,
       csScope,
     };
   }
@@ -34,19 +39,23 @@ export async function resolveSignedProtocolAccess(
   return { canUpload: false, csScope: null };
 }
 
+/** Download/view unit portfolio files (contracts, annexes, etc.). Upload rules stay separate. */
 export function canDownloadSignedProtocol(
   user: SessionUser,
-  unitAgentId: string | null | undefined,
-  csScope: CsAgentScope | null
+  _unitAgentId: string | null | undefined,
+  _csScope: CsAgentScope | null
 ): boolean {
-  if (user.role === "SUPER_ADMIN" || user.role === "MANAGEMENT") {
+  if (isAdminUnitManager(user.role) || user.role === "SUPER_ADMIN") {
     return true;
   }
-  if (user.role === "OPERATIONS") {
+  if (isOperationsRole(user.role)) {
     return true;
   }
-  if (user.role === "CS_AGENT" && csScope) {
-    return canAccessUnitAsCsAgent(csScope, unitAgentId);
+  if (isDepartmentStaffRole(user.role)) {
+    return true;
+  }
+  if (isCsAgentRole(user.role)) {
+    return true;
   }
   return false;
 }

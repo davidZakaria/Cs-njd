@@ -302,7 +302,7 @@
   },
   "activityNotifications": {
     "title": "إشعارات النشاط",
-    "subtitle": "متابعة مباشرة للمكالمات التي تم الرد عليها ضمن نطاق عملك.",
+    "subtitle": "صندوق الإشعارات — تحديثات النشاط وطلبات ملفات الأرشيف وتنبيهات أخرى.",
     "markAllRead": "تعليم الكل كمقروء",
     "empty": "لا توجد مكالمات تم الرد عليها بعد. عند تسجيل مكالمة تم الرد عليها ستظهر هنا."
   },
@@ -415,6 +415,7 @@
     "systemHealth": "صحة النظام",
     "notificationsLog": "سجل الإشعارات",
     "activityNotifications": "الإشعارات",
+    "operationsRequests": "الطلبات",
     "systemSettings": "الإعدادات العامة",
     "legalHome": "الرئيسية — قانوني",
     "financeHome": "الرئيسية — حسابات",
@@ -1756,7 +1757,24 @@
       "SNAG_OR_DEFECT": "عيب أو ملاحظة",
       "HANDOVER_APPOINTMENT": "موعد تسليم",
       "DOCUMENT_CORRECTION": "تصحيح مستند",
-      "ARCHIVE_CHECK": "فحص الأرشيف"
+      "ARCHIVE_CHECK": "فحص الأرشيف",
+      "ARCHIVE_FILE_REQUEST": "طلب ملف من الأرشيف"
+    },
+    "archiveFileKind": {
+      "CONTRACT": "عقد",
+      "NATIONAL_ID": "بطاقة الرقم القومي",
+      "ANNEX": "ملحق",
+      "RECEIPT": "إيصال",
+      "OTHER": "أخرى"
+    },
+    "archiveFileRequestPriority": {
+      "NORMAL": "عادي",
+      "URGENT": "عاجل"
+    },
+    "archiveFileItemStatus": {
+      "PENDING": "قيد الانتظار",
+      "FULFILLED_UPLOAD": "تم الرفع",
+      "NOT_FOUND": "غير موجود في الأرشيف"
     },
     "officialDocumentType": {
       "GRACE_PERIOD_ANNEX": "ملحق المد",
@@ -1832,7 +1850,10 @@
       "project": "المشروع",
       "projectPlaceholder": "اختر المشروع",
       "projectRequired": "اختر مشروعاً",
-      "createdBulkWithSkipped": "تم إنشاء مسودة لـ {included} وحدة (تم تخطي {skipped} — لديها فحص مفتوح)"
+      "createdBulkWithSkipped": "تم إنشاء مسودة لـ {included} وحدة (تم تخطي {skipped} — لديها فحص مفتوح)",
+      "archiveFileKinds": "الملفات المطلوبة من الأرشيف",
+      "archiveFileKindsRequired": "اختر نوع ملف واحد على الأقل",
+      "archiveFilePriority": "الأولوية"
     },
     "detail": {
       "description": "الوصف",
@@ -1845,6 +1866,18 @@
       "noAttachments": "لم يُرفع أي ملف بعد.",
       "upload": "رفع",
       "uploaded": "تم رفع الملف",
+      "replaced": "تم استبدال المرفق",
+      "removeAttachment": "إزالة",
+      "replaceAttachment": "استبدال",
+      "editDescription": "تعديل",
+      "saveDescription": "حفظ",
+      "cancelEdit": "إلغاء",
+      "noDescription": "لا يوجد وصف.",
+      "archiveFileStatusTitle": "الملفات المطلوبة",
+      "archiveFileDownload": "فتح الملف",
+      "previousDescription": "النص السابق",
+      "viewArchivedAttachment": "عرض الملف المؤرشف: {name}",
+      "auditUnknownUser": "النظام",
       "comments": "تعليقات",
       "addComment": "إضافة تعليق",
       "audit": "سجل التدقيق",
@@ -1863,12 +1896,18 @@
         "cancelled": "ملغى",
         "comment_added": "تعليق مضاف",
         "attachment_added": "مرفق مرفوع",
+        "attachment_removed": "{user} أزال المرفق {name} · {when}",
+        "attachment_replaced": "{user} استبدل {previousName} بـ {newName} · {when}",
+        "description_updated": "{user} عدّل الوصف · {when}",
         "escalated_overdue": "تصعيد (متأخر)",
         "archive_check_submitted": "تم إرسال فحص الأرشيف من العمليات",
         "archive_check_bulk_created": "تم إنشاء فحص أرشيف جماعي",
         "archive_gap_completed": "تم حل فجوة الأرشيف",
         "archive_gap_escalated": "تم تصعيد فجوة الأرشيف",
-        "archive_scan_uploaded": "تم رفع مسح الأرشيف"
+        "archive_scan_uploaded": "تم رفع مسح الأرشيف",
+        "archive_file_uploaded": "تم رفع ملف من الأرشيف",
+        "archive_file_not_found": "تعذر العثور على الملف في الأرشيف",
+        "archive_file_request_completed": "اكتمل طلب ملف الأرشيف"
       }
     },
     "unitPanel": {
@@ -2011,9 +2050,32 @@
     "awaitingEmpty": "لا طلبات بانتظارك حالياً.",
     "viewAllRequests": "فتح صندوق الطلبات"
   },
+  "operationsArchiveFileRequests": {
+    "pageTitle": "طلبات ملفات الأرشيف",
+    "pageSubtitle": "طلبات خدمة العملاء والإدارة لمسح مستندات من الأرشيف الورقي.",
+    "title": "الطلبات المفتوحة",
+    "empty": "لا توجد طلبات ملفات أرشيف مفتوحة.",
+    "urgent": "عاجل",
+    "unreadBadge": "{count} غير مقروء",
+    "requestedBy": "طلب {name}",
+    "pendingFiles": "{count, plural, one {ملف واحد معلّق} other {# ملفات معلّقة}}",
+    "requestCompleted": "اكتمل هذا الطلب.",
+    "backToInbox": "العودة إلى صندوق الطلبات",
+    "detailTitle": "تنفيذ طلب ملف أرشيف",
+    "openUnit": "فتح الوحدة",
+    "note": "ملاحظة مقدّم الطلب",
+    "uploadScan": "رفع المسح",
+    "uploaded": "تم رفع المسح",
+    "markNotFound": "غير موجود في الأرشيف",
+    "markedNotFound": "تم التعليم كغير موجود",
+    "notFoundNotePlaceholder": "ملاحظة لمقدّم الطلب (مطلوبة)",
+    "fileOnRecord": "تم تسجيل الملف على الوحدة أو الطلب.",
+    "unitMissing": "الوحدة غير موجودة لهذا الطلب.",
+    "failed": "فشل الإجراء"
+  },
   "officialDocuments": {
     "panelTitle": "مسودات المستندات الرسمية",
-    "panelHint": "إنشاء ملفات PDF بعلامة مسودة من قوالب الإدارة. ارفع النسخة الموقعة في حقول عقد الوحدة عند الجاهزية — الرفع لا يستبدل الملفات الموقعة الحالية.",
+    "panelHint": "القانوني والإدارة يعدّلان نص المسودة من القالب وبيانات الوحدة ثم يولّدان PDF بعلامة مسودة. خدمة العملاء والأدوار الأخرى للعرض فقط. ارفع النسخة الموقعة في حقول عقد الوحدة عند الجاهزية — الرفع لا يستبدل الملفات الموقعة الحالية.",
     "documentType": "نوع المستند",
     "selectType": "اختر النوع",
     "linkedRequest": "طلب مرتبط",
@@ -2021,6 +2083,20 @@
     "linkedRequestNone": "بدون طلب",
     "linkedRequestHint": "ملحق المد وتعديل العقد واستبدال الوحدة يتطلبان طلباً معتمداً من النوع المطابق.",
     "generateDraft": "إنشاء مسودة PDF",
+    "editText": "تعديل النص",
+    "editTextDialogTitle": "تعديل نص المسودة",
+    "saveDraftText": "حفظ نسخة النص",
+    "draftSaved": "تم حفظ نص المسودة.",
+    "draftPrepareFailed": "تعذّر تجهيز نص المسودة.",
+    "draftSaveFailed": "تعذّر حفظ نص المسودة.",
+    "viewOnlyHint": "يمكنك عرض مسودات النص وملفات PDF. القانوني والإدارة فقط يعدّلان النص أو يولّدان PDF.",
+    "viewDraft": "عرض المسودة",
+    "draftLoadFailed": "تعذر تحميل المسودة",
+    "textDraftsTitle": "مسودات نص محفوظة",
+    "draftVersionCount": "{count} نسخ",
+    "reopenDraft": "إعادة فتح",
+    "versionHistory": "النسخ المحفوظة",
+    "loadVersion": "تحميل في المحرر",
     "generating": "جاري الإنشاء…",
     "generateSuccess": "تم إنشاء مسودة PDF.",
     "generateFailed": "تعذر إنشاء المستند.",
