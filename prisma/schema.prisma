@@ -853,6 +853,8 @@ model OfficialDocumentTextDraft {
   templateLocale  String
   title           String
   currentBody     String
+  /// When documentType is HANDOVER_RECORD for Green Avenue / Jura, selects the legal master variant.
+  handoverTemplateKey String?
   createdById     String
   updatedById     String?
   createdAt       DateTime             @default(now())

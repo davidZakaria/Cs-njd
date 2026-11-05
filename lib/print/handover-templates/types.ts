@@ -16,6 +16,7 @@ export type HandoverFieldValues = {
   clientName2?: string;
   nationality: string;
   nationalId: string;
+  nationalId2?: string;
   address: string;
   phone1: string;
   phone2: string;

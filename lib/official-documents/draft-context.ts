@@ -12,6 +12,14 @@ import {
   requiredRequestTypeForDocument,
 } from "@/lib/official-documents/request-binding";
 import { isOfficialDocumentsFeatureEnabledForProject } from "@/lib/official-documents/permissions";
+import {
+  buildOfficialHandoverDraftBody,
+  handoverDraftTitleForKey,
+} from "@/lib/official-documents/handover/build-body";
+import { handoverUsesOfficialMasters } from "@/lib/official-documents/handover/constants";
+import { buildOfficialHandoverFieldValues } from "@/lib/official-documents/handover/field-values";
+import { resolveOfficialHandoverTemplateKey } from "@/lib/official-documents/handover/infer-variant";
+import type { HandoverTemplateKey } from "@/lib/print/handover-templates/types";
 
 export const OFFICIAL_DOCUMENT_UNIT_INCLUDE = {
   project: true,
@@ -72,6 +80,7 @@ export async function resolveOfficialDocumentGenerationContext(input: {
   documentType: OfficialDocumentType;
   locale: "en" | "ar";
   unitRequestId?: string | null;
+  handoverTemplateKey?: HandoverTemplateKey | null;
 }): Promise<
   | {
       ok: true;
@@ -87,6 +96,8 @@ export async function resolveOfficialDocumentGenerationContext(input: {
       requestDescription: string | null;
       mergeUnit: UnitMergeInput;
       initialBody: string;
+      handoverTemplateKey: HandoverTemplateKey | null;
+      handoverMissingFieldKeys: string[];
     }
   | { ok: false; error: string }
 > {
@@ -147,18 +158,56 @@ export async function resolveOfficialDocumentGenerationContext(input: {
   }
 
   const mergeUnit = mapUnitMergeInput(unit);
-  const fields = buildOfficialDocumentMergeFields(mergeUnit, input.locale, {
-    requestDescription,
-  });
-  const initialBody = interpolateOfficialDocumentTemplate(template.body, fields);
+  let initialBody: string;
+  let handoverTemplateKey: HandoverTemplateKey | null = null;
+  let handoverMissingFieldKeys: string[] = [];
+  let templateView = {
+    id: template.id,
+    title: template.title,
+    body: template.body,
+    version: template.version,
+    locale: template.locale,
+  };
+
+  const usesOfficialHandover =
+    input.documentType === "HANDOVER_RECORD" &&
+    input.locale === "ar" &&
+    handoverUsesOfficialMasters(mergeUnit.project.name);
+
+  if (usesOfficialHandover) {
+    handoverTemplateKey = resolveOfficialHandoverTemplateKey(
+      mergeUnit,
+      input.handoverTemplateKey
+    );
+    if (!handoverTemplateKey) {
+      return { ok: false, error: "Could not resolve handover template variant" };
+    }
+    const built = buildOfficialHandoverFieldValues(mergeUnit, input.locale);
+    handoverMissingFieldKeys = built.missingKeys;
+    initialBody = buildOfficialHandoverDraftBody({
+      templateKey: handoverTemplateKey,
+      fields: built.handoverFields,
+    });
+    templateView = {
+      ...templateView,
+      title: handoverDraftTitleForKey(handoverTemplateKey),
+    };
+  } else {
+    const fields = buildOfficialDocumentMergeFields(mergeUnit, input.locale, {
+      requestDescription,
+    });
+    initialBody = interpolateOfficialDocumentTemplate(template.body, fields);
+  }
 
   return {
     ok: true,
     unit,
-    template,
+    template: templateView,
     unitRequestId,
     requestDescription,
     mergeUnit,
     initialBody,
+    handoverTemplateKey,
+    handoverMissingFieldKeys,
   };
 }

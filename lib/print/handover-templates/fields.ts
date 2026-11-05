@@ -103,7 +103,12 @@ export function interpolateHandoverText(text: string, fields: HandoverFieldValue
     .replace(/أقر أنا الموقع أدناه\s*\/\s+أحمل/g, `أقر أنا الموقع أدناه / ${fields.clientName} أحمل`)
     .replace(/الاسم :\s+/g, `الاسم : ${fields.clientName} `)
     .replace(/1-الاسم :\s+/g, `1-الاسم : ${fields.clientName} `)
-    .replace(/2-الاسم :\s+/g, `2-الاسم : ${fields.clientName2 ?? "—"} `);
+    .replace(/2-الاسم :\s+/g, `2-الاسم : ${fields.clientName2 ?? "—"} `)
+    .replace(/1-بطاقة الرقم القومى :\s+/g, `1-بطاقة الرقم القومى : ${fields.nationalId} `)
+    .replace(/2-بطاقة الرقم القومى :\s+/g, `2-بطاقة الرقم القومى : ${fields.nationalId2 ?? "—"} `)
+    .replace(/بطاقة الرقم القومى :\s+/g, `بطاقة الرقم القومى : ${fields.nationalId} `)
+    .replace(/بطاقة رقم قومى:\s*/g, `بطاقة رقم قومى: ${fields.nationalId} `)
+    .replace(/\(000000000000000\)/g, fields.nationalId);
 }
 
 export function splitViolationItems(body: string): string[] {
