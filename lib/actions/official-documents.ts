@@ -31,6 +31,7 @@ import {
   handoverDraftNeedsOfficialMasterSync,
   usesOfficialHandoverLegalMasters,
 } from "@/lib/official-documents/handover/document-locale";
+import { validateOfficialHandoverDraftStructure } from "@/lib/official-documents/handover/draft-body-structure";
 import { renderOfficialHandoverRecordPdf } from "@/lib/official-documents/handover/render-pdf";
 import { getCompanyProfileSettings } from "@/lib/system/settings-store";
 import type { HandoverTemplateKey } from "@/lib/print/handover-templates/types";
@@ -685,6 +686,16 @@ export async function generateOfficialDocumentAction(input: {
     return actionFail(
       "Save the official Arabic handover text before generating (legacy English placeholder still in editor)."
     );
+  }
+
+  if (usesOfficialHandoverPdf && handoverTemplateKey) {
+    const structure = validateOfficialHandoverDraftStructure({
+      templateKey: handoverTemplateKey as HandoverTemplateKey,
+      draftBody: savedBody,
+    });
+    if (!structure.ok) {
+      return actionFail(structure.error);
+    }
   }
 
   const companyProfile = await getCompanyProfileSettings();

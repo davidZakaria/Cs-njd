@@ -61,8 +61,8 @@ describe("official handover PDF uses edited draft body", () => {
     });
 
     expect(html).toContain("violations-block");
-    expect(html).toContain("insurance-block");
-    expect(html).toContain("field-value");
-    expect(html).toContain("Sample Street");
+    expect(html).toMatch(/insurance-block|تأمين/u);
+    expect(html).toContain("Demo Owner");
+    expect(html).toContain("26309100200715");
   });
 });

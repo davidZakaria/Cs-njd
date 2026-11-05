@@ -133,10 +133,7 @@ export function UnitOfficialDocumentsPanel({
   const remountEditorTextarea = () => setEditorTextKey((k) => k + 1);
 
   const readEditorBodyFromDom = () => {
-    const fromQuery = document.querySelector(
-      '[data-slot="textarea"]'
-    ) as HTMLTextAreaElement | null;
-    const domValue = fromQuery?.value ?? editorTextareaRef.current?.value;
+    const domValue = editorTextareaRef.current?.value;
     if (domValue != null && domValue !== "") {
       return domValue.trimEnd();
     }
@@ -292,6 +289,7 @@ export function UnitOfficialDocumentsPanel({
       setActiveDraftId(draftId);
       setEditorTitle(detail.title);
       setEditorBody(detail.currentBody);
+      editorLiveBodyRef.current = detail.currentBody;
       remountEditorTextarea();
       setProposedOfficialBody(null);
       setEditorLocale(detail.templateLocale);
@@ -661,7 +659,7 @@ export function UnitOfficialDocumentsPanel({
           <Textarea
             key={`${activeDraftId ?? "new"}-${editorTextKey}`}
             ref={editorTextareaRef}
-            defaultValue={editorBody}
+            value={editorBody}
             onChange={(e) => {
               editorLiveBodyRef.current = e.target.value;
               setEditorBody(e.target.value);

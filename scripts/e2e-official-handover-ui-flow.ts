@@ -33,7 +33,21 @@ function pdfPageCount(pdfPath: string): number {
   return Number(match[1]);
 }
 
+function assertPdfNationalIdFormat(pdfPath: string, label: string) {
+  const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
+  const ids = text.match(/\b\d{14}\b/g) ?? [];
+  if (ids.length === 0) {
+    throw new Error(`${label}: expected at least one 14-digit national ID in PDF ${pdfPath}`);
+  }
+  for (const id of ids) {
+    if (id.length !== 14) {
+      throw new Error(`${label}: national ID not 14 digits: ${id}`);
+    }
+  }
+}
+
 function assertMandatoryHandoverClauses(pdfPath: string, variant: string) {
+  assertPdfNationalIdFormat(pdfPath, variant);
   const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
   if (!/مخالف|الإلتزامات|فسخ العقد/u.test(text)) {
     throw new Error(`${pdfPath}: missing violations clause block (Green/Jura handover)`);
@@ -85,6 +99,10 @@ function loadManifest(): Manifest {
   return JSON.parse(raw) as Manifest;
 }
 
+function handoverEditorTextarea(page: Page) {
+  return page.getByRole("dialog").locator('[data-slot="textarea"]').first();
+}
+
 function rasterizePdf(pdfPath: string, outDir: string, prefix: string): string[] {
   fs.mkdirSync(outDir, { recursive: true });
   const outPrefix = path.join(outDir, prefix);
@@ -104,7 +122,10 @@ async function login(page: Page, locale: "en" | "ar", email: string, password: s
     "utf8"
   ).trim();
 
-  await page.goto(`${BASE_URL}/${locale}/login`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE_URL}/${locale}/login`, {
+    waitUntil: "domcontentloaded",
+    timeout: 120_000,
+  });
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
   await page.getByRole("button", { name: /sign in|log in|login|دخول/i }).click();
@@ -211,12 +232,88 @@ async function resetLegacyDraftForE2e(manifest: Manifest) {
   });
 }
 
+async function applyFullLegalEdits(
+  page: Page,
+  locale: "en" | "ar",
+  variant: string
+): Promise<{
+  editMarker: string;
+  phraseOriginal: string;
+  phraseReplacement: string;
+  deletedSentenceFragment: string;
+}> {
+  const textarea = handoverEditorTextarea(page);
+  await textarea.waitFor({ state: "visible" });
+  let body = await textarea.inputValue();
+
+  const phraseMatch = body.match(/مسئ[^\s]+ كاملة/u);
+  if (!phraseMatch) {
+    throw new Error("E2E setup: declaration phrase for replacement test not found in editor body");
+  }
+  const phraseOriginal = phraseMatch[0]!;
+  const phraseReplacement = `${phraseOriginal} E2E_REPLACED`;
+
+  const deleteMatch = body.match(
+    /وفى حالة مخالفة اياً مما ذكر[\s\S]{0,220}?حكم قضائي\./u
+  );
+  if (!deleteMatch) {
+    throw new Error("E2E setup: optional violations sentence for deletion test not found");
+  }
+  const deletedSentence = deleteMatch[0]!;
+  const deletedSentenceFragment = deletedSentence.slice(0, 40);
+
+  const editMarker = legalEditMarker(locale, variant);
+  body = body
+    .replace(phraseOriginal, phraseReplacement)
+    .replace(deletedSentence, "")
+    .trimEnd();
+  body = `${body}\n\n${editMarker}`;
+
+  await textarea.fill(body);
+  await textarea.dispatchEvent("change");
+  await page.waitForTimeout(200);
+  const after = await textarea.inputValue();
+  if (!after.includes(editMarker) || !after.includes(phraseReplacement)) {
+    throw new Error("Editor body missing structured legal edits before save");
+  }
+
+  return {
+    editMarker,
+    phraseOriginal,
+    phraseReplacement,
+    deletedSentenceFragment,
+  };
+}
+
+function assertPdfEditFidelity(
+  pdfPath: string,
+  input: {
+    editMarker: string;
+    phraseOriginal: string;
+    phraseReplacement: string;
+    deletedSentenceFragment: string;
+  },
+  label: string
+) {
+  const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
+  assertPdfContainsMarker(pdfPath, input.editMarker, label);
+  if (!text.includes("E2E_REPLACED") && !text.includes(input.phraseReplacement)) {
+    throw new Error(`${label}: PDF missing replacement phrase`);
+  }
+  if (text.includes(input.deletedSentenceFragment)) {
+    throw new Error(`${label}: PDF still contains deleted sentence fragment`);
+  }
+  if (!/مخالف|الإلتزامات/u.test(text)) {
+    throw new Error(`${label}: unrelated violations block missing after edits`);
+  }
+}
+
 async function appendMarkerInEditor(
   page: Page,
   locale: "en" | "ar",
   marker: string
 ) {
-  const textarea = page.locator('[data-slot="textarea"]').first();
+  const textarea = handoverEditorTextarea(page);
   await textarea.waitFor({ state: "visible" });
   const current = await textarea.inputValue();
   if (current.includes(marker)) return;
@@ -237,7 +334,7 @@ async function saveDraftInDialog(
   expectedMarker?: string
 ) {
   if (expectedMarker) {
-    const v = await page.locator('[data-slot="textarea"]').first().inputValue();
+    const v = await handoverEditorTextarea(page).inputValue();
     if (!v.includes(expectedMarker)) {
       throw new Error(`Pre-save editor missing marker ${expectedMarker}`);
     }
@@ -270,32 +367,87 @@ function assertPdfContainsMarker(pdfPath: string, marker: string, label: string)
   return text;
 }
 
-async function openHandoverEditor(page: Page, locale: "en" | "ar") {
-  const editText = page.getByRole("button", {
-    name: locale === "ar" ? /تعديل النص/i : /Edit text/i,
-  });
-  const reopenDraft = page
+async function reopenSavedTextDraft(page: Page, locale: "en" | "ar") {
+  await page
+    .getByRole("heading", {
+      name: locale === "ar" ? /مسودات/i : /Saved text drafts/i,
+    })
+    .waitFor({ timeout: 30_000 });
+
+  const reopen = page
     .getByRole("button", {
-      name: locale === "ar" ? /إعادة فتح/i : /Reopen draft/i,
+      name: locale === "ar" ? /^إعادة فتح$/ : /^Reopen$/i,
     })
     .first();
 
-  if (await editText.isVisible().catch(() => false)) {
-    const enabled = await editText.isEnabled().catch(() => false);
-    if (enabled) {
-      await editText.click({ force: true });
+  await reopen.waitFor({ state: "visible", timeout: 30_000 });
+
+  const dialogPromise = page.getByRole("dialog").waitFor({
+    state: "visible",
+    timeout: 120_000,
+  });
+
+  await reopen.click();
+
+  try {
+    await dialogPromise;
+  } catch (err) {
+    const toasts = await page.locator("[data-sonner-toast]").allTextContents();
+    throw new Error(
+      `Reopen draft did not open editor (automation/product). toasts=${JSON.stringify(toasts)} cause=${String(err)}`
+    );
+  }
+}
+
+async function ensureOfficialArabicHandoverBodyLoaded(
+  page: Page,
+  locale: "en" | "ar"
+) {
+  const textarea = handoverEditorTextarea(page);
+  await textarea.waitFor({ state: "visible", timeout: 60_000 });
+
+  const loadProposed = page.getByRole("button", {
+    name: locale === "ar" ? /تحميل النص الرسمي/i : /Load proposed official/i,
+  });
+
+  for (let attempt = 0; attempt < 90; attempt += 1) {
+    const body = await textarea.inputValue();
+    if (/أولاً|اولا/u.test(body) && body.length > 500) {
       return;
     }
+    if (
+      attempt === 3 &&
+      (await loadProposed.isVisible().catch(() => false))
+    ) {
+      await loadProposed.click();
+    }
+    await page.waitForTimeout(2000);
   }
-  if (await reopenDraft.isVisible().catch(() => false)) {
-    await reopenDraft.click({ force: true });
+
+  const sample = (await textarea.inputValue()).slice(0, 200);
+  throw new Error(
+    `Official Arabic handover body never loaded in editor (prepare/race). sample=${JSON.stringify(sample)}`
+  );
+}
+
+async function openHandoverEditor(page: Page, locale: "en" | "ar") {
+  const reopenCount = await page
+    .getByRole("button", {
+      name: locale === "ar" ? /^إعادة فتح$/ : /^Reopen$/i,
+    })
+    .count();
+
+  if (reopenCount > 0) {
+    await reopenSavedTextDraft(page, locale);
     return;
   }
-  if (await editText.isVisible().catch(() => false)) {
-    await editText.click({ force: true });
-    return;
-  }
-  throw new Error("Neither Edit text nor Reopen draft button visible");
+
+  const editText = page.getByRole("button", {
+    name: locale === "ar" ? /تعديل النص/i : /^Edit text$/i,
+  });
+  await editText.waitFor({ state: "visible", timeout: 30_000 });
+  await editText.click({ force: true });
+  await page.getByRole("dialog").waitFor({ state: "visible", timeout: 120_000 });
 }
 
 async function generateHandoverOnUnit(
@@ -306,7 +458,7 @@ async function generateHandoverOnUnit(
   screenshotPath: string
 ): Promise<{ pdfPath: string; downloadUrl: string; editMarker: string }> {
   await page.goto(`${BASE_URL}/${locale}/units/${unitId}`, {
-    waitUntil: "networkidle",
+    waitUntil: "domcontentloaded",
   });
 
   await page
@@ -337,6 +489,8 @@ async function generateHandoverOnUnit(
   await openHandoverEditor(page, locale);
   await page.getByRole("dialog").waitFor({ state: "visible", timeout: 30_000 });
 
+  await ensureOfficialArabicHandoverBodyLoaded(page, locale);
+
   await page.waitForFunction(
     () => {
       const btn = Array.from(document.querySelectorAll("button")).find((b) =>
@@ -351,11 +505,23 @@ async function generateHandoverOnUnit(
   const dialogShot = screenshotPath.replace(".png", "-dialog.png");
   await page.screenshot({ path: dialogShot });
 
-  const editMarker = legalEditMarker(locale, variant);
+  await page.waitForFunction(
+    () => {
+      const dialog = document.querySelector('[role="dialog"]');
+      const value =
+        (dialog?.querySelector('[data-slot="textarea"]') as HTMLTextAreaElement | null)
+          ?.value ?? "";
+      return /أولاً|اولا|إقرار/u.test(value) && value.length > 500;
+    },
+    null,
+    { timeout: 120_000 }
+  );
+
   const versionCountBefore =
     (await getLatestHandoverDraft(unitId))?._count.versions ?? 0;
 
-  await appendMarkerInEditor(page, locale, editMarker);
+  const editMeta = await applyFullLegalEdits(page, locale, variant);
+  const { editMarker } = editMeta;
   await saveDraftInDialog(page, locale, editMarker);
 
   const draft = await getLatestHandoverDraft(unitId);
@@ -372,7 +538,7 @@ async function generateHandoverOnUnit(
 
   await openHandoverEditor(page, locale);
   await page.getByRole("dialog").waitFor({ state: "visible" });
-  const reopened = page.locator('[data-slot="textarea"]').first();
+  const reopened = handoverEditorTextarea(page);
   const reopenedBody = await reopened.inputValue();
   if (!reopenedBody.includes(editMarker)) {
     throw new Error(`Reopen editor missing saved marker ${editMarker}`);
@@ -421,10 +587,10 @@ async function generateHandoverOnUnit(
   const canonicalPdf = path.join(ARTIFACT_ROOT, "pdfs", `${locale}-${variant}.pdf`);
   const getBuf = await (await page.request.get(`${BASE_URL}${href}`)).body();
   fs.writeFileSync(canonicalPdf, getBuf);
-  assertPdfContainsMarker(canonicalPdf, editMarker, "authenticated-GET");
+  assertPdfEditFidelity(canonicalPdf, editMeta, "authenticated-GET");
   assertMandatoryHandoverClauses(canonicalPdf, variant);
 
-  return { pdfPath: canonicalPdf, downloadUrl: href, editMarker };
+  return { pdfPath: canonicalPdf, downloadUrl: href, editMarker, editMeta };
 }
 
 async function verifyPdfIsOfficial(pdfPath: string, editMarker: string): Promise<void> {
@@ -463,7 +629,7 @@ async function runLegacyDraftFlow(
   }
 
   await page.goto(`${BASE_URL}/${locale}/units/${unitId}`, {
-    waitUntil: "networkidle",
+    waitUntil: "domcontentloaded",
   });
   await page
     .getByRole("heading", {
@@ -471,10 +637,9 @@ async function runLegacyDraftFlow(
     })
     .waitFor({ timeout: 30_000 });
 
-  await openHandoverEditor(page, locale);
-  await page.getByRole("dialog").waitFor({ state: "visible" });
+  await reopenSavedTextDraft(page, locale);
 
-  const textarea = page.locator('[data-slot="textarea"]').first();
+  const textarea = handoverEditorTextarea(page);
   const bodyOnReopen = await textarea.inputValue();
   if (!bodyOnReopen.includes(userEditMarker)) {
     throw new Error(
@@ -681,14 +846,14 @@ async function main() {
         report.steps.push(
           `${locale}: unit ${unit.variant} → Edit text → Generate → Download`
         );
-        const { pdfPath, downloadUrl, editMarker } = await generateHandoverOnUnit(
+        const result = await generateHandoverOnUnit(
           page,
           locale,
           unit.unitId,
           unit.variant,
           shot
         );
-        await verifyPdfIsOfficial(pdfPath, editMarker);
+        const { pdfPath, downloadUrl } = result;
         const getStatus = await page.request.get(`${BASE_URL}${downloadUrl}`);
         if (!getStatus.ok()) {
           throw new Error(`GET stored document failed: ${getStatus.status()} ${downloadUrl}`);
@@ -721,24 +886,39 @@ async function main() {
       await runLegacyDraftFlow(page, locale, manifest);
       await context.close();
     }
+  } catch (err) {
+    report.failed = true;
+    report.error = err instanceof Error ? err.message : String(err);
+    report.stack = err instanceof Error ? err.stack : undefined;
   } finally {
     await browser.close();
     await prisma.$disconnect();
+    fs.writeFileSync(
+      path.join(ARTIFACT_ROOT, "e2e-report.json"),
+      JSON.stringify(report, null, 2)
+    );
+    console.log("E2E report written:", path.join(ARTIFACT_ROOT, "e2e-report.json"));
+    if (!report.failed) {
+      const totalPages = (report.variants as Array<{ pageCount: number }>).reduce(
+        (n, v) => n + v.pageCount,
+        0
+      );
+      console.log("Total page PNGs:", totalPages);
+    }
   }
-
-  fs.writeFileSync(
-    path.join(ARTIFACT_ROOT, "e2e-report.json"),
-    JSON.stringify(report, null, 2)
-  );
-  console.log("E2E complete. Report:", path.join(ARTIFACT_ROOT, "e2e-report.json"));
-  const totalPages = (report.variants as Array<{ pageCount: number }>).reduce(
-    (n, v) => n + v.pageCount,
-    0
-  );
-  console.log("Total page PNGs:", totalPages);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    const reportPath = path.join(ARTIFACT_ROOT, "e2e-report.json");
+    if (fs.existsSync(reportPath)) {
+      const parsed = JSON.parse(fs.readFileSync(reportPath, "utf8")) as {
+        failed?: boolean;
+      };
+      if (parsed.failed) process.exit(1);
+    }
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });

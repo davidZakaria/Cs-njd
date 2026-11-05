@@ -31,9 +31,17 @@ async function ensureProject(name: string) {
 }
 
 let demoClientSeq = 7000;
+function nationalIdForDemoClient(suffix: string): string {
+  let h = 0;
+  for (const ch of suffix) {
+    h = (Math.imul(31, h) + ch.charCodeAt(0)) >>> 0;
+  }
+  return `290010${String(h % 100_000_000).padStart(8, "0")}`;
+}
+
 async function createDemoClient(suffix: string) {
   demoClientSeq += 1;
-  const nationalId = `2990101${String(demoClientSeq).padStart(7, "0")}`;
+  const nationalId = nationalIdForDemoClient(suffix);
   const email = `demo-owner-${suffix}@example.test`;
   const name = `Demo Owner ${suffix}`;
   const phone1 = "+201555010001";
@@ -41,10 +49,14 @@ async function createDemoClient(suffix: string) {
 
   const byEmail = await prisma.client.findFirst({ where: { email } });
   if (byEmail) {
+    const keepNationalId =
+      /^\d{14}$/.test(byEmail.nationalId ?? "") ?
+        byEmail.nationalId!
+      : nationalId;
     return prisma.client.update({
       where: { id: byEmail.id },
       data: {
-        nationalId,
+        nationalId: keepNationalId,
         name,
         phone1,
         address1,
@@ -167,6 +179,29 @@ async function createUnit(input: {
   return { unit, variant: input.variant };
 }
 
+/** Remove stale UI-test drafts so E2E starts from prepare/create, not corrupted saves. */
+async function resetHandoverDraftsOnDemoUnits(unitIds: string[]) {
+  const drafts = await prisma.officialDocumentTextDraft.findMany({
+    where: {
+      unitId: { in: unitIds },
+      documentType: "HANDOVER_RECORD",
+    },
+    select: { id: true },
+  });
+  const draftIds = drafts.map((d) => d.id);
+  if (draftIds.length === 0) return;
+  await prisma.unitGeneratedDocument.updateMany({
+    where: { textDraftId: { in: draftIds } },
+    data: { textDraftId: null },
+  });
+  await prisma.officialDocumentTextDraftVersion.deleteMany({
+    where: { draftId: { in: draftIds } },
+  });
+  await prisma.officialDocumentTextDraft.deleteMany({
+    where: { id: { in: draftIds } },
+  });
+}
+
 async function seedLegacyEnglishDraft(input: {
   unitId: string;
   adminUserId: string;
@@ -263,7 +298,7 @@ async function main() {
       projectName: "GREEN AVENUE",
       unitCode: "704-3-B",
       dual: true,
-      fullyFinished: false,
+      fullyFinished: true,
     },
     {
       variant: "jura",
@@ -290,6 +325,8 @@ async function main() {
     });
     units.push({ variant, unitId: unit.id, unitCode: unit.unitCode });
   }
+
+  await resetHandoverDraftsOnDemoUnits(units.map((u) => u.unitId));
 
   const legacyUnit = units.find((u) => u.variant === "green-avenue-no-insurance")!;
   const legacyDraft = await seedLegacyEnglishDraft({

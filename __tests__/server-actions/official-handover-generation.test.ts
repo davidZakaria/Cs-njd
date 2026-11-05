@@ -74,7 +74,7 @@ vi.mock("@/lib/prisma", () => ({
         if (args?.where?.draftId === "draft-legacy") {
           return {
             id: "v1",
-            body: "محضr — LEGAL saved version",
+            body: minimalValidGreenDraftBody("LEGAL saved version"),
             createdAt: new Date(),
             draftId: "draft-legacy",
           };
@@ -82,7 +82,7 @@ vi.mock("@/lib/prisma", () => ({
         if (args?.where?.draftId === "draft-edited") {
           return {
             id: "v2",
-            body: "محضr official text\n\nLEGAL_EDIT_MARKER: approved clause",
+            body: minimalValidGreenDraftBody("LEGAL_EDIT_MARKER: approved clause"),
             createdAt: new Date(),
             draftId: "draft-edited",
           };
@@ -90,7 +90,7 @@ vi.mock("@/lib/prisma", () => ({
         if (args?.where?.draftId === "draft-ar") {
           return {
             id: "v3",
-            body: "محضr تسليم — بيانات",
+            body: minimalValidGreenDraftBody(),
             createdAt: new Date(),
             draftId: "draft-ar",
           };
@@ -103,13 +103,28 @@ vi.mock("@/lib/prisma", () => ({
       create: (...args: unknown[]) => mockCreate(...args),
     },
     unitRequest: {
-      findFirst: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue({ status: "APPROVED" }),
     },
     $transaction: (fn: (tx: unknown) => Promise<unknown>) => mockTransaction(fn),
   },
 }));
 
 const fakePdf = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34]);
+
+function minimalValidGreenDraftBody(extra = ""): string {
+  return [
+    "محضr تسليم",
+    "أولاً: بيانات المستلم",
+    "owner block text",
+    "ثانياً: بيانات الوحدة",
+    "unit block text",
+    "إقرار",
+    `declaration body ${extra}`.trim(),
+    "المخالفات المتسببة فى فسخ العقد",
+    "violations body text",
+    "تأمين التشطيبات insurance clause",
+  ].join("\n\n");
+}
 
 const greenUnitRow = {
   id: "unit-green",
@@ -169,6 +184,8 @@ const greenUnitRow = {
 describe("generateOfficialDocumentAction handover integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRenderHandover.mockReset();
+    mockRenderGeneric.mockReset();
     mockAuth.mockResolvedValue({ user: { id: "legal-1", role: "LEGAL" } });
     mockCompanyProfile.mockResolvedValue({ address: "HQ" });
     mockRenderHandover.mockResolvedValue(fakePdf);
@@ -186,8 +203,6 @@ describe("generateOfficialDocumentAction handover integration", () => {
   });
 
   it("uses Chromium with saved draft body for official handover after metadata sync", async () => {
-    const officialBody =
-      "محضر تسليم — أولاً: بيانات المستلم\n\nLEGAL_EDIT_MARKER in saved version";
     mockFindFirst.mockImplementation(async (args: { where?: { id?: string } }) => {
       if (args?.where?.id === "draft-legacy") {
         return {
@@ -197,11 +212,10 @@ describe("generateOfficialDocumentAction handover integration", () => {
           templateLocale: "en",
           handoverTemplateKey: null,
           currentBody: "Unit Handover Record\n\nProject: GREEN AVENUE",
-          unitRequestId: null,
+          unitRequestId: "req-approved",
           templateId: "tpl-en",
           templateVersion: 1,
           title: "Handover Record",
-          versions: [{ id: "v1", body: officialBody, createdAt: new Date() }],
         };
       }
       return greenUnitRow;
@@ -226,8 +240,7 @@ describe("generateOfficialDocumentAction handover integration", () => {
   });
 
   it("passes saved draft body including legal edit markers to the Chromium renderer", async () => {
-    const bodyWithMarker =
-      "محضr official text\n\nLEGAL_EDIT_MARKER: approved clause";
+    const bodyWithMarker = minimalValidGreenDraftBody("LEGAL_EDIT_MARKER: approved clause");
     mockFindFirst.mockImplementation(async (args: { where?: { id?: string } }) => {
       if (args?.where?.id === "draft-edited") {
         return {
@@ -237,7 +250,7 @@ describe("generateOfficialDocumentAction handover integration", () => {
           templateLocale: "ar",
           handoverTemplateKey: "green-avenue",
           currentBody: bodyWithMarker,
-          unitRequestId: null,
+          unitRequestId: "req-approved",
           templateId: "tpl-ar",
           templateVersion: 1,
           title: "محضr",
@@ -273,7 +286,7 @@ describe("generateOfficialDocumentAction handover integration", () => {
           templateLocale: "ar",
           handoverTemplateKey: "green-avenue",
           currentBody: "Unit Handover Record\n\nProject: GREEN AVENUE",
-          unitRequestId: null,
+          unitRequestId: "req-approved",
           templateId: "tpl-ar",
           templateVersion: 1,
           title: "محضر",
@@ -307,11 +320,11 @@ describe("generateOfficialDocumentAction handover integration", () => {
           templateLocale: "ar",
           handoverTemplateKey: "green-avenue",
           currentBody: "محضر تسليم — بيانات",
-          unitRequestId: null,
+          unitRequestId: "req-approved",
           templateId: "tpl-ar",
           templateVersion: 1,
           title: "محضر",
-          versions: [{ id: "v1", body: "محضr تسليم — بيانات", createdAt: new Date() }],
+          versions: [{ id: "v1", body: minimalValidGreenDraftBody(), createdAt: new Date() }],
         };
       }
       return greenUnitRow;
