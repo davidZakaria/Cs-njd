@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
 import type { OfficialDocumentType, UnitRequestType } from "@prisma/client";
 
@@ -31,6 +31,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { OFFICIAL_DOCUMENT_TYPES } from "@/lib/official-documents/types";
+import {
+  buildPrefilledCreateUnitRequestHref,
+  canEditOfficialDocumentDraftNow,
+  filterApprovedRequestsForDocumentType,
+  formatApprovedUnitRequestOptionLabel,
+  resolveAutoLinkedUnitRequestId,
+} from "@/lib/official-documents/approved-request-option";
 import { requiredRequestTypeForDocument } from "@/lib/official-documents/request-binding";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +66,9 @@ export type UnitRequestOption = {
   id: string;
   type: UnitRequestType;
   status: string;
+  submittedAt: Date | null;
+  updatedAt: Date;
+  description: string | null;
 };
 
 export function UnitOfficialDocumentsPanel({
@@ -66,6 +76,7 @@ export function UnitOfficialDocumentsPanel({
   canEditDraftText,
   canViewDraftText,
   canGeneratePdf,
+  canCreateUnitRequest,
   generatedDocuments,
   textDrafts,
   approvedRequests,
@@ -74,6 +85,7 @@ export function UnitOfficialDocumentsPanel({
   canEditDraftText: boolean;
   canViewDraftText: boolean;
   canGeneratePdf: boolean;
+  canCreateUnitRequest: boolean;
   generatedDocuments: GeneratedRow[];
   textDrafts: TextDraftRow[];
   approvedRequests: UnitRequestOption[];
@@ -107,30 +119,61 @@ export function UnitOfficialDocumentsPanel({
   const documentTypeLabel =
     documentTypeItems[documentType] ?? tEnums(`officialDocumentType.${documentType}`);
 
+  const needsRequest = Boolean(requiredRequestTypeForDocument(documentType));
+  const requiredRequestType = requiredRequestTypeForDocument(documentType);
+
+  const requestOptions = useMemo(
+    () => filterApprovedRequestsForDocumentType(approvedRequests, requiredRequestType),
+    [approvedRequests, requiredRequestType]
+  );
+
+  const resolvedUnitRequestId = useMemo(() => {
+    const autoId = resolveAutoLinkedUnitRequestId({
+      needsRequest,
+      requestOptions,
+      unitRequestId,
+    });
+    return autoId !== undefined ? autoId : unitRequestId;
+  }, [needsRequest, requestOptions, unitRequestId]);
+
+  const canEditNow = canEditOfficialDocumentDraftNow({
+    needsRequest,
+    unitRequestId: resolvedUnitRequestId,
+  });
+
+  const formatRequestLabel = (request: UnitRequestOption) =>
+    formatApprovedUnitRequestOptionLabel({
+      typeLabel: tEnums(`unitRequestType.${request.type}`),
+      submittedAt: request.submittedAt,
+      updatedAt: request.updatedAt,
+      description: request.description,
+      locale,
+    });
+
   const linkedRequestItems = useMemo(() => {
-    const required = requiredRequestTypeForDocument(documentType);
-    const options = approvedRequests.filter((r) =>
-      required ? r.type === required : true
-    );
-    const items: Record<string, string> = {
-      __none__: t("linkedRequestNone"),
-    };
-    for (const req of options) {
-      items[req.id] = `${tEnums(`unitRequestType.${req.type}`)} — ${req.id.slice(0, 8)}`;
+    const items: Record<string, string> = {};
+    if (!needsRequest) {
+      items.__none__ = t("linkedRequestNone");
+    }
+    for (const req of requestOptions) {
+      items[req.id] = formatRequestLabel(req);
     }
     return items;
-  }, [approvedRequests, documentType, t, tEnums]);
+  }, [needsRequest, requestOptions, t, locale, tEnums]);
 
-  const linkedRequestValue = unitRequestId || "__none__";
-  const linkedRequestLabel =
-    linkedRequestItems[linkedRequestValue] ?? t("linkedRequestNone");
+  const linkedRequestValue = needsRequest
+    ? resolvedUnitRequestId || null
+    : resolvedUnitRequestId || "__none__";
+  const selectedRequest = requestOptions.find((r) => r.id === resolvedUnitRequestId);
+  const linkedRequestLabel = selectedRequest
+    ? formatRequestLabel(selectedRequest)
+    : needsRequest
+      ? t("linkedRequestSelectApproved")
+      : t("linkedRequestNone");
 
-  const requestOptions = useMemo(() => {
-    const required = requiredRequestTypeForDocument(documentType);
-    return approvedRequests.filter((r) =>
-      required ? r.type === required : true
-    );
-  }, [approvedRequests, documentType]);
+  const requiredRequestTypeLabel = requiredRequestType
+    ? tEnums(`unitRequestType.${requiredRequestType}`)
+    : "";
 
   const openEditor = (input: {
     draftId?: string;
@@ -141,7 +184,7 @@ export function UnitOfficialDocumentsPanel({
         unitId,
         documentType,
         locale,
-        unitRequestId: unitRequestId || null,
+        unitRequestId: resolvedUnitRequestId || null,
         draftId: input.draftId ?? null,
       });
       if (!result.success) {
@@ -244,6 +287,8 @@ export function UnitOfficialDocumentsPanel({
 
   const editorRtl = editorLocale === "ar";
 
+  const showRequestBindingUi = canEditDraftText || canCreateUnitRequest;
+
   return (
     <div className="space-y-4 rounded-xl border border-border/60 bg-card p-4">
       <div>
@@ -251,7 +296,7 @@ export function UnitOfficialDocumentsPanel({
         <p className="text-sm text-muted-foreground">{t("panelHint")}</p>
       </div>
 
-      {canEditDraftText ? (
+      {showRequestBindingUi ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>{t("documentType")}</Label>
@@ -284,33 +329,72 @@ export function UnitOfficialDocumentsPanel({
                 setUnitRequestId(v && v !== "__none__" ? v : "")
               }
             >
-              <SelectTrigger>
-                <SelectValue placeholder={t("linkedRequestOptional")}>
+              <SelectTrigger
+                disabled={needsRequest && requestOptions.length === 0}
+                className="w-full"
+              >
+                <SelectValue
+                  placeholder={
+                    needsRequest ? t("linkedRequestSelectApproved") : t("linkedRequestOptional")
+                  }
+                >
                   {linkedRequestLabel}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {!requiredRequestTypeForDocument(documentType) ? (
+                {!needsRequest ? (
                   <SelectItem value="__none__">{t("linkedRequestNone")}</SelectItem>
                 ) : null}
                 {requestOptions.map((req) => (
                   <SelectItem key={req.id} value={req.id}>
-                    {tEnums(`unitRequestType.${req.type}`)} — {req.id.slice(0, 8)}
+                    {formatRequestLabel(req)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">{t("linkedRequestHint")}</p>
+            {needsRequest && requestOptions.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-3 text-sm">
+                <p className="text-muted-foreground">
+                  {t("noApprovedRequestNotice", { type: requiredRequestTypeLabel })}
+                </p>
+                {canCreateUnitRequest && requiredRequestType ? (
+                  <Button
+                    type="button"
+                    className="mt-2"
+                    size="sm"
+                    variant="outline"
+                    render={
+                      <Link
+                        href={buildPrefilledCreateUnitRequestHref({
+                          unitId,
+                          requestType: requiredRequestType,
+                        })}
+                      />
+                    }
+                  >
+                    {t("createRequestType", { type: requiredRequestTypeLabel })}
+                  </Button>
+                ) : (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {t("askCsToCreateRequest", { type: requiredRequestTypeLabel })}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">{t("linkedRequestHint")}</p>
+            )}
           </div>
-          <div className="sm:col-span-2">
-            <Button
-              type="button"
-              disabled={pending}
-              onClick={() => openEditor({ create: true })}
-            >
-              {t("editText")}
-            </Button>
-          </div>
+          {canEditDraftText ? (
+            <div className="sm:col-span-2">
+              <Button
+                type="button"
+                disabled={pending || !canEditNow}
+                onClick={() => openEditor({ create: true })}
+              >
+                {t("editText")}
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">{t("viewOnlyHint")}</p>
