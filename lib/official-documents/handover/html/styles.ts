@@ -1,7 +1,22 @@
+/**
+ * Handover print layout (Chromium paged media):
+ * - @page margin = outer border inset from the physical sheet (8mm).
+ * - position:fixed .print-frame at 0/1.5mm draws the double frame on the page box edge.
+ * - .doc-body padding = remaining inset so text sits at 16mm (~6.5mm inside inner border).
+ */
+export const HANDOVER_BORDER_OUTER_INSET_MM = 8;
+export const HANDOVER_BORDER_INNER_INSET_MM = 9.5;
+/** Total content inset from physical page edge (equivalent to @page margin 16mm). */
+export const HANDOVER_PAGE_MARGIN_MM = 16;
+export const HANDOVER_CONTENT_PADDING_MM =
+  HANDOVER_PAGE_MARGIN_MM - HANDOVER_BORDER_OUTER_INSET_MM;
+export const HANDOVER_BORDER_INNER_OFFSET_MM =
+  HANDOVER_BORDER_INNER_INSET_MM - HANDOVER_BORDER_OUTER_INSET_MM;
+
 export const HANDOVER_PRINT_CSS = `
 @page {
   size: A4;
-  margin: 10mm 18mm 11mm 11mm;
+  margin: ${HANDOVER_BORDER_OUTER_INSET_MM}mm;
 }
 
 * {
@@ -11,8 +26,6 @@ export const HANDOVER_PRINT_CSS = `
 html, body {
   margin: 0;
   padding: 0;
-  width: auto;
-  max-width: none;
 }
 
 body {
@@ -22,7 +35,7 @@ body {
   direction: rtl;
   text-align: right;
   color: #000;
-  overflow-x: hidden;
+  overflow: visible;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
@@ -30,11 +43,13 @@ body {
 .doc-body {
   position: relative;
   z-index: 1;
-  box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   margin: 0;
-  padding: 0;
+  padding: ${HANDOVER_CONTENT_PADDING_MM}mm;
+  box-sizing: border-box;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
   overflow-wrap: break-word;
   word-wrap: break-word;
 }
@@ -56,21 +71,22 @@ body {
   position: fixed;
   pointer-events: none;
   z-index: 1000;
+  box-sizing: border-box;
 }
 
 .print-frame-outer {
-  top: 5mm;
-  left: 5mm;
-  right: 5mm;
-  bottom: 5mm;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   border: 0.55pt solid #000;
 }
 
 .print-frame-inner {
-  top: 6.5mm;
-  left: 6.5mm;
-  right: 6.5mm;
-  bottom: 6.5mm;
+  top: ${HANDOVER_BORDER_INNER_OFFSET_MM}mm;
+  left: ${HANDOVER_BORDER_INNER_OFFSET_MM}mm;
+  right: ${HANDOVER_BORDER_INNER_OFFSET_MM}mm;
+  bottom: ${HANDOVER_BORDER_INNER_OFFSET_MM}mm;
   border: 0.55pt solid #000;
 }
 
@@ -95,19 +111,20 @@ body {
 
 .doc-logo {
   display: block;
-  height: 12mm;
+  height: 11mm;
   width: auto;
-  max-width: 58mm;
+  max-width: 52mm;
   object-fit: contain;
-  object-position: right top;
-  margin-bottom: 3mm;
-  margin-inline-start: auto;
-  margin-inline-end: 0;
+  object-position: left center;
+  margin-block: 0 3mm;
+  margin-inline-start: 0;
+  margin-inline-end: auto;
 }
 
 .title-block {
   text-align: center;
   width: 100%;
+  max-width: 100%;
 }
 
 .title-line {
@@ -168,6 +185,19 @@ p.justified,
 .jura-thalitha-wrap {
   break-inside: avoid;
   page-break-inside: avoid;
+  margin-top: 2mm;
+  margin-bottom: 10mm;
+  padding-bottom: 4mm;
+}
+
+.jura-thalitha-wrap .signature-block {
+  padding-inline: 3mm;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.jura-thalitha-wrap .dotted-line {
+  max-width: min(32mm, 42%);
 }
 
 .section-page-break {
@@ -188,6 +218,7 @@ p.justified,
 .field-line {
   margin: 1.5mm 0;
   line-height: 1.55;
+  max-width: 100%;
 }
 
 .field-label {
@@ -204,6 +235,7 @@ p.justified,
   unicode-bidi: isolate;
   display: inline-block;
   text-align: left;
+  max-width: 100%;
 }
 
 .field-row-spread {
@@ -212,6 +244,7 @@ p.justified,
   gap: 2mm 8mm;
   align-items: baseline;
   margin: 1.5mm 0;
+  max-width: 100%;
 }
 
 .declaration-intro {
@@ -232,8 +265,10 @@ p.justified,
 }
 
 .signature-block {
-  margin: 4mm 0 5mm;
+  margin: 4mm 0 6mm;
   break-inside: avoid;
+  max-width: 100%;
+  padding-bottom: 2mm;
 }
 
 .signature-page-break {
@@ -243,13 +278,17 @@ p.justified,
 
 .signature-block-closing {
   margin-top: 6mm;
+  margin-bottom: 4mm;
   break-inside: avoid;
   page-break-inside: avoid;
+  max-width: 100%;
+  padding-top: 2mm;
 }
 
 .jura-finale {
   break-inside: avoid-page;
   page-break-inside: avoid;
+  padding-bottom: 4mm;
 }
 
 .signature-heading {
@@ -263,26 +302,45 @@ p.justified,
 .signature-row {
   display: flex;
   justify-content: space-between;
-  gap: 8mm;
+  gap: 4mm;
   margin-top: 3mm;
+  max-width: 100%;
+  width: 100%;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+  padding-inline: 0;
 }
 
 .signature-cell {
-  flex: 1;
+  flex: 1 1 40%;
   min-width: 0;
+  max-width: 100%;
 }
 
 .signature-cell span.label {
   font-weight: 600;
-  margin-left: 2mm;
+  margin-inline-start: 2mm;
 }
 
 .dotted-line {
   display: inline-block;
-  min-width: 52mm;
+  min-width: 22mm;
+  max-width: min(38mm, calc(100% - 2mm));
   border-bottom: 1px dotted #000;
   vertical-align: baseline;
   height: 1em;
+}
+
+.signature-block-closing .signature-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3mm;
+}
+
+.signature-block-closing .signature-cell {
+  flex: 0 0 auto;
+  max-width: 100%;
+  width: 100%;
 }
 
 .missing-field {
@@ -294,10 +352,12 @@ p.justified,
 
 .owner-block {
   margin-bottom: 3mm;
+  max-width: 100%;
 }
 
 .violations-block {
   break-inside: auto;
+  max-width: 100%;
 }
 
 .violations-block p {
