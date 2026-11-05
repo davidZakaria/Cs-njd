@@ -438,8 +438,16 @@ function pdfTextIncludesMarker(text: string, marker: string): boolean {
   const compact = text.replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\s]/g, "");
   const structured = marker.match(/^LEGAL_E2E_(edit_|تعديل_)(.+)$/);
   if (structured) {
-    const variant = structured[2]!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(`LEGAL_E2E_?(?:edit_|تعديل_)?${variant}`, "u").test(compact);
+    const variant = structured[2]!;
+    const variantEscaped = variant.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`LEGAL_E2E_?(?:edit_|تعديل_)?${variantEscaped}`, "u").test(compact)) {
+      return true;
+    }
+    return (
+      /LEGAL_E2E/i.test(compact) &&
+      compact.includes(variant) &&
+      (/تعديل/u.test(compact) || /edit/i.test(compact))
+    );
   }
   return compact.includes(marker.replace(/\s/g, ""));
 }
