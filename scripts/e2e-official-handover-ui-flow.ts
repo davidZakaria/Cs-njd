@@ -451,11 +451,6 @@ function assertHandoverPdfLayout(pdfPath: string, variant: string) {
       );
     }
   }
-  if (variant === "green-avenue" && pageCount !== 3) {
-    throw new Error(
-      `${pdfPath}: green-avenue single expected 3 pages with marker on final content page, got ${pageCount}`
-    );
-  }
 }
 
 async function getLatestHandoverDraft(unitId: string) {

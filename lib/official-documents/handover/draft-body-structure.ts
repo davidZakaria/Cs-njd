@@ -42,9 +42,9 @@ export function isHandoverDraftAppendixChunk(text: string): boolean {
 export function mergeTrailingHandoverAppendixChunks(chunks: string[]): string[] {
   const merged = [...chunks];
   while (merged.length >= 2 && isHandoverDraftAppendixChunk(merged[merged.length - 1]!)) {
-    const appendix = merged.pop()!;
+    const appendix = merged.pop()!.trim();
     const body = merged.pop()!;
-    merged.push(`${body}\n\n${appendix}`);
+    merged.push(`${body.trimEnd()} ${appendix}`);
   }
   return merged;
 }

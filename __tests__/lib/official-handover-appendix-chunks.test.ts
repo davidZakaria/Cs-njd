@@ -22,5 +22,6 @@ describe("handover draft appendix chunk merge", () => {
     expect(merged).toHaveLength(2);
     expect(merged[1]).toContain("LEGAL_E2E_NONCE_en_green-avenue");
     expect(merged[1]).toContain("نص عربي");
+    expect(merged[1]).not.toMatch(/\n\nLEGAL_E2E/);
   });
 });

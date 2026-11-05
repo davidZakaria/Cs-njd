@@ -373,5 +373,7 @@ p.justified,
 
 .insurance-block {
   margin-top: 2mm;
+  break-inside: auto;
+  page-break-inside: auto;
 }
 `.trim();

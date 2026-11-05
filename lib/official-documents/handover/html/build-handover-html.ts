@@ -17,6 +17,7 @@ import type {
 import { handoverLogoAssetRelativePath } from "@/lib/official-documents/handover/constants";
 import {
   greenAvenueBodyChunksWithoutHeader,
+  isHandoverDraftAppendixChunk,
   mergeTrailingHandoverAppendixChunks,
   splitHandoverDraftChunks,
 } from "@/lib/official-documents/handover/draft-body-structure";
@@ -517,7 +518,13 @@ function renderGreenAvenueDraftBodyHtml(
       if (!template.insurance) {
         continue;
       }
-      html += `<p class="justified insurance-block">${toHandoverHtml(bodyText || chunk)}</p>`;
+      let insuranceText = chunk.trim();
+      if (bodyText && isHandoverDraftAppendixChunk(bodyText)) {
+        insuranceText = `${heading}\n\n${bodyText}`.trim();
+      } else if (bodyText) {
+        insuranceText = bodyText;
+      }
+      html += `<p class="justified insurance-block">${toHandoverHtml(insuranceText)}</p>`;
       continue;
     }
 
