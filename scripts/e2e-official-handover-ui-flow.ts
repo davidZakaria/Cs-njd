@@ -241,13 +241,37 @@ async function login(page: Page, locale: "en" | "ar", email: string, password: s
     waitUntil: "domcontentloaded",
     timeout: 120_000,
   });
+  await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {});
+
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);
-  await page.getByRole("button", { name: /sign in|log in|login|دخول/i }).click();
 
-  await page.waitForURL(/\/(en|ar)\/(setup-2fa|verify-2fa|dashboard|units|executive)/, {
-    timeout: 60_000,
-  });
+  const submit = page.locator('form button[type="submit"]');
+  await submit.waitFor({ state: "visible", timeout: 30_000 });
+  await page.waitForFunction(
+    () => {
+      const btn = document.querySelector(
+        'form button[type="submit"]'
+      ) as HTMLButtonElement | null;
+      return Boolean(btn && !btn.disabled);
+    },
+    { timeout: 30_000 }
+  );
+
+  await Promise.all([
+    page.waitForURL(/\/(en|ar)\/(setup-2fa|verify-2fa|dashboard|units|executive)/, {
+      timeout: 90_000,
+      waitUntil: "domcontentloaded",
+    }),
+    submit.click(),
+  ]);
+
+  if (page.url().includes("/login")) {
+    const alerts = await page.locator('[role="alert"]').allTextContents().catch(() => []);
+    throw new Error(
+      `Login stayed on login page (harness/product). url=${page.url()} alerts=${JSON.stringify(alerts)}`
+    );
+  }
 
   if (page.url().includes("verify-2fa")) {
     const code = authenticator.generate(twoFactorSecret);
@@ -255,26 +279,30 @@ async function login(page: Page, locale: "en" | "ar", email: string, password: s
     await tokenInput.click();
     await tokenInput.fill("");
     await tokenInput.pressSequentially(code, { delay: 30 });
-    const submit = page.locator("form").getByRole("button", { name: /continue|متابعة/i });
-    await submit.waitFor({ state: "visible" });
-    if (!(await submit.isEnabled())) {
+    const continueBtn = page.locator("form").getByRole("button", { name: /continue|متابعة/i });
+    await continueBtn.waitFor({ state: "visible" });
+    if (!(await continueBtn.isEnabled())) {
       await page.screenshot({ path: path.join(ARTIFACT_ROOT, "debug-verify-2fa-disabled.png") });
       throw new Error("2FA Continue button stayed disabled after entering code");
     }
     await Promise.all([
-      page.waitForURL(/\/(en|ar)\/(dashboard|units|executive)/, { timeout: 60_000 }),
-      submit.click(),
+      page.waitForURL(/\/(en|ar)\/(dashboard|units|executive)/, {
+        timeout: 90_000,
+        waitUntil: "domcontentloaded",
+      }),
+      continueBtn.click(),
     ]);
     return;
-  } else if (page.url().includes("setup-2fa")) {
+  }
+  if (page.url().includes("setup-2fa")) {
     throw new Error(
       "E2E user still routed to setup-2fa — run seed-official-handover-e2e-demo to pre-enable 2FA"
     );
   }
 
-  await page.waitForURL(/\/(en|ar)\/(dashboard|units|executive)/, {
-    timeout: 60_000,
-  });
+  if (!/\/(dashboard|units|executive)/.test(page.url())) {
+    throw new Error(`Login did not reach app shell: ${page.url()}`);
+  }
 }
 
 function legalEditMarker(locale: "en" | "ar", variant: string): string {
@@ -783,6 +811,28 @@ async function appendMarkerInEditor(
   }
 }
 
+async function waitForSonnerToast(page: Page, pattern: RegExp, timeoutMs = 120_000) {
+  await page
+    .locator("[data-sonner-toast]")
+    .filter({ hasText: pattern })
+    .first()
+    .waitFor({ state: "visible", timeout: timeoutMs });
+}
+
+async function waitForHandoverPanelEditReady(page: Page, locale: "en" | "ar") {
+  const label = locale === "ar" ? "تعديل النص" : "Edit text";
+  await page.waitForFunction(
+    (needle) => {
+      const btn = [...document.querySelectorAll("button")].find((b) =>
+        (b.textContent ?? "").includes(needle)
+      ) as HTMLButtonElement | undefined;
+      return Boolean(btn && !btn.disabled);
+    },
+    label,
+    { timeout: 120_000 }
+  );
+}
+
 async function saveDraftInDialog(
   page: Page,
   locale: "en" | "ar",
@@ -794,24 +844,55 @@ async function saveDraftInDialog(
       throw new Error(`Pre-save editor missing marker ${expectedMarker}`);
     }
   }
-  await page
-    .getByRole("button", {
-      name: locale === "ar" ? /حفظ/i : /Save text version/i,
-    })
-    .click({ force: true });
-  await page
-    .getByText(locale === "ar" ? /تم حفظ/i : /Draft text saved/i)
-    .waitFor({ timeout: 60_000 });
+  const saveBtn = page.getByRole("button", {
+    name: locale === "ar" ? /حفظ نسخة النص/i : /Save text version/i,
+  });
+  await saveBtn.waitFor({ state: "visible", timeout: 30_000 });
+  await page.waitForFunction(
+    (isAr) => {
+      const dialog = document.querySelector('[role="dialog"]');
+      const buttons = dialog ? [...dialog.querySelectorAll("button")] : [];
+      const save = buttons.find((b) =>
+        isAr
+          ? /حفظ نسخة النص/.test(b.textContent ?? "")
+          : /Save text version/i.test(b.textContent ?? "")
+      ) as HTMLButtonElement | undefined;
+      return Boolean(save && !save.disabled);
+    },
+    locale === "ar",
+    { timeout: 120_000 }
+  );
+
+  const toastPattern =
+    locale === "ar" ? /تم حفظ نص المسودة/ : /Draft text saved/;
+  await Promise.all([
+    waitForSonnerToast(page, toastPattern, 120_000),
+    saveBtn.click(),
+  ]);
 }
 
 async function generateDraftInDialog(page: Page, locale: "en" | "ar") {
   const generateBtn = page.getByRole("button", {
     name: locale === "ar" ? /إنشاء مسودة PDF/i : /Generate draft PDF/i,
   });
-  await generateBtn.click({ force: true });
-  await page
-    .getByText(locale === "ar" ? /تم إنشاء مسودة PDF/i : /Draft PDF generated/i)
-    .waitFor({ timeout: 120_000 });
+  await generateBtn.waitFor({ state: "visible" });
+  await page.waitForFunction(
+    () => {
+      const dialog = document.querySelector('[role="dialog"]');
+      const buttons = dialog ? [...dialog.querySelectorAll("button")] : [];
+      const gen = buttons.find((b) =>
+        /Generate draft PDF|إنشاء مسودة PDF/.test(b.textContent ?? "")
+      ) as HTMLButtonElement | undefined;
+      return Boolean(gen && !gen.disabled);
+    },
+    { timeout: 120_000 }
+  );
+  const toastPattern =
+    locale === "ar" ? /تم إنشاء مسودة PDF/ : /Draft PDF generated/;
+  await Promise.all([
+    waitForSonnerToast(page, toastPattern, 180_000),
+    generateBtn.click(),
+  ]);
 }
 
 async function clickGenerateDraftExpectLegacyBlock(page: Page, locale: "en" | "ar") {
@@ -935,7 +1016,8 @@ async function openHandoverEditor(page: Page, locale: "en" | "ar") {
     name: locale === "ar" ? /تعديل النص/i : /^Edit text$/i,
   });
   await editText.waitFor({ state: "visible", timeout: 30_000 });
-  await editText.click({ force: true });
+  await waitForHandoverPanelEditReady(page, locale);
+  await editText.click();
   await page.getByRole("dialog").waitFor({ state: "visible", timeout: 120_000 });
 }
 
@@ -1328,6 +1410,13 @@ async function main() {
   const locales: Array<"en" | "ar"> = localeFilter?.length
     ? localeFilter
     : ["en", "ar"];
+  if (localeFilter?.length) {
+    console.warn(
+      `HANDOVER_E2E_LOCALES=${process.env.HANDOVER_E2E_LOCALES} (subset only). Unset for full en+ar matrix.`
+    );
+  } else {
+    console.log("HANDOVER_E2E_LOCALES unset — running full en + ar UI matrix.");
+  }
   const legacyOnly = process.env.HANDOVER_E2E_LEGACY_ONLY === "1";
   const skipVitest = process.env.HANDOVER_E2E_SKIP_VITEST === "1";
 
