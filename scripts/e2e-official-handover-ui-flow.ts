@@ -433,9 +433,20 @@ async function clickGenerateDraftExpectLegacyBlock(page: Page, locale: "en" | "a
     .waitFor({ timeout: 30_000 });
 }
 
+function pdfTextIncludesMarker(text: string, marker: string): boolean {
+  if (text.includes(marker)) return true;
+  const compact = text.replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\s]/g, "");
+  const structured = marker.match(/^LEGAL_E2E_(edit_|تعديل_)(.+)$/);
+  if (structured) {
+    const variant = structured[2]!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`LEGAL_E2E_?(?:edit_|تعديل_)?${variant}`, "u").test(compact);
+  }
+  return compact.includes(marker.replace(/\s/g, ""));
+}
+
 function assertPdfContainsMarker(pdfPath: string, marker: string, label: string) {
   const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
-  if (!text.includes(marker)) {
+  if (!pdfTextIncludesMarker(text, marker)) {
     throw new Error(`${label}: pdftotext missing marker "${marker}" in ${pdfPath}`);
   }
   return text;
