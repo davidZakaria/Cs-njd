@@ -30,7 +30,7 @@ async function ensureProject(name: string) {
   });
 }
 
-let demoClientSeq = 7000;
+
 function nationalIdForDemoClient(suffix: string): string {
   let h = 0;
   for (const ch of suffix) {
@@ -40,7 +40,6 @@ function nationalIdForDemoClient(suffix: string): string {
 }
 
 async function createDemoClient(suffix: string) {
-  demoClientSeq += 1;
   const nationalId = nationalIdForDemoClient(suffix);
   const email = `demo-owner-${suffix}@example.test`;
   const name = `Demo Owner ${suffix}`;

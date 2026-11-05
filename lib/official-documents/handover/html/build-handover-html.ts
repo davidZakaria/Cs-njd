@@ -249,9 +249,9 @@ function buildGreenSingleDeclarationIntro(
 function splitGreenDeclaration(text: string) {
   const normalized = text.replace(/\s+/g, " ").trim();
   const bodyStart = normalized.search(/بأننى|بأنني|بانني/i);
-  let introPart =
+  const introPart =
     bodyStart > 0 ? normalized.slice(0, bodyStart).trim() : normalized;
-  let rest = bodyStart > 0 ? normalized.slice(bodyStart).trim() : "";
+  const rest = bodyStart > 0 ? normalized.slice(bodyStart).trim() : "";
 
   let intro = introPart;
   let introIdLine = "";
@@ -490,7 +490,6 @@ function renderJuraDraftBodyHtml(
     const lines = chunk.split("\n");
     const headingLine = lines[0]?.trim() ?? "";
     const bodyText = lines.slice(1).join("\n").trim();
-    const combined = bodyText ? `${headingLine}\n${bodyText}` : chunk;
 
     if (i === 0 || /^أولاً|^1-/u.test(headingLine)) {
       html += `<h2 class="section-heading">أولاً</h2>`;
