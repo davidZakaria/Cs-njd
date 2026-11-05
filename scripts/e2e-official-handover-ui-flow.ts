@@ -280,6 +280,13 @@ async function openHandoverEditor(page: Page, locale: "en" | "ar") {
     })
     .first();
 
+  if (await editText.isVisible().catch(() => false)) {
+    const enabled = await editText.isEnabled().catch(() => false);
+    if (enabled) {
+      await editText.click({ force: true });
+      return;
+    }
+  }
   if (await reopenDraft.isVisible().catch(() => false)) {
     await reopenDraft.click({ force: true });
     return;
