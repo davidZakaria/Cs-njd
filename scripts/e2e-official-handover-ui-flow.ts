@@ -1004,10 +1004,10 @@ async function main() {
   }
 
   try {
-    if (!legacyOnly) {
-      await resetMainLoopHandoverDrafts(manifest);
-    }
     for (const locale of locales) {
+      if (!legacyOnly) {
+        await resetMainLoopHandoverDrafts(manifest);
+      }
       const context = await browser.newContext({
         acceptDownloads: true,
         locale: locale === "ar" ? "ar-EG" : "en-US",
