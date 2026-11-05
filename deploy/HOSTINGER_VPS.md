@@ -341,6 +341,8 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3001/en/login
 
 Expect **200** from the curl check. Then verify in browser: **https://njd-crm.com**
 
+**Official handover PDFs** use headless Chromium (HTML → PDF). `./deploy/update.sh` installs `chromium-browser` (or `chromium`) plus Noto fonts and sets `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` in `.env`. PM2 passes that env via `deploy/ecosystem.config.cjs`.
+
 ---
 
 ## Admin ops (production)

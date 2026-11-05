@@ -12,9 +12,14 @@ const nextConfig: NextConfig = {
     "tesseract.js-core",
     "@aws-sdk/client-s3",
     "harfbuzzjs",
+    "playwright",
   ],
   outputFileTracingIncludes: {
-    "/**/*": ["./node_modules/harfbuzzjs/**/*.wasm"],
+    "/**/*": [
+      "./node_modules/harfbuzzjs/**/*.wasm",
+      "./lib/official-documents/assets/NotoNaskhArabic-Regular.ttf",
+      "./public/brand/j-communities-light.png",
+    ],
   },
   async headers() {
     return [

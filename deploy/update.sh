@@ -17,6 +17,29 @@ mkdir -p uploads/signed-protocols uploads/national-ids uploads/signed-contracts 
 echo "==> Install dependencies"
 npm ci --legacy-peer-deps
 
+echo "==> Ensure Chromium for official handover PDF generation"
+if command -v chromium >/dev/null 2>&1; then
+  CHROME_BIN="$(command -v chromium)"
+elif command -v chromium-browser >/dev/null 2>&1; then
+  CHROME_BIN="$(command -v chromium-browser)"
+else
+  echo "    Installing chromium + Arabic font packages (sudo)…"
+  sudo apt-get update -qq
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    chromium-browser fonts-noto-core fonts-noto-ui-core 2>/dev/null || \
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    chromium fonts-noto-core fonts-noto-ui-core
+  CHROME_BIN="$(command -v chromium-browser 2>/dev/null || command -v chromium)"
+fi
+if [[ -n "${CHROME_BIN:-}" ]]; then
+  grep -q PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH .env 2>/dev/null || \
+    echo "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=${CHROME_BIN}" >> .env
+  export PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH="$CHROME_BIN"
+  echo "    Using Chromium at ${CHROME_BIN}"
+else
+  echo "    WARNING: Chromium not found — official handover PDF generation will fail until installed."
+fi
+
 echo "==> Run migrations"
 npx prisma migrate deploy
 npx prisma generate

@@ -21,6 +21,7 @@ import {
   listMissingFieldsInBody,
   officialHandoverMissingFieldLabel,
 } from "@/lib/official-documents/handover/missing-fields-ui";
+import { buildOfficialHandoverFieldValues } from "@/lib/official-documents/handover/field-values";
 import { renderOfficialHandoverRecordPdf } from "@/lib/official-documents/handover/render-pdf";
 import { getCompanyProfileSettings } from "@/lib/system/settings-store";
 import type { HandoverTemplateKey } from "@/lib/print/handover-templates/types";
@@ -475,11 +476,17 @@ export async function generateOfficialDocumentAction(input: {
   }
 
   const companyProfile = await getCompanyProfileSettings();
+  const handoverFields = draft.handoverTemplateKey
+    ? buildOfficialHandoverFieldValues(
+        ctx.mergeUnit,
+        draft.templateLocale
+      ).handoverFields
+    : null;
 
-  const pdfBytes = draft.handoverTemplateKey
+  const pdfBytes = draft.handoverTemplateKey && handoverFields
     ? await renderOfficialHandoverRecordPdf({
         templateKey: draft.handoverTemplateKey as HandoverTemplateKey,
-        body: draft.currentBody,
+        fields: handoverFields,
         companyAddress: companyProfile.address,
         watermarkDraft: true,
       })

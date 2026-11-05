@@ -5,11 +5,17 @@ import {
   buildOfficialHandoverDraftBody,
 } from "@/lib/official-documents/handover/build-body";
 import { buildOfficialHandoverFieldValues } from "@/lib/official-documents/handover/field-values";
-import { renderOfficialHandoverRecordPdf } from "@/lib/official-documents/handover/render-pdf";
+import {
+  buildOfficialHandoverHtml,
+  closeHandoverPdfBrowser,
+  renderHandoverHtmlPageOnePng,
+  renderHandoverHtmlToPdf,
+} from "@/lib/official-documents/handover/render-pdf";
 import type { HandoverTemplateKey } from "@/lib/print/handover-templates/types";
 import type { UnitMergeInput } from "@/lib/official-documents/merge-fields";
 
 const outDir = path.join(process.cwd(), "docs/official-documents-samples/handover-masters");
+const artifactsDir = path.join(process.cwd(), "artifacts-handover-samples");
 
 const baseClientFields = {
   phone1: "+201012345678",
@@ -84,7 +90,10 @@ const sampleUnit: UnitMergeInput = {
 };
 
 const variants: { key: HandoverTemplateKey; unit: UnitMergeInput }[] = [
-  { key: "green-avenue", unit: { ...sampleUnit, unitClients: [sampleUnit.unitClients[0]!] } },
+  {
+    key: "green-avenue",
+    unit: { ...sampleUnit, unitClients: [sampleUnit.unitClients[0]!] },
+  },
   {
     key: "green-avenue-no-insurance",
     unit: {
@@ -130,22 +139,32 @@ const variants: { key: HandoverTemplateKey; unit: UnitMergeInput }[] = [
 
 async function main() {
   fs.mkdirSync(outDir, { recursive: true });
+  fs.mkdirSync(artifactsDir, { recursive: true });
+
   for (const { key, unit } of variants) {
     const { handoverFields } = buildOfficialHandoverFieldValues(unit, "ar");
-    const body = buildOfficialHandoverDraftBody({ templateKey: key, fields: handoverFields });
-    const pdf = await renderOfficialHandoverRecordPdf({
+    const html = buildOfficialHandoverHtml({
       templateKey: key,
-      body,
-      companyAddress: "New Jersey for Real Estate Development — sample address",
+      fields: handoverFields,
       watermarkDraft: true,
     });
-    const filename = `${key}.pdf`;
-    fs.writeFileSync(path.join(outDir, filename), pdf);
-    console.log("Wrote", filename);
+    const pdf = await renderHandoverHtmlToPdf(html);
+    const png = await renderHandoverHtmlPageOnePng(html);
+
+    const pdfName = `${key}.pdf`;
+    const pngName = `${key}-page1.png`;
+    fs.writeFileSync(path.join(outDir, pdfName), pdf);
+    fs.writeFileSync(path.join(outDir, pngName), png);
+    fs.writeFileSync(path.join(artifactsDir, pdfName), pdf);
+    fs.writeFileSync(path.join(artifactsDir, pngName), png);
+    console.log("Wrote", pdfName, pngName);
   }
+
+  await closeHandoverPdfBrowser();
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
   console.error(err);
+  await closeHandoverPdfBrowser();
   process.exit(1);
 });

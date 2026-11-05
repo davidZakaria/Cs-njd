@@ -206,41 +206,40 @@ describe("official handover placeholder fill", () => {
 
 describe("renderOfficialHandoverRecordPdf", () => {
   it(
-    "renders all six master variants",
+    "renders all six master variants via HTML/Chromium",
     async () => {
-      const { loadPdfFontAssets } = await import(
-        "@/lib/official-documents/pdf-fonts"
-      );
-      await loadPdfFontAssets();
-      const { renderOfficialHandoverRecordPdf } = await import(
-        "@/lib/official-documents/handover/render-pdf"
-      );
-    const unit = greenUnit();
-    const keys = [
-      "green-avenue",
-      "green-avenue-no-insurance",
-      "green-avenue-dual",
-      "green-avenue-dual-no-insurance",
-      "jura",
-      "jura-dual",
-    ] as const;
+      const { renderOfficialHandoverRecordPdf, closeHandoverPdfBrowser } =
+        await import("@/lib/official-documents/handover/render-pdf");
+      const unit = greenUnit();
+      const keys = [
+        "green-avenue",
+        "green-avenue-no-insurance",
+        "green-avenue-dual",
+        "green-avenue-dual-no-insurance",
+        "jura",
+        "jura-dual",
+      ] as const;
 
-    for (const templateKey of keys) {
-      const sampleUnit =
-        templateKey.startsWith("jura")
-          ? greenUnit({ project: { name: "JURA" }, finishing: null })
-          : unit;
-      const { handoverFields } = buildOfficialHandoverFieldValues(sampleUnit, "ar");
-      const body = buildOfficialHandoverDraftBody({ templateKey, fields: handoverFields });
-      const pdf = await renderOfficialHandoverRecordPdf({
-        templateKey,
-        body,
-        companyAddress: "New Jersey for Real Estate Development",
-        watermarkDraft: true,
-      });
-      expect(pdf.byteLength).toBeGreaterThan(8000);
-    }
-  },
+      for (const templateKey of keys) {
+        const sampleUnit =
+          templateKey.startsWith("jura")
+            ? greenUnit({ project: { name: "JURA" }, finishing: null })
+            : unit;
+        const { handoverFields } = buildOfficialHandoverFieldValues(
+          sampleUnit,
+          "ar"
+        );
+        const pdf = await renderOfficialHandoverRecordPdf({
+          templateKey,
+          fields: handoverFields,
+          watermarkDraft: true,
+        });
+        expect(pdf.byteLength).toBeGreaterThan(8000);
+        expect(pdf[0]).toBe(0x25);
+        expect(pdf[1]).toBe(0x50);
+      }
+      await closeHandoverPdfBrowser();
+    },
     120_000
   );
 });
