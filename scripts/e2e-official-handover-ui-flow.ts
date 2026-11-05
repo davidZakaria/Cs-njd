@@ -260,6 +260,33 @@ async function resetLegacyDraftForE2e(manifest: Manifest) {
   });
 }
 
+async function resetMainLoopHandoverDrafts(manifest: Manifest) {
+  const unitIds = manifest.units
+    .filter(
+      (u) => !manifest.legacyDraft || u.unitId !== manifest.legacyDraft.unitId
+    )
+    .map((u) => u.unitId);
+  const drafts = await prisma.officialDocumentTextDraft.findMany({
+    where: {
+      unitId: { in: unitIds },
+      documentType: "HANDOVER_RECORD",
+    },
+    select: { id: true },
+  });
+  const draftIds = drafts.map((d) => d.id);
+  if (draftIds.length === 0) return;
+  await prisma.unitGeneratedDocument.updateMany({
+    where: { textDraftId: { in: draftIds } },
+    data: { textDraftId: null },
+  });
+  await prisma.officialDocumentTextDraftVersion.deleteMany({
+    where: { draftId: { in: draftIds } },
+  });
+  await prisma.officialDocumentTextDraft.deleteMany({
+    where: { id: { in: draftIds } },
+  });
+}
+
 async function applyFullLegalEdits(
   page: Page,
   locale: "en" | "ar",
@@ -861,6 +888,9 @@ async function main() {
 
   try {
     for (const locale of locales) {
+      if (locale === "ar") {
+        await resetMainLoopHandoverDrafts(manifest);
+      }
       const context = await browser.newContext({
         acceptDownloads: true,
         locale: locale === "ar" ? "ar-EG" : "en-US",
