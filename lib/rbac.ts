@@ -110,7 +110,7 @@ const roleRoutes: Record<Role, string[]> = {
     "/print",
   ],
   ENGINEER: ["/engineering"],
-  OPERATIONS: ["/operations", "/print"],
+  OPERATIONS: ["/operations", "/operations/requests", "/print"],
   LEGAL: ["/legal", ...departmentStaffRoutes],
   FINANCE: ["/finance", ...departmentStaffRoutes],
 };
@@ -161,7 +161,8 @@ export type NavItemKey =
   | "systemHealth"
   | "systemSettings"
   | "notificationsLog"
-  | "activityNotifications";
+  | "activityNotifications"
+  | "operationsRequests";
 
 export type NavGroupKey =
   | "usersSecurity"
@@ -172,6 +173,17 @@ export type NavGroupKey =
 export function getCoreNavItems(role: Role) {
   if (role === "ENGINEER") {
     return [{ href: "/engineering", key: "engineering" as const, roles: ["ENGINEER" as Role] }];
+  }
+
+  if (role === "OPERATIONS") {
+    return [
+      { href: "/operations", key: "operations" as const, roles: ["OPERATIONS" as Role] },
+      {
+        href: "/operations/requests",
+        key: "operationsRequests" as const,
+        roles: ["OPERATIONS" as Role],
+      },
+    ];
   }
 
   if (role === "LEGAL") {
@@ -289,6 +301,10 @@ export function getNavItems(role: Role) {
 
   if (role === "FINANCE") {
     return getCoreNavItems("FINANCE");
+  }
+
+  if (role === "OPERATIONS") {
+    return getCoreNavItems("OPERATIONS");
   }
 
   const all: Array<{

@@ -123,6 +123,7 @@ export function canManageOpenRequestContent(input: {
 }): boolean {
   if (isClosedUnitRequestStatus(input.status)) return false;
   if (input.type === "ARCHIVE_CHECK") return false;
+  if (input.type === "ARCHIVE_FILE_REQUEST") return false;
   return (
     input.requestedById === input.userId ||
     isAdminUnitManager(input.role) ||

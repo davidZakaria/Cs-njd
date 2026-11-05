@@ -285,6 +285,7 @@ describe("RBAC Role Access Control", () => {
 
     it("can access operations progress and unit subpaths", () => {
       expect(canAccessRoute(role, "/operations")).toBe(true);
+      expect(canAccessRoute(role, "/operations/requests")).toBe(true);
       expect(canAccessRoute(role, "/operations/units/abc")).toBe(true);
     });
 
@@ -351,10 +352,10 @@ describe("RBAC Navigation Items", () => {
       expect(hrefs).not.toContain("/dashboard");
     });
 
-    it("returns operations and units only for OPERATIONS", () => {
+    it("returns operations and requests tabs for OPERATIONS", () => {
       const items = getCoreNavItems("OPERATIONS");
       const hrefs = items.map((i) => i.href);
-      expect(hrefs).toEqual(["/operations"]);
+      expect(hrefs).toEqual(["/operations", "/operations/requests"]);
     });
 
     it("returns dashboard but not engineering or executive for CS_AGENT", () => {
@@ -383,10 +384,10 @@ describe("RBAC Navigation Items", () => {
       expect(keys).toContain("system");
     });
 
-    it("returns operations and units for OPERATIONS in full nav", () => {
+    it("returns operations requests for OPERATIONS in full nav", () => {
       const items = getNavItems("OPERATIONS");
       const keys = items.map((i) => i.key);
-      expect(keys).toEqual(["operations"]);
+      expect(keys).toEqual(["operations", "operationsRequests"]);
     });
 
     it("excludes admin items for MANAGEMENT", () => {

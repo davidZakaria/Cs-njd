@@ -415,6 +415,7 @@
     "systemHealth": "System Health",
     "notificationsLog": "Notifications Log",
     "activityNotifications": "Notifications",
+    "operationsRequests": "Requests",
     "systemSettings": "General Settings",
     "legalHome": "Legal home",
     "financeHome": "Finance home",
@@ -1756,7 +1757,24 @@
       "SNAG_OR_DEFECT": "Snag or defect",
       "HANDOVER_APPOINTMENT": "Handover appointment",
       "DOCUMENT_CORRECTION": "Document correction",
-      "ARCHIVE_CHECK": "Archive check"
+      "ARCHIVE_CHECK": "Archive check",
+      "ARCHIVE_FILE_REQUEST": "Archive file request"
+    },
+    "archiveFileKind": {
+      "CONTRACT": "Contract",
+      "NATIONAL_ID": "National ID",
+      "ANNEX": "Annex",
+      "RECEIPT": "Receipt",
+      "OTHER": "Other"
+    },
+    "archiveFileRequestPriority": {
+      "NORMAL": "Normal",
+      "URGENT": "Urgent"
+    },
+    "archiveFileItemStatus": {
+      "PENDING": "Pending",
+      "FULFILLED_UPLOAD": "Uploaded",
+      "NOT_FOUND": "Not found in archive"
     },
     "officialDocumentType": {
       "GRACE_PERIOD_ANNEX": "Grace period annex (ملحق المد)",
@@ -1832,7 +1850,10 @@
       "project": "Project",
       "projectPlaceholder": "Select project",
       "projectRequired": "Select a project",
-      "createdBulkWithSkipped": "Draft created for {included} units ({skipped} skipped — already have an open check)"
+      "createdBulkWithSkipped": "Draft created for {included} units ({skipped} skipped — already have an open check)",
+      "archiveFileKinds": "Files needed from archive",
+      "archiveFileKindsRequired": "Select at least one file type",
+      "archiveFilePriority": "Priority"
     },
     "detail": {
       "description": "Description",
@@ -2023,6 +2044,27 @@
     "awaitingTitle": "Awaiting your approval",
     "awaitingEmpty": "No requests waiting on you right now.",
     "viewAllRequests": "Open requests inbox"
+  },
+  "operationsArchiveFileRequests": {
+    "pageTitle": "Archive file requests",
+    "pageSubtitle": "CS and management requests for scans from the physical archive.",
+    "title": "Open requests",
+    "empty": "No open archive file requests.",
+    "urgent": "Urgent",
+    "unreadBadge": "{count} unread",
+    "requestedBy": "Requested by {name}",
+    "pendingFiles": "{count} files pending",
+    "detailTitle": "Fulfill archive file request",
+    "openUnit": "Open unit",
+    "note": "Requester note",
+    "uploadScan": "Upload scan",
+    "uploaded": "Scan uploaded",
+    "markNotFound": "Not found in archive",
+    "markedNotFound": "Marked as not found",
+    "notFoundNotePlaceholder": "Note for the requester (required)",
+    "fileOnRecord": "File recorded on the unit or request.",
+    "unitMissing": "Unit is missing for this request.",
+    "failed": "Action failed"
   },
   "officialDocuments": {
     "panelTitle": "Official document drafts",

@@ -176,6 +176,26 @@ enum UnitRequestType {
   HANDOVER_APPOINTMENT
   DOCUMENT_CORRECTION
   ARCHIVE_CHECK
+  ARCHIVE_FILE_REQUEST
+}
+
+enum ArchiveFileRequestPriority {
+  NORMAL
+  URGENT
+}
+
+enum ArchiveFileKind {
+  CONTRACT
+  NATIONAL_ID
+  ANNEX
+  RECEIPT
+  OTHER
+}
+
+enum ArchiveFileItemStatus {
+  PENDING
+  FULFILLED_UPLOAD
+  NOT_FOUND
 }
 
 enum UnitRequestStatus {
@@ -253,6 +273,8 @@ model User {
   officialDocumentTextDraftsCreated OfficialDocumentTextDraft[] @relation("OfficialDocumentTextDraftCreatedBy")
   officialDocumentTextDraftsUpdated OfficialDocumentTextDraft[] @relation("OfficialDocumentTextDraftUpdatedBy")
   officialDocumentTextDraftVersions OfficialDocumentTextDraftVersion[] @relation("OfficialDocumentTextDraftVersionEditor")
+  fulfilledArchiveFileItems ArchiveFileRequestItem[] @relation("ArchiveFileItemFulfilledBy")
+  operationsArchiveFileReads OperationsArchiveFileRequestRead[]
   officialDocumentAuditEvents OfficialDocumentAuditEvent[]
 
   @@index([role])
@@ -713,6 +735,7 @@ model UnitRequest {
   parentRequestId         String?
   bulkProjectId           String?
   archiveCheckSubmittedAt DateTime?
+  archiveFilePriority     ArchiveFileRequestPriority?
   escalatedToManagement   Boolean                  @default(false)
   lastEscalatedAt         DateTime?
   submittedAt             DateTime?
@@ -736,6 +759,8 @@ model UnitRequest {
   officialDocumentTextDrafts OfficialDocumentTextDraft[]
   archiveCheckItems     ArchiveCheckItem[]
   archiveCheckGapTasks  ArchiveCheckGapTask[]
+  archiveFileItems      ArchiveFileRequestItem[]
+  operationsArchiveFileReads OperationsArchiveFileRequestRead[]
 
   @@index([unitId])
   @@index([parentRequestId])
@@ -888,6 +913,7 @@ model RequestAttachment {
   request    UnitRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   uploadedBy User        @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
   removedBy  User?       @relation("RequestAttachmentRemovedBy", fields: [removedById], references: [id], onDelete: SetNull)
+  archiveFileRequestItem ArchiveFileRequestItem?
 
   @@index([requestId])
   @@index([requestId, archiveCheckItemKey])
@@ -932,6 +958,37 @@ model ArchiveCheckGapTask {
   @@index([ownerUserId, status])
   @@index([ownerRole, status])
   @@index([status, deadlineAt])
+}
+
+model ArchiveFileRequestItem {
+  id                 String                @id @default(cuid())
+  unitRequestId      String
+  fileKind           ArchiveFileKind
+  status             ArchiveFileItemStatus @default(PENDING)
+  notFoundNote       String?
+  resultAttachmentId String?               @unique
+  fulfilledAt        DateTime?
+  fulfilledById      String?
+  createdAt          DateTime              @default(now())
+
+  unitRequest        UnitRequest        @relation(fields: [unitRequestId], references: [id], onDelete: Cascade)
+  resultAttachment   RequestAttachment? @relation(fields: [resultAttachmentId], references: [id], onDelete: SetNull)
+  fulfilledBy        User?              @relation("ArchiveFileItemFulfilledBy", fields: [fulfilledById], references: [id], onDelete: SetNull)
+
+  @@index([unitRequestId])
+}
+
+model OperationsArchiveFileRequestRead {
+  id            String   @id @default(cuid())
+  userId        String
+  unitRequestId String
+  readAt        DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unitRequest UnitRequest @relation(fields: [unitRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, unitRequestId])
+  @@index([userId])
 }
 
 model RequestAuditEvent {

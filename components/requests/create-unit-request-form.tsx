@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
-import { UnitRequestType } from "@prisma/client";
+import { ArchiveFileKind, ArchiveFileRequestPriority, UnitRequestType } from "@prisma/client";
 
 import {
   createUnitRequestAction,
@@ -26,6 +26,7 @@ import { UnitSearchCombobox } from "@/components/units/unit-search-combobox";
 import type { UnitRequestPickerOption } from "@/lib/units/unit-request-search";
 
 const TYPES = Object.values(UnitRequestType);
+const ARCHIVE_FILE_KINDS = Object.values(ArchiveFileKind);
 
 export function CreateUnitRequestForm({
   defaultUnitId,
@@ -49,6 +50,9 @@ export function CreateUnitRequestForm({
   const [description, setDescription] = useState("");
   const [archiveScope, setArchiveScope] = useState<"single" | "bulk">("single");
   const [projectId, setProjectId] = useState(projects[0]?.id ?? "");
+  const [archiveFileKinds, setArchiveFileKinds] = useState<ArchiveFileKind[]>([]);
+  const [archiveFilePriority, setArchiveFilePriority] =
+    useState<ArchiveFileRequestPriority>("NORMAL");
 
   const requestTypeItems = useMemo(() => {
     const items: Record<string, string> = {};
@@ -98,8 +102,10 @@ export function CreateUnitRequestForm({
   const canSubmit =
     type === UnitRequestType.ARCHIVE_CHECK && archiveScope === "bulk"
       ? projectId.length > 0
-      : selectedUnit != null &&
-        (type !== UnitRequestType.UNIT_SWAP || selectedSwapTarget != null);
+      : type === UnitRequestType.ARCHIVE_FILE_REQUEST
+        ? selectedUnit != null && archiveFileKinds.length > 0
+        : selectedUnit != null &&
+          (type !== UnitRequestType.UNIT_SWAP || selectedSwapTarget != null);
 
   const submit = () => {
     if (type === UnitRequestType.ARCHIVE_CHECK && archiveScope === "bulk") {
@@ -139,6 +145,10 @@ export function CreateUnitRequestForm({
       toast.error(t("swapTargetRequired"));
       return;
     }
+    if (type === UnitRequestType.ARCHIVE_FILE_REQUEST && archiveFileKinds.length === 0) {
+      toast.error(t("archiveFileKindsRequired"));
+      return;
+    }
     startTransition(async () => {
       const result = await createUnitRequestAction({
         unitId: selectedUnit.unitId,
@@ -147,6 +157,12 @@ export function CreateUnitRequestForm({
         linkedSwapTargetUnitId:
           type === UnitRequestType.UNIT_SWAP
             ? selectedSwapTarget?.unitId
+            : undefined,
+        archiveFileKinds:
+          type === UnitRequestType.ARCHIVE_FILE_REQUEST ? archiveFileKinds : undefined,
+        archiveFilePriority:
+          type === UnitRequestType.ARCHIVE_FILE_REQUEST
+            ? archiveFilePriority
             : undefined,
       });
       if (!result.success) {
@@ -260,6 +276,62 @@ export function CreateUnitRequestForm({
               disabled={pending || !selectedUnit}
             />
           </div>
+        ) : null}
+        {type === UnitRequestType.ARCHIVE_FILE_REQUEST ? (
+          <>
+            <div className="md:col-span-2 space-y-2">
+              <p className="text-sm font-medium">{t("archiveFileKinds")}</p>
+              <div className="flex flex-wrap gap-3">
+                {ARCHIVE_FILE_KINDS.map((kind) => {
+                  const checked = archiveFileKinds.includes(kind);
+                  return (
+                    <label key={kind} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={pending}
+                        onChange={() => {
+                          setArchiveFileKinds((prev) =>
+                            checked
+                              ? prev.filter((k) => k !== kind)
+                              : [...prev, kind]
+                          );
+                        }}
+                      />
+                      {tEnums(`archiveFileKind.${kind}`)}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">{t("archiveFilePriority")}</label>
+              <Select
+                value={archiveFilePriority}
+                items={{
+                  NORMAL: tEnums("archiveFileRequestPriority.NORMAL"),
+                  URGENT: tEnums("archiveFileRequestPriority.URGENT"),
+                }}
+                onValueChange={(v) =>
+                  setArchiveFilePriority(v as ArchiveFileRequestPriority)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {tEnums(`archiveFileRequestPriority.${archiveFilePriority}`)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NORMAL">
+                    {tEnums("archiveFileRequestPriority.NORMAL")}
+                  </SelectItem>
+                  <SelectItem value="URGENT">
+                    {tEnums("archiveFileRequestPriority.URGENT")}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
         ) : null}
         <div className="md:col-span-2">
           <Button disabled={pending || !canSubmit} onClick={submit}>

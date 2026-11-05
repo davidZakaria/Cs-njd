@@ -75,6 +75,13 @@ export function canViewUnitRequest(input: {
     ) {
       return true;
     }
+    if (
+      request.type === "ARCHIVE_FILE_REQUEST" &&
+      request.status === "PENDING" &&
+      request.currentApproverKind === "OPERATIONS"
+    ) {
+      return true;
+    }
     return false;
   }
 

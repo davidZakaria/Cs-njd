@@ -415,6 +415,7 @@
     "systemHealth": "صحة النظام",
     "notificationsLog": "سجل الإشعارات",
     "activityNotifications": "الإشعارات",
+    "operationsRequests": "الطلبات",
     "systemSettings": "الإعدادات العامة",
     "legalHome": "الرئيسية — قانوني",
     "financeHome": "الرئيسية — حسابات",
@@ -1756,7 +1757,24 @@
       "SNAG_OR_DEFECT": "عيب أو ملاحظة",
       "HANDOVER_APPOINTMENT": "موعد تسليم",
       "DOCUMENT_CORRECTION": "تصحيح مستند",
-      "ARCHIVE_CHECK": "فحص الأرشيف"
+      "ARCHIVE_CHECK": "فحص الأرشيف",
+      "ARCHIVE_FILE_REQUEST": "طلب ملف من الأرشيف"
+    },
+    "archiveFileKind": {
+      "CONTRACT": "عقد",
+      "NATIONAL_ID": "بطاقة الرقم القومي",
+      "ANNEX": "ملحق",
+      "RECEIPT": "إيصال",
+      "OTHER": "أخرى"
+    },
+    "archiveFileRequestPriority": {
+      "NORMAL": "عادي",
+      "URGENT": "عاجل"
+    },
+    "archiveFileItemStatus": {
+      "PENDING": "قيد الانتظار",
+      "FULFILLED_UPLOAD": "تم الرفع",
+      "NOT_FOUND": "غير موجود في الأرشيف"
     },
     "officialDocumentType": {
       "GRACE_PERIOD_ANNEX": "ملحق المد",
@@ -1832,7 +1850,10 @@
       "project": "المشروع",
       "projectPlaceholder": "اختر المشروع",
       "projectRequired": "اختر مشروعاً",
-      "createdBulkWithSkipped": "تم إنشاء مسودة لـ {included} وحدة (تم تخطي {skipped} — لديها فحص مفتوح)"
+      "createdBulkWithSkipped": "تم إنشاء مسودة لـ {included} وحدة (تم تخطي {skipped} — لديها فحص مفتوح)",
+      "archiveFileKinds": "الملفات المطلوبة من الأرشيف",
+      "archiveFileKindsRequired": "اختر نوع ملف واحد على الأقل",
+      "archiveFilePriority": "الأولوية"
     },
     "detail": {
       "description": "الوصف",
@@ -2023,6 +2044,27 @@
     "awaitingTitle": "بانتظار موافقتك",
     "awaitingEmpty": "لا طلبات بانتظارك حالياً.",
     "viewAllRequests": "فتح صندوق الطلبات"
+  },
+  "operationsArchiveFileRequests": {
+    "pageTitle": "طلبات ملفات الأرشيف",
+    "pageSubtitle": "طلبات خدمة العملاء والإدارة لمسح مستندات من الأرشيف الورقي.",
+    "title": "الطلبات المفتوحة",
+    "empty": "لا توجد طلبات ملفات أرشيف مفتوحة.",
+    "urgent": "عاجل",
+    "unreadBadge": "{count} غير مقروء",
+    "requestedBy": "طلب {name}",
+    "pendingFiles": "{count} ملفات معلّقة",
+    "detailTitle": "تنفيذ طلب ملف أرشيف",
+    "openUnit": "فتح الوحدة",
+    "note": "ملاحظة مقدّم الطلب",
+    "uploadScan": "رفع المسح",
+    "uploaded": "تم رفع المسح",
+    "markNotFound": "غير موجود في الأرشيف",
+    "markedNotFound": "تم التعليم كغير موجود",
+    "notFoundNotePlaceholder": "ملاحظة لمقدّم الطلب (مطلوبة)",
+    "fileOnRecord": "تم تسجيل الملف على الوحدة أو الطلب.",
+    "unitMissing": "الوحدة غير موجودة لهذا الطلب.",
+    "failed": "فشل الإجراء"
   },
   "officialDocuments": {
     "panelTitle": "مسودات المستندات الرسمية",

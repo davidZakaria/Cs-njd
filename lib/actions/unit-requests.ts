@@ -47,7 +47,7 @@ import {
   REQUEST_ATTACHMENT_MAX_BYTES,
   writeRequestAttachmentFile,
 } from "@/lib/uploads/request-attachment-storage";
-import { UnitRequestType, type Prisma, type Role } from "@prisma/client";
+import { ArchiveFileKind, ArchiveFileRequestPriority, UnitRequestType, type Prisma, type Role } from "@prisma/client";
 
 const createSchema = z.object({
   unitId: z.string().min(1),
@@ -56,6 +56,8 @@ const createSchema = z.object({
   dueDate: z.string().optional(),
   linkedSwapTargetUnitId: z.string().optional(),
   projectId: z.string().optional(),
+  archiveFileKinds: z.array(z.nativeEnum(ArchiveFileKind)).optional(),
+  archiveFilePriority: z.nativeEnum(ArchiveFileRequestPriority).optional(),
 });
 
 const idSchema = z.object({
@@ -257,6 +259,22 @@ export async function createUnitRequestAction(
     }
   }
 
+  if (parsed.data.type === "ARCHIVE_FILE_REQUEST") {
+    const kinds = parsed.data.archiveFileKinds ?? [];
+    if (kinds.length === 0) {
+      return {
+        success: false as const,
+        error: "Select at least one archive file type",
+      };
+    }
+    if (!parsed.data.archiveFilePriority) {
+      return {
+        success: false as const,
+        error: "Priority is required",
+      };
+    }
+  }
+
   const submit = buildSubmitState(parsed.data.type);
   const dueDate =
     parseDueDate(parsed.data.dueDate) ?? computeDefaultDueDate(new Date());
@@ -274,8 +292,22 @@ export async function createUnitRequestAction(
       currentStepIndex: submit.currentStepIndex,
       currentApproverKind: submit.currentApproverKind,
       unitCycleStageKey: submit.unitCycleStageKey,
+      archiveFilePriority:
+        parsed.data.type === "ARCHIVE_FILE_REQUEST"
+          ? parsed.data.archiveFilePriority
+          : null,
     },
   });
+
+  if (parsed.data.type === "ARCHIVE_FILE_REQUEST") {
+    const kinds = [...new Set(parsed.data.archiveFileKinds ?? [])];
+    await prisma.archiveFileRequestItem.createMany({
+      data: kinds.map((fileKind) => ({
+        unitRequestId: created.id,
+        fileKind,
+      })),
+    });
+  }
 
   if (parsed.data.type === "ARCHIVE_CHECK") {
     const unitRow = await prisma.unit.findFirst({
@@ -387,6 +419,9 @@ export async function submitUnitRequestAction(
   revalidatePath("/requests");
   revalidateUnitPath(request.unitId);
   revalidatePath(`/requests/${request.id}`);
+  if (request.type === "ARCHIVE_FILE_REQUEST") {
+    revalidatePath("/operations/requests");
+  }
   if (childIds.length > 0) {
     const childUnits = await prisma.unitRequest.findMany({
       where: { id: { in: childIds } },
