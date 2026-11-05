@@ -17,6 +17,7 @@ import type {
 import { handoverLogoAssetRelativePath } from "@/lib/official-documents/handover/constants";
 import {
   greenAvenueBodyChunksWithoutHeader,
+  mergeTrailingHandoverAppendixChunks,
   splitHandoverDraftChunks,
 } from "@/lib/official-documents/handover/draft-body-structure";
 import {
@@ -398,8 +399,8 @@ function renderGreenAvenueDraftBodyHtml(
   fields: HandoverFieldValues,
   draftBody: string
 ): string {
-  const chunks = greenAvenueBodyChunksWithoutHeader(
-    splitHandoverDraftChunks(draftBody)
+  const chunks = mergeTrailingHandoverAppendixChunks(
+    greenAvenueBodyChunksWithoutHeader(splitHandoverDraftChunks(draftBody))
   );
 
   let html = "";

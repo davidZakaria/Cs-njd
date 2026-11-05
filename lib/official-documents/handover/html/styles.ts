@@ -360,6 +360,13 @@ p.justified,
   max-width: 100%;
 }
 
+.draft-legal-appendix {
+  break-before: avoid;
+  page-break-before: avoid;
+  orphans: 1;
+  widows: 1;
+}
+
 .violations-block p {
   margin: 1.2mm 0;
 }

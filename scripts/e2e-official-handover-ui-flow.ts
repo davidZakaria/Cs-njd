@@ -401,6 +401,14 @@ function assertPdfArabicOnlyOfficialContent(pdfPath: string) {
   }
 }
 
+function pdfPageText(pdfPath: string, page: number): string {
+  return execFileSync(
+    "pdftotext",
+    ["-f", String(page), "-l", String(page), pdfPath, "-"],
+    { encoding: "utf8" }
+  );
+}
+
 function assertHandoverPdfLayout(pdfPath: string, variant: string) {
   const text = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
   if (/\bintro\b/i.test(text)) {
@@ -429,6 +437,24 @@ function assertHandoverPdfLayout(pdfPath: string, variant: string) {
   const lastPng = pngs[pngs.length - 1];
   if (lastPng && fs.statSync(lastPng).size < 12_000) {
     throw new Error(`${pdfPath}: last page appears nearly blank (${lastPng})`);
+  }
+  const pageCount = pdfPageCount(pdfPath);
+  const lastPageText = pdfPageText(pdfPath, pageCount);
+  if (/LEGAL_E2E_/i.test(lastPageText)) {
+    const substantive = normalizePdfExtractedText(lastPageText)
+      .replace(/LEGAL_E2E_[^\s]+/gi, "")
+      .replace(/مسودة|DRAFT/gi, "")
+      .replace(/[^\p{L}\p{N}]/gu, "");
+    if (substantive.length < 120) {
+      throw new Error(
+        `${pdfPath}: appended LEGAL_E2E marker isolated on near-blank final page (pagination bug)`
+      );
+    }
+  }
+  if (variant === "green-avenue" && pageCount !== 3) {
+    throw new Error(
+      `${pdfPath}: green-avenue single expected 3 pages with marker on final content page, got ${pageCount}`
+    );
   }
 }
 

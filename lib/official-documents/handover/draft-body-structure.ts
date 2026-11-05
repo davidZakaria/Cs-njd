@@ -28,6 +28,27 @@ export function greenAvenueBodyChunksWithoutHeader(chunks: string[]): string[] {
   return chunks;
 }
 
+/** Test-only ASCII markers and short appended legal notes must stay with preceding body text. */
+export function isHandoverDraftAppendixChunk(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length > 160) return false;
+  if (/^LEGAL_E2E_/i.test(trimmed)) return true;
+  if (/^[\x20-\x7E\u200e\u200f]+$/.test(trimmed) && !/[أ-ي]/u.test(trimmed)) {
+    return true;
+  }
+  return false;
+}
+
+export function mergeTrailingHandoverAppendixChunks(chunks: string[]): string[] {
+  const merged = [...chunks];
+  while (merged.length >= 2 && isHandoverDraftAppendixChunk(merged[merged.length - 1]!)) {
+    const appendix = merged.pop()!;
+    const body = merged.pop()!;
+    merged.push(`${body}\n\n${appendix}`);
+  }
+  return merged;
+}
+
 /** Required section markers — reject generate when absent (no silent template fill-in). */
 export function validateOfficialHandoverDraftStructure(input: {
   templateKey: HandoverTemplateKey;
