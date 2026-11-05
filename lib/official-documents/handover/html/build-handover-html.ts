@@ -471,6 +471,15 @@ function renderGreenAvenueDraftBodyHtml(
   return html;
 }
 
+function juraParagraphBody(heading: string, body: string, chunk: string): string {
+  if (body.trim()) return body;
+  const flat = chunk.replace(/\n+/g, " ").trim();
+  if (heading && flat.startsWith(heading)) {
+    return flat.slice(heading.length).trim();
+  }
+  return flat;
+}
+
 function renderJuraDraftBodyHtml(
   template: JuraTemplate,
   _fields: HandoverFieldValues,
@@ -506,7 +515,7 @@ function renderJuraDraftBodyHtml(
     if (isThalitha) {
       html += `<div class="jura-thalitha-wrap">`;
       html += `<h2 class="section-heading">${escapeHtml(displayHeading)}</h2>`;
-      html += `<p class="justified section-body">${toHandoverHtml(body || chunk)}</p>`;
+      html += `<p class="justified section-body">${toHandoverHtml(juraParagraphBody(displayHeading, body, chunk))}</p>`;
       html += buildDeclarantSignatureBlock({
         dual: template.dual,
         ownerRows: template.dual ? 2 : 1,
@@ -518,14 +527,14 @@ function renderJuraDraftBodyHtml(
     if (isLast) {
       html += `<div class="jura-finale">`;
       html += `<h2 class="section-heading">${escapeHtml(displayHeading)}</h2>`;
-      html += `<p class="justified section-body">${toHandoverHtml(body || chunk)}</p>`;
+      html += `<p class="justified section-body">${toHandoverHtml(juraParagraphBody(displayHeading, body, chunk))}</p>`;
       html += buildJuraClosingSignatures(template.dual);
       html += `</div>`;
       continue;
     }
 
     html += `<h2 class="section-heading">${escapeHtml(displayHeading)}</h2>`;
-    html += `<p class="justified section-body">${toHandoverHtml(body || chunk)}</p>`;
+    html += `<p class="justified section-body">${toHandoverHtml(juraParagraphBody(displayHeading, body, chunk))}</p>`;
   }
 
   return html;
