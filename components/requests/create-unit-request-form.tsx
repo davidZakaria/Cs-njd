@@ -68,6 +68,16 @@ export function CreateUnitRequestForm({
     [t]
   );
 
+  const projectItems = useMemo(() => {
+    const items: Record<string, string> = {};
+    for (const project of projects) {
+      items[project.id] = project.name;
+    }
+    return items;
+  }, [projects]);
+
+  const projectLabel = projectItems[projectId] ?? "";
+
   const searchUnits = useCallback(
     (query: string) => searchUnitsForRequestPickerAction(query),
     []
@@ -177,9 +187,15 @@ export function CreateUnitRequestForm({
         {type === UnitRequestType.ARCHIVE_CHECK && archiveScope === "bulk" ? (
           <div className="md:col-span-2 space-y-1">
             <label className="text-sm font-medium">{t("project")}</label>
-            <Select value={projectId} onValueChange={(value) => setProjectId(value ?? "")}>
+            <Select
+              value={projectId}
+              items={projectItems}
+              onValueChange={(value) => setProjectId(value ?? "")}
+            >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder={t("projectPlaceholder")} />
+                <SelectValue placeholder={t("projectPlaceholder")}>
+                  {projectLabel}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {projects.map((project) => (
