@@ -970,6 +970,8 @@ async function main() {
       const totalPages = report.variants.reduce((n, v) => n + v.pageCount, 0);
       console.log("Total page PNGs:", totalPages);
       console.log("E2E PASS", report.variants.length, "canonical PDFs");
+    } else {
+      process.exitCode = 1;
     }
   }
 }
@@ -981,7 +983,7 @@ main()
       const parsed = JSON.parse(fs.readFileSync(reportPath, "utf8")) as {
         failed?: boolean;
       };
-      if (parsed.failed) process.exit(1);
+      if (parsed.failed) process.exitCode = 1;
     }
   })
   .catch((err) => {
