@@ -502,14 +502,30 @@ function renderGreenAvenueDraftBodyHtml(
       continue;
     }
 
-    const violationsIntroNeedle = template.violationsIntro.slice(0, 10);
+    const isInsuranceChunk = /^و في حالة رغبة الطرف الثاني/u.test(chunk.trim());
     const isViolationsHeadingChunk =
       heading === template.violationsIntro.trim() ||
-      (violationsIntroNeedle.length > 0 && heading.includes(violationsIntroNeedle));
+      chunk.trim() === template.violationsIntro.trim();
     const isViolationsBodyChunk =
       !isViolationsHeadingChunk &&
-      /مخالف|الإلتزامات/u.test(chunk) &&
-      !/تأمين|التشطيبات/u.test(chunk);
+      !isInsuranceChunk &&
+      (/^بمجرد الإستلام/u.test(chunk.trim()) || /مخالف|الإلتزامات/u.test(chunk));
+
+    if (isInsuranceChunk) {
+      if (sawViolationsSection) {
+        html += `</div>`;
+        sawViolationsSection = false;
+      }
+      if (!template.insurance) {
+        continue;
+      }
+      const insuranceText =
+        bodyText && !isHandoverDraftAppendixChunk(bodyText)
+          ? `${heading}\n${bodyText}`.trim()
+          : chunk.trim();
+      html += `<p class="justified insurance-block">${toHandoverHtml(insuranceText)}</p>`;
+      continue;
+    }
 
     if (isViolationsHeadingChunk || isViolationsBodyChunk) {
       const violationText = isViolationsHeadingChunk
@@ -528,18 +544,6 @@ function renderGreenAvenueDraftBodyHtml(
           .map((part) => `<p class="justified">${toHandoverHtml(part)}</p>`)
           .join("\n");
       }
-      continue;
-    }
-
-    if (/تأمين|التشطيبات/u.test(chunk)) {
-      if (!template.insurance) {
-        continue;
-      }
-      const insuranceText =
-        bodyText && !isHandoverDraftAppendixChunk(bodyText)
-          ? `${heading}\n${bodyText}`.trim()
-          : chunk.trim();
-      html += `<p class="justified insurance-block">${toHandoverHtml(insuranceText)}</p>`;
       continue;
     }
 

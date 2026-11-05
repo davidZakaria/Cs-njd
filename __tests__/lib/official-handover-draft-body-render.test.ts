@@ -141,4 +141,21 @@ describe("official handover PDF uses edited draft body", () => {
     );
     expect(matches?.length ?? 0).toBe(1);
   });
+
+  it("includes master voiding tail and insurance block in canonical Green HTML", () => {
+    const draftBody = buildOfficialHandoverDraftBody({
+      templateKey: "green-avenue",
+      fields: baseFields,
+    });
+    const html = buildOfficialHandoverHtml({
+      templateKey: "green-avenue",
+      fields: baseFields,
+      watermarkDraft: true,
+      draftBody,
+    });
+    expect(html).toMatch(/مفسوخ|حكم قضائي/u);
+    expect(html).toContain('class="justified insurance-block"');
+    const blockMatch = html.match(/<div class="violations-block">([\s\S]*?)<\/div>/);
+    expect(blockMatch?.[1] ?? "").not.toMatch(/و في حالة رغبة الطرف الثاني/u);
+  });
 });
