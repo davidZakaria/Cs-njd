@@ -20,6 +20,14 @@ function sha256File(filePath: string): string {
   return createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
 }
 
+/** Prior modal proof runs append markers; strip before save/generate pagination checks. */
+function stripAccumulatedModalProofMarkers(body: string): string {
+  return body
+    .replace(/\nMODAL_PROOF_(en|ar)_[^\n]+/g, "")
+    .replace(/\nLEGAL_E2E_FOOTER_MARKER[^\n]*/g, "")
+    .trimEnd();
+}
+
 authenticator.options = { window: 5 };
 
 const STORE =
@@ -190,7 +198,7 @@ async function runLocale(
   const missingToken = formatOfficialHandoverMissingToken("owner1_email");
 
   // --- Incomplete body: inject placeholder, attempt generate ---
-  const baseBody = await textarea.inputValue();
+  const baseBody = stripAccumulatedModalProofMarkers(await textarea.inputValue());
   const emailPattern = /demo-owner[^\s@]+@example\.test/g;
   const incompleteBody = emailPattern.test(baseBody)
     ? baseBody.replace(emailPattern, missingToken)

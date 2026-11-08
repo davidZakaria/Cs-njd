@@ -4,6 +4,7 @@ import path from "node:path";
 import {
   formatGreenAvenueHeader,
   interpolateHandoverText,
+  groupViolationItemsForPrint,
   splitViolationItems,
 } from "@/lib/print/handover-templates/fields";
 import { loadHandoverTemplate } from "@/lib/print/handover-templates/resolve";
@@ -36,6 +37,10 @@ import {
 } from "./utils";
 
 const ARABIC_FONT_PATH = "lib/official-documents/assets/NotoNaskhArabic-Regular.ttf";
+
+function violationItemsForPrint(violationSource: string): string[] {
+  return groupViolationItemsForPrint(splitViolationItems(violationSource));
+}
 
 export function buildOfficialHandoverHtml(input: {
   templateKey: HandoverTemplateKey;
@@ -145,7 +150,7 @@ function buildGreenAvenueBody(
   const { intro, introIdLine, mainBody, closing } = splitGreenDeclaration(
     template.dual ? stripGreenDualDeclarationPreamble(declaration) : declaration
   );
-  const violations = splitViolationItems(
+  const violations = violationItemsForPrint(
     interpolateHandoverText(template.violationsBody, fields)
   );
   const insurance = template.insurance
@@ -552,7 +557,7 @@ function renderGreenAvenueDraftBodyHtml(
         sawViolationsSection = true;
       }
       if (violationText.trim()) {
-        const violations = splitViolationItems(violationText);
+        const violations = violationItemsForPrint(violationText);
         html += violations
           .map((part) => `<p class="justified violation-item">${toHandoverHtml(part)}</p>`)
           .join("\n");

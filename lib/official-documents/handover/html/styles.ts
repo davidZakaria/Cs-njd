@@ -388,8 +388,8 @@ p.justified,
 }
 
 .violation-item {
-  break-inside: avoid;
-  page-break-inside: avoid;
+  orphans: 3;
+  widows: 3;
 }
 
 .handover-green .violations-block p {
@@ -402,8 +402,8 @@ p.justified,
   line-height: 1.46;
   break-inside: auto;
   page-break-inside: auto;
-  break-after: avoid-page;
-  page-break-after: avoid;
+  orphans: 2;
+  widows: 2;
 }
 
 .draft-legal-appendix {

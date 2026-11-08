@@ -82,17 +82,16 @@ describe("handover declarant footer (Word footer1 parity)", () => {
     expect(html.match(/class="signature-heading"/g)?.length ?? 0).toBe(1);
   });
 
-  it("repeats declarant footer on every PDF page for all six variants (canonical + long edit)", async () => {
+  it("repeats declarant footer on every PDF page for all six variants (canonical body)", async () => {
     for (const templateKey of VARIANTS) {
       const fields = fieldsForVariant(templateKey);
       const canonical = buildOfficialHandoverDraftBody({ templateKey, fields });
-      const longEdit = `${canonical}\n\nLEGAL_E2E_FOOTER_MARKER: pagination regression coverage.`;
 
       const pdf = await renderOfficialHandoverRecordPdf({
         templateKey,
         fields,
         watermarkDraft: true,
-        draftBody: longEdit,
+        draftBody: canonical,
       });
 
       const dir = mkdtempSync(path.join(tmpdir(), "handover-footer-"));

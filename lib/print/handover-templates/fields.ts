@@ -128,6 +128,54 @@ export function splitViolationItems(body: string): string[] {
   return [...(intro ? [intro.trim()] : []), ...items, ...(tail ? [tail] : [])];
 }
 
+/** Regroup split violation clauses for print pagination (exact wording preserved). */
+export function groupViolationItemsForPrint(
+  items: string[],
+  options?: { minChars?: number; maxChars?: number }
+): string[] {
+  if (items.length <= 2) return items;
+  const minChars = options?.minChars ?? 320;
+  const maxChars = options?.maxChars ?? 720;
+
+  let head: string[] = [];
+  let tail: string[] = [];
+  let middle = [...items];
+
+  if (middle[0]?.startsWith("بمجرد")) {
+    head = [middle[0]!];
+    middle = middle.slice(1);
+  }
+  if (middle.length > 0 && middle[middle.length - 1]!.includes("كل ما ورد من انواع المخالفات")) {
+    tail = [middle[middle.length - 1]!];
+    middle = middle.slice(0, -1);
+  }
+
+  const groups: string[] = [];
+  let buffer = "";
+  const flush = () => {
+    if (buffer.trim()) {
+      groups.push(buffer.trim());
+      buffer = "";
+    }
+  };
+
+  for (const piece of middle) {
+    const merged = buffer ? `${buffer}${piece}` : piece;
+    if (buffer && merged.length > maxChars) {
+      flush();
+      buffer = piece;
+      continue;
+    }
+    buffer = merged;
+    if (buffer.length >= minChars) {
+      flush();
+    }
+  }
+  flush();
+
+  return [...head, ...groups, ...tail];
+}
+
 function parseUnitCode(unitCode: string) {
   const parts = unitCode.split(/[-_/\\s]+/).filter(Boolean);
   return {
