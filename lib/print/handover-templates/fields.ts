@@ -104,13 +104,15 @@ export function interpolateHandoverText(text: string, fields: HandoverFieldValue
     .replace(/بالدور\(\)/g, `بالدور (${fields.floor})`)
     .replace(/مساحتها \(\)/g, `مساحتها (${fields.area})`)
     .replace(/أقر أنا الموقع أدناه\s*\/\s+أحمل/g, `أقر أنا الموقع أدناه / ${fields.clientName} أحمل`)
-    .replace(/الاسم :\s+/g, `الاسم : ${fields.clientName} `)
     .replace(/1-الاسم :\s+/g, `1-الاسم : ${fields.clientName} `)
     .replace(/2-الاسم :\s+/g, `2-الاسم : ${fields.clientName2 ?? "—"} `)
+    .replace(/(?<![12]-)الاسم :\s+/g, `الاسم : ${fields.clientName} `)
     .replace(/1-بطاقة الرقم القومى :\s+/g, `1-بطاقة الرقم القومى : ${fields.nationalId} `)
     .replace(/2-بطاقة الرقم القومى :\s+/g, `2-بطاقة الرقم القومى : ${fields.nationalId2 ?? "—"} `)
     .replace(/بطاقة الرقم القومى :\s+/g, `بطاقة الرقم القومى : ${fields.nationalId} `)
     .replace(/بطاقة رقم قومى:\s*/g, `بطاقة رقم قومى: ${fields.nationalId} `)
+    .replace(/بطاقه رقم قومى\s*\/\s*جواز سفر:\s*/g, `بطاقه رقم قومى / جواز سفر: ${fields.nationalId} `)
+    .replace(/احمل بطاقه رقم قومى:\s*/g, `احمل بطاقه رقم قومى: ${fields.nationalId} `)
     .replace(/\(000000000000000\)/g, fields.nationalId);
 }
 

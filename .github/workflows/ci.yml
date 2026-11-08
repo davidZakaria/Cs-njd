@@ -32,6 +32,9 @@ jobs:
       - name: Install Chromium for handover PDF tests
         run: npx playwright install chromium
 
+      - name: Install poppler for handover PDF text assertions
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
       - name: Run tests
         run: npm run test:ci
 

@@ -16,6 +16,11 @@ import type {
 
 import { handoverLogoAssetRelativePath } from "@/lib/official-documents/handover/constants";
 import {
+  greenAvenueBodyChunksWithoutHeader,
+  isHandoverDraftAppendixChunk,
+  splitHandoverDraftChunks,
+} from "@/lib/official-documents/handover/draft-body-structure";
+import {
   buildJuraOwnerBlock,
   splitJuraIntroText,
   splitJuraSectionHeadingBody,
@@ -24,6 +29,8 @@ import { HANDOVER_PRINT_CSS } from "./styles";
 import {
   escapeHtml,
   formatLtrField,
+  stripGreenDualDeclarationPreamble,
+  stripGreenSection1Lead,
   stripGreenSection2Lead,
   toHandoverHtml,
 } from "./utils";
@@ -34,6 +41,8 @@ export function buildOfficialHandoverHtml(input: {
   templateKey: HandoverTemplateKey;
   fields: HandoverFieldValues;
   watermarkDraft: boolean;
+  /** When set, user-edited draft text drives document body content in the PDF. */
+  draftBody?: string;
 }): string {
   const template = loadHandoverTemplate(input.templateKey);
   const fontDataUri = loadFileDataUri(ARABIC_FONT_PATH, "font/ttf");
@@ -43,8 +52,9 @@ export function buildOfficialHandoverHtml(input: {
     logoRelative.endsWith(".jpg") ? "image/jpeg" : "image/png"
   );
 
-  const body =
-    template.kind === "green-avenue"
+  const body = input.draftBody?.trim()
+    ? buildBodyFromEditedDraftText(template, input.fields, input.draftBody)
+    : template.kind === "green-avenue"
       ? buildGreenAvenueBody(template, input.fields)
       : buildJuraBody(template, input.fields);
 
@@ -129,8 +139,9 @@ function buildGreenAvenueBody(
     interpolateHandoverText(template.section2, fields)
   );
   const declaration = interpolateHandoverText(template.declaration, fields);
-  const { intro, introIdLine, mainBody, closing } =
-    splitGreenDeclaration(declaration);
+  const { intro, introIdLine, mainBody, closing } = splitGreenDeclaration(
+    template.dual ? stripGreenDualDeclarationPreamble(declaration) : declaration
+  );
   const violations = splitViolationItems(
     interpolateHandoverText(template.violationsBody, fields)
   );
@@ -246,16 +257,22 @@ function buildGreenSingleDeclarationIntro(
 function splitGreenDeclaration(text: string) {
   const normalized = text.replace(/\s+/g, " ").trim();
   const bodyStart = normalized.search(/بأننى|بأنني|بانني/i);
-  let introPart =
-    bodyStart > 0 ? normalized.slice(0, bodyStart).trim() : normalized;
-  let rest = bodyStart > 0 ? normalized.slice(bodyStart).trim() : "";
+
+  if (bodyStart < 0) {
+    return { intro: normalized, introIdLine: "", mainBody: "", closing: "" };
+  }
+
+  const introPart = bodyStart > 0 ? normalized.slice(0, bodyStart).trim() : "";
+  const rest = normalized.slice(bodyStart).trim();
 
   let intro = introPart;
   let introIdLine = "";
-  const idMarker = introPart.match(/(أحمل بطاق[eh] رقم قوم[ىy]:?\s*[\d⟦\w+\s]+)/i);
-  if (idMarker) {
-    intro = introPart.slice(0, idMarker.index).trim();
-    introIdLine = idMarker[1] ?? "";
+  if (introPart) {
+    const idMarker = introPart.match(/(أحمل بطاق[eh] رقم قوم[ىy]:?\s*[\d⟦\w+\s]+)/i);
+    if (idMarker) {
+      intro = introPart.slice(0, idMarker.index).trim();
+      introIdLine = idMarker[1] ?? "";
+    }
   }
 
   const closingMarker = "هذا اقرار منى بذلك";
@@ -266,9 +283,7 @@ function splitGreenDeclaration(text: string) {
     mainBody = rest.slice(0, closeIdx).trim();
     closing = rest.slice(closeIdx).trim();
   }
-  if (!rest && bodyStart <= 0) {
-    return { intro: normalized, introIdLine: "", mainBody: "", closing: "" };
-  }
+
   return { intro, introIdLine, mainBody, closing };
 }
 
@@ -365,6 +380,267 @@ function buildGreenDualClosingSignatures(): string {
       </div>
     </div>`;
 }
+
+function buildBodyFromEditedDraftText(
+  template: GreenAvenueTemplate | JuraTemplate,
+  fields: HandoverFieldValues,
+  draftBody: string
+): string {
+  if (template.kind === "green-avenue") {
+    return renderGreenAvenueDraftBodyHtml(template, fields, draftBody);
+  }
+  return renderJuraDraftBodyHtml(template, fields, draftBody);
+}
+
+const GREEN_SECTION1_HEADING = /^[أا]?ول(?:ا|اً)/u;
+
+function renderGreenAvenueDraftBodyHtml(
+  template: GreenAvenueTemplate,
+  fields: HandoverFieldValues,
+  draftBody: string
+): string {
+  const chunks = greenAvenueBodyChunksWithoutHeader(
+    splitHandoverDraftChunks(draftBody)
+  );
+  let trailingAppendix: string | null = null;
+  if (chunks.length >= 2 && isHandoverDraftAppendixChunk(chunks[chunks.length - 1]!)) {
+    trailingAppendix = chunks.pop()!.trim();
+  }
+
+  let html = "";
+  let sawDeclarationSignatures = false;
+  let renderedDualDeclaration = false;
+  let sawViolationsSection = false;
+
+  for (const chunk of chunks) {
+    const lines = chunk.split("\n");
+    const heading = lines[0]?.trim() ?? "";
+    let bodyText = lines.slice(1).join("\n").trim();
+    if (!bodyText && lines.length === 1) {
+      bodyText = "";
+    }
+
+    if (
+      template.dual &&
+      GREEN_SECTION1_HEADING.test(heading) &&
+      !bodyText &&
+      lines.length === 1
+    ) {
+      html += `<h2 class="section-heading">${escapeHtml(heading.replace(/:$/, ""))}</h2>`;
+      continue;
+    }
+
+    if (template.dual && /^1-الاسم/u.test(chunk.trim())) {
+      html += buildGreenDualRecipient(fields).replace(
+        /<h2 class="section-heading">[^<]+<\/h2>/,
+        ""
+      );
+      continue;
+    }
+
+    if (GREEN_SECTION1_HEADING.test(heading)) {
+      html += `<h2 class="section-heading">${escapeHtml(heading.replace(/:$/, ""))}</h2>`;
+      if (template.dual) {
+        html += buildGreenDualRecipient(fields).replace(
+          /<h2 class="section-heading">[^<]+<\/h2>/,
+          ""
+        );
+      } else {
+        html += buildGreenSingleRecipient(fields).replace(
+          /<h2 class="section-heading">[^<]+<\/h2>/,
+          ""
+        );
+      }
+      continue;
+    }
+
+    if (
+      !template.dual &&
+      /^الاسم\s*:/u.test(chunk.trim()) &&
+      !/^1-الاسم/u.test(chunk.trim())
+    ) {
+      html += `<h2 class="section-heading">اولا : - بيانات المستلم</h2>`;
+      html += buildGreenSingleRecipient(fields).replace(
+        /<h2 class="section-heading">[^<]+<\/h2>/,
+        ""
+      );
+      continue;
+    }
+
+    if (/^ثان/i.test(heading)) {
+      const body = stripGreenSection2Lead(bodyText || chunk.replace(/^[^\n]+\n?/u, "").trim());
+      html += `<h2 class="section-heading">${escapeHtml(heading)}</h2>`;
+      html += `<p class="justified">${toHandoverHtml(body)}</p>`;
+      continue;
+    }
+
+    if (/^إقرار/u.test(heading) || (template.dual && /^أقر أنا الموقع/u.test(chunk.trim()))) {
+      const declarationSource = /^إقرار/u.test(heading)
+        ? bodyText || chunk.replace(/^إقرار\s*/u, "").trim()
+        : chunk.trim();
+      html += `<h2 class="declaration-title">إقرار</h2>`;
+      if (template.dual) {
+        const mainSource = stripGreenDualDeclarationPreamble(declarationSource);
+        const { mainBody, closing } = splitGreenDeclaration(mainSource);
+        html += buildGreenDualDeclarationIntro(fields);
+        if (mainBody) {
+          html += `<p class="justified">${toHandoverHtml(mainBody)}</p>`;
+        }
+        if (closing) {
+          html += `<p class="closing-line">${toHandoverHtml(closing)}</p>`;
+        }
+        renderedDualDeclaration = true;
+      } else {
+        html += `<p class="justified">${toHandoverHtml(declarationSource)}</p>`;
+      }
+      html += buildDeclarantSignatureBlock({ dual: template.dual });
+      sawDeclarationSignatures = true;
+      continue;
+    }
+
+    if (template.dual && renderedDualDeclaration && /^أقر أنا الموقع/u.test(chunk.trim())) {
+      continue;
+    }
+
+    const isInsuranceChunk = /^و في حالة رغبة الطرف الثاني/u.test(chunk.trim());
+    const isViolationsHeadingChunk =
+      heading === template.violationsIntro.trim() ||
+      chunk.trim() === template.violationsIntro.trim();
+    const isViolationsBodyChunk =
+      !isViolationsHeadingChunk &&
+      !isInsuranceChunk &&
+      (/^بمجرد الإستلام/u.test(chunk.trim()) || /مخالف|الإلتزامات/u.test(chunk));
+
+    if (isInsuranceChunk) {
+      if (sawViolationsSection) {
+        html += `</div>`;
+        sawViolationsSection = false;
+      }
+      if (!template.insurance) {
+        continue;
+      }
+      const insuranceText =
+        bodyText && !isHandoverDraftAppendixChunk(bodyText)
+          ? `${heading}\n${bodyText}`.trim()
+          : chunk.trim();
+      html += `<p class="justified insurance-block">${toHandoverHtml(insuranceText)}</p>`;
+      continue;
+    }
+
+    if (isViolationsHeadingChunk || isViolationsBodyChunk) {
+      const violationText = isViolationsHeadingChunk
+        ? bodyText
+        : bodyText ||
+          chunk.replace(new RegExp(`^${heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`), "").trim() ||
+          chunk;
+      if (!sawViolationsSection) {
+        html += `<h2 class="section-heading">${escapeHtml(template.violationsIntro)}</h2>`;
+        html += `<div class="violations-block">`;
+        sawViolationsSection = true;
+      }
+      if (violationText.trim()) {
+        const violations = splitViolationItems(violationText);
+        html += violations
+          .map((part) => `<p class="justified">${toHandoverHtml(part)}</p>`)
+          .join("\n");
+      }
+      continue;
+    }
+
+    if (heading && bodyText) {
+      html += `<p class="justified">${toHandoverHtml(chunk)}</p>`;
+    } else {
+      html += `<p class="justified">${toHandoverHtml(chunk)}</p>`;
+    }
+  }
+
+  if (!sawDeclarationSignatures) {
+    html += buildDeclarantSignatureBlock({ dual: template.dual });
+  }
+  if (sawViolationsSection) {
+    html += `</div>`;
+  }
+  if (template.dual) {
+    html += buildGreenDualClosingSignatures();
+  }
+
+  if (trailingAppendix) {
+    html += `<p class="justified draft-legal-appendix">${toHandoverHtml(trailingAppendix)}</p>`;
+  }
+
+  return html;
+}
+
+function juraParagraphBody(heading: string, body: string, chunk: string): string {
+  if (body.trim()) return body;
+  const flat = chunk.replace(/\n+/g, " ").trim();
+  if (heading && flat.startsWith(heading)) {
+    return flat.slice(heading.length).trim();
+  }
+  return flat;
+}
+
+function renderJuraDraftBodyHtml(
+  template: JuraTemplate,
+  _fields: HandoverFieldValues,
+  draftBody: string
+): string {
+  void _fields;
+  const bodyChunks = greenAvenueBodyChunksWithoutHeader(
+    splitHandoverDraftChunks(draftBody)
+  );
+
+  let html = "";
+
+  for (let i = 0; i < bodyChunks.length; i++) {
+    const chunk = bodyChunks[i]!;
+    const isLast = i === bodyChunks.length - 1;
+
+    if (/^أولاً|^1-/u.test(chunk.split("\n")[0]?.trim() ?? "") || /^أولاً/u.test(chunk)) {
+      const body = chunk
+        .replace(/^أولاً\s*:?\s*/u, "")
+        .replace(/^1-\s*/u, "")
+        .trim();
+      html += `<h2 class="section-heading">أولاً</h2>`;
+      html += `<p class="justified">${toHandoverHtml(body)}</p>`;
+      continue;
+    }
+
+    const { heading, body } = splitJuraSectionHeadingBody(
+      chunk.replace(/\n+/g, " ").trim()
+    );
+    const displayHeading = heading || chunk.split("\n")[0]?.trim() || "";
+    const isThalitha = /ثالث/u.test(displayHeading);
+
+    if (isThalitha) {
+      html += `<div class="jura-thalitha-wrap">`;
+      html += `<h2 class="section-heading">${escapeHtml(displayHeading)}</h2>`;
+      html += `<p class="justified section-body">${toHandoverHtml(juraParagraphBody(displayHeading, body, chunk))}</p>`;
+      html += buildDeclarantSignatureBlock({
+        dual: template.dual,
+        ownerRows: template.dual ? 2 : 1,
+      });
+      html += `</div>`;
+      continue;
+    }
+
+    if (isLast) {
+      html += `<div class="jura-finale">`;
+      html += `<h2 class="section-heading">${escapeHtml(displayHeading)}</h2>`;
+      html += `<p class="justified section-body">${toHandoverHtml(juraParagraphBody(displayHeading, body, chunk))}</p>`;
+      html += buildJuraClosingSignatures(template.dual);
+      html += `</div>`;
+      continue;
+    }
+
+    html += `<h2 class="section-heading">${escapeHtml(displayHeading)}</h2>`;
+    html += `<p class="justified section-body">${toHandoverHtml(juraParagraphBody(displayHeading, body, chunk))}</p>`;
+  }
+
+  return html;
+}
+
+
 
 function buildJuraBody(template: JuraTemplate, fields: HandoverFieldValues): string {
   const introPart = template.parts.find((p) => p.key.trim() === "intro");
