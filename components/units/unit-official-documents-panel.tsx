@@ -46,6 +46,7 @@ import {
   listOfficialHandoverTemplateKeysForProject,
   officialHandoverVariantLabelKey,
 } from "@/lib/official-documents/handover/variant-options";
+import { formatHandoverGenerateBlockedMessage } from "@/lib/official-documents/handover/generate-guard";
 import {
   listMissingFieldsInBody,
   officialHandoverMissingFieldLabel,
@@ -108,6 +109,8 @@ export function UnitOfficialDocumentsPanel({
   const locale = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
   const [documentType, setDocumentType] = useState<OfficialDocumentType>(
     "GRACE_PERIOD_ANNEX"
   );
@@ -334,63 +337,95 @@ export function UnitOfficialDocumentsPanel({
   const saveDraft = () => {
     if (!activeDraftId) return;
     const bodyToPersist = readEditorBodyFromDom();
-    startTransition(async () => {
-      const result = await saveOfficialDocumentTextDraftAction({
-        draftId: activeDraftId,
-        body: bodyToPersist,
-      });
-      if (!result.success) {
-        toast.error(result.error ?? t("draftSaveFailed"));
-        return;
-      }
-      toast.success(t("draftSaved"));
-      const detail = await getOfficialDocumentTextDraftAction(activeDraftId);
-      setVersionHistory(
-        detail?.versions.map((v) => ({
-          id: v.id,
-          createdAt: v.createdAt.toISOString(),
-          editorName: v.editedBy.name,
-        })) ?? []
-      );
-      router.refresh();
+    setIsSavingDraft(true);
+    startTransition(() => {
+      void (async () => {
+        try {
+          const result = await saveOfficialDocumentTextDraftAction({
+            draftId: activeDraftId,
+            body: bodyToPersist,
+          });
+          if (!result.success) {
+            toast.error(result.error ?? t("draftSaveFailed"));
+            return;
+          }
+          setEditorBody(bodyToPersist);
+          editorLiveBodyRef.current = bodyToPersist;
+          toast.success(t("draftSaved"));
+          const detail = await getOfficialDocumentTextDraftAction(activeDraftId);
+          setVersionHistory(
+            detail?.versions.map((v) => ({
+              id: v.id,
+              createdAt: v.createdAt.toISOString(),
+              editorName: v.editedBy.name,
+            })) ?? []
+          );
+          router.refresh();
+        } finally {
+          setIsSavingDraft(false);
+        }
+      })();
     });
   };
 
   const generatePdf = () => {
-    if (!activeDraftId) return;
+    if (!activeDraftId) {
+      toast.error(t("draftPrepareFailed"));
+      return;
+    }
     const bodyToPersist = readEditorBodyFromDom();
-    startTransition(async () => {
-      const saveResult = await saveOfficialDocumentTextDraftAction({
-        draftId: activeDraftId,
-        body: bodyToPersist,
-      });
-      if (!saveResult.success) {
-        toast.error(saveResult.error ?? t("draftSaveFailed"));
-        return;
-      }
+    const blocked = formatHandoverGenerateBlockedMessage(bodyToPersist, editorLocale);
+    if (blocked) {
+      toast.error(blocked);
+      return;
+    }
+    setIsGeneratingDraft(true);
+    startTransition(() => {
+      void (async () => {
+        try {
+          const saveResult = await saveOfficialDocumentTextDraftAction({
+            draftId: activeDraftId,
+            body: bodyToPersist,
+          });
+          if (!saveResult.success) {
+            toast.error(saveResult.error ?? t("draftSaveFailed"));
+            return;
+          }
+          setEditorBody(bodyToPersist);
+          editorLiveBodyRef.current = bodyToPersist;
 
-      const result = await generateOfficialDocumentAction({
-        unitId,
-        textDraftId: activeDraftId,
-      });
-      if (!result.success) {
-        toast.error(result.error ?? t("generateFailed"));
-        return;
-      }
-      toast.success(t("generateSuccess"));
-      setEditorOpen(false);
-      router.refresh();
+          const result = await generateOfficialDocumentAction({
+            unitId,
+            textDraftId: activeDraftId,
+          });
+          if (!result.success) {
+            toast.error(result.error ?? t("generateFailed"));
+            return;
+          }
+          toast.success(t("generateSuccess"));
+          setEditorOpen(false);
+          router.refresh();
+        } catch (error) {
+          console.error("Generate draft PDF failed", error);
+          toast.error(t("generateFailed"));
+        } finally {
+          setIsGeneratingDraft(false);
+        }
+      })();
     });
   };
 
   const reopenVersion = (versionId: string) => {
     if (!activeDraftId) return;
-    startTransition(async () => {
-      const detail = await getOfficialDocumentTextDraftAction(activeDraftId);
-      const version = detail?.versions.find((v) => v.id === versionId);
-      if (!version) return;
-      setEditorBody(version.body);
-      remountEditorTextarea();
+    startTransition(() => {
+      void (async () => {
+        const detail = await getOfficialDocumentTextDraftAction(activeDraftId);
+        const version = detail?.versions.find((v) => v.id === versionId);
+        if (!version) return;
+        setEditorBody(version.body);
+        editorLiveBodyRef.current = version.body;
+        remountEditorTextarea();
+      })();
     });
   };
 
@@ -701,21 +736,35 @@ export function UnitOfficialDocumentsPanel({
               </ul>
             </div>
           ) : null}
-          <DialogFooter className="gap-2 sm:justify-start">
+          <DialogFooter className="flex-col items-stretch gap-2 sm:justify-start">
+            {missingFieldKeys.length > 0 ? (
+              <p className="text-xs text-amber-900 dark:text-amber-100" role="status">
+                {formatHandoverGenerateBlockedMessage(editorBody, editorLocale) ??
+                  t("handoverMissingFieldsWarning")}
+              </p>
+            ) : null}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row">
             {canEditDraftText ? (
-              <Button type="button" variant="secondary" disabled={pending} onClick={saveDraft}>
-                {t("saveDraftText")}
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={isSavingDraft || isGeneratingDraft}
+                onClick={saveDraft}
+              >
+                {isSavingDraft ? t("draftSaving") : t("saveDraftText")}
               </Button>
             ) : null}
             {canGeneratePdf ? (
               <Button
                 type="button"
-                disabled={pending || missingFieldKeys.length > 0}
+                data-testid="generate-draft-pdf"
+                disabled={isGeneratingDraft}
                 onClick={generatePdf}
               >
-                {pending ? t("generating") : t("generateDraft")}
+                {isGeneratingDraft ? t("generating") : t("generateDraft")}
               </Button>
             ) : null}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
