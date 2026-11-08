@@ -3,14 +3,22 @@
  * Fake demo data only (handover-e2e seed).
  */
 import "dotenv/config";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 
+import { PrismaClient } from "@prisma/client";
 import { chromium } from "playwright";
 import { authenticator } from "otplib";
 
 import { formatOfficialHandoverMissingToken } from "@/lib/official-documents/handover/constants";
+
+const prisma = new PrismaClient();
+
+function sha256File(filePath: string): string {
+  return createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+}
 
 authenticator.options = { window: 5 };
 
@@ -48,14 +56,40 @@ async function syncHandoverTextarea(
 
 type LocaleResult = {
   locale: "en" | "ar";
-  incomplete: { screenshot: string; toasts: string[]; footerHint: string };
+  incomplete: {
+    screenshotFull: string;
+    screenshotFooterViewport: string;
+    toasts: string[];
+    footerHint: string;
+  };
   complete: {
     screenshot: string;
     editMarker: string;
-    pdfPath: string;
     documentId?: string;
+    pdfBrowserDownloadPath: string;
+    pdfStoredGetPath: string;
+    pdfSha256BrowserDownload: string;
+    pdfSha256StoredGet: string;
+    pdfSha256Match: boolean;
     pdftotextSnippet: string;
     toasts: string[];
+  };
+};
+
+type GuardProofResult = {
+  signedCopyLock: {
+    documentId: string;
+    textDraftId: string;
+    toast: string;
+    screenshot: string;
+    restored: boolean;
+  };
+  linkedRequestRejection: {
+    requestId: string;
+    draftId: string;
+    toast: string;
+    screenshot: string;
+    cleanedUp: boolean;
   };
 };
 
@@ -192,6 +226,11 @@ async function runLocale(
   const incompleteToasts = await page.locator("[data-sonner-toast]").allTextContents();
   const footerHint =
     (await dialog.locator('[role="status"]').first().textContent().catch(() => "")) ?? "";
+  await modalGenerate.scrollIntoViewIfNeeded();
+  await dialog.locator('[role="status"]').first().scrollIntoViewIfNeeded();
+  await page.waitForTimeout(400);
+  const incompleteFooterShot = path.join(localeDir, "incomplete-missing-token-footer-viewport.png");
+  await page.screenshot({ path: incompleteFooterShot, fullPage: false });
   const incompleteShot = path.join(localeDir, "incomplete-missing-token.png");
   await page.screenshot({ path: incompleteShot, fullPage: true });
 
@@ -237,7 +276,8 @@ async function runLocale(
   const completeShot = path.join(localeDir, "complete-generate-success.png");
   await page.screenshot({ path: completeShot, fullPage: true });
 
-  const pdfPath = path.join(localeDir, `generated-${locale}.pdf`);
+  const pdfBrowserPath = path.join(localeDir, `browser-download-${locale}.pdf`);
+  const pdfStoredPath = path.join(localeDir, `stored-get-${locale}.pdf`);
   let documentId: string | undefined;
   await page.waitForFunction(
     (prevCount) =>
@@ -253,16 +293,24 @@ async function runLocale(
       const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
       await link.click();
       const download = await downloadPromise;
-      await download.saveAs(pdfPath);
+      await download.saveAs(pdfBrowserPath);
       const getRes = await page.request.get(`${BASE}/api/units/${unitId}/generated-documents/${id}`);
       if (!getRes.ok()) throw new Error(`GET stored PDF failed: ${getRes.status()}`);
-      fs.writeFileSync(pdfPath, await getRes.body());
+      fs.writeFileSync(pdfStoredPath, Buffer.from(await getRes.body()));
       break;
     }
   }
   if (!documentId) throw new Error(`${locale}: no new generated document row after modal generate`);
 
-  const pdftotext = execFileSync("pdftotext", [pdfPath, "-"], { encoding: "utf8" });
+  const shaBrowser = sha256File(pdfBrowserPath);
+  const shaStored = sha256File(pdfStoredPath);
+  if (shaBrowser !== shaStored) {
+    throw new Error(
+      `${locale}: browser download SHA256 ${shaBrowser} != stored GET ${shaStored}`
+    );
+  }
+
+  const pdftotext = execFileSync("pdftotext", [pdfStoredPath, "-"], { encoding: "utf8" });
   if (!pdftotext.includes(editMarker) && !pdftotext.replace(/\s+/g, " ").includes(editMarker.replace(/\s+/g, " "))) {
     throw new Error(`${locale}: PDF missing edit marker ${editMarker}`);
   }
@@ -274,14 +322,171 @@ async function runLocale(
 
   return {
     locale,
-    incomplete: { screenshot: incompleteShot, toasts: incompleteToasts, footerHint },
+    incomplete: {
+      screenshotFull: incompleteShot,
+      screenshotFooterViewport: incompleteFooterShot,
+      toasts: incompleteToasts,
+      footerHint,
+    },
     complete: {
       screenshot: completeShot,
       editMarker,
-      pdfPath,
       documentId,
+      pdfBrowserDownloadPath: pdfBrowserPath,
+      pdfStoredGetPath: pdfStoredPath,
+      pdfSha256BrowserDownload: shaBrowser,
+      pdfSha256StoredGet: shaStored,
+      pdfSha256Match: true,
       pdftotextSnippet: pdftotext.slice(-400),
       toasts: completeToasts,
+    },
+  };
+}
+
+async function runDynamicGuardProofs(input: {
+  handoverUnitId: string;
+  graceUnitId: string;
+  email: string;
+  password: string;
+  signedOnDocumentId: string;
+}): Promise<GuardProofResult> {
+  const guardDir = path.join(OUT, "guards");
+  fs.mkdirSync(guardDir, { recursive: true });
+
+  const generated = await prisma.unitGeneratedDocument.findUnique({
+    where: { id: input.signedOnDocumentId },
+    select: { id: true, textDraftId: true, unitId: true },
+  });
+  if (!generated?.textDraftId) {
+    throw new Error("Signed-lock proof: generated document missing textDraftId");
+  }
+
+  const signedAt = new Date();
+  await prisma.unitGeneratedDocument.update({
+    where: { id: generated.id },
+    data: { signedCopyOnFileAt: signedAt },
+  });
+
+  const browser = await chromium.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+  const page = await browser.newPage();
+  await login(page, "en", input.email, input.password);
+  await openHandoverEditor(page, "en", input.handoverUnitId);
+  const signedShot = path.join(guardDir, "signed-copy-lock-generate-blocked.png");
+  await page.getByRole("dialog").getByTestId("generate-draft-pdf").click();
+  await page
+    .locator("[data-sonner-toast]")
+    .filter({ hasText: /signed copy on file/i })
+    .first()
+    .waitFor({ timeout: 60_000 });
+  const signedToast =
+    (await page.locator("[data-sonner-toast]").first().textContent())?.trim() ?? "";
+  await page.screenshot({ path: signedShot, fullPage: false });
+
+  await prisma.unitGeneratedDocument.update({
+    where: { id: generated.id },
+    data: { signedCopyOnFileAt: null },
+  });
+
+  const admin = await prisma.user.findFirst({
+    where: { role: "SUPER_ADMIN" },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!admin) throw new Error("Super admin required for guard proof");
+
+  const graceTemplate = await prisma.officialDocumentTemplate.findFirst({
+    where: { documentType: "GRACE_PERIOD_ANNEX", locale: "en", isActive: true },
+  });
+  if (!graceTemplate) throw new Error("Grace period annex template missing");
+
+  const cancelledRequest = await prisma.unitRequest.create({
+    data: {
+      type: "GRACE_PERIOD_ANNEX",
+      unitId: input.graceUnitId,
+      requestedById: admin.id,
+      status: "APPROVED",
+      submittedAt: new Date(),
+      description: "E2E guard proof — will cancel before generate",
+    },
+  });
+
+  const graceBody =
+    "Grace Period Annex\n\nUnit: {{unitNumber}}\n\nGuard proof body for linked-request rejection.";
+  const graceDraft = await prisma.officialDocumentTextDraft.create({
+    data: {
+      unitId: input.graceUnitId,
+      documentType: "GRACE_PERIOD_ANNEX",
+      templateId: graceTemplate.id,
+      templateVersion: graceTemplate.version,
+      templateLocale: "en",
+      title: graceTemplate.title,
+      currentBody: graceBody,
+      unitRequestId: cancelledRequest.id,
+      createdById: admin.id,
+      updatedById: admin.id,
+    },
+  });
+  await prisma.officialDocumentTextDraftVersion.create({
+    data: {
+      draftId: graceDraft.id,
+      body: graceBody,
+      editedById: admin.id,
+    },
+  });
+
+  await page.goto(`${BASE}/en/units/${input.graceUnitId}`, { waitUntil: "domcontentloaded" });
+  const docType = page
+    .getByText(/Document type/)
+    .locator("..")
+    .getByRole("combobox")
+    .first();
+  await docType.click();
+  await page.getByRole("option", { name: /Grace period annex/i }).click();
+  await page.waitForTimeout(500);
+  await page.getByRole("button", { name: /^Edit text$/i }).click();
+  await page.getByRole("dialog").waitFor({ state: "visible", timeout: 60_000 });
+
+  await prisma.unitRequest.update({
+    where: { id: cancelledRequest.id },
+    data: { status: "CANCELLED", resolvedAt: new Date() },
+  });
+
+  const graceDialog = page.getByRole("dialog");
+  await graceDialog.getByRole("button", { name: /Save text version/i }).click();
+  await page
+    .locator("[data-sonner-toast]")
+    .filter({ hasText: /no longer approved/i })
+    .first()
+    .waitFor({ timeout: 60_000 });
+  const linkedToast =
+    (await page.locator("[data-sonner-toast]").first().textContent())?.trim() ?? "";
+  const linkedShot = path.join(guardDir, "linked-request-cancelled-save-blocked.png");
+  await page.screenshot({ path: linkedShot, fullPage: false });
+
+  await prisma.officialDocumentTextDraftVersion.deleteMany({
+    where: { draftId: graceDraft.id },
+  });
+  await prisma.officialDocumentTextDraft.delete({ where: { id: graceDraft.id } });
+  await prisma.unitRequest.delete({ where: { id: cancelledRequest.id } });
+
+  await browser.close();
+
+  return {
+    signedCopyLock: {
+      documentId: generated.id,
+      textDraftId: generated.textDraftId,
+      toast: signedToast,
+      screenshot: signedShot,
+      restored: true,
+    },
+    linkedRequestRejection: {
+      requestId: cancelledRequest.id,
+      draftId: graceDraft.id,
+      toast: linkedToast,
+      screenshot: linkedShot,
+      cleanedUp: true,
     },
   };
 }
@@ -295,19 +500,32 @@ async function main() {
   const password = process.env.SUPER_ADMIN_PASSWORD;
   if (!password) throw new Error("SUPER_ADMIN_PASSWORD required");
   const unit = manifest.units.find((u) => u.variant === "green-avenue");
+  const graceUnit = manifest.units.find((u) => u.variant === "green-avenue-no-insurance");
   if (!unit) throw new Error("green-avenue unit missing from manifest");
+  if (!graceUnit) throw new Error("green-avenue-no-insurance unit missing from manifest");
 
   const en = await runLocale("en", unit.unitId, manifest.loginEmail, password);
   const ar = await runLocale("ar", unit.unitId, manifest.loginEmail, password);
+  if (!en.complete.documentId) throw new Error("en complete missing documentId");
+
+  const guards = await runDynamicGuardProofs({
+    handoverUnitId: unit.unitId,
+    graceUnitId: graceUnit.unitId,
+    email: manifest.loginEmail,
+    password,
+    signedOnDocumentId: en.complete.documentId,
+  });
 
   const report = {
     runId: RUN_ID,
     evidenceRoot: OUT,
     baseUrl: BASE,
     unitId: unit.unitId,
+    graceGuardUnitId: graceUnit.unitId,
     pr: "PR44-modal-generate-draft-pdf",
     en,
     ar,
+    dynamicGuards: guards,
     passed: true,
   };
   fs.writeFileSync(path.join(OUT, "proof-report.json"), JSON.stringify(report, null, 2));
@@ -316,9 +534,11 @@ async function main() {
     `${RUN_ID}\n${OUT}\n`
   );
   console.log("PROOF PASS", OUT);
+  await prisma.$disconnect();
 }
 
 main().catch((err) => {
   console.error(err);
+  void prisma.$disconnect();
   process.exit(1);
 });
