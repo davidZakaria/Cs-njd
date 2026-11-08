@@ -59,12 +59,14 @@ export function buildOfficialHandoverHtml(input: {
       : buildJuraBody(template, input.fields);
 
   const watermark = input.watermarkDraft
-    ? '<div class="watermark" aria-hidden="true">مسودة — DRAFT</div>'
+    ? '<div class="watermark" aria-hidden="true">مسودة</div>'
     : "";
 
   const docClass = input.templateKey.startsWith("jura")
     ? "handover-jura"
     : "handover-green";
+
+  const declarantFooter = buildDeclarantPageFooter(input.templateKey);
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -84,6 +86,7 @@ export function buildOfficialHandoverHtml(input: {
   ${watermark}
   <div class="print-frame print-frame-outer" aria-hidden="true"></div>
   <div class="print-frame print-frame-inner" aria-hidden="true"></div>
+  ${declarantFooter}
   <div class="doc-body">
     ${buildHeaderHtml(logoDataUri, template, input.fields)}
     ${body}
@@ -158,7 +161,7 @@ function buildGreenAvenueBody(
     : buildGreenSingleDeclarationIntro(intro, introIdLine);
 
   const violationHtml = `<div class="violations-block">${violations
-    .map((chunk) => `<p class="justified">${toHandoverHtml(chunk)}</p>`)
+    .map((chunk) => `<p class="justified violation-item">${toHandoverHtml(chunk)}</p>`)
     .join("\n")}</div>`;
 
   return `
@@ -169,7 +172,6 @@ function buildGreenAvenueBody(
     ${declarationIntroHtml}
     ${mainBody ? `<p class="justified">${toHandoverHtml(mainBody)}</p>` : ""}
     ${closing ? `<p class="closing-line">${toHandoverHtml(closing)}</p>` : ""}
-    ${buildDeclarantSignatureBlock()}
     <h2 class="section-heading">${escapeHtml(template.violationsIntro)}</h2>
     ${violationHtml}
     ${insurance ? `<p class="justified insurance-block">${toHandoverHtml(insurance)}</p>` : ""}
@@ -287,12 +289,26 @@ function splitGreenDeclaration(text: string) {
   return { intro, introIdLine, mainBody, closing };
 }
 
+function buildDeclarantPageFooter(templateKey: HandoverTemplateKey): string {
+  const isJura = templateKey.startsWith("jura");
+  const dual = templateKey.includes("dual");
+  const inner = buildDeclarantSignatureBlock({
+    dual,
+    ownerRows: dual ? 2 : 1,
+    juraFooterStyle: isJura,
+  });
+  return `<div class="handover-declarant-footer" aria-hidden="true">${inner}</div>`;
+}
+
 function buildDeclarantSignatureBlock(options?: {
   dual?: boolean;
   ownerRows?: 1 | 2;
+  /** Jura Word footer uses 1-/2-الأسم on every page. */
+  juraFooterStyle?: boolean;
 }): string {
   const rows =
     options?.ownerRows ?? (options?.dual ? 2 : 1);
+  const singleNameLabel = options?.juraFooterStyle ? "1-الأسم :" : "الاسم :";
   const ownerRowsHtml =
     rows === 2
       ? `
@@ -315,7 +331,7 @@ function buildDeclarantSignatureBlock(options?: {
       : `
       <div class="signature-row">
         <div class="signature-cell">
-          <span class="label">الاسم :</span><span class="dotted-line"></span>
+          <span class="label">${singleNameLabel}</span><span class="dotted-line"></span>
         </div>
         <div class="signature-cell">
           <span class="label">التوقيع :</span><span class="dotted-line"></span>
@@ -408,7 +424,6 @@ function renderGreenAvenueDraftBodyHtml(
   }
 
   let html = "";
-  let sawDeclarationSignatures = false;
   let renderedDualDeclaration = false;
   let sawViolationsSection = false;
 
@@ -493,8 +508,6 @@ function renderGreenAvenueDraftBodyHtml(
       } else {
         html += `<p class="justified">${toHandoverHtml(declarationSource)}</p>`;
       }
-      html += buildDeclarantSignatureBlock({ dual: template.dual });
-      sawDeclarationSignatures = true;
       continue;
     }
 
@@ -541,7 +554,7 @@ function renderGreenAvenueDraftBodyHtml(
       if (violationText.trim()) {
         const violations = splitViolationItems(violationText);
         html += violations
-          .map((part) => `<p class="justified">${toHandoverHtml(part)}</p>`)
+          .map((part) => `<p class="justified violation-item">${toHandoverHtml(part)}</p>`)
           .join("\n");
       }
       continue;
@@ -554,9 +567,6 @@ function renderGreenAvenueDraftBodyHtml(
     }
   }
 
-  if (!sawDeclarationSignatures) {
-    html += buildDeclarantSignatureBlock({ dual: template.dual });
-  }
   if (sawViolationsSection) {
     html += `</div>`;
   }
@@ -616,10 +626,6 @@ function renderJuraDraftBodyHtml(
       html += `<div class="jura-thalitha-wrap">`;
       html += `<h2 class="section-heading">${escapeHtml(displayHeading)}</h2>`;
       html += `<p class="justified section-body">${toHandoverHtml(juraParagraphBody(displayHeading, body, chunk))}</p>`;
-      html += buildDeclarantSignatureBlock({
-        dual: template.dual,
-        ownerRows: template.dual ? 2 : 1,
-      });
       html += `</div>`;
       continue;
     }
@@ -667,10 +673,6 @@ function buildJuraBody(template: JuraTemplate, fields: HandoverFieldValues): str
       html += `<div class="jura-thalitha-wrap">`;
       html += `<h2 class="section-heading">${escapeHtml(heading)}</h2>`;
       html += `<p class="justified section-body">${toHandoverHtml(body)}</p>`;
-      html += buildDeclarantSignatureBlock({
-        dual: template.dual,
-        ownerRows: template.dual ? 2 : 1,
-      });
       html += `</div>`;
       continue;
     }
