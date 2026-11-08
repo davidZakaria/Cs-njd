@@ -128,14 +128,30 @@ export function splitViolationItems(body: string): string[] {
   return [...(intro ? [intro.trim()] : []), ...items, ...(tail ? [tail] : [])];
 }
 
+/** Join violation fragments without fusing Arabic words across boundaries. */
+export function joinViolationFragments(left: string, right: string): string {
+  if (!left) return right;
+  if (!right) return left;
+  const leftEndsWord = /[\p{L}\p{N}\u0660-\u0669]$/u.test(left);
+  const rightStartsWord = /^[\p{L}\p{N}\u0660-\u0669]/u.test(right);
+  if (leftEndsWord && rightStartsWord && !/\s$/.test(left) && !/^\s/.test(right)) {
+    return `${left} ${right}`;
+  }
+  return `${left}${right}`;
+}
+
+export function joinViolationPieces(pieces: string[]): string {
+  return pieces.reduce((acc, piece) => joinViolationFragments(acc, piece), "");
+}
+
 /** Regroup split violation clauses for print pagination (exact wording preserved). */
 export function groupViolationItemsForPrint(
   items: string[],
   options?: { minChars?: number; maxChars?: number }
 ): string[] {
   if (items.length <= 2) return items;
-  const minChars = options?.minChars ?? 320;
-  const maxChars = options?.maxChars ?? 720;
+  const minChars = options?.minChars ?? 240;
+  const maxChars = options?.maxChars ?? 520;
 
   let head: string[] = [];
   let tail: string[] = [];
@@ -160,7 +176,7 @@ export function groupViolationItemsForPrint(
   };
 
   for (const piece of middle) {
-    const merged = buffer ? `${buffer}${piece}` : piece;
+    const merged = buffer ? joinViolationFragments(buffer, piece) : piece;
     if (buffer && merged.length > maxChars) {
       flush();
       buffer = piece;

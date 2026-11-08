@@ -392,6 +392,11 @@ p.justified,
   widows: 3;
 }
 
+.violation-page-break {
+  break-before: page;
+  page-break-before: always;
+}
+
 .handover-green .violations-block p {
   margin: 0.85mm 0;
   line-height: 1.46;

@@ -13,10 +13,30 @@ import {
 import {
   groupViolationItemsForPrint,
   interpolateHandoverText,
+  joinViolationPieces,
   splitViolationItems,
 } from "@/lib/print/handover-templates/fields";
 import { loadHandoverTemplate } from "@/lib/print/handover-templates/resolve";
-import type { HandoverFieldValues } from "@/lib/print/handover-templates/types";
+import type { HandoverFieldValues, HandoverTemplateKey } from "@/lib/print/handover-templates/types";
+
+const ALL_VARIANTS: HandoverTemplateKey[] = [
+  "green-avenue",
+  "green-avenue-no-insurance",
+  "green-avenue-dual",
+  "green-avenue-dual-no-insurance",
+  "jura",
+  "jura-dual",
+];
+
+function fieldsFor(key: HandoverTemplateKey): HandoverFieldValues {
+  if (!key.includes("dual")) return baseFields;
+  return {
+    ...baseFields,
+    clientName: "Owner One",
+    clientName2: "Owner Two",
+    nationalId2: "29001010000002",
+  };
+}
 
 const baseFields: HandoverFieldValues = {
   clientName: "Demo Owner",
@@ -70,13 +90,9 @@ describe("handover violation pagination", () => {
     );
     const split = splitViolationItems(body);
     const grouped = groupViolationItemsForPrint(split);
-    const splitMiddle = split
-      .filter((s) => !s.startsWith("بمجرد") && !s.includes("كل ما ورد"))
-      .join("");
-    const groupMiddle = grouped
-      .filter((s) => !s.startsWith("بمجرد") && !s.includes("كل ما ورد"))
-      .join("");
-    expect(groupMiddle).toBe(splitMiddle);
+    const regrouped = joinViolationPieces(grouped);
+    expect(regrouped).toBe(joinViolationPieces(split));
+    expect(regrouped).not.toMatch(/عدمعمل/u);
     expect(grouped.length).toBeLessThan(split.length);
   });
 
@@ -104,7 +120,32 @@ describe("handover violation pagination", () => {
     const page2 = pdfPageText(Buffer.from(pdf), 2).replace(/\s+/g, " ").trim();
     expect(page2.startsWith("عدم")).toBe(false);
     expect(page2).toMatch(/بمجرد|المخالفات/u);
+    const full = execFileSync("pdftotext", ["-", "-"], { encoding: "utf8", input: Buffer.from(pdf) });
+    expect(full).not.toMatch(/عدمعمل/u);
   }, 60_000);
+
+  it("all six variants avoid near-blank tail pages on canonical body", async () => {
+    const minSubstantiveLastPage = 1400;
+    for (const templateKey of ALL_VARIANTS) {
+      const fields = fieldsFor(templateKey);
+      const canonical = buildOfficialHandoverDraftBody({ templateKey, fields });
+      const pdf = await renderOfficialHandoverRecordPdf({
+        templateKey,
+        fields,
+        watermarkDraft: true,
+        draftBody: canonical,
+      });
+      const pages = pdfPageCount(Buffer.from(pdf));
+      for (let p = 1; p <= pages; p += 1) {
+        const substantive = substantiveChars(pdfPageText(Buffer.from(pdf), p));
+        expect(substantive, `${templateKey} page ${p}`).toBeGreaterThanOrEqual(
+          p === pages ? minSubstantiveLastPage : 600
+        );
+      }
+      const full = execFileSync("pdftotext", ["-", "-"], { encoding: "utf8", input: Buffer.from(pdf) });
+      expect(full).not.toMatch(/عدمعمل/u);
+    }
+  }, 180_000);
 });
 
 afterAll(async () => {

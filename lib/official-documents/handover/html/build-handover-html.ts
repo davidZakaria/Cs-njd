@@ -5,6 +5,8 @@ import {
   formatGreenAvenueHeader,
   interpolateHandoverText,
   groupViolationItemsForPrint,
+  joinViolationFragments,
+  joinViolationPieces,
   splitViolationItems,
 } from "@/lib/print/handover-templates/fields";
 import { loadHandoverTemplate } from "@/lib/print/handover-templates/resolve";
@@ -37,9 +39,37 @@ import {
 } from "./utils";
 
 const ARABIC_FONT_PATH = "lib/official-documents/assets/NotoNaskhArabic-Regular.ttf";
+const VIOLATION_PAGE_BREAK_PREFIX = "\u0000PB\u0000";
 
-function violationItemsForPrint(violationSource: string): string[] {
-  return groupViolationItemsForPrint(splitViolationItems(violationSource));
+function violationItemsForPrint(
+  violationSource: string,
+  options?: { dual?: boolean }
+): string[] {
+  const grouped = groupViolationItemsForPrint(splitViolationItems(violationSource));
+  const tailIdx = grouped.findIndex((chunk) => chunk.includes("كل ما ورد من انواع المخالفات"));
+  if (tailIdx > 0) {
+    const tail = grouped[tailIdx]!;
+    grouped[tailIdx - 1] = joinViolationFragments(grouped[tailIdx - 1]!, tail);
+    grouped.splice(tailIdx, 1);
+  }
+  const introEnd = grouped[0]?.startsWith("بمجرد") ? 1 : 0;
+  const body = grouped.slice(introEnd);
+  const bodyChars = joinViolationPieces(
+    body.map((item) => (item.startsWith(VIOLATION_PAGE_BREAK_PREFIX) ? item.slice(VIOLATION_PAGE_BREAK_PREFIX.length) : item))
+  );
+  if (!options?.dual && body.length >= 4 && bodyChars.length > 2_100) {
+    const breakAt = Math.max(1, Math.min(body.length - 1, Math.floor(body.length * 0.5)));
+    const abs = introEnd + breakAt;
+    grouped[abs] = `${VIOLATION_PAGE_BREAK_PREFIX}${grouped[abs]}`;
+  }
+  return grouped;
+}
+
+function violationItemHtml(chunk: string): string {
+  const pageBreak = chunk.startsWith(VIOLATION_PAGE_BREAK_PREFIX);
+  const text = pageBreak ? chunk.slice(VIOLATION_PAGE_BREAK_PREFIX.length) : chunk;
+  const className = pageBreak ? "justified violation-item violation-page-break" : "justified violation-item";
+  return `<p class="${className}">${toHandoverHtml(text)}</p>`;
 }
 
 export function buildOfficialHandoverHtml(input: {
@@ -151,7 +181,8 @@ function buildGreenAvenueBody(
     template.dual ? stripGreenDualDeclarationPreamble(declaration) : declaration
   );
   const violations = violationItemsForPrint(
-    interpolateHandoverText(template.violationsBody, fields)
+    interpolateHandoverText(template.violationsBody, fields),
+    { dual: template.dual }
   );
   const insurance = template.insurance
     ? interpolateHandoverText(template.insurance, fields)
@@ -166,7 +197,7 @@ function buildGreenAvenueBody(
     : buildGreenSingleDeclarationIntro(intro, introIdLine);
 
   const violationHtml = `<div class="violations-block">${violations
-    .map((chunk) => `<p class="justified violation-item">${toHandoverHtml(chunk)}</p>`)
+    .map((chunk) => violationItemHtml(chunk))
     .join("\n")}</div>`;
 
   return `
@@ -557,9 +588,9 @@ function renderGreenAvenueDraftBodyHtml(
         sawViolationsSection = true;
       }
       if (violationText.trim()) {
-        const violations = violationItemsForPrint(violationText);
+        const violations = violationItemsForPrint(violationText, { dual: template.dual });
         html += violations
-          .map((part) => `<p class="justified violation-item">${toHandoverHtml(part)}</p>`)
+          .map((part) => violationItemHtml(part))
           .join("\n");
       }
       continue;
