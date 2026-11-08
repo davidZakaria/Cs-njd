@@ -2176,6 +2176,7 @@
     "editText": "تعديل النص",
     "editTextDialogTitle": "تعديل نص المسودة",
     "saveDraftText": "حفظ نسخة النص",
+    "draftSaving": "جاري الحفظ…",
     "draftSaved": "تم حفظ نص المسودة.",
     "draftPrepareFailed": "تعذّر تجهيز نص المسودة.",
     "draftSaveFailed": "تعذّر حفظ نص المسودة.",

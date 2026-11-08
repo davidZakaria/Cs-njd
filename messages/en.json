@@ -2178,6 +2178,7 @@
     "editText": "Edit text",
     "editTextDialogTitle": "Edit draft text",
     "saveDraftText": "Save text version",
+    "draftSaving": "Saving…",
     "draftSaved": "Draft text saved.",
     "draftPrepareFailed": "Could not prepare draft text.",
     "draftSaveFailed": "Could not save draft text.",
