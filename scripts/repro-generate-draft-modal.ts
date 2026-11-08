@@ -129,7 +129,7 @@ async function runLocale(locale: "en" | "ar") {
   const downloadWait = page.waitForEvent("download", { timeout: 180_000 }).catch(() => null);
   await modalGen.click({ force: genStateAfterSave.disabled });
 
-  let outcome: Record<string, unknown> = { clickedWhileDisabled: genStateAfterSave.disabled };
+  const outcome: Record<string, unknown> = { clickedWhileDisabled: genStateAfterSave.disabled };
   try {
     await page.locator("[data-sonner-toast]").filter({ hasText: locale === "ar" ? /تم إنشاء مسودة PDF|تعذر|Cannot/ : /Draft PDF generated|failed|Cannot/i }).first().waitFor({ timeout: 180_000 });
     outcome.toasts = await page.locator("[data-sonner-toast]").allTextContents();
