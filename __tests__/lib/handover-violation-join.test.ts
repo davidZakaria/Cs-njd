@@ -7,6 +7,8 @@ import {
   joinViolationPieces,
   splitViolationItems,
 } from "@/lib/print/handover-templates/fields";
+import { loadHandoverTemplate } from "@/lib/print/handover-templates/resolve";
+import type { HandoverFieldValues } from "@/lib/print/handover-templates/types";
 
 function violationItemsLikePrint(source: string): string[] {
   const grouped = groupViolationItemsForPrint(splitViolationItems(source));
@@ -17,8 +19,6 @@ function violationItemsLikePrint(source: string): string[] {
   }
   return grouped;
 }
-import { loadHandoverTemplate } from "@/lib/print/handover-templates/resolve";
-import type { HandoverFieldValues } from "@/lib/print/handover-templates/types";
 
 const baseFields: HandoverFieldValues = {
   clientName: "Demo Owner",
@@ -57,7 +57,9 @@ describe("violation fragment join (word boundaries)", () => {
     ] as const;
     for (const key of keys) {
       const template = loadHandoverTemplate(key);
-      expect(template.kind).toBe("green-avenue");
+      if (template.kind !== "green-avenue") {
+        throw new Error(`expected green-avenue template for ${key}`);
+      }
       const body = interpolateHandoverText(template.violationsBody, baseFields);
       const split = splitViolationItems(body);
       const splitCore = joinViolationPieces(split);
