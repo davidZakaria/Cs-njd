@@ -12,6 +12,10 @@ export const HANDOVER_CONTENT_PADDING_MM =
   HANDOVER_PAGE_MARGIN_MM - HANDOVER_BORDER_OUTER_INSET_MM;
 export const HANDOVER_BORDER_INNER_OFFSET_MM =
   HANDOVER_BORDER_INNER_INSET_MM - HANDOVER_BORDER_OUTER_INSET_MM;
+/** Space reserved at page bottom so body text does not run under the repeated declarant footer. */
+export const HANDOVER_DECLARANT_FOOTER_RESERVE_MM = 26;
+export const HANDOVER_DECLARANT_FOOTER_BOTTOM_MM =
+  HANDOVER_BORDER_INNER_OFFSET_MM + 3;
 
 export const HANDOVER_PRINT_CSS = `
 @page {
@@ -47,6 +51,7 @@ body {
   max-width: 100%;
   margin: 0;
   padding: ${HANDOVER_CONTENT_PADDING_MM}mm;
+  padding-bottom: ${HANDOVER_CONTENT_PADDING_MM + HANDOVER_DECLARANT_FOOTER_RESERVE_MM}mm;
   box-sizing: border-box;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
@@ -102,6 +107,24 @@ body {
   pointer-events: none;
   z-index: 999;
   user-select: none;
+}
+
+.handover-declarant-footer {
+  position: fixed;
+  left: ${HANDOVER_PAGE_MARGIN_MM}mm;
+  right: ${HANDOVER_PAGE_MARGIN_MM}mm;
+  bottom: ${HANDOVER_DECLARANT_FOOTER_BOTTOM_MM}mm;
+  z-index: 900;
+  pointer-events: none;
+  box-sizing: border-box;
+  padding: 0 1mm;
+  background: #fff;
+}
+
+.handover-declarant-footer .signature-block {
+  margin: 0;
+  padding: 0;
+  max-width: 100%;
 }
 
 .doc-header {
@@ -364,6 +387,16 @@ p.justified,
   margin: 1.2mm 0;
 }
 
+.violation-item {
+  orphans: 3;
+  widows: 3;
+}
+
+.violation-page-break {
+  break-before: page;
+  page-break-before: always;
+}
+
 .handover-green .violations-block p {
   margin: 0.85mm 0;
   line-height: 1.46;
@@ -374,8 +407,8 @@ p.justified,
   line-height: 1.46;
   break-inside: auto;
   page-break-inside: auto;
-  break-after: avoid-page;
-  page-break-after: avoid;
+  orphans: 2;
+  widows: 2;
 }
 
 .draft-legal-appendix {

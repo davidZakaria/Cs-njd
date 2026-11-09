@@ -4,6 +4,9 @@ import path from "node:path";
 import {
   formatGreenAvenueHeader,
   interpolateHandoverText,
+  groupViolationItemsForPrint,
+  joinViolationFragments,
+  joinViolationPieces,
   splitViolationItems,
 } from "@/lib/print/handover-templates/fields";
 import { loadHandoverTemplate } from "@/lib/print/handover-templates/resolve";
@@ -36,6 +39,38 @@ import {
 } from "./utils";
 
 const ARABIC_FONT_PATH = "lib/official-documents/assets/NotoNaskhArabic-Regular.ttf";
+const VIOLATION_PAGE_BREAK_PREFIX = "\u0000PB\u0000";
+
+function violationItemsForPrint(
+  violationSource: string,
+  options?: { dual?: boolean }
+): string[] {
+  const grouped = groupViolationItemsForPrint(splitViolationItems(violationSource));
+  const tailIdx = grouped.findIndex((chunk) => chunk.includes("كل ما ورد من انواع المخالفات"));
+  if (tailIdx > 0) {
+    const tail = grouped[tailIdx]!;
+    grouped[tailIdx - 1] = joinViolationFragments(grouped[tailIdx - 1]!, tail);
+    grouped.splice(tailIdx, 1);
+  }
+  const introEnd = grouped[0]?.startsWith("بمجرد") ? 1 : 0;
+  const body = grouped.slice(introEnd);
+  const bodyChars = joinViolationPieces(
+    body.map((item) => (item.startsWith(VIOLATION_PAGE_BREAK_PREFIX) ? item.slice(VIOLATION_PAGE_BREAK_PREFIX.length) : item))
+  );
+  if (!options?.dual && body.length >= 4 && bodyChars.length > 2_100) {
+    const breakAt = Math.max(1, Math.min(body.length - 1, Math.floor(body.length * 0.5)));
+    const abs = introEnd + breakAt;
+    grouped[abs] = `${VIOLATION_PAGE_BREAK_PREFIX}${grouped[abs]}`;
+  }
+  return grouped;
+}
+
+function violationItemHtml(chunk: string): string {
+  const pageBreak = chunk.startsWith(VIOLATION_PAGE_BREAK_PREFIX);
+  const text = pageBreak ? chunk.slice(VIOLATION_PAGE_BREAK_PREFIX.length) : chunk;
+  const className = pageBreak ? "justified violation-item violation-page-break" : "justified violation-item";
+  return `<p class="${className}">${toHandoverHtml(text)}</p>`;
+}
 
 export function buildOfficialHandoverHtml(input: {
   templateKey: HandoverTemplateKey;
@@ -59,12 +94,14 @@ export function buildOfficialHandoverHtml(input: {
       : buildJuraBody(template, input.fields);
 
   const watermark = input.watermarkDraft
-    ? '<div class="watermark" aria-hidden="true">مسودة — DRAFT</div>'
+    ? '<div class="watermark" aria-hidden="true">مسودة</div>'
     : "";
 
   const docClass = input.templateKey.startsWith("jura")
     ? "handover-jura"
     : "handover-green";
+
+  const declarantFooter = buildDeclarantPageFooter(input.templateKey);
 
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -84,6 +121,7 @@ export function buildOfficialHandoverHtml(input: {
   ${watermark}
   <div class="print-frame print-frame-outer" aria-hidden="true"></div>
   <div class="print-frame print-frame-inner" aria-hidden="true"></div>
+  ${declarantFooter}
   <div class="doc-body">
     ${buildHeaderHtml(logoDataUri, template, input.fields)}
     ${body}
@@ -142,8 +180,9 @@ function buildGreenAvenueBody(
   const { intro, introIdLine, mainBody, closing } = splitGreenDeclaration(
     template.dual ? stripGreenDualDeclarationPreamble(declaration) : declaration
   );
-  const violations = splitViolationItems(
-    interpolateHandoverText(template.violationsBody, fields)
+  const violations = violationItemsForPrint(
+    interpolateHandoverText(template.violationsBody, fields),
+    { dual: template.dual }
   );
   const insurance = template.insurance
     ? interpolateHandoverText(template.insurance, fields)
@@ -158,7 +197,7 @@ function buildGreenAvenueBody(
     : buildGreenSingleDeclarationIntro(intro, introIdLine);
 
   const violationHtml = `<div class="violations-block">${violations
-    .map((chunk) => `<p class="justified">${toHandoverHtml(chunk)}</p>`)
+    .map((chunk) => violationItemHtml(chunk))
     .join("\n")}</div>`;
 
   return `
@@ -169,7 +208,6 @@ function buildGreenAvenueBody(
     ${declarationIntroHtml}
     ${mainBody ? `<p class="justified">${toHandoverHtml(mainBody)}</p>` : ""}
     ${closing ? `<p class="closing-line">${toHandoverHtml(closing)}</p>` : ""}
-    ${buildDeclarantSignatureBlock()}
     <h2 class="section-heading">${escapeHtml(template.violationsIntro)}</h2>
     ${violationHtml}
     ${insurance ? `<p class="justified insurance-block">${toHandoverHtml(insurance)}</p>` : ""}
@@ -287,12 +325,26 @@ function splitGreenDeclaration(text: string) {
   return { intro, introIdLine, mainBody, closing };
 }
 
+function buildDeclarantPageFooter(templateKey: HandoverTemplateKey): string {
+  const isJura = templateKey.startsWith("jura");
+  const dual = templateKey.includes("dual");
+  const inner = buildDeclarantSignatureBlock({
+    dual,
+    ownerRows: dual ? 2 : 1,
+    juraFooterStyle: isJura,
+  });
+  return `<div class="handover-declarant-footer" aria-hidden="true">${inner}</div>`;
+}
+
 function buildDeclarantSignatureBlock(options?: {
   dual?: boolean;
   ownerRows?: 1 | 2;
+  /** Jura Word footer uses 1-/2-الأسم on every page. */
+  juraFooterStyle?: boolean;
 }): string {
   const rows =
     options?.ownerRows ?? (options?.dual ? 2 : 1);
+  const singleNameLabel = options?.juraFooterStyle ? "1-الأسم :" : "الاسم :";
   const ownerRowsHtml =
     rows === 2
       ? `
@@ -315,7 +367,7 @@ function buildDeclarantSignatureBlock(options?: {
       : `
       <div class="signature-row">
         <div class="signature-cell">
-          <span class="label">الاسم :</span><span class="dotted-line"></span>
+          <span class="label">${singleNameLabel}</span><span class="dotted-line"></span>
         </div>
         <div class="signature-cell">
           <span class="label">التوقيع :</span><span class="dotted-line"></span>
@@ -408,7 +460,6 @@ function renderGreenAvenueDraftBodyHtml(
   }
 
   let html = "";
-  let sawDeclarationSignatures = false;
   let renderedDualDeclaration = false;
   let sawViolationsSection = false;
 
@@ -493,8 +544,6 @@ function renderGreenAvenueDraftBodyHtml(
       } else {
         html += `<p class="justified">${toHandoverHtml(declarationSource)}</p>`;
       }
-      html += buildDeclarantSignatureBlock({ dual: template.dual });
-      sawDeclarationSignatures = true;
       continue;
     }
 
@@ -539,9 +588,9 @@ function renderGreenAvenueDraftBodyHtml(
         sawViolationsSection = true;
       }
       if (violationText.trim()) {
-        const violations = splitViolationItems(violationText);
+        const violations = violationItemsForPrint(violationText, { dual: template.dual });
         html += violations
-          .map((part) => `<p class="justified">${toHandoverHtml(part)}</p>`)
+          .map((part) => violationItemHtml(part))
           .join("\n");
       }
       continue;
@@ -554,9 +603,6 @@ function renderGreenAvenueDraftBodyHtml(
     }
   }
 
-  if (!sawDeclarationSignatures) {
-    html += buildDeclarantSignatureBlock({ dual: template.dual });
-  }
   if (sawViolationsSection) {
     html += `</div>`;
   }
@@ -616,10 +662,6 @@ function renderJuraDraftBodyHtml(
       html += `<div class="jura-thalitha-wrap">`;
       html += `<h2 class="section-heading">${escapeHtml(displayHeading)}</h2>`;
       html += `<p class="justified section-body">${toHandoverHtml(juraParagraphBody(displayHeading, body, chunk))}</p>`;
-      html += buildDeclarantSignatureBlock({
-        dual: template.dual,
-        ownerRows: template.dual ? 2 : 1,
-      });
       html += `</div>`;
       continue;
     }
@@ -667,10 +709,6 @@ function buildJuraBody(template: JuraTemplate, fields: HandoverFieldValues): str
       html += `<div class="jura-thalitha-wrap">`;
       html += `<h2 class="section-heading">${escapeHtml(heading)}</h2>`;
       html += `<p class="justified section-body">${toHandoverHtml(body)}</p>`;
-      html += buildDeclarantSignatureBlock({
-        dual: template.dual,
-        ownerRows: template.dual ? 2 : 1,
-      });
       html += `</div>`;
       continue;
     }

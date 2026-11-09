@@ -85,7 +85,7 @@ export async function renderOfficialDocumentPdf(input: {
   }
 
   if (input.watermarkDraft) {
-    const label = useArabic ? "مسودة — DRAFT" : "DRAFT";
+    const label = useArabic ? "مسودة" : "DRAFT";
     const wmSize = 42;
     const wmColor = rgb(0.75, 0.75, 0.75);
     if (useArabic) {

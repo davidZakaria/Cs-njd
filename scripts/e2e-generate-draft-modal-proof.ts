@@ -13,11 +13,62 @@ import { chromium } from "playwright";
 import { authenticator } from "otplib";
 
 import { formatOfficialHandoverMissingToken } from "@/lib/official-documents/handover/constants";
+import {
+  assertHandoverPdfSliceNoFusion,
+  assertHandoverViolationWordBoundaries,
+  handoverTextHasFusedAdmAmal,
+  SPACED_ADM_AMAL_PATTERN,
+} from "@/lib/official-documents/handover/violation-word-boundary";
+import { resolveOfficialDocumentGenerationContext } from "@/lib/official-documents/draft-context";
 
 const prisma = new PrismaClient();
 
 function sha256File(filePath: string): string {
   return createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+}
+
+function sha256Utf8(text: string): string {
+  return createHash("sha256").update(text, "utf8").digest("hex");
+}
+
+function pdfPageText(pdfPath: string, page: number): string {
+  return execFileSync("pdftotext", ["-f", String(page), "-l", String(page), pdfPath, "-"], {
+    encoding: "utf8",
+  });
+}
+
+function pdfToPngPage(pdfPath: string, page: number, outPath: string): void {
+  const dir = path.dirname(outPath);
+  const base = path.basename(outPath, ".png");
+  execFileSync("pdftoppm", ["-f", String(page), "-l", String(page), "-png", "-singlefile", pdfPath, path.join(dir, base)]);
+}
+
+async function auditPersistedHandoverDraft(unitId: string) {
+  const draft = await prisma.officialDocumentTextDraft.findFirst({
+    where: { unitId, documentType: "HANDOVER_RECORD" },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true, currentBody: true, updatedAt: true, templateLocale: true },
+  });
+  const body = draft?.currentBody ?? "";
+  const stripped = stripAccumulatedModalProofMarkers(body);
+  return {
+    unitId,
+    draftId: draft?.id ?? null,
+    updatedAt: draft?.updatedAt?.toISOString() ?? null,
+    templateLocale: draft?.templateLocale ?? null,
+    bodyChars: stripped.length,
+    sha256: stripped.length ? sha256Utf8(stripped) : null,
+    hasFusedAdmAmal: handoverTextHasFusedAdmAmal(stripped),
+    sampleFused: stripped.match(/[^\n]{0,20}عدمعمل[^\n]{0,30}/u)?.[0] ?? null,
+  };
+}
+
+/** Prior modal proof runs append markers; strip before save/generate pagination checks. */
+function stripAccumulatedModalProofMarkers(body: string): string {
+  return body
+    .replace(/\nMODAL_PROOF_(en|ar)_[^\n]+/g, "")
+    .replace(/\nLEGAL_E2E_FOOTER_MARKER[^\n]*/g, "")
+    .trimEnd();
 }
 
 authenticator.options = { window: 5 };
@@ -56,6 +107,15 @@ async function syncHandoverTextarea(
 
 type LocaleResult = {
   locale: "en" | "ar";
+  sourceProvenance: {
+    persistedBeforeLoadSha256: string;
+    persistedBeforeLoadHadFusion: boolean;
+    freshProposedSha256: string;
+    freshProposedSnapshotPath: string;
+    freshSourceMethod: string;
+    generationContextInitialBodySha256: string;
+    baselineSavedViaModal: boolean;
+  };
   incomplete: {
     screenshotFull: string;
     screenshotFooterViewport: string;
@@ -72,6 +132,10 @@ type LocaleResult = {
     pdfSha256StoredGet: string;
     pdfSha256Match: boolean;
     pdftotextSnippet: string;
+    pdfPage2TextPath: string;
+    pdfPage2ScreenshotPath: string;
+    pdfHadFusedAdmAmal: boolean;
+    persistedEditMarkerAfterSave: boolean;
     toasts: string[];
   };
 };
@@ -166,6 +230,95 @@ async function openHandoverEditor(page: import("playwright").Page, locale: "en" 
   throw new Error(`Handover body never loaded in editor. sample=${JSON.stringify(sample)}`);
 }
 
+async function waitForCorrectHandoverEditorBody(
+  page: import("playwright").Page,
+  textarea: import("playwright").Locator,
+  locale: "en" | "ar",
+  label: string
+): Promise<string> {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const body = stripAccumulatedModalProofMarkers(await textarea.inputValue());
+    if (/أولاً|اولا|إقرار/u.test(body) && body.length > 500) {
+      assertHandoverViolationWordBoundaries(body, `${locale} ${label}`);
+      return body;
+    }
+    await page.waitForTimeout(500);
+  }
+  throw new Error(`${locale}: handover editor never reached corrected Arabic body (${label})`);
+}
+
+async function ensureFreshCorrectedHandoverSource(input: {
+  page: import("playwright").Page;
+  locale: "en" | "ar";
+  unitId: string;
+}): Promise<{ body: string; method: string; generationContextInitialBodySha256: string }> {
+  const dialog = input.page.getByRole("dialog");
+  const textarea = dialog.locator('[data-slot="textarea"]').first();
+  const loadProposedBtn = dialog.getByRole("button", {
+    name: input.locale === "ar" ? /تحميل النص الرسمي/i : /Load proposed official/i,
+  });
+
+  const ctx = await resolveOfficialDocumentGenerationContext({
+    unitId: input.unitId,
+    documentType: "HANDOVER_RECORD",
+    locale: "en",
+  });
+  if (!ctx.ok) throw new Error(`generation context: ${ctx.error}`);
+  assertHandoverViolationWordBoundaries(
+    ctx.initialBody,
+    `${input.locale} resolveOfficialDocumentGenerationContext.initialBody`
+  );
+  const generationContextInitialBodySha256 = sha256Utf8(ctx.initialBody);
+
+  if (await loadProposedBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await loadProposedBtn.click();
+    const body = await waitForCorrectHandoverEditorBody(
+      input.page,
+      textarea,
+      input.locale,
+      "Load proposed official UI"
+    );
+    return {
+      body,
+      method: "load_proposed_official_ui",
+      generationContextInitialBodySha256,
+    };
+  }
+
+  const editorNow = stripAccumulatedModalProofMarkers(await textarea.inputValue());
+  const editorLooksCorrect =
+    editorNow.length > 500 &&
+    !handoverTextHasFusedAdmAmal(editorNow) &&
+    (() => {
+      try {
+        assertHandoverViolationWordBoundaries(editorNow, "editor pre-check");
+        return true;
+      } catch {
+        return false;
+      }
+    })();
+  if (editorLooksCorrect && sha256Utf8(editorNow) === generationContextInitialBodySha256) {
+    return {
+      body: editorNow,
+      method: "editor_already_matches_generation_context",
+      generationContextInitialBodySha256,
+    };
+  }
+
+  await syncHandoverTextarea(textarea, ctx.initialBody);
+  const body = await waitForCorrectHandoverEditorBody(
+    input.page,
+    textarea,
+    input.locale,
+    "editor sync from generation context"
+  );
+  return {
+    body,
+    method: "editor_sync_generation_context_initialBody",
+    generationContextInitialBodySha256,
+  };
+}
+
 async function runLocale(
   locale: "en" | "ar",
   unitId: string,
@@ -187,10 +340,48 @@ async function runLocale(
   const dialog = page.getByRole("dialog");
   const textarea = dialog.locator('[data-slot="textarea"]').first();
   const modalGenerate = dialog.getByTestId("generate-draft-pdf");
+  const modalSave = dialog.getByRole("button", {
+    name: locale === "ar" ? /حفظ نسخة النص/ : /Save text version/i,
+  });
   const missingToken = formatOfficialHandoverMissingToken("owner1_email");
 
+  const persistedBeforeLoad = stripAccumulatedModalProofMarkers(await textarea.inputValue());
+  const persistedBeforeLoadSha256 = sha256Utf8(persistedBeforeLoad);
+  const persistedBeforeLoadHadFusion = handoverTextHasFusedAdmAmal(persistedBeforeLoad);
+
+  const fresh = await ensureFreshCorrectedHandoverSource({ page, locale, unitId });
+  const sourceBody = fresh.body;
+  const freshProposedSha256 = sha256Utf8(sourceBody);
+  const freshProposedSnapshotPath = path.join(localeDir, "source-proposed-before-save.txt");
+  fs.writeFileSync(freshProposedSnapshotPath, sourceBody, "utf8");
+  fs.writeFileSync(
+    path.join(localeDir, "source-provenance.json"),
+    JSON.stringify(
+      {
+        persistedBeforeLoadSha256,
+        persistedBeforeLoadHadFusion,
+        freshProposedSha256,
+        freshSourceMethod: fresh.method,
+        generationContextInitialBodySha256: fresh.generationContextInitialBodySha256,
+        editorMatchesGenerationContext: freshProposedSha256 === fresh.generationContextInitialBodySha256,
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
+
+  // Establish clean persisted draft from corrected master (explicit load + save — not a DB rewrite).
+  await syncHandoverTextarea(textarea, sourceBody);
+  await modalSave.click();
+  await page
+    .locator("[data-sonner-toast]")
+    .filter({ hasText: locale === "ar" ? /تم حفظ نص المسودة/ : /Draft text saved/ })
+    .first()
+    .waitFor({ timeout: 120_000 });
+
   // --- Incomplete body: inject placeholder, attempt generate ---
-  const baseBody = await textarea.inputValue();
+  const baseBody = sourceBody;
   const emailPattern = /demo-owner[^\s@]+@example\.test/g;
   const incompleteBody = emailPattern.test(baseBody)
     ? baseBody.replace(emailPattern, missingToken)
@@ -238,9 +429,6 @@ async function runLocale(
   const editMarker = `MODAL_PROOF_${locale}_${RUN_ID.slice(0, 12)}`;
   await syncHandoverTextarea(textarea, `${baseBody.trimEnd()}\n\n${editMarker}`);
 
-  const modalSave = dialog.getByRole("button", {
-    name: locale === "ar" ? /حفظ نسخة النص/ : /Save text version/i,
-  });
   await modalSave.click();
   await page
     .locator("[data-sonner-toast]")
@@ -311,6 +499,17 @@ async function runLocale(
   }
 
   const pdftotext = execFileSync("pdftotext", [pdfStoredPath, "-"], { encoding: "utf8" });
+  const page2Text = pdfPageText(pdfStoredPath, 2);
+  const pdfPage2TextPath = path.join(localeDir, "stored-get-page2.txt");
+  fs.writeFileSync(pdfPage2TextPath, page2Text, "utf8");
+  const pdfPage2ScreenshotPath = path.join(localeDir, "stored-get-page2.png");
+  pdfToPngPage(pdfStoredPath, 2, pdfPage2ScreenshotPath);
+
+  assertHandoverViolationWordBoundaries(pdftotext, `${locale} PDF full text`);
+  assertHandoverPdfSliceNoFusion(page2Text, `${locale} PDF page 2`);
+  if (!SPACED_ADM_AMAL_PATTERN.test(pdftotext)) {
+    throw new Error(`${locale} PDF full text missing spaced عدم عمل`);
+  }
   if (!pdftotext.includes(editMarker) && !pdftotext.replace(/\s+/g, " ").includes(editMarker.replace(/\s+/g, " "))) {
     throw new Error(`${locale}: PDF missing edit marker ${editMarker}`);
   }
@@ -318,10 +517,26 @@ async function runLocale(
     throw new Error(`${locale}: PDF does not look like Arabic official handover`);
   }
 
+  const draftAfter = await prisma.officialDocumentTextDraft.findFirst({
+    where: { unitId, documentType: "HANDOVER_RECORD" },
+    orderBy: { updatedAt: "desc" },
+    select: { currentBody: true },
+  });
+  const persistedEditMarkerAfterSave = Boolean(draftAfter?.currentBody?.includes(editMarker));
+
   await browser.close();
 
   return {
     locale,
+    sourceProvenance: {
+      persistedBeforeLoadSha256,
+      persistedBeforeLoadHadFusion,
+      freshProposedSha256,
+      freshProposedSnapshotPath,
+      freshSourceMethod: fresh.method,
+      generationContextInitialBodySha256: fresh.generationContextInitialBodySha256,
+      baselineSavedViaModal: true,
+    },
     incomplete: {
       screenshotFull: incompleteShot,
       screenshotFooterViewport: incompleteFooterShot,
@@ -338,6 +553,10 @@ async function runLocale(
       pdfSha256StoredGet: shaStored,
       pdfSha256Match: true,
       pdftotextSnippet: pdftotext.slice(-400),
+      pdfPage2TextPath,
+      pdfPage2ScreenshotPath,
+      pdfHadFusedAdmAmal: false,
+      persistedEditMarkerAfterSave,
       toasts: completeToasts,
     },
   };
@@ -504,8 +723,20 @@ async function main() {
   if (!unit) throw new Error("green-avenue unit missing from manifest");
   if (!graceUnit) throw new Error("green-avenue-no-insurance unit missing from manifest");
 
+  const persistedDraftAuditBefore = await auditPersistedHandoverDraft(unit.unitId);
+  fs.writeFileSync(
+    path.join(OUT, "persisted-draft-audit-before-proof.json"),
+    JSON.stringify(persistedDraftAuditBefore, null, 2)
+  );
+
   const en = await runLocale("en", unit.unitId, manifest.loginEmail, password);
   const ar = await runLocale("ar", unit.unitId, manifest.loginEmail, password);
+
+  const persistedDraftAuditAfter = await auditPersistedHandoverDraft(unit.unitId);
+  fs.writeFileSync(
+    path.join(OUT, "persisted-draft-audit-after-proof.json"),
+    JSON.stringify(persistedDraftAuditAfter, null, 2)
+  );
   if (!en.complete.documentId) throw new Error("en complete missing documentId");
 
   const guards = await runDynamicGuardProofs({
@@ -522,7 +753,9 @@ async function main() {
     baseUrl: BASE,
     unitId: unit.unitId,
     graceGuardUnitId: graceUnit.unitId,
-    pr: "PR44-modal-generate-draft-pdf",
+    pr: "PR45-modal-clean-source-proof",
+    persistedDraftAuditBefore,
+    persistedDraftAuditAfter,
     en,
     ar,
     dynamicGuards: guards,

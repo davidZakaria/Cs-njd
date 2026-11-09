@@ -550,6 +550,27 @@ function assertHandoverPdfLayout(pdfPath: string, variant: string) {
     throw new Error(`${pdfPath}: last page appears nearly blank (${lastPng})`);
   }
   const pageCount = pdfPageCount(pdfPath);
+  for (let p = 1; p <= pageCount; p += 1) {
+    const pageText = pdfPageText(pdfPath, p);
+    if (!/المقر بما فيه/u.test(pageText)) {
+      throw new Error(
+        `${pdfPath}: page ${p} missing repeated declarant footer (المقر بما فيه)`
+      );
+    }
+    if (/\bDRAFT\b/.test(pageText)) {
+      throw new Error(`${pdfPath}: page ${p} contains English DRAFT watermark`);
+    }
+    const substantive = pageText
+      .replace(/المقر بما فيه/gu, "")
+      .replace(/مسودة/gu, "")
+      .replace(/\s+/g, " ")
+      .trim().length;
+    if (variant.includes("green-avenue") && substantive < 400) {
+      throw new Error(
+        `${pdfPath}: page ${p} near-blank substantive body (${substantive} chars)`
+      );
+    }
+  }
   const lastPageText = pdfPageText(pdfPath, pageCount);
   if (/LEGAL_E2E_/i.test(lastPageText)) {
     const substantive = normalizePdfExtractedText(lastPageText)

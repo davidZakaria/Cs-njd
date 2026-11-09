@@ -128,6 +128,70 @@ export function splitViolationItems(body: string): string[] {
   return [...(intro ? [intro.trim()] : []), ...items, ...(tail ? [tail] : [])];
 }
 
+/** Join violation fragments without fusing Arabic words across boundaries. */
+export function joinViolationFragments(left: string, right: string): string {
+  if (!left) return right;
+  if (!right) return left;
+  const leftEndsWord = /[\p{L}\p{N}\u0660-\u0669]$/u.test(left);
+  const rightStartsWord = /^[\p{L}\p{N}\u0660-\u0669]/u.test(right);
+  if (leftEndsWord && rightStartsWord && !/\s$/.test(left) && !/^\s/.test(right)) {
+    return `${left} ${right}`;
+  }
+  return `${left}${right}`;
+}
+
+export function joinViolationPieces(pieces: string[]): string {
+  return pieces.reduce((acc, piece) => joinViolationFragments(acc, piece), "");
+}
+
+/** Regroup split violation clauses for print pagination (exact wording preserved). */
+export function groupViolationItemsForPrint(
+  items: string[],
+  options?: { minChars?: number; maxChars?: number }
+): string[] {
+  if (items.length <= 2) return items;
+  const minChars = options?.minChars ?? 240;
+  const maxChars = options?.maxChars ?? 520;
+
+  let head: string[] = [];
+  let tail: string[] = [];
+  let middle = [...items];
+
+  if (middle[0]?.startsWith("بمجرد")) {
+    head = [middle[0]!];
+    middle = middle.slice(1);
+  }
+  if (middle.length > 0 && middle[middle.length - 1]!.includes("كل ما ورد من انواع المخالفات")) {
+    tail = [middle[middle.length - 1]!];
+    middle = middle.slice(0, -1);
+  }
+
+  const groups: string[] = [];
+  let buffer = "";
+  const flush = () => {
+    if (buffer.trim()) {
+      groups.push(buffer.trim());
+      buffer = "";
+    }
+  };
+
+  for (const piece of middle) {
+    const merged = buffer ? joinViolationFragments(buffer, piece) : piece;
+    if (buffer && merged.length > maxChars) {
+      flush();
+      buffer = piece;
+      continue;
+    }
+    buffer = merged;
+    if (buffer.length >= minChars) {
+      flush();
+    }
+  }
+  flush();
+
+  return [...head, ...groups, ...tail];
+}
+
 function parseUnitCode(unitCode: string) {
   const parts = unitCode.split(/[-_/\\s]+/).filter(Boolean);
   return {
