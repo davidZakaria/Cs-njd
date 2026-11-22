@@ -33,6 +33,15 @@ describe("resolvePrimaryClientId", () => {
       })
     ).toBe("primary-only");
   });
+
+  it("falls back to legacy clientId when unitClients is undefined", () => {
+    expect(
+      resolvePrimaryClientId({
+        clientId: "legacy-only",
+        unitClients: undefined,
+      })
+    ).toBe("legacy-only");
+  });
 });
 
 describe("formatUnitOwnersDisplayName in request picker labels", () => {

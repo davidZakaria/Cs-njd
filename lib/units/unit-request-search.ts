@@ -47,18 +47,20 @@ export function unitWhereVisibleForRequestUnitPicker(
 
 export function resolvePrimaryClientId(input: {
   clientId: string | null;
-  unitClients: Array<{ role: string; clientId: string }>;
+  unitClients?: Array<{ role: string; clientId: string }> | null;
 }): string | null {
-  const primaryLink = input.unitClients.find((link) => link.role === "PRIMARY");
+  const links = input.unitClients ?? [];
+  const primaryLink = links.find((link) => link.role === "PRIMARY");
   if (primaryLink) return primaryLink.clientId;
   return input.clientId;
 }
 
 export function resolvePrimaryClientName(input: {
   client: { name: string } | null;
-  unitClients: Array<{ role: string; client: { name: string } }>;
+  unitClients?: Array<{ role: string; client: { name: string } }> | null;
 }): string {
-  const primaryLink = input.unitClients.find((link) => link.role === "PRIMARY");
+  const links = input.unitClients ?? [];
+  const primaryLink = links.find((link) => link.role === "PRIMARY");
   if (primaryLink) return primaryLink.client.name;
   if (input.client) return input.client.name;
   return "—";
@@ -67,9 +69,10 @@ export function resolvePrimaryClientName(input: {
 /** Both owners for lists and headers (CO_OWNER rows or merged "/" primary name). */
 export function formatUnitOwnersDisplayName(input: {
   client: { name: string } | null;
-  unitClients: Array<{ role: string; client: { name: string } }>;
+  unitClients?: Array<{ role: string; client: { name: string } }> | null;
 }): string {
-  const coOwners = input.unitClients
+  const unitClients = input.unitClients ?? [];
+  const coOwners = unitClients
     .filter((link) => link.role === "CO_OWNER")
     .map((link) => link.client.name)
     .filter(Boolean);
@@ -94,7 +97,7 @@ export function mapUnitRowToRequestPickerOption(unit: {
   unitCode: string;
   project: { name: string };
   client: { name: string } | null;
-  unitClients: Array<{ role: string; client: { name: string } }>;
+  unitClients?: Array<{ role: string; client: { name: string } }> | null;
 }): UnitRequestPickerOption {
   const clientName = formatUnitOwnersDisplayName(unit);
   return {
