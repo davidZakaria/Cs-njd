@@ -8,6 +8,7 @@ import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { 
   Crown, 
   User, 
+  Users,
   Building2, 
   Clock, 
   Calendar, 
@@ -16,6 +17,11 @@ import {
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+import { 
+  isMergedOwnerName, 
+  extractPrimaryOwnerName, 
+  extractCoOwnerName 
+} from "@/lib/utils/arabic-normalize";
 
 export type CsSummaryHeaderProps = {
   clientName: string;
@@ -91,6 +97,54 @@ function GraceStatusChip({ status, label }: { status: GraceStatus; label: string
   );
 }
 
+type MultiUnitBadgeProps = {
+  badge: NonNullable<CsSummaryHeaderProps["multiUnitBadge"]>;
+  t: ReturnType<typeof useTranslations>;
+  labels: ReturnType<typeof useDomainLabels>;
+};
+
+function MultiUnitBadgeDisplay({ badge, t, labels }: MultiUnitBadgeProps) {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Badge
+              variant="secondary"
+              className="cursor-pointer gap-1.5 bg-amber-500 px-3 py-1 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
+            >
+              <Crown className="h-4 w-4" />
+              {t("multiUnit", { count: badge.unitCount })}
+            </Badge>
+          }
+        />
+        <TooltipContent side="bottom" className="max-w-xs p-4">
+          <div className="space-y-3">
+            <p className="font-semibold text-foreground">
+              {t("multiUnitTooltip", { count: badge.unitCount })}
+            </p>
+            <ul className="space-y-2">
+              {badge.otherUnits.map((u) => (
+                <li key={u.id}>
+                  <Link
+                    href={`/units/${u.id}`}
+                    className="flex items-center gap-2 text-primary underline-offset-2 hover:underline"
+                  >
+                    <Building2 className="h-3.5 w-3.5" />
+                    <span className="font-medium">{u.unitCode}</span>
+                    <span className="text-muted-foreground">·</span>
+                    <span>{labels.project(u.projectName)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export function CsSummaryHeader({
   clientName,
   unitCode,
@@ -121,6 +175,9 @@ export function CsSummaryHeader({
 
   const graceStatus = parseGraceStatus(gracePeriod);
   const hasClient = clientName && clientName.length > 0;
+  const hasMergedOwners = isMergedOwnerName(clientName);
+  const primaryOwnerName = hasMergedOwners ? extractPrimaryOwnerName(clientName) : clientName;
+  const coOwnerName = hasMergedOwners ? extractCoOwnerName(clientName) : null;
 
   return (
     <Card className="overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/10 shadow-lg dark:border-primary/30 dark:from-primary/10 dark:via-background dark:to-primary/5">
@@ -128,58 +185,53 @@ export function CsSummaryHeader({
         {/* Client Header Section */}
         <div className="border-b border-primary/10 bg-primary/5 px-6 py-4 dark:bg-primary/10">
           <div className="flex flex-wrap items-center gap-3">
-            <User className="h-6 w-6 text-primary dark:text-primary" />
+            {hasMergedOwners ? (
+              <Users className="h-6 w-6 text-primary dark:text-primary" />
+            ) : (
+              <User className="h-6 w-6 text-primary dark:text-primary" />
+            )}
             <span className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-              {t("clientName")}
+              {hasMergedOwners ? t("owners") : t("clientName")}
             </span>
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <h2 className={cn(
-              "text-2xl font-bold tracking-tight sm:text-3xl",
-              hasClient ? "text-foreground" : "text-muted-foreground"
-            )}>
-              {hasClient ? clientName : t("notSet")}
-            </h2>
+          
+          {hasMergedOwners && coOwnerName ? (
+            <div className="mt-2 space-y-2">
+              {/* Primary Owner */}
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-semibold uppercase tracking-wide text-primary">
+                  {t("primaryOwner")}
+                </span>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                  {primaryOwnerName}
+                </h2>
+                {multiUnitBadge && multiUnitBadge.unitCount > 1 ? (
+                  <MultiUnitBadgeDisplay badge={multiUnitBadge} t={t} labels={labels} />
+                ) : null}
+              </div>
+              {/* Co-Owner */}
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                  {t("coOwner")}
+                </span>
+                <h3 className="text-xl font-semibold tracking-tight text-foreground/90 sm:text-2xl">
+                  {coOwnerName}
+                </h3>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <h2 className={cn(
+                "text-2xl font-bold tracking-tight sm:text-3xl",
+                hasClient ? "text-foreground" : "text-muted-foreground"
+              )}>
+                {hasClient ? clientName : t("notSet")}
+              </h2>
             {multiUnitBadge && multiUnitBadge.unitCount > 1 ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Badge
-                        variant="secondary"
-                        className="cursor-pointer gap-1.5 bg-amber-500 px-3 py-1 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
-                      >
-                        <Crown className="h-4 w-4" />
-                        {t("multiUnit", { count: multiUnitBadge.unitCount })}
-                      </Badge>
-                    }
-                  />
-                  <TooltipContent side="bottom" className="max-w-xs p-4">
-                    <div className="space-y-3">
-                      <p className="font-semibold text-foreground">
-                        {t("multiUnitTooltip", { count: multiUnitBadge.unitCount })}
-                      </p>
-                      <ul className="space-y-2">
-                        {multiUnitBadge.otherUnits.map((u) => (
-                          <li key={u.id}>
-                            <Link
-                              href={`/units/${u.id}`}
-                              className="flex items-center gap-2 text-primary underline-offset-2 hover:underline"
-                            >
-                              <Building2 className="h-3.5 w-3.5" />
-                              <span className="font-medium">{u.unitCode}</span>
-                              <span className="text-muted-foreground">·</span>
-                              <span>{labels.project(u.projectName)}</span>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : null}
-          </div>
+                <MultiUnitBadgeDisplay badge={multiUnitBadge} t={t} labels={labels} />
+              ) : null}
+            </div>
+          )}
         </div>
 
         {/* Details Grid */}

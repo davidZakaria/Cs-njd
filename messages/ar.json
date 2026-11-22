@@ -1015,6 +1015,9 @@
     },
     "csSummary": {
       "clientName": "العميل",
+      "owners": "المُلّاك",
+      "primaryOwner": "المالك الأساسي",
+      "coOwner": "شريك الملكية",
       "unit": "الوحدة",
       "gracePeriod": "فترة السماح",
       "deliveryDate": "تاريخ التسليم",

@@ -26,10 +26,12 @@ const TEST_USER_EMAIL = 'demo-mgmt@test.local';
 const TEST_USER_PASSWORD = 'TestPassword1234!';
 const TEST_USER_TOTP_SECRET = 'JBSWY3DPEHPK3PXP';
 
-// Unit/request IDs from seed
-const MULTI_UNIT_ID = 'cmwr32sng0001jsnh6vmyolw6';
-const TWO_OWNER_UNIT_ID = 'cmwr333zy000jjsqb6p8w5v3z';
-const HANDOVER_REQUEST_ID = 'cmwr33405000tjsqbfqjnufeu';
+// Unit/request IDs from seed (production-realistic shapes)
+const MERGED_UNIT_ID = 'cmwr4c9d70005jsw60e54idgf';
+const LEGACY_COOWNER_UNIT_ID = 'cmwr4c9di000djsw68w3502cg';
+const UC_ONLY_UNIT_ID = 'cmwr4c9ds000njsw6rsl8kwaj';
+const MULTI_VAR_UNIT_ID = 'cmwr4c9e5000zjsw66d64q60d';
+const HANDOVER_REQUEST_ID = 'cmwr4c9ek001jjsw626zq0bca';
 const DELETE_REQUEST_ID = 'cmwr3340i0018jsqbro9j20a6';
 
 async function login(page, locale = 'en') {
@@ -89,88 +91,58 @@ async function main() {
     console.log('\n=== English Desktop Screenshots ===');
     await login(desktopPage, 'en');
     
-    // 1. Units List showing multi-unit badge
-    console.log('\nCapturing Units List (EN desktop)...');
-    await desktopPage.goto(`${BASE_URL}/en/units`);
+    // Case 1: Merged "/" owner name
+    console.log('\nCase 1: Merged "/" owner name...');
+    await desktopPage.goto(`${BASE_URL}/en/units/${MERGED_UNIT_ID}`);
     await desktopPage.waitForTimeout(2000);
-    await screenshot(desktopPage, '01-units-list-en');
+    await screenshot(desktopPage, '01-merged-owner-name-en');
     
-    // 2. CS Summary Header on MULTI-001 unit
-    console.log('\nCapturing CS Summary Header for MULTI-001 (EN desktop)...');
-    await desktopPage.goto(`${BASE_URL}/en/units/${MULTI_UNIT_ID}`);
+    // Case 2: Legacy client + CO_OWNER
+    console.log('\nCase 2: Legacy client + CO_OWNER...');
+    await desktopPage.goto(`${BASE_URL}/en/units/${LEGACY_COOWNER_UNIT_ID}`);
     await desktopPage.waitForTimeout(2000);
-    await screenshot(desktopPage, '02-cs-summary-header-multi-unit-en');
+    await screenshot(desktopPage, '02-legacy-plus-coowner-en');
     
-    // 3. Hover on badge to show tooltip
-    console.log('\nCapturing Multi-unit Badge tooltip...');
-    const tooltipTrigger = desktopPage.locator('[data-slot="tooltip-trigger"]').first();
-    if (await tooltipTrigger.isVisible()) {
-      await tooltipTrigger.hover({ force: true });
+    // Case 3: Two unitClients, no legacy
+    console.log('\nCase 3: Two unitClients, no legacy...');
+    await desktopPage.goto(`${BASE_URL}/en/units/${UC_ONLY_UNIT_ID}`);
+    await desktopPage.waitForTimeout(2000);
+    await screenshot(desktopPage, '03-two-unitclients-en');
+    
+    // Check for multi-unit badge (B5-30 owns B5-31)
+    console.log('\nChecking multi-unit badge...');
+    const badge = desktopPage.locator('[data-slot="tooltip-trigger"]').first();
+    if (await badge.isVisible()) {
+      await badge.hover({ force: true });
       await desktopPage.waitForTimeout(600);
-      await screenshot(desktopPage, '03-multi-unit-badge-tooltip-en');
-    } else {
-      console.log('  Tooltip trigger not found, skipping tooltip screenshot');
+      await screenshot(desktopPage, '04-multi-unit-badge-tooltip-en');
     }
     
-    // 4. Two-owner unit page
-    console.log('\nCapturing Two-owner unit page (EN desktop)...');
-    await desktopPage.goto(`${BASE_URL}/en/units/${TWO_OWNER_UNIT_ID}`);
+    // Case 4: Multi-unit with spelling variations
+    console.log('\nCase 4: Multi-unit with spelling variations...');
+    await desktopPage.goto(`${BASE_URL}/en/units/${MULTI_VAR_UNIT_ID}`);
     await desktopPage.waitForTimeout(2000);
-    await screenshot(desktopPage, '04-two-owner-unit-en');
+    await screenshot(desktopPage, '05-multi-unit-spelling-var-en');
     
-    // 5. Requests list showing resolved client names
-    console.log('\nCapturing Requests List (EN desktop)...');
-    await desktopPage.goto(`${BASE_URL}/en/requests`);
-    await desktopPage.waitForTimeout(2000);
-    await screenshot(desktopPage, '05-requests-list-en');
-    
-    // 6. Handover request detail
-    console.log('\nCapturing Handover request (EN desktop)...');
+    // Handover request
+    console.log('\nHandover request...');
     await desktopPage.goto(`${BASE_URL}/en/requests/${HANDOVER_REQUEST_ID}`);
     await desktopPage.waitForTimeout(2000);
     await screenshot(desktopPage, '06-handover-request-en');
     
-    // 7. Delete flow - before state
-    console.log('\nCapturing Delete flow (EN desktop)...');
+    // Delete flow
+    console.log('\nDelete flow...');
     await desktopPage.goto(`${BASE_URL}/en/requests/${DELETE_REQUEST_ID}`);
     await desktopPage.waitForTimeout(2000);
     await screenshot(desktopPage, '07-delete-request-before-en');
     
-    // 8. Click delete button and capture dialog
     const deleteBtn = desktopPage.locator('button:has-text("Delete request")');
     if (await deleteBtn.isVisible()) {
       await deleteBtn.click();
       await desktopPage.waitForTimeout(500);
       await screenshot(desktopPage, '08-delete-dialog-en');
-      
-      // Type reason
-      const reasonInput = desktopPage.locator('textarea#delete-reason');
-      if (await reasonInput.isVisible()) {
-        await reasonInput.fill('Test deletion for demonstration purposes');
-        await screenshot(desktopPage, '09-delete-dialog-with-reason-en');
-      }
-      
       await desktopPage.keyboard.press('Escape');
-    } else {
-      console.log('  Delete button not found');
     }
-    
-    // ============================================================
-    // ENGLISH NARROW SCREENSHOTS (Mobile)
-    // ============================================================
-    console.log('\n=== English Narrow (Mobile) Screenshots ===');
-    const narrowContext = await browser.newContext({
-      viewport: { width: 375, height: 812 },
-      locale: 'en-US',
-    });
-    const narrowPage = await narrowContext.newPage();
-    await login(narrowPage, 'en');
-    
-    console.log('\nCapturing CS Summary Header (EN narrow)...');
-    await narrowPage.goto(`${BASE_URL}/en/units/${MULTI_UNIT_ID}`);
-    await narrowPage.waitForTimeout(2000);
-    await screenshot(narrowPage, '10-cs-summary-header-narrow-en');
-    await narrowContext.close();
     
     // ============================================================
     // ARABIC DESKTOP SCREENSHOTS (RTL)
@@ -183,56 +155,37 @@ async function main() {
     const arabicPage = await arabicContext.newPage();
     await login(arabicPage, 'ar');
     
-    // 11. Units list (Arabic)
-    console.log('\nCapturing Units List (AR desktop)...');
-    await arabicPage.goto(`${BASE_URL}/ar/units`);
+    // Case 1: Merged "/" owner name (Arabic)
+    console.log('\nCase 1: Merged "/" owner name (Arabic)...');
+    await arabicPage.goto(`${BASE_URL}/ar/units/${MERGED_UNIT_ID}`);
     await arabicPage.waitForTimeout(2000);
-    await screenshot(arabicPage, '11-units-list-ar');
+    await screenshot(arabicPage, '09-merged-owner-name-ar');
     
-    // 12. CS Summary Header (Arabic RTL)
-    console.log('\nCapturing CS Summary Header (AR desktop)...');
-    await arabicPage.goto(`${BASE_URL}/ar/units/${MULTI_UNIT_ID}`);
+    // Case 3: Two unitClients (Arabic)
+    console.log('\nCase 3: Two unitClients (Arabic)...');
+    await arabicPage.goto(`${BASE_URL}/ar/units/${UC_ONLY_UNIT_ID}`);
     await arabicPage.waitForTimeout(2000);
-    await screenshot(arabicPage, '12-cs-summary-header-multi-unit-ar');
-    
-    // 13. Requests list (Arabic)
-    console.log('\nCapturing Requests List (AR desktop)...');
-    await arabicPage.goto(`${BASE_URL}/ar/requests`);
-    await arabicPage.waitForTimeout(2000);
-    await screenshot(arabicPage, '13-requests-list-ar');
-    
-    // 14. Delete dialog (Arabic)
-    console.log('\nCapturing Delete dialog (AR)...');
-    await arabicPage.goto(`${BASE_URL}/ar/requests/${DELETE_REQUEST_ID}`);
-    await arabicPage.waitForTimeout(2000);
-    
-    const deleteBtnAr = arabicPage.locator('button:has-text("حذف")');
-    if (await deleteBtnAr.isVisible()) {
-      await deleteBtnAr.click();
-      await arabicPage.waitForTimeout(500);
-      await screenshot(arabicPage, '14-delete-dialog-ar');
-      await arabicPage.keyboard.press('Escape');
-    }
+    await screenshot(arabicPage, '10-two-unitclients-ar');
     
     await arabicContext.close();
     
     // ============================================================
-    // ARABIC NARROW SCREENSHOTS
+    // NARROW/MOBILE SCREENSHOTS
     // ============================================================
-    console.log('\n=== Arabic Narrow (Mobile) Screenshots ===');
-    const arabicNarrowContext = await browser.newContext({
+    console.log('\n=== Narrow/Mobile Screenshots ===');
+    const narrowContext = await browser.newContext({
       viewport: { width: 375, height: 812 },
-      locale: 'ar-EG',
+      locale: 'en-US',
     });
-    const arabicNarrowPage = await arabicNarrowContext.newPage();
-    await login(arabicNarrowPage, 'ar');
+    const narrowPage = await narrowContext.newPage();
+    await login(narrowPage, 'en');
     
-    console.log('\nCapturing CS Summary Header (AR narrow)...');
-    await arabicNarrowPage.goto(`${BASE_URL}/ar/units/${MULTI_UNIT_ID}`);
-    await arabicNarrowPage.waitForTimeout(2000);
-    await screenshot(arabicNarrowPage, '15-cs-summary-header-narrow-ar');
+    console.log('\nMerged owner name (narrow)...');
+    await narrowPage.goto(`${BASE_URL}/en/units/${MERGED_UNIT_ID}`);
+    await narrowPage.waitForTimeout(2000);
+    await screenshot(narrowPage, '11-merged-owner-name-narrow');
     
-    await arabicNarrowContext.close();
+    await narrowContext.close();
     await desktopContext.close();
     
   } catch (error) {

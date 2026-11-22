@@ -1015,6 +1015,9 @@
     },
     "csSummary": {
       "clientName": "Client",
+      "owners": "Owners",
+      "primaryOwner": "Primary",
+      "coOwner": "Co-Owner",
       "unit": "Unit",
       "gracePeriod": "Grace Period",
       "deliveryDate": "Delivery Date",

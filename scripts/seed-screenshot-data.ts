@@ -2,6 +2,12 @@
  * Seed script for screenshot data - creates test users with 2FA enabled
  * using a known TOTP secret for automation.
  * 
+ * Uses REALISTIC data shapes based on production findings:
+ * - Merged "/" owner names (e.g., "يوسف شنودة / مريم ماهر")
+ * - Units with legacy client + unitClients CO_OWNER
+ * - Units with only unitClients (no legacy client)
+ * - Multi-unit clients with spelling variations
+ * 
  * Run with: npx tsx scripts/seed-screenshot-data.ts
  */
 import "dotenv/config";
@@ -45,13 +51,12 @@ async function createTestUser(data: {
 }
 
 async function main() {
-  console.log("=== Seeding Screenshot Test Data ===\n");
-  console.log(`Test password for all users: ${TEST_PASSWORD}\n`);
+  console.log("=== Seeding Screenshot Test Data (Production-Realistic Shapes) ===\n");
+  console.log(`Test password for all users: ${TEST_PASSWORD}`);
+  console.log(`TOTP Secret: ${TOTP_SECRET}\n`);
 
-  // Create test users with 2FA enabled (using known secret for automation)
-  console.log("Creating test users (2FA enabled with known secret)...");
-  console.log(`  TOTP Secret: ${TOTP_SECRET}`);
-  
+  // Create test users
+  console.log("Creating test users...");
   const mgmtUser = await createTestUser({
     email: "demo-mgmt@test.local",
     name: "Demo Manager",
@@ -66,190 +71,379 @@ async function main() {
   });
   console.log(`  CS Agent user: ${csAgent.email} (${csAgent.id})`);
 
-  // Create or find project
-  let project = await prisma.project.findFirst({ where: { name: "Demo Towers" } });
-  if (!project) {
-    project = await prisma.project.create({ data: { name: "Demo Towers" } });
+  // Create or find projects
+  let project1 = await prisma.project.findFirst({ where: { name: "جرين أفنيو" } });
+  if (!project1) {
+    project1 = await prisma.project.create({ data: { name: "جرين أفنيو" } });
   }
-  console.log(`\nUsing project: ${project.name} (${project.id})`);
+  let project2 = await prisma.project.findFirst({ where: { name: "جورا" } });
+  if (!project2) {
+    project2 = await prisma.project.create({ data: { name: "جورا" } });
+  }
+  let project3 = await prisma.project.findFirst({ where: { name: "جينيسيس" } });
+  if (!project3) {
+    project3 = await prisma.project.create({ data: { name: "جينيسيس" } });
+  }
+  console.log(`\nProjects: ${project1.name}, ${project2.name}, ${project3.name}`);
 
   // ============================================================
-  // MULTI-UNIT CLIENT SCENARIO
-  // Create a client who owns multiple units for the badge demo
+  // CASE 1: MERGED "/" OWNER NAME (most common in production)
+  // Client name contains both owners separated by "/"
   // ============================================================
-  console.log("\n--- Multi-unit Client Scenario ---");
-
-  let multiUnitClient = await prisma.client.findFirst({
-    where: { email: "multiunit-owner@test.local" },
+  console.log("\n--- Case 1: Merged '/' Owner Name ---");
+  
+  let mergedClient = await prisma.client.findFirst({
+    where: { email: "merged-owners@test.local" },
   });
-  if (!multiUnitClient) {
-    multiUnitClient = await prisma.client.create({
+  if (!mergedClient) {
+    mergedClient = await prisma.client.create({
       data: {
-        name: "Ahmed Hassan (Multi-unit Owner)",
-        phone1: "01001112222",
-        nationalId: `NID-MULTI-${Date.now()}`,
-        email: "multiunit-owner@test.local",
-        address1: "123 Main Street, Cairo",
+        name: "يوسف شنودة / مريم ماهر",
+        phone1: "01001234567",
+        nationalId: "29912345678901",
+        email: "merged-owners@test.local",
+        address1: "123 شارع التحرير، القاهرة",
       },
     });
   }
-  console.log(`Multi-unit client: ${multiUnitClient.name} (${multiUnitClient.id})`);
+  console.log(`  Merged client: ${mergedClient.name}`);
 
-  // Create 3 units owned by this client
-  const multiUnits: Array<{ id: string; unitCode: string }> = [];
-  for (let i = 1; i <= 3; i++) {
-    const unitCode = `MULTI-${i.toString().padStart(3, "0")}`;
-    let unit = await prisma.unit.findFirst({ where: { unitCode } });
-    if (!unit) {
-      unit = await prisma.unit.create({
-        data: {
-          unitCode,
-          projectId: project.id,
-          agentId: csAgent.id,
-          gracePeriod: "Active until Sep 2026",
-        },
-      });
-      // Create ContractWorkflow with dates
-      await prisma.contractWorkflow.upsert({
-        where: { unitId: unit.id },
-        create: {
-          unitId: unit.id,
-          deliveryDate: new Date("2026-06-15"),
-          contractDate: new Date("2025-01-10"),
-        },
-        update: {},
-      });
-      // Create Finishing with type
-      await prisma.finishing.upsert({
-        where: { unitId: unit.id },
-        create: {
-          unitId: unit.id,
-          finishingType: "FULLY_FINISHED",
-        },
-        update: {},
-      });
-    }
-    
-    // Always ensure PRIMARY owner link exists
-    const existingLink = await prisma.unitClient.findFirst({
-      where: { unitId: unit.id, clientId: multiUnitClient.id },
-    });
-    if (!existingLink) {
-      await prisma.unitClient.create({
-        data: {
-          unitId: unit.id,
-          clientId: multiUnitClient.id,
-          role: "PRIMARY",
-        },
-      });
-      console.log(`  Created PRIMARY link for ${unit.unitCode}`);
-    }
-    
-    multiUnits.push({ id: unit.id, unitCode: unit.unitCode });
-    console.log(`  Unit ${i}: ${unit.unitCode} (${unit.id})`);
-  }
-
-  // ============================================================
-  // TWO-OWNER UNIT SCENARIO
-  // Create a unit with PRIMARY and CO_OWNER for the bug demo
-  // ============================================================
-  console.log("\n--- Two-Owner Unit Scenario ---");
-
-  let primaryOwner = await prisma.client.findFirst({
-    where: { email: "primary-owner@test.local" },
-  });
-  if (!primaryOwner) {
-    primaryOwner = await prisma.client.create({
+  const mergedUnitCode = "GREEN-762";
+  let mergedUnit = await prisma.unit.findFirst({ where: { unitCode: mergedUnitCode } });
+  if (!mergedUnit) {
+    mergedUnit = await prisma.unit.create({
       data: {
-        name: "Mohamed Ali (Primary Owner)",
-        phone1: "01005556666",
-        nationalId: `NID-PRIMARY-${Date.now()}`,
-        email: "primary-owner@test.local",
-        address1: "456 Second Street, Giza",
+        unitCode: mergedUnitCode,
+        projectId: project1.id,
+        clientId: mergedClient.id,
+        agentId: csAgent.id,
+        gracePeriod: "Active until Sep 2026",
+      },
+    });
+    await prisma.contractWorkflow.create({
+      data: {
+        unitId: mergedUnit.id,
+        deliveryDate: new Date("2026-06-15"),
+        contractDate: new Date("2025-01-10"),
+      },
+    });
+    await prisma.finishing.create({
+      data: {
+        unitId: mergedUnit.id,
+        finishingType: "FULLY_FINISHED",
       },
     });
   }
-  console.log(`Primary owner: ${primaryOwner.name} (${primaryOwner.id})`);
+  console.log(`  Unit: ${mergedUnit.unitCode} (${mergedUnit.id})`);
 
-  let coOwner = await prisma.client.findFirst({
-    where: { email: "co-owner@test.local" },
+  // ============================================================
+  // CASE 2: LEGACY CLIENT + CO_OWNER VIA unitClients
+  // Unit has legacy clientId AND a CO_OWNER added later
+  // ============================================================
+  console.log("\n--- Case 2: Legacy Client + unitClients CO_OWNER ---");
+
+  let legacyClient = await prisma.client.findFirst({
+    where: { email: "legacy-primary@test.local" },
   });
-  if (!coOwner) {
-    coOwner = await prisma.client.create({
+  if (!legacyClient) {
+    legacyClient = await prisma.client.create({
       data: {
-        name: "Fatma Ibrahim (Co-Owner)",
-        phone1: "01007778888",
-        nationalId: `NID-COOWNER-${Date.now()}`,
-        email: "co-owner@test.local",
-        address1: "789 Third Street, Alexandria",
+        name: "محمد أحمد إبراهيم",
+        phone1: "01009876543",
+        nationalId: "28801234567890",
+        email: "legacy-primary@test.local",
+        address1: "456 شارع الهرم، الجيزة",
       },
     });
   }
-  console.log(`Co-owner: ${coOwner.name} (${coOwner.id})`);
 
-  const twoOwnerUnitCode = "TWO-OWNER-001";
-  let twoOwnerUnit = await prisma.unit.findFirst({ where: { unitCode: twoOwnerUnitCode } });
-  if (!twoOwnerUnit) {
-    twoOwnerUnit = await prisma.unit.create({
+  let addedCoOwner = await prisma.client.findFirst({
+    where: { email: "added-coowner@test.local" },
+  });
+  if (!addedCoOwner) {
+    addedCoOwner = await prisma.client.create({
       data: {
-        unitCode: twoOwnerUnitCode,
-        projectId: project.id,
+        name: "سارة حسن محمود",
+        phone1: "01112223333",
+        nationalId: "29002345678901",
+        email: "added-coowner@test.local",
+        address1: "789 شارع النيل، القاهرة",
+      },
+    });
+  }
+
+  const legacyCoOwnerUnitCode = "JURA-5203";
+  let legacyCoOwnerUnit = await prisma.unit.findFirst({ where: { unitCode: legacyCoOwnerUnitCode } });
+  if (!legacyCoOwnerUnit) {
+    legacyCoOwnerUnit = await prisma.unit.create({
+      data: {
+        unitCode: legacyCoOwnerUnitCode,
+        projectId: project2.id,
+        clientId: legacyClient.id,
         agentId: csAgent.id,
         gracePeriod: "Active until Nov 2026",
       },
     });
-    // Create ContractWorkflow with dates
     await prisma.contractWorkflow.create({
       data: {
-        unitId: twoOwnerUnit.id,
+        unitId: legacyCoOwnerUnit.id,
         deliveryDate: new Date("2026-08-20"),
         contractDate: new Date("2025-03-15"),
       },
     });
-    // Create Finishing with type
     await prisma.finishing.create({
       data: {
-        unitId: twoOwnerUnit.id,
+        unitId: legacyCoOwnerUnit.id,
         finishingType: "SEMI_FINISHED",
       },
     });
-    // Create both owner links
     await prisma.unitClient.create({
       data: {
-        unitId: twoOwnerUnit.id,
-        clientId: primaryOwner.id,
-        role: "PRIMARY",
-      },
-    });
-    await prisma.unitClient.create({
-      data: {
-        unitId: twoOwnerUnit.id,
-        clientId: coOwner.id,
+        unitId: legacyCoOwnerUnit.id,
+        clientId: addedCoOwner.id,
         role: "CO_OWNER",
       },
     });
   }
-  console.log(`Two-owner unit: ${twoOwnerUnit.unitCode} (${twoOwnerUnit.id})`);
+  console.log(`  Primary (legacy): ${legacyClient.name}`);
+  console.log(`  Co-Owner (added): ${addedCoOwner.name}`);
+  console.log(`  Unit: ${legacyCoOwnerUnit.unitCode} (${legacyCoOwnerUnit.id})`);
 
-  // Create a handover request on the two-owner unit for editing demo
+  // ============================================================
+  // CASE 3: TWO unitClients ROWS, NO LEGACY CLIENT
+  // Unit has two unitClients (PRIMARY + CO_OWNER), clientId is null
+  // ============================================================
+  console.log("\n--- Case 3: Two unitClients, No Legacy Client ---");
+
+  let primaryOnlyOwner = await prisma.client.findFirst({
+    where: { email: "uc-primary@test.local" },
+  });
+  if (!primaryOnlyOwner) {
+    primaryOnlyOwner = await prisma.client.create({
+      data: {
+        name: "سامح إبراهيم محمد معوض",
+        phone1: "01223334444",
+        nationalId: "27701234567890",
+        email: "uc-primary@test.local",
+        address1: "321 شارع الأهرام، الجيزة",
+      },
+    });
+  }
+
+  let coOwnerOnly = await prisma.client.findFirst({
+    where: { email: "uc-coowner@test.local" },
+  });
+  if (!coOwnerOnly) {
+    coOwnerOnly = await prisma.client.create({
+      data: {
+        name: "نهى أحمد عبدالرحمن",
+        phone1: "01334445555",
+        nationalId: "29103456789012",
+        email: "uc-coowner@test.local",
+        address1: "654 شارع رمسيس، القاهرة",
+      },
+    });
+  }
+
+  const ucOnlyUnitCode = "GENESIS-B5-30";
+  let ucOnlyUnit = await prisma.unit.findFirst({ where: { unitCode: ucOnlyUnitCode } });
+  if (!ucOnlyUnit) {
+    ucOnlyUnit = await prisma.unit.create({
+      data: {
+        unitCode: ucOnlyUnitCode,
+        projectId: project3.id,
+        clientId: null,
+        agentId: csAgent.id,
+        gracePeriod: "Expiring soon - Dec 2026",
+      },
+    });
+    await prisma.contractWorkflow.create({
+      data: {
+        unitId: ucOnlyUnit.id,
+        deliveryDate: new Date("2026-12-01"),
+        contractDate: new Date("2025-05-20"),
+      },
+    });
+    await prisma.finishing.create({
+      data: {
+        unitId: ucOnlyUnit.id,
+        finishingType: "CORE_AND_SHELL",
+      },
+    });
+    await prisma.unitClient.create({
+      data: {
+        unitId: ucOnlyUnit.id,
+        clientId: primaryOnlyOwner.id,
+        role: "PRIMARY",
+        position: 0,
+      },
+    });
+    await prisma.unitClient.create({
+      data: {
+        unitId: ucOnlyUnit.id,
+        clientId: coOwnerOnly.id,
+        role: "CO_OWNER",
+        position: 1,
+      },
+    });
+  }
+  console.log(`  Primary (unitClient): ${primaryOnlyOwner.name}`);
+  console.log(`  Co-Owner (unitClient): ${coOwnerOnly.name}`);
+  console.log(`  Unit: ${ucOnlyUnit.unitCode} (${ucOnlyUnit.id})`);
+
+  // ============================================================
+  // CASE 4: MULTI-UNIT CLIENT WITH SPELLING VARIATIONS
+  // Same person owns multiple units but with different name spellings
+  // ============================================================
+  console.log("\n--- Case 4: Multi-Unit Client with Spelling Variations ---");
+
+  let multiUnit1Client = await prisma.client.findFirst({
+    where: { email: "multiunit-var1@test.local" },
+  });
+  if (!multiUnit1Client) {
+    multiUnit1Client = await prisma.client.create({
+      data: {
+        name: "نصر الله",
+        phone1: "01556667777",
+        nationalId: "28501234567890",
+        email: "multiunit-var1@test.local",
+        address1: "111 شارع فيصل، الجيزة",
+      },
+    });
+  }
+
+  let multiUnit2Client = await prisma.client.findFirst({
+    where: { email: "multiunit-var2@test.local" },
+  });
+  if (!multiUnit2Client) {
+    multiUnit2Client = await prisma.client.create({
+      data: {
+        name: "نصرالله",
+        phone1: "01556667777",
+        email: "multiunit-var2@test.local",
+        address1: "111 فيصل، الجيزة",
+      },
+    });
+  }
+
+  const multiVar1UnitCode = "GREEN-801";
+  let multiVar1Unit = await prisma.unit.findFirst({ where: { unitCode: multiVar1UnitCode } });
+  if (!multiVar1Unit) {
+    multiVar1Unit = await prisma.unit.create({
+      data: {
+        unitCode: multiVar1UnitCode,
+        projectId: project1.id,
+        clientId: multiUnit1Client.id,
+        agentId: csAgent.id,
+        gracePeriod: "Active until Jul 2027",
+      },
+    });
+    await prisma.contractWorkflow.create({
+      data: {
+        unitId: multiVar1Unit.id,
+        deliveryDate: new Date("2027-07-01"),
+        contractDate: new Date("2025-06-01"),
+      },
+    });
+    await prisma.finishing.create({
+      data: {
+        unitId: multiVar1Unit.id,
+        finishingType: "FULLY_FINISHED",
+      },
+    });
+  }
+
+  const multiVar2UnitCode = "GREEN-802";
+  let multiVar2Unit = await prisma.unit.findFirst({ where: { unitCode: multiVar2UnitCode } });
+  if (!multiVar2Unit) {
+    multiVar2Unit = await prisma.unit.create({
+      data: {
+        unitCode: multiVar2UnitCode,
+        projectId: project1.id,
+        clientId: multiUnit2Client.id,
+        agentId: csAgent.id,
+        gracePeriod: "Active until Jul 2027",
+      },
+    });
+    await prisma.contractWorkflow.create({
+      data: {
+        unitId: multiVar2Unit.id,
+        deliveryDate: new Date("2027-07-15"),
+        contractDate: new Date("2025-06-15"),
+      },
+    });
+    await prisma.finishing.create({
+      data: {
+        unitId: multiVar2Unit.id,
+        finishingType: "FULLY_FINISHED",
+      },
+    });
+  }
+
+  console.log(`  Client 1: "${multiUnit1Client.name}" → Unit ${multiVar1Unit.unitCode}`);
+  console.log(`  Client 2: "${multiUnit2Client.name}" → Unit ${multiVar2Unit.unitCode}`);
+  console.log(`  (Same phone: ${multiUnit1Client.phone1} - should match by phone)`);
+
+  // Create same-person unit with sameحامد إبراهيم for another multi-unit demo
+  const samePersonUnitCode = "GENESIS-B5-31";
+  let samePersonUnit = await prisma.unit.findFirst({ where: { unitCode: samePersonUnitCode } });
+  if (!samePersonUnit) {
+    samePersonUnit = await prisma.unit.create({
+      data: {
+        unitCode: samePersonUnitCode,
+        projectId: project3.id,
+        clientId: null,
+        agentId: csAgent.id,
+        gracePeriod: "Active until Mar 2027",
+      },
+    });
+    await prisma.contractWorkflow.create({
+      data: {
+        unitId: samePersonUnit.id,
+        deliveryDate: new Date("2027-03-01"),
+        contractDate: new Date("2025-07-01"),
+      },
+    });
+    await prisma.finishing.create({
+      data: {
+        unitId: samePersonUnit.id,
+        finishingType: "SEMI_FINISHED",
+      },
+    });
+    await prisma.unitClient.create({
+      data: {
+        unitId: samePersonUnit.id,
+        clientId: primaryOnlyOwner.id,
+        role: "PRIMARY",
+        position: 0,
+      },
+    });
+  }
+  console.log(`\n  Same person owns B5-30 and B5-31: ${primaryOnlyOwner.name}`);
+  console.log(`  Unit 2: ${samePersonUnit.unitCode} (${samePersonUnit.id})`);
+
+  // ============================================================
+  // HANDOVER REQUEST FOR EDIT TESTING
+  // ============================================================
+  console.log("\n--- Handover Request for Edit Testing ---");
+
   let handoverRequest = await prisma.unitRequest.findFirst({
-    where: { unitId: twoOwnerUnit.id, type: "HANDOVER_APPOINTMENT" },
+    where: { unitId: ucOnlyUnit.id, type: "HANDOVER_APPOINTMENT", deletedAt: null },
   });
   if (!handoverRequest) {
     handoverRequest = await prisma.unitRequest.create({
       data: {
         type: "HANDOVER_APPOINTMENT",
         status: "PENDING",
-        unitId: twoOwnerUnit.id,
+        unitId: ucOnlyUnit.id,
         requestedById: csAgent.id,
-        description: "Initial handover appointment request - please schedule for next week.",
+        description: "طلب موعد تسليم - يرجى الجدولة للأسبوع القادم",
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         currentStepIndex: 0,
         currentApproverKind: "MANAGEMENT",
         submittedAt: new Date(),
       },
     });
-    // Add audit event
     await prisma.requestAuditEvent.create({
       data: {
         requestId: handoverRequest.id,
@@ -265,11 +459,10 @@ async function main() {
       },
     });
   }
-  console.log(`Handover request: ${handoverRequest.id}`);
+  console.log(`  Handover request: ${handoverRequest.id}`);
 
   // ============================================================
   // DELETE FLOW SCENARIO
-  // Create a request that can be deleted for the delete demo
   // ============================================================
   console.log("\n--- Delete Flow Scenario ---");
 
@@ -278,22 +471,22 @@ async function main() {
   if (!deleteUnit) {
     const deleteClient = await prisma.client.create({
       data: {
-        name: "Delete Demo Client",
+        name: "عميل تجربة الحذف",
         phone1: "01009990000",
         nationalId: `NID-DELETE-${Date.now()}`,
         email: "delete-demo@test.local",
-        address1: "Delete Street",
+        address1: "شارع الحذف",
       },
     });
     deleteUnit = await prisma.unit.create({
       data: {
         unitCode: deleteUnitCode,
-        projectId: project.id,
+        projectId: project1.id,
+        clientId: deleteClient.id,
         agentId: csAgent.id,
         gracePeriod: "N/A",
       },
     });
-    // Create ContractWorkflow with dates
     await prisma.contractWorkflow.create({
       data: {
         unitId: deleteUnit.id,
@@ -301,24 +494,15 @@ async function main() {
         contractDate: new Date("2025-02-01"),
       },
     });
-    // Create Finishing with type
     await prisma.finishing.create({
       data: {
         unitId: deleteUnit.id,
         finishingType: "CORE_AND_SHELL",
       },
     });
-    await prisma.unitClient.create({
-      data: {
-        unitId: deleteUnit.id,
-        clientId: deleteClient.id,
-        role: "PRIMARY",
-      },
-    });
   }
-  console.log(`Delete demo unit: ${deleteUnit.unitCode} (${deleteUnit.id})`);
+  console.log(`  Delete demo unit: ${deleteUnit.unitCode} (${deleteUnit.id})`);
 
-  // Create a request that can be deleted
   let deleteRequest = await prisma.unitRequest.findFirst({
     where: { unitId: deleteUnit.id, type: "CONTRACT_ISSUE_OR_AMENDMENT", deletedAt: null },
   });
@@ -329,7 +513,7 @@ async function main() {
         status: "PENDING",
         unitId: deleteUnit.id,
         requestedById: csAgent.id,
-        description: "This is a test request that will be deleted to demonstrate the delete flow.",
+        description: "طلب تجريبي للحذف",
         dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         currentStepIndex: 0,
         currentApproverKind: "LEGAL",
@@ -344,27 +528,31 @@ async function main() {
       },
     });
   }
-  console.log(`Delete demo request: ${deleteRequest.id}`);
+  console.log(`  Delete demo request: ${deleteRequest.id}`);
 
   // ============================================================
   // SUMMARY
   // ============================================================
-  console.log("\n=== Seed Complete ===\n");
-  console.log("Test Users (password: TestPassword1234!):");
-  console.log(`  Management: demo-mgmt@test.local`);
-  console.log(`  CS Agent:   demo-cs@test.local`);
-  console.log("\nTest URLs:");
-  console.log(`  Multi-unit badge (EN): /en/units/${multiUnits[0].id}`);
-  console.log(`  Multi-unit badge (AR): /ar/units/${multiUnits[0].id}`);
-  console.log(`  Two-owner unit:        /en/units/${twoOwnerUnit.id}`);
-  console.log(`  Handover request:      /en/requests/${handoverRequest.id}`);
-  console.log(`  Delete demo unit:      /en/units/${deleteUnit.id}`);
-  console.log(`  Delete demo request:   /en/requests/${deleteRequest.id}`);
-  console.log("\nUnit IDs for reference:");
-  console.log(`  MULTI_UNIT_ID="${multiUnits[0].id}"`);
-  console.log(`  TWO_OWNER_UNIT_ID="${twoOwnerUnit.id}"`);
+  console.log("\n" + "=".repeat(60));
+  console.log("=== Seed Complete ===");
+  console.log("=".repeat(60));
+  console.log("\nTest Users (password: TestPassword1234!):");
+  console.log("  Management: demo-mgmt@test.local");
+  console.log("  CS Agent:   demo-cs@test.local");
+  console.log("\nTest Cases URLs:");
+  console.log(`  1. Merged "/" name:        /en/units/${mergedUnit.id}`);
+  console.log(`  2. Legacy + CO_OWNER:      /en/units/${legacyCoOwnerUnit.id}`);
+  console.log(`  3. Two unitClients:        /en/units/${ucOnlyUnit.id}`);
+  console.log(`  4. Multi-unit (var):       /en/units/${multiVar1Unit.id}`);
+  console.log(`     Multi-unit (B5-30/31):  /en/units/${ucOnlyUnit.id}`);
+  console.log(`  Handover request:          /en/requests/${handoverRequest.id}`);
+  console.log(`  Delete demo:               /en/requests/${deleteRequest.id}`);
+  console.log("\nUnit IDs for scripts:");
+  console.log(`  MERGED_UNIT_ID="${mergedUnit.id}"`);
+  console.log(`  LEGACY_COOWNER_UNIT_ID="${legacyCoOwnerUnit.id}"`);
+  console.log(`  UC_ONLY_UNIT_ID="${ucOnlyUnit.id}"`);
+  console.log(`  MULTI_VAR_UNIT_ID="${multiVar1Unit.id}"`);
   console.log(`  HANDOVER_REQUEST_ID="${handoverRequest.id}"`);
-  console.log(`  DELETE_UNIT_ID="${deleteUnit.id}"`);
   console.log(`  DELETE_REQUEST_ID="${deleteRequest.id}"`);
 }
 
