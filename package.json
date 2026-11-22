@@ -32,6 +32,8 @@
     "e2e:dashboard-metric-parity": "tsx scripts/e2e-dashboard-metric-parity.ts",
     "e2e:walkthrough-ar-unit": "tsx scripts/e2e-walkthrough-ar-unit-timeline.ts",
     "cleanup:excel-phones": "tsx scripts/cleanup-excel-phone-suffixes.ts",
+    "cleanup:retroactive-unit-cycle-deadlines": "tsx scripts/cleanup-retroactive-unit-cycle-deadlines.ts",
+    "seed:overdue-walkthrough": "tsx scripts/seed-overdue-contract-walkthrough.ts",
     "capture:walkthrough-proof": "tsx scripts/capture-walkthrough-proof.ts"
   },
   "prisma": {

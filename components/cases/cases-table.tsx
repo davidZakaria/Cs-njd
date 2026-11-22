@@ -8,7 +8,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { RemovableFilterChip } from "@/components/filters/removable-filter-chip";
 import { formatDateTime } from "@/lib/format/datetime";
@@ -49,7 +49,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -178,15 +177,33 @@ function TicketStatusForm({
   );
 }
 
-const CASE_COLUMN_WIDTHS: Record<string, string> = {
-  unit: "w-[11rem]",
-  client: "w-[10rem]",
-  category: "w-[9rem]",
-  notes: "w-[28%]",
-  agent: "w-[11rem]",
-  status: "w-[7rem]",
-  manage: "w-[12rem]",
+const CASE_TABLE_MIN_WIDTH = "min-w-[86.5rem]";
+
+const CASE_COLUMN_CLASS: Record<string, string> = {
+  unit: "w-[11rem] min-w-[11rem] max-w-[11rem]",
+  client: "w-[9rem] min-w-[9rem] max-w-[9rem]",
+  category: "w-[8.5rem] min-w-[8.5rem] max-w-[8.5rem]",
+  notes: "w-[16rem] min-w-[16rem] max-w-[16rem]",
+  agent: "w-[12rem] min-w-[12rem] max-w-[12rem]",
+  status: "w-[8.5rem] min-w-[8.5rem] max-w-[8.5rem]",
+  manage: "w-[12rem] min-w-[12rem] max-w-[12rem]",
 };
+
+function CaseTableHeaderCell({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const title =
+    typeof children === "string" || typeof children === "number"
+      ? String(children)
+      : undefined;
+  return (
+    <div className="truncate px-3 py-2.5" title={title}>
+      {children}
+    </div>
+  );
+}
 
 export function CasesTable({
   data,
@@ -825,22 +842,44 @@ export function CasesTable({
         {t("showingResults", { from, to, total })}
       </p>
 
-      <div className="min-w-0 rounded-md border">
-        <Table className="min-w-[56rem] table-fixed">
-          <TableHeader>
+      <div
+        data-cases-table-scroll
+        className="relative min-w-0 max-h-[min(70vh,calc(100dvh-14rem))] overflow-auto overscroll-x-contain rounded-md border bg-background"
+      >
+        <table
+          data-slot="table"
+          className={cn(
+            "w-max table-fixed border-separate border-spacing-0 caption-bottom text-sm",
+            CASE_TABLE_MIN_WIDTH
+          )}
+        >
+          <colgroup>
+            {table.getVisibleLeafColumns().map((column) => (
+              <col
+                key={column.id}
+                className={CASE_COLUMN_CLASS[column.id] ?? "w-[8rem]"}
+              />
+            ))}
+          </colgroup>
+          <TableHeader className="sticky top-0 z-20 bg-background [&_tr]:border-b [&_tr]:shadow-[inset_0_-1px_0_0_hsl(var(--border))]">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
                     className={cn(
-                      "whitespace-nowrap",
-                      CASE_COLUMN_WIDTHS[header.column.id]
+                      "sticky top-0 z-20 h-auto overflow-hidden bg-background p-0 align-middle",
+                      CASE_COLUMN_CLASS[header.column.id]
                     )}
                   >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.isPlaceholder ? null : (
+                      <CaseTableHeaderCell>
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                      </CaseTableHeaderCell>
+                    )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -854,8 +893,8 @@ export function CasesTable({
                     <TableCell
                       key={cell.id}
                       className={cn(
-                        "align-top whitespace-normal break-words",
-                        CASE_COLUMN_WIDTHS[cell.column.id]
+                        "align-top overflow-hidden whitespace-normal break-words bg-background",
+                        CASE_COLUMN_CLASS[cell.column.id]
                       )}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -871,7 +910,7 @@ export function CasesTable({
               </TableRow>
             )}
           </TableBody>
-        </Table>
+        </table>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

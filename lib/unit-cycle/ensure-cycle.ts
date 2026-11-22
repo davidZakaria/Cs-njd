@@ -8,9 +8,11 @@ import {
 import { buildUnitOperationsSnapshot } from "@/lib/unit-cycle/snapshot";
 import { resolveStageOwnerRole } from "@/lib/unit-cycle/owners";
 import {
-  computeStageDeadline,
+  computeForwardStageDeadline,
   deadlineDaysForStage,
+  resolveStageActivationStartedAt,
 } from "@/lib/unit-cycle/deadlines";
+import type { UnitOperationsSnapshot } from "@/lib/operations/operations-progress";
 import { recordUnitCycleAuditEvent } from "@/lib/unit-cycle/audit";
 
 export type UnitCycleDb = typeof appPrisma;
@@ -83,6 +85,7 @@ export async function ensureUnitCycleForUnit(
   const stageRows = buildInitialStageRows({
     project: input.project,
     completedKeys,
+    snapshot,
     now,
   });
 
@@ -105,6 +108,7 @@ export async function ensureUnitCycleForUnit(
 function buildInitialStageRows(input: {
   project: EnsureUnitCycleInput["project"];
   completedKeys: UnitCycleStageKey[];
+  snapshot: UnitOperationsSnapshot;
   now: Date;
 }) {
   let activeAssigned = false;
@@ -122,10 +126,15 @@ function buildInitialStageRows(input: {
       startedAt = input.now;
     } else if (!activeAssigned) {
       status = "IN_PROGRESS";
-      startedAt = input.now;
-      deadlineAt = computeStageDeadline(
-        input.now,
-        deadlineDaysForStage(input.project, stageKey)
+      startedAt = resolveStageActivationStartedAt({
+        stageKey,
+        snapshot: input.snapshot,
+        now: input.now,
+      });
+      deadlineAt = computeForwardStageDeadline(
+        startedAt,
+        deadlineDaysForStage(input.project, stageKey),
+        input.now
       );
       activeAssigned = true;
     }

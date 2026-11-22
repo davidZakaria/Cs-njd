@@ -29,6 +29,7 @@ import {
 import {
   filterOverdueStageRows,
   groupOverdueStageRows,
+  summarizeOverdueByStage,
   type OverdueStageRow,
 } from "@/lib/unit-cycle/queries";
 import type { Role, UnitCycleStageKey } from "@prisma/client";
@@ -75,6 +76,10 @@ export function OverdueTasksWorkspace({
   );
 
   const grouped = useMemo(() => groupOverdueStageRows(filtered), [filtered]);
+  const stageCounts = useMemo(
+    () => summarizeOverdueByStage(rows),
+    [rows]
+  );
 
   const projectOptions = useMemo(
     () => [
@@ -264,6 +269,34 @@ export function OverdueTasksWorkspace({
               label={chip.label}
               onRemove={chip.onRemove}
             />
+          ))}
+        </div>
+      ) : null}
+
+      {stageCounts.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {stageCounts.map((entry) => (
+            <button
+              key={entry.stageKey}
+              type="button"
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                filters.stage === entry.stageKey
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-muted/30 text-muted-foreground hover:bg-muted/60"
+              )}
+              onClick={() =>
+                syncUrl({
+                  ...filters,
+                  stage:
+                    filters.stage === entry.stageKey
+                      ? "all"
+                      : (entry.stageKey as OverdueTasksPageFilters["stage"]),
+                })
+              }
+            >
+              {tStages(entry.stageKey as UnitCycleStageKey)} · {entry.count}
+            </button>
           ))}
         </div>
       ) : null}
