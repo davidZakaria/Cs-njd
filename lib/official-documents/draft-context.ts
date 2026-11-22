@@ -23,6 +23,11 @@ import {
 } from "@/lib/official-documents/handover/document-locale";
 import { buildOfficialHandoverFieldValues } from "@/lib/official-documents/handover/field-values";
 import { resolveOfficialHandoverTemplateKey } from "@/lib/official-documents/handover/infer-variant";
+import {
+  getHandoverMergedOwnerConvertHints,
+  handoverOwnerBlockMessage,
+  resolveHandoverOwners,
+} from "@/lib/official-documents/handover/unit-owner-resolution";
 import type { HandoverTemplateKey } from "@/lib/print/handover-templates/types";
 
 export const OFFICIAL_DOCUMENT_UNIT_INCLUDE = {
@@ -102,6 +107,9 @@ export async function resolveOfficialDocumentGenerationContext(input: {
       initialBody: string;
       handoverTemplateKey: HandoverTemplateKey | null;
       handoverMissingFieldKeys: string[];
+      handoverMergedOwnerConvert: ReturnType<
+        typeof getHandoverMergedOwnerConvertHints
+      >;
     }
   | { ok: false; error: string }
 > {
@@ -186,6 +194,15 @@ export async function resolveOfficialDocumentGenerationContext(input: {
   });
 
   if (usesOfficialHandover) {
+    const ownerResolution = resolveHandoverOwners(mergeUnit);
+    const blockMessage = handoverOwnerBlockMessage(
+      ownerResolution,
+      templateLocale
+    );
+    if (blockMessage) {
+      return { ok: false, error: blockMessage };
+    }
+
     handoverTemplateKey = resolveOfficialHandoverTemplateKey(
       mergeUnit,
       input.handoverTemplateKey
@@ -210,6 +227,10 @@ export async function resolveOfficialDocumentGenerationContext(input: {
     initialBody = interpolateOfficialDocumentTemplate(template.body, fields);
   }
 
+  const handoverMergedOwnerConvert = usesOfficialHandover
+    ? getHandoverMergedOwnerConvertHints(mergeUnit, unit.clientId)
+    : null;
+
   return {
     ok: true,
     unit,
@@ -220,5 +241,6 @@ export async function resolveOfficialDocumentGenerationContext(input: {
     initialBody,
     handoverTemplateKey,
     handoverMissingFieldKeys,
+    handoverMergedOwnerConvert,
   };
 }

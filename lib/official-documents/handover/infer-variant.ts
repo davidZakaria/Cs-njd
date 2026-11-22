@@ -6,6 +6,10 @@ import {
 import type { HandoverTemplateKey } from "@/lib/print/handover-templates/types";
 
 import { handoverUsesOfficialMasters } from "./constants";
+import {
+  handoverDualSignatureApplies,
+  resolveHandoverOwners,
+} from "./unit-owner-resolution";
 
 /** Buyer-finishing units use Green Avenue masters that include finishing-insurance clauses. */
 export function inferHandoverFinishingDepositApplies(
@@ -34,8 +38,7 @@ export function inferHandoverFinishingDepositApplies(
 export function inferHandoverTemplateOptionsFromUnit(
   unit: UnitMergeInput
 ): HandoverTemplateOptions {
-  const coOwners = unit.unitClients.filter((link) => link.role === "CO_OWNER");
-  const dualSignature = coOwners.length > 0;
+  const dualSignature = handoverDualSignatureApplies(resolveHandoverOwners(unit));
 
   if (unit.project.name === "JURA") {
     return { insurance: true, dualSignature };

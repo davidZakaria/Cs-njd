@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { resolvePrimaryClientName } from "@/lib/units/unit-request-search";
+import {
+  formatUnitOwnersDisplayName,
+  resolvePrimaryClientName,
+} from "@/lib/units/unit-request-search";
 
 describe("load-requests two-owner support", () => {
   it("resolves PRIMARY client name from unitClients array", () => {
@@ -38,6 +41,14 @@ describe("load-requests two-owner support", () => {
       unitClients: [],
     });
     expect(result).toBe("—");
+  });
+
+  it("formats merged slash names as two owners for display", () => {
+    const result = formatUnitOwnersDisplayName({
+      client: { name: "يوسف شنودة / مريم ماهر" },
+      unitClients: [],
+    });
+    expect(result).toBe("يوسف شنودة · مريم ماهر");
   });
 
   it("handles CO_OWNER-only scenario with fallback dash", () => {
