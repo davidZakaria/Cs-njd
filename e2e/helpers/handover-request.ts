@@ -45,29 +45,3 @@ export async function handoverRequestCreateEditSubmit(
 
   return updated;
 }
-
-/** Save primary owner unit profile fields (grace / contract price) on Client tab. */
-export async function savePrimaryOwnerProfileFields(
-  page: Page,
-  unitCode: string,
-  input: { gracePeriod?: string; contractPricePerMeter?: string }
-) {
-  await page.goto("/en/units");
-  await page.getByPlaceholder(/search/i).fill(unitCode);
-  await page.getByRole("link", { name: unitCode }).first().click();
-  await page.getByRole("tab", { name: /Client|العميل/i }).click();
-
-  if (input.gracePeriod != null) {
-    await page.locator("#gracePeriod").fill(input.gracePeriod);
-  }
-  if (input.contractPricePerMeter != null) {
-    await page.locator("#contractPricePerMeter").fill(input.contractPricePerMeter);
-  }
-
-  const primaryForm = page
-    .locator("form")
-    .filter({ has: page.locator("#gracePeriod") })
-    .first();
-  await primaryForm.getByRole("button", { name: /^Save$|^حفظ$/i }).click();
-  await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {});
-}
