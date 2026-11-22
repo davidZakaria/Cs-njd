@@ -209,6 +209,7 @@ async function unitHasOpenArchiveCheck(unitId: string): Promise<boolean> {
       unitId,
       type: "ARCHIVE_CHECK",
       status: { in: OPEN_ARCHIVE_CHECK_STATUSES },
+      deletedAt: null,
     },
     select: { id: true },
   });
@@ -833,6 +834,7 @@ export async function updateUnitRequestDescriptionAction(
     where: { id: parsed.data.requestId },
   });
   if (!request) return actionFail("Request not found");
+  if (request.deletedAt) return actionFail("Request has been deleted");
 
   if (
     !canManageOpenRequestContent({
@@ -1045,7 +1047,7 @@ export async function listUnitRequestsForUnit(unitId: string) {
       : null;
 
   const rows = await prisma.unitRequest.findMany({
-    where: { unitId },
+    where: { unitId, deletedAt: null },
     orderBy: { updatedAt: "desc" },
     include: {
       requestedBy: { select: { id: true, name: true } },

@@ -352,6 +352,7 @@ async function loadOpenUnitRequestBlockers(
     where: {
       unitId,
       status: { in: OPEN_UNIT_REQUEST_STATUSES },
+      deletedAt: null,
       NOT: {
         bulkProjectId: { not: null },
         parentRequestId: null,

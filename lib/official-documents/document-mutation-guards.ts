@@ -36,7 +36,7 @@ export async function assertLinkedUnitRequestAllowsOfficialDocumentMutation(inpu
   if (!requiredType) {
     if (!input.unitRequestId) return null;
     const optional = await prisma.unitRequest.findFirst({
-      where: { id: input.unitRequestId, unitId: input.unitId },
+      where: { id: input.unitRequestId, unitId: input.unitId, deletedAt: null },
       select: { id: true, type: true, status: true },
     });
     if (!optional) {
@@ -57,6 +57,7 @@ export async function assertLinkedUnitRequestAllowsOfficialDocumentMutation(inpu
       id: input.unitRequestId,
       unitId: input.unitId,
       type: requiredType,
+      deletedAt: null,
     },
     select: { status: true },
   });

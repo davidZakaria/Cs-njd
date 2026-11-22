@@ -51,6 +51,7 @@ export async function loadOperationsArchiveCheckQueue(input: {
       archiveCheckSubmittedAt: null,
       bulkProjectId: null,
       unitId: { not: null },
+      deletedAt: null,
     },
     include: {
       requestedBy: { select: { name: true } },

@@ -25,6 +25,7 @@ export async function loadOperationsArchiveFileInbox(userId: string) {
       type: "ARCHIVE_FILE_REQUEST",
       status: "PENDING",
       currentApproverKind: "OPERATIONS",
+      deletedAt: null,
     },
     include: inboxInclude,
     orderBy: [{ archiveFilePriority: "desc" }, { submittedAt: "desc" }, { createdAt: "desc" }],
@@ -45,6 +46,7 @@ export async function countUnreadOperationsArchiveFileInbox(
       status: "PENDING",
       currentApproverKind: "OPERATIONS",
       operationsArchiveFileReads: { none: { userId } },
+      deletedAt: null,
     },
   });
 }
@@ -68,7 +70,7 @@ export function sortInboxRowsForDisplay<
 
 export async function loadArchiveFileRequestDetail(requestId: string) {
   return prisma.unitRequest.findFirst({
-    where: { id: requestId, type: "ARCHIVE_FILE_REQUEST" },
+    where: { id: requestId, type: "ARCHIVE_FILE_REQUEST", deletedAt: null },
     include: {
       unit: {
         select: {
