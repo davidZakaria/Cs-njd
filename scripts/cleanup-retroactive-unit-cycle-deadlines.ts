@@ -4,27 +4,14 @@
  */
 import "dotenv/config";
 
-import type { UnitCycleStageKey } from "@prisma/client";
-
 import { prisma } from "../lib/prisma";
 import {
-  classifyRetroactiveUnitCycleDeadline,
-  computeForwardStageDeadline,
-  deadlineDaysForStage,
-  type RetroactiveDeadlineReason,
-} from "../lib/unit-cycle/deadlines";
+  cleanupApplyFromArgv,
+  planRetroactiveUnitCycleDeadlineFixes,
+  summarizeDeadlineFixes,
+} from "../lib/unit-cycle/retroactive-deadline-cleanup";
 
-const apply = process.argv.includes("--apply");
-
-type PlannedUpdate = {
-  stageId: string;
-  unitCode: string;
-  projectName: string;
-  stageKey: UnitCycleStageKey;
-  reason: RetroactiveDeadlineReason;
-  from: Date;
-  to: Date;
-};
+const apply = cleanupApplyFromArgv();
 
 async function main() {
   const now = new Date();
@@ -42,35 +29,22 @@ async function main() {
     },
   });
 
-  const planned: PlannedUpdate[] = [];
-  const byReason = new Map<RetroactiveDeadlineReason, number>();
-
-  for (const row of rows) {
-    const reason = classifyRetroactiveUnitCycleDeadline({
+  const planned = planRetroactiveUnitCycleDeadlineFixes(
+    rows.map((row) => ({
+      id: row.id,
       status: row.status,
+      stageKey: row.stageKey,
       startedAt: row.startedAt,
       deadlineAt: row.deadlineAt,
       unitCycleCreatedAt: row.unitCycle.createdAt,
-      now,
-    });
-    if (!reason) continue;
-
-    const project = row.unitCycle.unit.project;
-    const days = deadlineDaysForStage(project, row.stageKey);
-    const startedAt = row.startedAt ?? row.unitCycle.createdAt;
-    const to = computeForwardStageDeadline(startedAt, days, now);
-
-    planned.push({
-      stageId: row.id,
       unitCode: row.unitCycle.unit.unitCode,
-      projectName: project.name,
-      stageKey: row.stageKey,
-      reason,
-      from: row.deadlineAt!,
-      to,
-    });
-    byReason.set(reason, (byReason.get(reason) ?? 0) + 1);
-  }
+      projectName: row.unitCycle.unit.project.name,
+      projectDeadlineDays: row.unitCycle.unit.project,
+    })),
+    now
+  );
+
+  const { byReason, byStage, byProject } = summarizeDeadlineFixes(planned);
 
   console.log(
     apply
@@ -87,10 +61,15 @@ async function main() {
     }
   }
 
-  const byStage = new Map<string, number>();
-  for (const row of planned) {
-    byStage.set(row.stageKey, (byStage.get(row.stageKey) ?? 0) + 1);
+  if (byProject.size > 0) {
+    console.log("\nBy project:");
+    for (const [projectName, count] of [...byProject.entries()].sort((a, b) =>
+      a[0].localeCompare(b[0])
+    )) {
+      console.log(`  ${projectName}: ${count}`);
+    }
   }
+
   if (byStage.size > 0) {
     console.log("\nBy stage:");
     for (const [stageKey, count] of [...byStage.entries()].sort()) {

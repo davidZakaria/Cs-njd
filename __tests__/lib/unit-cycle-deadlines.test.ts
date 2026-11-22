@@ -51,6 +51,22 @@ describe("unit-cycle deadlines", () => {
     expect(forward.toISOString()).toBe("2026-03-06T12:00:00.000Z");
   });
 
+  it("never yields a deadline in the past at creation", () => {
+    const anchors = [
+      new Date("2020-01-15T00:00:00.000Z"),
+      new Date("2024-06-01T10:00:00.000Z"),
+      new Date("2026-03-01T12:00:00.000Z"),
+    ];
+    const now = new Date("2026-03-01T12:00:00.000Z");
+
+    for (const startedAt of anchors) {
+      for (const days of [1, 5, 7, 14, 90]) {
+        const deadline = computeForwardStageDeadline(startedAt, days, now);
+        expect(deadline.getTime()).toBeGreaterThan(now.getTime());
+      }
+    }
+  });
+
   it("classifies retroactive deadline patterns", () => {
     const cycleCreated = new Date("2024-06-01T00:00:00.000Z");
     const started = new Date("2024-06-01T10:00:00.000Z");
