@@ -145,6 +145,24 @@ describe("dashboard count ↔ list parity (seeded rows)", () => {
     expect(countCaseDashboardRows(rows, filters)).toBe(primary.LEGAL);
   });
 
+  it("signed protocol missing treats no active workflow like the units list", () => {
+    const today = new Date("2026-06-01T12:00:00Z");
+    const onlyDeletedWorkflow = mapUnitToDashboardRow({
+      project: { name: "Demo" },
+      agent: null,
+      agentId: null,
+      contractWorkflow: null,
+      finishing: null,
+    });
+    const filters: UnitsPageFilters = {
+      ...baseUnitFilters,
+      signedProtocol: "missing",
+    };
+    expect(matchesUnitDashboardFilters(onlyDeletedWorkflow, filters, today)).toBe(
+      true
+    );
+  });
+
   it("legal handover units: active workflow status matches unit list filter", () => {
     const today = new Date("2026-06-01T12:00:00Z");
     const unitA = mapUnitToDashboardRow({

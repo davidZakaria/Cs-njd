@@ -68,7 +68,8 @@ export function unitWhereForDashboardFilters(
     where = {
       ...where,
       OR: [
-        { contractWorkflow: null },
+        // No active workflow (none at all, or only soft-deleted) — same as units list include.
+        { NOT: { contractWorkflow: { deletedAt: null } } },
         {
           contractWorkflow: {
             deletedAt: null,

@@ -186,11 +186,13 @@ export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
         );
 
         return mainLink ? (
-          <Link key={stat.key} href={stat.href!} className="block">
+          <Link key={stat.key} href={stat.href!} className="block" data-testid={`kpi-${stat.key}`}>
             {card}
           </Link>
         ) : (
-          <div key={stat.key}>{card}</div>
+          <div key={stat.key} data-testid={`kpi-${stat.key}`}>
+            {card}
+          </div>
         );
       })}
     </div>

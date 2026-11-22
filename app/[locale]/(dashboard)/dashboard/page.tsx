@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import {
+  csAgentTicketScope,
   csAgentUnitScope,
   resolveCsAgentScope,
 } from "@/lib/auth/cs-agent-scope";
@@ -58,12 +59,16 @@ export default async function DashboardPage() {
         where: activeUnitWhere(csScope ? {} : assignedUnitScope),
       }),
       prisma.ticket.count({
-        where: activeTicketWhere({
-          status: "PENDING",
-          unit: assignedUnitScope.agentId
-            ? { agentId: assignedUnitScope.agentId }
-            : {},
-        }),
+        where: activeTicketWhere(
+          csScope
+            ? { status: "PENDING", ...csAgentTicketScope(csScope) }
+            : {
+                status: "PENDING",
+                unit: assignedUnitScope.agentId
+                  ? { agentId: assignedUnitScope.agentId }
+                  : {},
+              }
+        ),
       }),
       countUnitsForDashboardFilters(
         {
@@ -74,11 +79,7 @@ export default async function DashboardPage() {
           agent: "all",
           project: "all",
         },
-        {
-          unitScope: assignedUnitScope.agentId
-            ? { agentId: assignedUnitScope.agentId }
-            : {},
-        }
+        { unitScope: {} }
       ),
       countUnitsForDashboardFilters(
         {
@@ -89,11 +90,7 @@ export default async function DashboardPage() {
           agent: "all",
           project: "all",
         },
-        {
-          unitScope: assignedUnitScope.agentId
-            ? { agentId: assignedUnitScope.agentId }
-            : {},
-        }
+        { unitScope: {} }
       ),
       session?.user
         ? getPendingWorkForSession({

@@ -208,19 +208,10 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
         },
       }),
     }),
-    prisma.unit.count({
-      where: activeUnitWhere({
-        OR: [
-          { contractWorkflow: null },
-          {
-            contractWorkflow: {
-              deletedAt: null,
-              signedProtocolStoredName: null,
-            },
-          },
-        ],
-      }),
-    }),
+    countUnitsForDashboardFilters(
+      { ...defaultUnitFilters, signedProtocol: "missing" },
+      { todayStart }
+    ),
     prisma.unit.count({
       where: activeUnitWhere({
         contractWorkflow: {
