@@ -505,6 +505,7 @@ export default async function UnitProfilePage({
           canViewDraftText={canViewOfficialDocDraftText}
           canGeneratePdf={canGenerateOfficialDocs}
           canCreateUnitRequest={canCreateUnitRequestForDocs}
+          canSplitMergedHandoverOwner={canAddCoOwner}
           generatedDocuments={generatedOfficialDocuments.map((doc) => ({
             ...doc,
             generatedAt: doc.generatedAt,

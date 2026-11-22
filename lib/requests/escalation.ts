@@ -3,7 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import { recordRequestAuditEvent } from "@/lib/requests/audit";
 import { isRequestOverdue } from "@/lib/requests/overdue";
 import type { UnitRequestListRow } from "@/lib/requests/types";
-import { resolvePrimaryClientName } from "@/lib/units/unit-request-search";
+import { formatUnitOwnersDisplayName } from "@/lib/units/unit-request-search";
 
 function digestDayKey(now: Date): string {
   return now.toISOString().slice(0, 10);
@@ -21,13 +21,12 @@ const listInclude = {
       project: { select: { name: true } },
       client: { select: { name: true } },
       unitClients: {
-        where: { role: "PRIMARY" as const },
-        take: 1,
+        orderBy: [{ role: "asc" as const }, { position: "asc" as const }],
         select: { role: true, client: { select: { name: true } } },
       },
     },
   },
-} as const;
+};
 
 export async function getOverduePendingRequests(
   prisma: RequestEscalationDb,
@@ -63,7 +62,7 @@ export async function getOverduePendingRequests(
     unitId: row.unit.id,
     unitCode: row.unit.unitCode,
     projectName: row.unit.project.name,
-    clientName: resolvePrimaryClientName({
+    clientName: formatUnitOwnersDisplayName({
       client: row.unit.client,
       unitClients: row.unit.unitClients,
     }),

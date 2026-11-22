@@ -102,6 +102,41 @@ describe("official handover variant selection", () => {
     );
   });
 
+  it("selects dual Green Avenue template for merged slash owner name", () => {
+    const merged = "Joseph Shenouda / Mariam Maher";
+    const mergedUnit = greenUnit({
+      client: {
+        name: merged,
+        nationalId: "29001011234567",
+        email: "a@example.com",
+        ...baseClientFields,
+        phones: [{ id: "p1", phone: "+20100000000", sortOrder: 0 }],
+        addresses: [{ id: "a1", address: "Cairo", sortOrder: 0 }],
+      },
+      unitClients: [
+        {
+          role: "PRIMARY",
+          client: {
+            name: merged,
+            nationalId: "29001011234567",
+            email: "a@example.com",
+            ...baseClientFields,
+            phones: [{ id: "p1", phone: "+20100000000", sortOrder: 0 }],
+            addresses: [{ id: "a1", address: "Cairo", sortOrder: 0 }],
+          },
+        },
+      ],
+    });
+    expect(resolveOfficialHandoverTemplateKey(mergedUnit)).toBe(
+      "green-avenue-dual"
+    );
+    const built = buildOfficialHandoverFieldValues(mergedUnit, "ar");
+    expect(built.values.owner1_name).toBe("Joseph Shenouda");
+    expect(built.values.owner2_name).toBe("Mariam Maher");
+    expect(built.mergedNamePendingCoOwnerRecord).toBe(true);
+    expect(built.missingKeys).toContain("owner2_national_id");
+  });
+
   it("selects dual-owner Green Avenue template when co-owner exists", () => {
     const unit = greenUnit({
       unitClients: [

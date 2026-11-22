@@ -10,6 +10,7 @@ import type { HandoverFieldValues } from "@/lib/print/handover-templates/types";
 import {
   formatOfficialHandoverMissingToken,
 } from "./constants";
+import { resolveHandoverOwners } from "./unit-owner-resolution";
 
 const DAY_NAMES_AR = [
   "الأحد",
@@ -58,6 +59,7 @@ export type OfficialHandoverFieldBuildResult = {
   values: Record<OfficialHandoverFieldKey, string>;
   missingKeys: OfficialHandoverFieldKey[];
   handoverFields: HandoverFieldValues;
+  mergedNamePendingCoOwnerRecord: boolean;
 };
 
 function primaryClientAddress(client: ClientWithContactLines): string | null {
@@ -96,34 +98,43 @@ function isMissingValue(value: string | null | undefined): boolean {
   return trimmed.length === 0 || trimmed === "—" || trimmed === "-";
 }
 
-function resolvePrimaryAndCoOwners(unit: UnitMergeInput) {
-  const primary =
-    unit.unitClients.find((l) => l.role === "PRIMARY")?.client ?? unit.client;
-  const coOwners = unit.unitClients
-    .filter((l) => l.role === "CO_OWNER")
-    .map((l) => l.client);
-  return { primary, coOwner: coOwners[0] ?? null };
-}
-
 export function buildOfficialHandoverFieldValues(
   unit: UnitMergeInput,
   locale: string,
   issuedAt: Date = new Date()
 ): OfficialHandoverFieldBuildResult {
-  const { primary, coOwner } = resolvePrimaryAndCoOwners(unit);
+  const ownerResolution = resolveHandoverOwners(unit);
+  const primary =
+    ownerResolution.mode === "blocked"
+      ? (unit.unitClients.find((l) => l.role === "PRIMARY")?.client ??
+        unit.client)
+      : ownerResolution.primary;
+  const coOwner =
+    ownerResolution.mode === "dual" ? ownerResolution.coOwner : null;
+  const dualOwnerFields = ownerResolution.mode === "dual";
+  const mergedNamePendingCoOwnerRecord =
+    ownerResolution.mode === "dual" && ownerResolution.source === "merged_name";
+  const owner1Name =
+    ownerResolution.mode === "dual"
+      ? ownerResolution.owner1Name
+      : (primary?.name ?? null);
+  const owner2Name =
+    ownerResolution.mode === "dual"
+      ? ownerResolution.owner2Name
+      : (coOwner?.name ?? null);
   const { floor, building, unitNumber } = parseUnitCode(unit.unitCode);
   const contractDate = unit.contractWorkflow?.contractDate ?? null;
   const handoverAt = unit.contractWorkflow?.deliveryDate ?? issuedAt;
 
   const raw: Record<OfficialHandoverFieldKey, string | null> = {
-    owner1_name: primary?.name ?? null,
+    owner1_name: owner1Name,
     owner1_nationality: locale === "ar" ? "مصري" : "Egyptian",
     owner1_national_id: primary?.nationalId ?? null,
     owner1_address: primary ? primaryClientAddress(primary) : null,
     owner1_phone1: primary ? allClientPhoneValues(primary)[0] ?? null : null,
     owner1_phone2: primary ? allClientPhoneValues(primary)[1] ?? null : null,
     owner1_email: primary?.email ?? null,
-    owner2_name: coOwner?.name ?? null,
+    owner2_name: owner2Name,
     owner2_national_id: coOwner?.nationalId ?? null,
     owner2_address: coOwner ? primaryClientAddress(coOwner) : null,
     owner2_phone1: coOwner ? allClientPhoneValues(coOwner)[0] ?? null : null,
@@ -153,7 +164,7 @@ export function buildOfficialHandoverFieldValues(
   for (const key of Object.keys(raw) as OfficialHandoverFieldKey[]) {
     const value = raw[key];
     if (isMissingValue(value)) {
-      if (key.startsWith("owner2_") && !coOwner) continue;
+      if (key.startsWith("owner2_") && !dualOwnerFields) continue;
       if (OPTIONAL_MISSING_KEYS.has(key)) {
         values[key] = value?.trim() ? value : "—";
         continue;
@@ -167,16 +178,16 @@ export function buildOfficialHandoverFieldValues(
 
   const handoverFields: HandoverFieldValues = {
     clientName: values.owner1_name,
-    clientName2: coOwner ? values.owner2_name : undefined,
+    clientName2: dualOwnerFields ? values.owner2_name : undefined,
     nationality: values.owner1_nationality,
     nationalId: values.owner1_national_id,
-    nationalId2: coOwner ? values.owner2_national_id : undefined,
+    nationalId2: dualOwnerFields ? values.owner2_national_id : undefined,
     address: values.owner1_address,
-    nationality2: coOwner ? values.owner1_nationality : undefined,
-    address2: coOwner ? values.owner2_address : undefined,
-    phone1Owner2: coOwner ? values.owner2_phone1 : undefined,
-    phone2Owner2: coOwner ? values.owner2_phone2 ?? "—" : undefined,
-    emailOwner2: coOwner ? values.owner2_email : undefined,
+    nationality2: dualOwnerFields ? values.owner1_nationality : undefined,
+    address2: dualOwnerFields ? values.owner2_address : undefined,
+    phone1Owner2: dualOwnerFields ? values.owner2_phone1 : undefined,
+    phone2Owner2: dualOwnerFields ? values.owner2_phone2 ?? "—" : undefined,
+    emailOwner2: dualOwnerFields ? values.owner2_email : undefined,
     phone1: values.owner1_phone1,
     phone2: values.owner1_phone2 ?? formatOfficialHandoverMissingToken("owner1_phone2"),
     email: values.owner1_email,
@@ -194,5 +205,10 @@ export function buildOfficialHandoverFieldValues(
     contractShortDate: values.contract_date,
   };
 
-  return { values, missingKeys, handoverFields };
+  return {
+    values,
+    missingKeys,
+    handoverFields,
+    mergedNamePendingCoOwnerRecord,
+  };
 }

@@ -12,6 +12,8 @@ import {
   assertOfficialTextDraftMutable,
 } from "@/lib/official-documents/document-mutation-guards";
 import {
+  loadUnitForOfficialDocuments,
+  mapUnitMergeInput,
   resolveOfficialDocumentGenerationContext,
 } from "@/lib/official-documents/draft-context";
 import {
@@ -41,6 +43,7 @@ import {
   writeGeneratedDocumentFile,
 } from "@/lib/official-documents/storage";
 import { prisma } from "@/lib/prisma";
+import { getHandoverMergedOwnerConvertHints } from "@/lib/official-documents/handover/unit-owner-resolution";
 
 function parseHandoverTemplateKey(value: unknown): HandoverTemplateKey | null {
   if (typeof value !== "string" || !value.trim()) return null;
@@ -60,6 +63,15 @@ function parseHandoverTemplateKey(value: unknown): HandoverTemplateKey | null {
 function parseLocale(value: unknown): "en" | "ar" | null {
   if (value === "en" || value === "ar") return value;
   return null;
+}
+
+async function handoverMergedOwnerHintsForUnit(unitId: string) {
+  const unit = await loadUnitForOfficialDocuments(unitId);
+  if (!unit) return null;
+  return getHandoverMergedOwnerConvertHints(
+    mapUnitMergeInput(unit),
+    unit.clientId
+  );
 }
 
 function formatHandoverMissingFieldsMessage(
@@ -311,6 +323,11 @@ export async function prepareOfficialDocumentTextDraftAction(input: {
     locale?: string;
     handoverTemplateKey?: string | null;
     handoverMissingFieldKeys?: string[];
+    handoverMergedOwnerConvert?: {
+      primaryClientId: string;
+      owner1Name: string;
+      owner2Name: string;
+    } | null;
     proposedOfficialBody?: string;
   }
 > {
@@ -330,6 +347,10 @@ export async function prepareOfficialDocumentTextDraftAction(input: {
       userId: session.user.id,
       handoverKeyOverride: parseHandoverTemplateKey(input.handoverTemplateKey),
     });
+    const handoverMergedOwnerConvert =
+      existing.documentType === "HANDOVER_RECORD"
+        ? await handoverMergedOwnerHintsForUnit(input.unitId)
+        : null;
     if (sync.synced) {
       revalidatePath(`/units/${input.unitId}`);
       return {
@@ -339,6 +360,7 @@ export async function prepareOfficialDocumentTextDraftAction(input: {
         title: sync.title,
         locale: sync.templateLocale,
         handoverTemplateKey: sync.handoverTemplateKey,
+        handoverMergedOwnerConvert,
         proposedOfficialBody: sync.proposedOfficialBody,
       };
     }
@@ -349,6 +371,7 @@ export async function prepareOfficialDocumentTextDraftAction(input: {
       title: existing.title,
       locale: existing.templateLocale,
       handoverTemplateKey: existing.handoverTemplateKey,
+      handoverMergedOwnerConvert,
     };
   }
 
@@ -406,6 +429,7 @@ export async function prepareOfficialDocumentTextDraftAction(input: {
         locale: sync.templateLocale,
         handoverTemplateKey: sync.handoverTemplateKey,
         handoverMissingFieldKeys: ctx.handoverMissingFieldKeys,
+        handoverMergedOwnerConvert: ctx.handoverMergedOwnerConvert,
         proposedOfficialBody: sync.proposedOfficialBody,
       };
     }
@@ -466,6 +490,7 @@ export async function prepareOfficialDocumentTextDraftAction(input: {
     locale: effectiveLocale,
     handoverTemplateKey: created.handoverTemplateKey,
     handoverMissingFieldKeys: ctx.handoverMissingFieldKeys,
+    handoverMergedOwnerConvert: ctx.handoverMergedOwnerConvert,
   };
 }
 

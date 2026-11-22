@@ -33,15 +33,21 @@ vi.mock("sonner", () => ({
 
 vi.mock("@/lib/actions/official-documents", () => ({
   generateOfficialDocumentAction: vi.fn(),
+  applyOfficialHandoverVariantAction: vi.fn(),
   getOfficialDocumentTextDraftAction: vi.fn(),
   prepareOfficialDocumentTextDraftAction: vi.fn(),
   saveOfficialDocumentTextDraftAction: vi.fn(),
+}));
+
+vi.mock("@/lib/actions/unit-clients", () => ({
+  convertMergedHandoverOwnerToCoOwner: vi.fn(),
 }));
 
 describe("UnitOfficialDocumentsPanel", () => {
   const baseProps = {
     unitId: "unit-1",
     projectName: "GREEN AVENUE",
+    canSplitMergedHandoverOwner: false,
     generatedDocuments: [],
     textDrafts: [],
     approvedRequests: [],

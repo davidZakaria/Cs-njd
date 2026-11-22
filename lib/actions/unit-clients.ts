@@ -2,6 +2,7 @@
 
 import { Prisma, UnitClientRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 
 import { auth } from "@/lib/auth";
@@ -12,8 +13,12 @@ import {
   canManageUnitCoOwners,
 } from "@/lib/auth/role-permissions";
 import { isCommunityManagementRole, isCsAgentRole } from "@/lib/auth/unit-roles";
-import { prisma } from "@/lib/prisma";
+import { basePrisma, prisma } from "@/lib/prisma";
 import { assertClientLinkedToUnit } from "@/lib/units/assert-unit-client-link";
+import { getHandoverMergedOwnerConvertHints } from "@/lib/official-documents/handover/unit-owner-resolution";
+import { mapUnitMergeInput } from "@/lib/official-documents/draft-context";
+import { recordAuditLog } from "@/lib/prisma/record-audit-log";
+import { splitMergedOwnerNames } from "@/lib/utils/arabic-normalize";
 
 function optionalTrimmedString() {
   return z
@@ -330,4 +335,172 @@ export async function setUnitPrimaryOwner(
   revalidatePath(`/units/${unitId}`);
   revalidatePath("/units");
   return actionOk();
+}
+
+const convertMergedHandoverOwnerSchema = z.object({
+  unitId: z.string().min(1),
+  confirmSplit: z.literal(true),
+  coOwnerNationalId: z.string().min(1),
+  coOwnerPhone: optionalTrimmedString(),
+  coOwnerEmail: optionalCoOwnerEmail(),
+  coOwnerAddress: optionalTrimmedString(),
+});
+
+export type ConvertMergedHandoverOwnerInput = z.input<
+  typeof convertMergedHandoverOwnerSchema
+>;
+
+/** Split a merged "/" primary owner name into PRIMARY + CO_OWNER client records (handover). */
+export async function convertMergedHandoverOwnerToCoOwner(
+  input: ConvertMergedHandoverOwnerInput
+): Promise<ActionResult & { coOwnerClientId?: string }> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const parsed = convertMergedHandoverOwnerSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionFail(parsed.error.issues[0]?.message ?? "Invalid input");
+  }
+
+  const { unitId, coOwnerNationalId } = parsed.data;
+  const unit = await prisma.unit.findUnique({
+    where: { id: unitId },
+    include: {
+      project: { select: { id: true, name: true, unitCycleEnabled: true } },
+      client: {
+        include: { phones: true, addresses: true },
+      },
+      unitClients: {
+        orderBy: { position: "asc" },
+        include: {
+          client: { include: { phones: true, addresses: true } },
+        },
+      },
+      contractWorkflow: true,
+      finishing: true,
+    },
+  });
+  if (!unit || unit.deletedAt) return actionFail("Unit not found");
+  if (!canAddUnitCoOwner(session.user.role, unit.project)) {
+    return actionFail("Unauthorized");
+  }
+
+  const mergeUnit = mapUnitMergeInput(unit);
+  const hints = getHandoverMergedOwnerConvertHints(mergeUnit, unit.clientId);
+  if (!hints) {
+    return actionFail(
+      "This unit does not have a merged primary owner name to split"
+    );
+  }
+
+  const primaryClient = unit.client;
+  if (!primaryClient) return actionFail("Unit has no primary client");
+
+  const parts = splitMergedOwnerNames(primaryClient.name);
+  if (parts.length !== 2) {
+    return actionFail("Owner name must contain exactly two names separated by /");
+  }
+
+  const [owner1Name, owner2Name] = parts;
+  const nationalId = coOwnerNationalId.trim();
+
+  let coOwnerClientId: string | undefined;
+
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for") ?? "unknown";
+
+  try {
+    await withAudit(async () => {
+      await prisma.$transaction(async (tx) => {
+        const existingCoOwners = await tx.unitClient.count({
+          where: { unitId, role: UnitClientRole.CO_OWNER },
+        });
+        if (existingCoOwners > 0) {
+          throw new Error("CO_OWNER_EXISTS");
+        }
+
+        const maxPosition = await tx.unitClient.aggregate({
+          where: { unitId },
+          _max: { position: true },
+        });
+        const nextPosition = (maxPosition._max.position ?? -1) + 1;
+
+        const previousPrimaryName = primaryClient.name;
+
+        await tx.client.update({
+          where: { id: primaryClient.id },
+          data: { name: owner1Name },
+        });
+
+        const coClient = await tx.client.create({
+          data: {
+            name: owner2Name,
+            nationalId,
+            phone1: parsed.data.coOwnerPhone,
+            email: parsed.data.coOwnerEmail,
+            address1: parsed.data.coOwnerAddress,
+          },
+        });
+        coOwnerClientId = coClient.id;
+
+        const primaryLink = await tx.unitClient.findFirst({
+          where: { unitId, clientId: primaryClient.id },
+        });
+        if (!primaryLink) {
+          await tx.unitClient.create({
+            data: {
+              unitId,
+              clientId: primaryClient.id,
+              role: UnitClientRole.PRIMARY,
+              position: 0,
+            },
+          });
+        } else if (primaryLink.role !== UnitClientRole.PRIMARY) {
+          await tx.unitClient.update({
+            where: { id: primaryLink.id },
+            data: { role: UnitClientRole.PRIMARY, position: 0 },
+          });
+        }
+
+        await tx.unitClient.create({
+          data: {
+            unitId,
+            clientId: coClient.id,
+            role: UnitClientRole.CO_OWNER,
+            position: nextPosition,
+          },
+        });
+
+        await recordAuditLog(
+          basePrisma,
+          { userId: session.user!.id, ipAddress: ip },
+          {
+            model: "Unit",
+            action: "UPDATE",
+            recordId: unitId,
+            oldData: {
+              primaryClientName: previousPrimaryName,
+              mergedHandoverOwnerSplit: false,
+            },
+            newData: {
+              primaryClientName: owner1Name,
+              coOwnerClientId: coClient.id,
+              coOwnerClientName: owner2Name,
+              mergedHandoverOwnerSplit: true,
+              action: "convert_merged_handover_owner_to_co_owner",
+            },
+          }
+        );
+      });
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "CO_OWNER_EXISTS") {
+      return actionFail("This unit already has a co-owner record");
+    }
+    throw error;
+  }
+
+  revalidatePath(`/units/${unitId}`);
+  revalidatePath("/units");
+  return { success: true, coOwnerClientId };
 }

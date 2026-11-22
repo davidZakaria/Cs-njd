@@ -13,6 +13,7 @@ import {
   prepareOfficialDocumentTextDraftAction,
   saveOfficialDocumentTextDraftAction,
 } from "@/lib/actions/official-documents";
+import { convertMergedHandoverOwnerToCoOwner } from "@/lib/actions/unit-clients";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { OFFICIAL_DOCUMENT_TYPES } from "@/lib/official-documents/types";
@@ -90,6 +92,7 @@ export function UnitOfficialDocumentsPanel({
   canViewDraftText,
   canGeneratePdf,
   canCreateUnitRequest,
+  canSplitMergedHandoverOwner,
   generatedDocuments,
   textDrafts,
   approvedRequests,
@@ -100,6 +103,7 @@ export function UnitOfficialDocumentsPanel({
   canViewDraftText: boolean;
   canGeneratePdf: boolean;
   canCreateUnitRequest: boolean;
+  canSplitMergedHandoverOwner: boolean;
   generatedDocuments: GeneratedRow[];
   textDrafts: TextDraftRow[];
   approvedRequests: UnitRequestOption[];
@@ -132,6 +136,17 @@ export function UnitOfficialDocumentsPanel({
   const editorTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const editorLiveBodyRef = useRef("");
   const [editorTextKey, setEditorTextKey] = useState(0);
+  const [handoverMergedOwnerConvert, setHandoverMergedOwnerConvert] = useState<{
+    primaryClientId: string;
+    owner1Name: string;
+    owner2Name: string;
+  } | null>(null);
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [convertNationalId, setConvertNationalId] = useState("");
+  const [convertPhone, setConvertPhone] = useState("");
+  const [convertEmail, setConvertEmail] = useState("");
+  const [convertAddress, setConvertAddress] = useState("");
+  const [convertSubmitting, setConvertSubmitting] = useState(false);
 
   const remountEditorTextarea = () => setEditorTextKey((k) => k + 1);
 
@@ -271,6 +286,7 @@ export function UnitOfficialDocumentsPanel({
           detail?.handoverTemplateKey ??
           null) as HandoverTemplateKey | null
       );
+      setHandoverMergedOwnerConvert(result.handoverMergedOwnerConvert ?? null);
       setVersionHistory(
         detail?.versions.map((v) => ({
           id: v.id,
@@ -363,6 +379,57 @@ export function UnitOfficialDocumentsPanel({
           router.refresh();
         } finally {
           setIsSavingDraft(false);
+        }
+      })();
+    });
+  };
+
+  const submitMergedOwnerSplit = () => {
+    if (!handoverMergedOwnerConvert) return;
+    setConvertSubmitting(true);
+    startTransition(() => {
+      void (async () => {
+        try {
+          const result = await convertMergedHandoverOwnerToCoOwner({
+            unitId,
+            confirmSplit: true,
+            coOwnerNationalId: convertNationalId.trim(),
+            coOwnerPhone: convertPhone.trim() || null,
+            coOwnerEmail: convertEmail.trim() || null,
+            coOwnerAddress: convertAddress.trim() || null,
+          });
+          if (!result.success) {
+            toast.error(result.error ?? t("handoverSplitMergedOwnerFailed"));
+            return;
+          }
+          toast.success(t("handoverSplitMergedOwnerSuccess"));
+          setConvertDialogOpen(false);
+          setHandoverMergedOwnerConvert(null);
+          if (activeDraftId) {
+            const refresh = await prepareOfficialDocumentTextDraftAction({
+              unitId,
+              documentType: "HANDOVER_RECORD",
+              locale: editorLocale,
+              unitRequestId: resolvedUnitRequestId || null,
+              draftId: activeDraftId,
+            });
+            if (refresh.success && refresh.body) {
+              setEditorBody(refresh.body);
+              editorLiveBodyRef.current = refresh.body;
+              remountEditorTextarea();
+            }
+            if (refresh.handoverTemplateKey) {
+              setHandoverTemplateKey(
+                refresh.handoverTemplateKey as HandoverTemplateKey
+              );
+            }
+            setHandoverMergedOwnerConvert(
+              refresh.handoverMergedOwnerConvert ?? null
+            );
+          }
+          router.refresh();
+        } finally {
+          setConvertSubmitting(false);
         }
       })();
     });
@@ -683,6 +750,9 @@ export function UnitOfficialDocumentsPanel({
           {missingFieldKeys.length > 0 ? (
             <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
               <p className="font-medium">{t("handoverMissingFieldsWarning")}</p>
+              {handoverMergedOwnerConvert ? (
+                <p className="mt-1 text-xs">{t("handoverMergedOwnerMissingHint")}</p>
+              ) : null}
               <ul className="mt-1 list-inside list-disc text-xs">
                 {missingFieldKeys.map((key) => (
                   <li key={key}>
@@ -690,6 +760,18 @@ export function UnitOfficialDocumentsPanel({
                   </li>
                 ))}
               </ul>
+              {handoverMergedOwnerConvert && canSplitMergedHandoverOwner ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="mt-2"
+                  data-testid="handover-split-merged-owner"
+                  onClick={() => setConvertDialogOpen(true)}
+                >
+                  {t("handoverSplitMergedOwnerAction")}
+                </Button>
+              ) : null}
             </div>
           ) : null}
           <Textarea
@@ -768,6 +850,121 @@ export function UnitOfficialDocumentsPanel({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("handoverSplitMergedOwnerTitle")}</DialogTitle>
+          </DialogHeader>
+          {handoverMergedOwnerConvert ? (
+            <SplitMergedOwnerConfirmForm
+              hints={handoverMergedOwnerConvert}
+              locale={editorLocale}
+              nationalId={convertNationalId}
+              phone={convertPhone}
+              email={convertEmail}
+              address={convertAddress}
+              onNationalId={setConvertNationalId}
+              onPhone={setConvertPhone}
+              onEmail={setConvertEmail}
+              onAddress={setConvertAddress}
+            />
+          ) : null}
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={convertSubmitting}
+              onClick={() => setConvertDialogOpen(false)}
+            >
+              {t("handoverSplitMergedOwnerCancel")}
+            </Button>
+            <Button
+              type="button"
+              data-testid="handover-split-merged-owner-confirm"
+              disabled={convertSubmitting || !convertNationalId.trim()}
+              onClick={submitMergedOwnerSplit}
+            >
+              {convertSubmitting
+                ? t("handoverSplitMergedOwnerSubmitting")
+                : t("handoverSplitMergedOwnerConfirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function SplitMergedOwnerConfirmForm({
+  hints,
+  locale,
+  nationalId,
+  phone,
+  email,
+  address,
+  onNationalId,
+  onPhone,
+  onEmail,
+  onAddress,
+}: {
+  hints: { owner1Name: string; owner2Name: string };
+  locale: string;
+  nationalId: string;
+  phone: string;
+  email: string;
+  address: string;
+  onNationalId: (v: string) => void;
+  onPhone: (v: string) => void;
+  onEmail: (v: string) => void;
+  onAddress: (v: string) => void;
+}) {
+  const t = useTranslations("officialDocuments");
+  return (
+    <div className="space-y-3 text-sm">
+      <p>{t("handoverSplitMergedOwnerDescription")}</p>
+      <ul className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs">
+        <li>
+          <span className="font-medium">{t("handoverSplitPrimaryLabel")}: </span>
+          {hints.owner1Name}
+        </li>
+        <li className="mt-1">
+          <span className="font-medium">{t("handoverSplitCoOwnerLabel")}: </span>
+          {hints.owner2Name}
+        </li>
+      </ul>
+      <p className="text-xs text-muted-foreground">
+        {t("handoverSplitMergedOwnerAuditNotice")}
+      </p>
+      <div className="space-y-2">
+        <Label htmlFor="co-owner-nid">{t("handoverSplitCoOwnerNationalId")}</Label>
+        <Input
+          id="co-owner-nid"
+          value={nationalId}
+          onChange={(e) => onNationalId(e.target.value)}
+          dir={locale === "ar" ? "rtl" : "ltr"}
+        />
+        <Label htmlFor="co-owner-phone">{t("handoverSplitCoOwnerPhone")}</Label>
+        <Input
+          id="co-owner-phone"
+          value={phone}
+          onChange={(e) => onPhone(e.target.value)}
+        />
+        <Label htmlFor="co-owner-address">{t("handoverSplitCoOwnerAddress")}</Label>
+        <Input
+          id="co-owner-address"
+          value={address}
+          onChange={(e) => onAddress(e.target.value)}
+          dir={locale === "ar" ? "rtl" : "ltr"}
+        />
+        <Label htmlFor="co-owner-email">{t("handoverSplitCoOwnerEmail")}</Label>
+        <Input
+          id="co-owner-email"
+          type="email"
+          value={email}
+          onChange={(e) => onEmail(e.target.value)}
+        />
+      </div>
     </div>
   );
 }

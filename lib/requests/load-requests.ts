@@ -1,7 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 
 import type { UnitRequestListRow } from "@/lib/requests/types";
-import { resolvePrimaryClientName } from "@/lib/units/unit-request-search";
+import { formatUnitOwnersDisplayName } from "@/lib/units/unit-request-search";
 
 export async function loadAllUnitRequestRows(
   prisma: Pick<PrismaClient, "unitRequest">
@@ -19,8 +19,7 @@ export async function loadAllUnitRequestRows(
           project: { select: { name: true } },
           client: { select: { name: true } },
           unitClients: {
-            where: { role: "PRIMARY" },
-            take: 1,
+            orderBy: [{ role: "asc" as const }, { position: "asc" as const }],
             select: { role: true, client: { select: { name: true } } },
           },
         },
@@ -45,7 +44,7 @@ export async function loadAllUnitRequestRows(
     projectName:
       row.unit?.project.name ?? row.bulkProject?.name ?? "—",
     clientName: row.unit
-      ? resolvePrimaryClientName({
+      ? formatUnitOwnersDisplayName({
           client: row.unit.client,
           unitClients: row.unit.unitClients,
         })
