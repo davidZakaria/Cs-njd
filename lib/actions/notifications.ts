@@ -2,6 +2,8 @@
 
 import { auth } from "@/lib/auth";
 import { pickBilingual } from "@/lib/notifications/bilingual";
+import { attachCallLogDisplayToItems } from "@/lib/notifications/call-log-inbox-display";
+import type { CallLogInboxDisplay } from "@/lib/notifications/call-log-inbox-display-types";
 import { attachCallLogSeenToItems } from "@/lib/notifications/call-log-seen";
 import type { CallLogSeenInfo } from "@/lib/notifications/call-log-seen-types";
 import {
@@ -25,6 +27,7 @@ export type NotificationItem = {
 
 export type ActivityNotificationItem = NotificationItem & {
   callLogSeen?: CallLogSeenInfo | null;
+  callLogDisplay?: CallLogInboxDisplay | null;
 };
 
 export type InboxUnreadCounts = {
@@ -144,14 +147,16 @@ export async function getMyActivityNotifications(
     return { success: true, items: mapped };
   }
 
-  const seenById = await attachCallLogSeenToItems(
-    rows.map((row) => ({ id: row.id, dedupeKey: row.dedupeKey })),
-    session.user.role as Role
-  );
+  const inboxRows = rows.map((row) => ({ id: row.id, dedupeKey: row.dedupeKey }));
+  const [seenById, displayById] = await Promise.all([
+    attachCallLogSeenToItems(inboxRows, session.user.role as Role),
+    attachCallLogDisplayToItems(inboxRows),
+  ]);
 
   const items: ActivityNotificationItem[] = mapped.map((item) => ({
     ...item,
     callLogSeen: seenById.get(item.id) ?? null,
+    callLogDisplay: displayById.get(item.id) ?? null,
   }));
 
   return { success: true, items };

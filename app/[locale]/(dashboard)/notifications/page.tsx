@@ -52,6 +52,7 @@ export default async function ActivityNotificationsPage({
         <p className="text-muted-foreground">{t("subtitle")}</p>
       </div>
       <NotificationsInbox
+        viewerRole={session.user.role}
         initialTab={initialTab}
         initialItemsByTab={{
           callLogs: callLogs.success && callLogs.items ? callLogs.items : [],

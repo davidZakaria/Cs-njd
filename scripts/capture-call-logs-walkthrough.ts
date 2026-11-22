@@ -1,6 +1,5 @@
 /**
  * Real-app Call Logs inbox screenshots (fake seed data).
- * Prereq: Postgres, `npx prisma db push`, `npx tsx scripts/seed-call-logs-walkthrough.ts`, dev server.
  */
 import fs from "fs";
 import path from "path";
@@ -9,7 +8,6 @@ import { authenticator } from "otplib";
 
 const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 const ARTIFACT_ROOT = "/opt/cursor/artifacts";
-const VIEWPORT = { width: 1280, height: 800 };
 const TEST_PASSWORD = "TestPassword1234!";
 const TOTP_SECRET = "JBSWY3DPEHPK3PXP";
 
@@ -50,7 +48,7 @@ async function screenshotLocator(locator: Locator, fileName: string) {
   await locator.screenshot({ path: path.join(ARTIFACT_ROOT, fileName) });
 }
 
-async function captureCallLogsInbox(
+async function captureCallLogsTab(
   page: Page,
   locale: "en" | "ar",
   email: string,
@@ -60,45 +58,56 @@ async function captureCallLogsInbox(
   await page.goto(`${BASE_URL}/${locale}/notifications?tab=callLogs`, {
     waitUntil: "domcontentloaded",
   });
-  await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {});
-  const inboxPanel = page
-    .locator('[role="tabpanel"]')
-    .filter({ has: page.getByRole("button") })
-    .first();
-  await page.getByRole("tab", { name: /call logs|سجل المكالمات/i }).waitFor({
-    state: "visible",
-    timeout: 30_000,
-  });
-  await screenshotLocator(inboxPanel, fileName);
+  await page.getByRole("tab", { name: /call logs|سجل المكالمات/i }).waitFor();
+  const panel = page.locator('[role="tabpanel"]').first();
+  await screenshotLocator(panel, fileName);
 }
 
 async function main() {
   fs.mkdirSync(ARTIFACT_ROOT, { recursive: true });
   const browser = await chromium.launch({ headless: true });
 
-  {
-    const context = await browser.newContext({ locale: "en-US", viewport: VIEWPORT });
+  for (const locale of ["en", "ar"] as const) {
+    const context = await browser.newContext({
+      locale: locale === "ar" ? "ar-EG" : "en-US",
+      viewport: { width: 1280, height: 800 },
+    });
     const page = await context.newPage();
-    await captureCallLogsInbox(
+    await captureCallLogsTab(
       page,
-      "en",
+      locale,
       "demo-mgmt@test.local",
-      "call_logs_inbox_manager_en.png"
+      `call_logs_inbox_manager_${locale}.png`
     );
     await context.close();
   }
 
-  for (const locale of ["en", "ar"] as const) {
+  {
     const context = await browser.newContext({
-      locale: locale === "ar" ? "ar-EG" : "en-US",
-      viewport: VIEWPORT,
+      locale: "en-US",
+      viewport: { width: 1280, height: 800 },
     });
     const page = await context.newPage();
-    await captureCallLogsInbox(
+    await captureCallLogsTab(
       page,
-      locale,
+      "en",
       "demo-cs@test.local",
-      `call_logs_inbox_cs_agent_${locale}.png`
+      "call_logs_inbox_cs_agent_en.png"
+    );
+    await context.close();
+  }
+
+  {
+    const context = await browser.newContext({
+      locale: "en-US",
+      viewport: { width: 390, height: 844 },
+    });
+    const page = await context.newPage();
+    await captureCallLogsTab(
+      page,
+      "en",
+      "demo-mgmt@test.local",
+      "call_logs_inbox_manager_mobile_390.png"
     );
     await context.close();
   }

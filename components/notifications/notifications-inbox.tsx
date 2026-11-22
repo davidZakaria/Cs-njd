@@ -16,7 +16,7 @@ import {
   inboxTabQueryParam,
   type InboxTabKey,
 } from "@/lib/notifications/inbox-types";
-import { CallLogSeenLabel } from "@/components/notifications/call-log-seen-label";
+import { CallLogInboxList } from "@/components/notifications/call-log-inbox-list";
 import { formatDateTime } from "@/lib/format/datetime";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,10 +40,12 @@ export function NotificationsInbox({
   initialTab,
   initialItemsByTab,
   initialUnreadCounts,
+  viewerRole,
 }: {
   initialTab: InboxTabKey;
   initialItemsByTab: Record<InboxTabKey, ActivityNotificationItem[]>;
   initialUnreadCounts: InboxUnreadCounts;
+  viewerRole: string;
 }) {
   const t = useTranslations("activityNotifications");
   const locale = useLocale();
@@ -113,6 +115,17 @@ export function NotificationsInbox({
           ? "emptyRequestsAndFiles"
           : "emptyOverdueTasks";
 
+    if (tab === "callLogs" && items.length > 0) {
+      return (
+        <CallLogInboxList
+          items={items}
+          pending={pending}
+          viewerRole={viewerRole}
+          onItemClick={handleItemClick}
+        />
+      );
+    }
+
     if (items.length === 0) {
       return (
         <p className="py-12 text-center text-sm text-muted-foreground">
@@ -154,9 +167,6 @@ export function NotificationsInbox({
                 </time>
               </div>
               <p className="text-sm text-muted-foreground">{item.message}</p>
-              {tab === "callLogs" && item.callLogSeen ? (
-                <CallLogSeenLabel seen={item.callLogSeen} />
-              ) : null}
             </button>
           </li>
         ))}

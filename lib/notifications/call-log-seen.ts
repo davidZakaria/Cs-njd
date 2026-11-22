@@ -4,18 +4,14 @@ import {
   callLogDedupeKey,
   parseCallLogTicketId,
 } from "@/lib/notifications/call-log-dedupe";
-import type { CallLogSeenInfo } from "@/lib/notifications/call-log-seen-types";
+import {
+  roleShowsCallLogSeenStatus,
+  type CallLogSeenInfo,
+} from "@/lib/notifications/call-log-seen-types";
 import { basePrisma } from "@/lib/prisma";
 
 export type { CallLogSeenInfo } from "@/lib/notifications/call-log-seen-types";
-
-export function roleShowsCallLogSeenStatus(role: Role): boolean {
-  return (
-    role === "SUPER_ADMIN" ||
-    role === "MANAGEMENT" ||
-    role === "COMMUNITY_MANAGEMENT"
-  );
-}
+export { roleShowsCallLogSeenStatus };
 
 type InboxRow = {
   id: string;
