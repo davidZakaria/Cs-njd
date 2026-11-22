@@ -1,8 +1,11 @@
+import type { CallLogOutcome } from "@prisma/client";
+
 import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { isCommunityManagementRole } from "@/lib/auth/unit-roles";
 import {
   callOutcomePhrase,
-  parseCallLogOutcome,
+  resolveCallOutcome,
+  type CallOutcome,
 } from "@/lib/notifications/call-outcome";
 import { encodeBilingual } from "@/lib/notifications/bilingual";
 import { basePrisma } from "@/lib/prisma";
@@ -18,6 +21,12 @@ type UnitContext = {
 
 function activityLink(unitId: string): string {
   return `/units/${unitId}?tab=timeline`;
+}
+
+function notesSnippet(notes: string, maxLen = 120): string {
+  const trimmed = notes.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  return `${trimmed.slice(0, maxLen - 1)}…`;
 }
 
 async function resolveRecipientUserIds(unit: UnitContext): Promise<string[]> {
@@ -57,40 +66,65 @@ async function resolveRecipientUserIds(unit: UnitContext): Promise<string[]> {
     }
   }
 
+  if (unit.agentId) {
+    recipientIds.add(unit.agentId);
+  }
+
   return [...recipientIds];
 }
 
-function buildAnsweredCallCopy(
+function titleForOutcome(outcome: CallOutcome): { en: string; ar: string } {
+  switch (outcome) {
+    case "answered":
+      return { en: "Call answered", ar: "مكالمة تم الرد عليها" };
+    case "not_answered":
+      return { en: "Call not answered", ar: "مكالمة دون رد" };
+    default:
+      return { en: "Call logged", ar: "مكالمة مسجّلة" };
+  }
+}
+
+function buildCallLogCopy(
   actorName: string,
   unit: UnitContext,
-  notes: string
+  notes: string,
+  outcome: CallOutcome
 ): { titleEn: string; titleAr: string; messageEn: string; messageAr: string } {
   const clientName = unit.client?.name?.trim() || "—";
   const unitLabel = unit.unitCode;
-  const outcome = callOutcomePhrase(parseCallLogOutcome(notes));
+  const outcomeLabel = callOutcomePhrase(outcome);
+  const snippet = notesSnippet(notes);
+
+  const title = titleForOutcome(outcome);
 
   return {
-    titleEn: "Call answered",
-    titleAr: "مكالمة تم الرد عليها",
-    messageEn: `${actorName} logged an answered call (${outcome.en}) · Unit ${unitLabel} · ${clientName}`,
-    messageAr: `${actorName} سجّل مكالمة تم الرد عليها (${outcome.ar}) · وحدة ${unitLabel} · ${clientName}`,
+    titleEn: title.en,
+    titleAr: title.ar,
+    messageEn: `${actorName} · ${outcomeLabel.en} · Unit ${unitLabel} · ${clientName}${snippet ? ` · ${snippet}` : ""}`,
+    messageAr: `${actorName} · ${outcomeLabel.ar} · وحدة ${unitLabel} · ${clientName}${snippet ? ` · ${snippet}` : ""}`,
   };
 }
 
-/** Activity feed: answered call logs only (no cases / unanswered calls). */
-export async function dispatchAnsweredCallLogActivity(input: {
+/** Activity feed: all logged calls (CALL_LOG inbox tab). */
+export async function dispatchCallLogActivity(input: {
+  actorUserId: string;
   actorName: string;
   unit: UnitContext;
   notes: string;
+  callLogOutcome: CallLogOutcome | null;
 }): Promise<void> {
-  if (parseCallLogOutcome(input.notes) !== "answered") {
-    return;
-  }
-
-  const recipientIds = await resolveRecipientUserIds(input.unit);
+  const outcome = resolveCallOutcome(input.callLogOutcome, input.notes);
+  const recipientIds = (await resolveRecipientUserIds(input.unit)).filter(
+    (id) => id !== input.actorUserId
+  );
   if (recipientIds.length === 0) return;
 
-  const copy = buildAnsweredCallCopy(input.actorName, input.unit, input.notes);
+  const copy = buildCallLogCopy(
+    input.actorName,
+    input.unit,
+    input.notes,
+    outcome
+  );
   const link = activityLink(input.unit.id);
 
   await basePrisma.notification.createMany({

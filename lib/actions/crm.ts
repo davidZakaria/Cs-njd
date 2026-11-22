@@ -46,10 +46,9 @@ import { applyCsFinishingAdditions } from "@/lib/workflow/cs-finishing-fields";
 import {
   notifyFinishingUpdatedByAgent,
   notifyHandoverChecklistUpdatedByAgent,
-  notifyInboundCall,
   notifyUnitAssigned,
 } from "@/lib/notifications/triggers";
-import { dispatchAnsweredCallLogActivity } from "@/lib/notifications/dispatch-activity-notifications";
+import { dispatchCallLogActivity } from "@/lib/notifications/dispatch-activity-notifications";
 import { sortPhases, normalizeFinishingPhases } from "@/lib/finishing/phases";
 import {
   evaluateResolutionGates,
@@ -1256,9 +1255,12 @@ export async function updateCsFinishingAdditions(
   return actionOk();
 }
 
+const CALL_LOG_OUTCOMES = ["ANSWERED", "NO_ANSWER", "OTHER"] as const;
+
 export async function logCallQuickAction(input: {
   unitId: string;
   notes: string;
+  callLogOutcome: (typeof CALL_LOG_OUTCOMES)[number];
 }): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
@@ -1268,6 +1270,9 @@ export async function logCallQuickAction(input: {
 
   const notes = input.notes.trim();
   if (!notes) return actionFail("Notes are required");
+  if (!CALL_LOG_OUTCOMES.includes(input.callLogOutcome)) {
+    return actionFail("Call outcome is required");
+  }
 
   const unit = await prisma.unit.findUnique({
     where: { id: input.unitId },
@@ -1290,6 +1295,7 @@ export async function logCallQuickAction(input: {
       data: {
         unitId: unit.id,
         notes,
+        callLogOutcome: input.callLogOutcome,
         status: "PENDING",
         category: "FEEDBACK_HISTORY",
         agentId: session.user.id,
@@ -1301,20 +1307,13 @@ export async function logCallQuickAction(input: {
 
   const actorName =
     session.user.name ?? session.user.email ?? "Agent";
-  await dispatchAnsweredCallLogActivity({
+  await dispatchCallLogActivity({
+    actorUserId: session.user.id,
     actorName,
     unit,
     notes,
+    callLogOutcome: input.callLogOutcome,
   });
-
-  if (unit.agentId && unit.agentId !== session.user.id) {
-    await notifyInboundCall({
-      agentUserId: unit.agentId,
-      unitCode: unit.unitCode,
-      unitId: unit.id,
-      callerName: session.user.name ?? session.user.email ?? "Agent",
-    });
-  }
 
   revalidatePath(`/units/${unit.id}`);
   revalidatePath("/cases");

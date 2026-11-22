@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseCallLogOutcome } from "@/lib/notifications/call-outcome";
+import { parseCallLogOutcome, resolveCallOutcome } from "@/lib/notifications/call-outcome";
 
 describe("parseCallLogOutcome", () => {
   it("detects answered calls", () => {
@@ -13,5 +13,11 @@ describe("parseCallLogOutcome", () => {
     expect(parseCallLogOutcome("📞 Not answered, will retry")).toBe(
       "not_answered"
     );
+  });
+
+  it("prefers explicit outcome over notes", () => {
+    expect(
+      resolveCallOutcome("ANSWERED", "📞 Not answered, will retry")
+    ).toBe("answered");
   });
 });

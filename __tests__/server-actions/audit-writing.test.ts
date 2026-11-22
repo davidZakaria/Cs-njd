@@ -62,11 +62,10 @@ vi.mock("@/lib/notifications/dispatch-ticket-notifications", () => ({
 }));
 
 vi.mock("@/lib/notifications/dispatch-activity-notifications", () => ({
-  dispatchAnsweredCallLogActivity: vi.fn().mockResolvedValue(undefined),
+  dispatchCallLogActivity: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/notifications/triggers", () => ({
-  notifyInboundCall: vi.fn().mockResolvedValue(undefined),
 }));
 
 function session(user: { id: string; role: Role; name?: string; email?: string }) {
@@ -140,6 +139,7 @@ describe("server actions write audit context for mutations", () => {
     const result = await logCallQuickAction({
       unitId: "unit-1",
       notes: "Called client about delivery",
+      callLogOutcome: "OTHER",
     });
 
     expect(result.success).toBe(true);

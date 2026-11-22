@@ -128,6 +128,12 @@ enum TicketCategory {
   GENERAL
 }
 
+enum CallLogOutcome {
+  ANSWERED
+  NO_ANSWER
+  OTHER
+}
+
 enum AuditAction {
   CREATE
   UPDATE
@@ -532,6 +538,7 @@ model Ticket {
   agentId          String?
   createdById      String?
   notes            String
+  callLogOutcome   CallLogOutcome?
   category         TicketCategory @default(GENERAL)
   status           TicketStatus   @default(PENDING)
   pendingParty     PendingParty?  @default(NONE)

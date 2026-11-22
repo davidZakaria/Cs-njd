@@ -59,14 +59,13 @@ vi.mock("@/lib/notifications/dispatch-ticket-notifications", () => ({
 }));
 
 vi.mock("@/lib/notifications/dispatch-activity-notifications", () => ({
-  dispatchAnsweredCallLogActivity: vi.fn().mockResolvedValue(undefined),
+  dispatchCallLogActivity: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/notifications/triggers", () => ({
   notifyUnitAssigned: vi.fn().mockResolvedValue(undefined),
   notifyFinishingUpdatedByAgent: vi.fn().mockResolvedValue(undefined),
   notifyHandoverChecklistUpdatedByAgent: vi.fn().mockResolvedValue(undefined),
-  notifyInboundCall: vi.fn().mockResolvedValue(undefined),
   notifyCrossAgentTicketOpened: vi.fn().mockResolvedValue(undefined),
 }));
 
@@ -536,6 +535,7 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
       const result = await logCallQuickAction({
         unitId: "unit-1",
         notes: "📞 Called client",
+        callLogOutcome: "ANSWERED",
       });
 
       expect(result.success).toBe(true);
@@ -560,6 +560,7 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
       const result = await logCallQuickAction({
         unitId: "unit-ga",
         notes: "📞 Answered",
+        callLogOutcome: "ANSWERED",
       });
 
       expect(result.success).toBe(true);
