@@ -5,7 +5,7 @@ STAMP="$(date +%Y%m%d%H%M%S)"
 cp /etc/nginx/nginx.conf "/etc/nginx/nginx.conf.bak.${STAMP}"
 
 if ! grep -q 'zone=crm_limit' /etc/nginx/nginx.conf; then
-  awk '/^http \{/ { print; print "\tlimit_req_zone $binary_remote_addr zone=crm_limit:10m rate=10r/s;"; next }1' \
+  awk '/^http \{/ { print; print "\tlimit_req_zone $binary_remote_addr zone=crm_limit:10m rate=20r/s;"; next }1' \
     /etc/nginx/nginx.conf > /tmp/nginx.conf.new
   mv /tmp/nginx.conf.new /etc/nginx/nginx.conf
 fi
@@ -19,7 +19,7 @@ for site in njd-crm.com cs-njd.duckdns.org; do
   fi
   cp "${file}" "${file}.bak.${STAMP}"
   if ! grep -q 'limit_req zone=crm_limit' "${file}"; then
-    awk '/location \/ \{/ { print; print "        limit_req zone=crm_limit burst=20 nodelay;"; next }1' \
+    awk '/location \/ \{/ { print; print "        limit_req zone=crm_limit burst=40 nodelay;"; next }1' \
       "${file}" > "/tmp/${site}.new"
     mv "/tmp/${site}.new" "${file}"
   fi

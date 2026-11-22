@@ -18,6 +18,10 @@ import {
 import { UnitRequestDetailPanel } from "@/components/requests/unit-request-detail-panel";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
+import {
+  resolveUnitDisplayFields,
+  serializeUnitDisplayFields,
+} from "@/lib/units/unit-display-fields";
 
 export const dynamic = "force-dynamic";
 
@@ -161,6 +165,14 @@ export default async function RequestDetailPage({
       ? bulkProjectName
       : (request.unit?.project.name ?? bulkProjectName ?? "—");
   const displayUnitCode = request.unit?.unitCode ?? "";
+  const unitDisplayFields = request.unit
+    ? serializeUnitDisplayFields(
+        resolveUnitDisplayFields({
+          contractWorkflow: request.unit.contractWorkflow,
+          finishing: request.unit.finishing,
+        })
+      )
+    : null;
 
   return (
     <div className={cn("max-w-3xl", entranceAnimationClass)}>
@@ -219,6 +231,7 @@ export default async function RequestDetailPage({
         archiveProgressUnits={archiveProgressUnits}
         bulkProjectName={bulkProjectName}
         isBulkArchiveCheckParentRequest={isBulkParent}
+        unitDisplayFields={unitDisplayFields}
       />
     </div>
   );

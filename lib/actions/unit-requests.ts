@@ -90,7 +90,14 @@ async function loadRequestContext(requestId: string) {
   return prisma.unitRequest.findUnique({
     where: { id: requestId },
     include: {
-      unit: { include: { project: true, client: true } },
+      unit: {
+        include: {
+          project: true,
+          client: true,
+          contractWorkflow: true,
+          finishing: true,
+        },
+      },
       requestedBy: { select: { id: true, name: true } },
       comments: {
         orderBy: { createdAt: "asc" },

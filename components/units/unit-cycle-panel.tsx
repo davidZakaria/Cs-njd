@@ -9,6 +9,8 @@ import {
 import type { Role } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/format/datetime";
+import { UnitDisplayFieldsStrip } from "@/components/units/unit-display-fields-strip";
+import type { SerializableUnitDisplayFields } from "@/lib/units/unit-display-fields";
 
 export async function UnitCyclePanel({
   unitId,
@@ -16,12 +18,14 @@ export async function UnitCyclePanel({
   userId,
   unitAgentId,
   locale,
+  unitDisplayFields,
 }: {
   unitId: string;
   userRole: Role | undefined;
   userId: string | undefined;
   unitAgentId: string | null;
   locale: string;
+  unitDisplayFields: SerializableUnitDisplayFields;
 }) {
   const cycle = await loadUnitCycleForUnit(unitId);
   if (!cycle) return null;
@@ -38,6 +42,12 @@ export async function UnitCyclePanel({
 
   return (
     <div className="space-y-4">
+      <UnitDisplayFieldsStrip
+        fields={unitDisplayFields}
+        locale={locale}
+        surface="unit-cycle"
+        compact
+      />
       <UnitCycleStepper
         unitId={unitId}
         activeStageKey={activeKey}

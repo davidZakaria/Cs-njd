@@ -6,7 +6,8 @@ module.exports = {
       cwd: "/var/www/cs-njd",
       script: "node_modules/next/dist/bin/next",
       args: "start -p 3001",
-      instances: 1,
+      instances: 2,
+      exec_mode: "cluster",
       autorestart: true,
       max_memory_restart: "800M",
       env: {

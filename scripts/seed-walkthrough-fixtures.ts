@@ -106,6 +106,29 @@ async function main() {
     });
   }
 
+  await prisma.contractWorkflow.upsert({
+    where: { unitId: walkUnit.id },
+    create: {
+      unitId: walkUnit.id,
+      deliveryDate: new Date("2026-08-01"),
+      contractDate: null,
+      finalSaleContractDate: new Date("2025-03-01"),
+    },
+    update: {
+      deliveryDate: new Date("2026-08-01"),
+      contractDate: null,
+      finalSaleContractDate: new Date("2025-03-01"),
+    },
+  });
+  await prisma.finishing.upsert({
+    where: { unitId: walkUnit.id },
+    create: {
+      unitId: walkUnit.id,
+      finishingType: "FULLY_FINISHED",
+    },
+    update: { finishingType: "FULLY_FINISHED" },
+  });
+
   const dupNote = "ملاحظة متابعة — نفس النص في استيراد Excel";
   const existingDup = await prisma.ticket.count({
     where: { unitId: walkUnit.id, notes: dupNote },
@@ -149,8 +172,39 @@ async function main() {
     });
   }
 
+  const walkRequest = await prisma.unitRequest.findFirst({
+    where: {
+      unitId: walkUnit.id,
+      type: "CONTRACT_ISSUE_OR_AMENDMENT",
+      deletedAt: null,
+    },
+  });
+  if (!walkRequest) {
+    await prisma.unitRequest.create({
+      data: {
+        type: "CONTRACT_ISSUE_OR_AMENDMENT",
+        status: "PENDING",
+        unitId: walkUnit.id,
+        requestedById: csAgent.id,
+        description: "Walkthrough — contract date display check",
+      },
+    });
+  }
+
+  const linkedRequest = await prisma.unitRequest.findFirst({
+    where: {
+      unitId: walkUnit.id,
+      type: "CONTRACT_ISSUE_OR_AMENDMENT",
+      deletedAt: null,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
   console.log(`Walkthrough unit: ${walkUnit.unitCode} (${walkUnit.id})`);
   console.log(`Export: WALKTHROUGH_UNIT_ID=${walkUnit.id}`);
+  if (linkedRequest) {
+    console.log(`Export: WALKTHROUGH_REQUEST_ID=${linkedRequest.id}`);
+  }
 }
 
 main()
