@@ -85,21 +85,6 @@ async function main() {
   {
     const context = await browser.newContext({
       locale: "en-US",
-      viewport: { width: 1280, height: 800 },
-    });
-    const page = await context.newPage();
-    await captureCallLogsTab(
-      page,
-      "en",
-      "demo-cs@test.local",
-      "call_logs_inbox_cs_agent_en.png"
-    );
-    await context.close();
-  }
-
-  {
-    const context = await browser.newContext({
-      locale: "en-US",
       viewport: { width: 390, height: 844 },
     });
     const page = await context.newPage();
