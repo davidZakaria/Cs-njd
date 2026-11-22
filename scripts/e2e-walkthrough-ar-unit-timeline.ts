@@ -72,6 +72,25 @@ async function main() {
       failures.push(
         `${locale}: expected 1 timeline card for duplicate note, saw ${visibleDupCards}`
       );
+    } else if (locale === "ar") {
+      const openCard = timelineNoteCards.first();
+      const isCurrentCase = await openCard
+        .getByText("الحالة الحالية", { exact: true })
+        .isVisible()
+        .catch(() => false);
+      const isHistoryOnly = await openCard
+        .getByText("ملاحظات سابقة", { exact: true })
+        .isVisible()
+        .catch(() => false);
+      const hasQuickSave = await openCard
+        .getByRole("button", { name: /^حفظ$|^Save$/i })
+        .isVisible()
+        .catch(() => false);
+      if (!isCurrentCase || isHistoryOnly || !hasQuickSave) {
+        failures.push(
+          "ar: dedupe must keep open ticket with CS save controls, not history-only row"
+        );
+      }
     }
 
     await page.screenshot({
