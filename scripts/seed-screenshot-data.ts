@@ -1,6 +1,6 @@
 /**
- * Seed script for screenshot data - creates test users with 2FA disabled
- * and all data needed for demonstrating the features.
+ * Seed script for screenshot data - creates test users with 2FA enabled
+ * using a known TOTP secret for automation.
  * 
  * Run with: npx tsx scripts/seed-screenshot-data.ts
  */
@@ -12,6 +12,7 @@ const prisma = new PrismaClient();
 
 const TEST_PASSWORD = "TestPassword1234!";
 const PASSWORD_HASH = bcrypt.hashSync(TEST_PASSWORD, 10);
+const TOTP_SECRET = "JBSWY3DPEHPK3PXP";
 
 async function createTestUser(data: {
   email: string;
@@ -20,13 +21,12 @@ async function createTestUser(data: {
 }) {
   const existing = await prisma.user.findUnique({ where: { email: data.email } });
   if (existing) {
-    // Update to ensure 2FA is disabled
     return prisma.user.update({
       where: { id: existing.id },
       data: {
         password: PASSWORD_HASH,
-        is2FAEnabled: false,
-        twoFactorSecret: null,
+        is2FAEnabled: true,
+        twoFactorSecret: TOTP_SECRET,
         requiresPasswordChange: false,
       },
     });
@@ -37,8 +37,8 @@ async function createTestUser(data: {
       name: data.name,
       role: data.role,
       password: PASSWORD_HASH,
-      is2FAEnabled: false,
-      twoFactorSecret: null,
+      is2FAEnabled: true,
+      twoFactorSecret: TOTP_SECRET,
       requiresPasswordChange: false,
     },
   });
@@ -48,8 +48,9 @@ async function main() {
   console.log("=== Seeding Screenshot Test Data ===\n");
   console.log(`Test password for all users: ${TEST_PASSWORD}\n`);
 
-  // Create test users with 2FA DISABLED
-  console.log("Creating test users (2FA disabled)...");
+  // Create test users with 2FA enabled (using known secret for automation)
+  console.log("Creating test users (2FA enabled with known secret)...");
+  console.log(`  TOTP Secret: ${TOTP_SECRET}`);
   
   const mgmtUser = await createTestUser({
     email: "demo-mgmt@test.local",
@@ -109,21 +110,31 @@ async function main() {
         },
       });
       // Create ContractWorkflow with dates
-      await prisma.contractWorkflow.create({
-        data: {
+      await prisma.contractWorkflow.upsert({
+        where: { unitId: unit.id },
+        create: {
           unitId: unit.id,
           deliveryDate: new Date("2026-06-15"),
           contractDate: new Date("2025-01-10"),
         },
+        update: {},
       });
       // Create Finishing with type
-      await prisma.finishing.create({
-        data: {
+      await prisma.finishing.upsert({
+        where: { unitId: unit.id },
+        create: {
           unitId: unit.id,
           finishingType: "FULLY_FINISHED",
         },
+        update: {},
       });
-      // Create PRIMARY owner link
+    }
+    
+    // Always ensure PRIMARY owner link exists
+    const existingLink = await prisma.unitClient.findFirst({
+      where: { unitId: unit.id, clientId: multiUnitClient.id },
+    });
+    if (!existingLink) {
       await prisma.unitClient.create({
         data: {
           unitId: unit.id,
@@ -131,7 +142,9 @@ async function main() {
           role: "PRIMARY",
         },
       });
+      console.log(`  Created PRIMARY link for ${unit.unitCode}`);
     }
+    
     multiUnits.push({ id: unit.id, unitCode: unit.unitCode });
     console.log(`  Unit ${i}: ${unit.unitCode} (${unit.id})`);
   }
