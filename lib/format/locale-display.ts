@@ -2,11 +2,28 @@
  * UI number/date digit rules for NJD CRM — see docs/locale-digit-rules.md
  */
 
+/** Mark phones, national IDs, unit codes so Arabic digit checks skip them. */
+export const LOCALE_IDENTIFIER_DATA_ATTR = "data-locale-identifier";
+
 const ARABIC_INDIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
+const WESTERN_DIGIT = /[0-9]/;
 const EXT_ARABIC_INDIC = "۰۱۲۳۴۵۶۷۸۹";
 
 export function resolveNumberFormatLocale(locale: string): string {
   return locale === "ar" ? "ar-EG" : "en-GB";
+}
+
+export function numberingSystemForLocale(
+  locale: string
+): Intl.NumberFormatOptions["numberingSystem"] {
+  return locale === "ar" || locale.startsWith("ar-") ? "arab" : "latn";
+}
+
+export function formatLocaleMessageNumber(
+  value: number,
+  locale: string
+): string {
+  return formatLocaleInteger(value, locale);
 }
 
 /** Counts, KPIs, pagination, table metrics (not identifiers). */
@@ -15,9 +32,10 @@ export function formatLocaleNumber(
   locale: string,
   options?: Intl.NumberFormatOptions
 ): string {
-  return new Intl.NumberFormat(resolveNumberFormatLocale(locale), options).format(
-    value
-  );
+  return new Intl.NumberFormat(resolveNumberFormatLocale(locale), {
+    numberingSystem: numberingSystemForLocale(locale),
+    ...options,
+  }).format(value);
 }
 
 export function formatLocaleInteger(value: number, locale: string): string {

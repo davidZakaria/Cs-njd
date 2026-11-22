@@ -10,35 +10,13 @@
 import fs from "fs";
 import path from "path";
 import { chromium } from "playwright";
-import { authenticator } from "otplib";
+import { assertNoWesternDigitsOutsideIdentifiers } from "./lib/playwright-locale-digit-assert";
+import { loginWalkthroughCsAgent } from "./lib/playwright-walkthrough-login";
 
 const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 const ARTIFACT_ROOT = "/opt/cursor/artifacts";
-const TOTP_SECRET = "JBSWY3DPEHPK3PXP";
 const UNIT_ID = process.env.WALKTHROUGH_UNIT_ID?.trim();
 const DUP_NOTE = "ملاحظة متابعة — نفس النص في استيراد Excel";
-
-async function login(page: import("playwright").Page, locale: "en" | "ar") {
-  await page.goto(`${BASE_URL}/${locale}/login`, { waitUntil: "domcontentloaded" });
-  await page.locator('input[name="email"]').fill("demo-cs@test.local");
-  await page.locator('input[name="password"]').fill("TestPassword1234!");
-  await Promise.all([
-    page.waitForURL(/\/(en|ar)\/(setup-2fa|verify-2fa|dashboard|units)/, {
-      timeout: 90_000,
-    }),
-    page.locator('form button[type="submit"]').click(),
-  ]);
-  if (page.url().includes("verify-2fa")) {
-    const code = authenticator.generate(TOTP_SECRET);
-    const tokenInput = page.locator("#token");
-    await tokenInput.fill("");
-    await tokenInput.pressSequentially(code, { delay: 30 });
-    await Promise.all([
-      page.waitForURL(/\/(en|ar)\/(dashboard|units)/, { timeout: 90_000 }),
-      page.getByRole("button", { name: /continue|متابعة/i }).click(),
-    ]);
-  }
-}
 
 async function main() {
   if (!UNIT_ID) {
@@ -55,7 +33,23 @@ async function main() {
       locale: locale === "ar" ? "ar-EG" : "en-US",
     });
     const page = await context.newPage();
-    await login(page, locale);
+    await loginWalkthroughCsAgent(page, BASE_URL, locale);
+
+    await page.goto(`${BASE_URL}/${locale}/units/${UNIT_ID}?tab=client`, {
+      waitUntil: "domcontentloaded",
+    });
+    await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {});
+
+    if (locale === "ar") {
+      const summaryRoot = page.locator('[data-locale-digit-surface="cs-summary"]');
+      await summaryRoot.waitFor({ state: "visible", timeout: 15_000 });
+      failures.push(
+        ...(await assertNoWesternDigitsOutsideIdentifiers(
+          summaryRoot,
+          "ar unit cs-summary header"
+        ))
+      );
+    }
 
     await page.goto(`${BASE_URL}/${locale}/units/${UNIT_ID}?tab=timeline`, {
       waitUntil: "domcontentloaded",
@@ -84,6 +78,22 @@ async function main() {
       path: path.join(ARTIFACT_ROOT, `walkthrough-unit-timeline-${locale}.png`),
       fullPage: true,
     });
+
+    if (locale === "ar") {
+      await page.goto(`${BASE_URL}/ar/dashboard`, { waitUntil: "domcontentloaded" });
+      await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {});
+      const dashboardRoot = page.locator(
+        '[data-locale-digit-surface="pending-work-dashboard"]'
+      );
+      if (await dashboardRoot.count()) {
+        failures.push(
+          ...(await assertNoWesternDigitsOutsideIdentifiers(
+            dashboardRoot,
+            "ar dashboard pending work"
+          ))
+        );
+      }
+    }
 
     await context.close();
   }

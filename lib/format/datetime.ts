@@ -1,3 +1,5 @@
+import { numberingSystemForLocale } from "@/lib/format/locale-display";
+
 /** Business timezone for NJD CRM (Egypt). DB timestamps remain UTC. */
 export const APP_DISPLAY_TIME_ZONE = "Africa/Cairo";
 
@@ -36,7 +38,10 @@ export function formatDateTime(
     ? { timeZone: APP_DISPLAY_TIME_ZONE, ...options }
     : { ...DEFAULT_OPTIONS, ...options };
 
-  return date.toLocaleString(resolveIntlLocale(locale), formatOptions);
+  return date.toLocaleString(resolveIntlLocale(locale), {
+    numberingSystem: numberingSystemForLocale(locale),
+    ...formatOptions,
+  });
 }
 
 export function formatDate(
@@ -49,6 +54,7 @@ export function formatDate(
 
   return date.toLocaleDateString(resolveIntlLocale(locale), {
     timeZone: APP_DISPLAY_TIME_ZONE,
+    numberingSystem: numberingSystemForLocale(locale),
     ...options,
   });
 }

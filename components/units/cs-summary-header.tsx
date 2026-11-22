@@ -17,11 +17,15 @@ import {
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
-import { 
-  isMergedOwnerName, 
-  extractPrimaryOwnerName, 
-  extractCoOwnerName 
+import {
+  isMergedOwnerName,
+  extractPrimaryOwnerName,
+  extractCoOwnerName,
 } from "@/lib/utils/arabic-normalize";
+import { formatDate } from "@/lib/format/datetime";
+import { formatGracePeriodLabel } from "@/lib/format/grace-period-display";
+import { formatLocaleMessageNumber } from "@/lib/format/locale-display";
+import { LocaleIdentifierText } from "@/components/phone/phone-ltr";
 
 export type CsSummaryHeaderProps = {
   clientName: string;
@@ -105,7 +109,12 @@ type MultiUnitBadgeProps = {
   labels: ReturnType<typeof useDomainLabels>;
 };
 
-function MultiUnitBadgeDisplay({ badge, t, labels }: MultiUnitBadgeProps) {
+function MultiUnitBadgeDisplay({
+  badge,
+  t,
+  labels,
+  locale,
+}: MultiUnitBadgeProps & { locale: string }) {
   return (
     <TooltipProvider>
       <Tooltip>
@@ -116,14 +125,18 @@ function MultiUnitBadgeDisplay({ badge, t, labels }: MultiUnitBadgeProps) {
               className="cursor-pointer gap-1.5 bg-amber-500 px-3 py-1 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
             >
               <Crown className="h-4 w-4" />
-              {t("multiUnit", { count: badge.unitCount })}
+              {t("multiUnit", {
+                count: formatLocaleMessageNumber(badge.unitCount, locale),
+              })}
             </Badge>
           }
         />
         <TooltipContent side="bottom" className="max-w-xs p-4">
           <div className="space-y-3">
             <p className="font-semibold text-foreground">
-              {t("multiUnitTooltip", { count: badge.unitCount })}
+              {t("multiUnitTooltip", {
+                count: formatLocaleMessageNumber(badge.unitCount, locale),
+              })}
             </p>
             <ul className="space-y-2">
               {badge.otherUnits.map((u) => (
@@ -133,7 +146,9 @@ function MultiUnitBadgeDisplay({ badge, t, labels }: MultiUnitBadgeProps) {
                     className="flex items-center gap-2 text-primary underline-offset-2 hover:underline"
                   >
                     <Building2 className="h-3.5 w-3.5" />
-                    <span className="font-medium">{u.unitCode}</span>
+                    <LocaleIdentifierText kind="unitCode" className="font-medium">
+                      {u.unitCode}
+                    </LocaleIdentifierText>
                     <span className="text-muted-foreground">·</span>
                     <span>{labels.project(u.projectName)}</span>
                   </Link>
@@ -162,11 +177,10 @@ export function CsSummaryHeader({
   const t = useTranslations("units.csSummary");
   const labels = useDomainLabels();
 
-  const formatDate = (dateStr: string | null) => {
+  const formatSummaryDate = (dateStr: string | null) => {
     if (!dateStr) return null;
     try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString(locale, {
+      return formatDate(dateStr, locale, {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -176,6 +190,9 @@ export function CsSummaryHeader({
     }
   };
 
+  const graceDisplay = formatGracePeriodLabel(gracePeriod, locale, (month, year) =>
+    t("graceActiveUntil", { month, year })
+  );
   const graceStatus = parseGraceStatus(gracePeriod);
   const hasClient = clientName && clientName.length > 0;
   const hasMergedOwners = isMergedOwnerName(clientName);
@@ -188,7 +205,10 @@ export function CsSummaryHeader({
   const showDualOwners = Boolean(coOwnerName);
 
   return (
-    <Card className="overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/10 shadow-lg dark:border-primary/30 dark:from-primary/10 dark:via-background dark:to-primary/5">
+    <Card
+      data-locale-digit-surface="cs-summary"
+      className="overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/10 shadow-lg dark:border-primary/30 dark:from-primary/10 dark:via-background dark:to-primary/5"
+    >
       <CardContent className="p-0">
         {/* Client Header Section */}
         <div className="border-b border-primary/10 bg-primary/5 px-6 py-4 dark:bg-primary/10">
@@ -214,7 +234,12 @@ export function CsSummaryHeader({
                   {primaryOwnerName}
                 </h2>
                 {multiUnitBadge && multiUnitBadge.unitCount > 1 ? (
-                  <MultiUnitBadgeDisplay badge={multiUnitBadge} t={t} labels={labels} />
+                  <MultiUnitBadgeDisplay
+                    badge={multiUnitBadge}
+                    t={t}
+                    labels={labels}
+                    locale={locale}
+                  />
                 ) : null}
               </div>
               {/* Co-Owner */}
@@ -236,7 +261,12 @@ export function CsSummaryHeader({
                 {hasClient ? clientName : t("notSet")}
               </h2>
             {multiUnitBadge && multiUnitBadge.unitCount > 1 ? (
-                <MultiUnitBadgeDisplay badge={multiUnitBadge} t={t} labels={labels} />
+                <MultiUnitBadgeDisplay
+                  badge={multiUnitBadge}
+                  t={t}
+                  labels={labels}
+                  locale={locale}
+                />
               ) : null}
             </div>
           )}
@@ -253,9 +283,12 @@ export function CsSummaryHeader({
               <span className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {t("unit")}
               </span>
-              <span className="text-lg font-bold text-foreground">
+              <LocaleIdentifierText
+                kind="unitCode"
+                className="text-lg font-bold text-foreground"
+              >
                 {unitCode}
-              </span>
+              </LocaleIdentifierText>
               <span className="ml-1 text-muted-foreground">·</span>
               <span className="ml-1 font-medium text-muted-foreground">
                 {labels.project(projectName)}
@@ -273,8 +306,8 @@ export function CsSummaryHeader({
                 {t("gracePeriod")}
               </span>
               <div className="mt-1">
-                {gracePeriod ? (
-                  <GraceStatusChip status={graceStatus} label={gracePeriod} />
+                {graceDisplay ? (
+                  <GraceStatusChip status={graceStatus} label={graceDisplay} />
                 ) : (
                   <span className="text-lg font-bold text-muted-foreground">{t("notSet")}</span>
                 )}
@@ -293,9 +326,9 @@ export function CsSummaryHeader({
               </span>
               <span className={cn(
                 "text-lg font-bold",
-                formatDate(deliveryDate) ? "text-foreground" : "text-muted-foreground"
+                formatSummaryDate(deliveryDate) ? "text-foreground" : "text-muted-foreground"
               )}>
-                {formatDate(deliveryDate) ?? t("notSet")}
+                {formatSummaryDate(deliveryDate) ?? t("notSet")}
               </span>
             </div>
           </div>
@@ -311,9 +344,9 @@ export function CsSummaryHeader({
               </span>
               <span className={cn(
                 "text-lg font-bold",
-                formatDate(contractDate) ? "text-foreground" : "text-muted-foreground"
+                formatSummaryDate(contractDate) ? "text-foreground" : "text-muted-foreground"
               )}>
-                {formatDate(contractDate) ?? t("notSet")}
+                {formatSummaryDate(contractDate) ?? t("notSet")}
               </span>
             </div>
           </div>

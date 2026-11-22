@@ -1025,6 +1025,7 @@
       "contractDate": "تاريخ العقد",
       "finishingType": "نوع التشطيب",
       "notSet": "غير محدد",
+      "graceActiveUntil": "سارية حتى {month} {year}",
       "multiUnit": "يمتلك {count} وحدات",
       "multiUnitTooltip": "هذا العميل يمتلك {count} وحدات"
     },
@@ -1275,7 +1276,8 @@
       "searchPlaceholder": "ابحث عن عميل أو رقم وحدة…",
       "filterAll": "كل المشاريع",
       "noSearchResults": "لا توجد نتائج مطابقة للبحث.",
-      "projectSummary": "{units, plural, one {وحدة واحدة بها عمل مفتوح} other {# وحدات بها أعمال مفتوحة}}",
+      "projectSummaryOne": "وحدة واحدة بها عمل مفتوح",
+      "projectSummaryMany": "{units} وحدات بها أعمال مفتوحة",
       "showMore": "عرض {count} إضافية",
       "openUnitShort": "فتح الوحدة",
       "showActions": "تحديث الحالة",
@@ -1287,7 +1289,8 @@
       "updateStatus": "حفظ الحالة",
       "markResolved": "تم الحل",
       "openCount": "{count} بلاغات مفتوحة",
-      "projectUnitCount": "{count, plural, one {وحدة واحدة} other {# وحدات}}",
+      "projectUnitCountOne": "وحدة واحدة",
+      "projectUnitCountMany": "{count} وحدات",
       "projectOpenCases": "{count, plural, one {بلاغ مفتوح} other {# بلاغات مفتوحة}}",
       "workflow": {
         "customerServiceAwaiting": {

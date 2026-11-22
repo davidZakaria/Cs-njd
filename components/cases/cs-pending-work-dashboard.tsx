@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { formatLocaleMessageNumber } from "@/lib/format/locale-display";
 import { ChevronDown, Search } from "lucide-react";
 
 import type { PendingWorkUnit } from "@/lib/cases/pending-work";
@@ -27,7 +28,9 @@ export function CsPendingWorkDashboard({
 }: {
   groups: PendingWorkProjectGroup[];
 }) {
+  const locale = useLocale();
   const t = useTranslations("cases.pendingWork");
+  const formatCount = (n: number) => formatLocaleMessageNumber(n, locale);
   const [activeProject, setActiveProject] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(
@@ -101,9 +104,14 @@ export function CsPendingWorkDashboard({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" data-locale-digit-surface="pending-work-dashboard">
       <div className="rounded-xl border bg-muted/20 px-4 py-3">
-        <p className="text-sm font-medium">{t("summaryLine", totals)}</p>
+        <p className="text-sm font-medium">
+          {t("summaryLine", {
+            units: formatCount(totals.units),
+            projects: formatCount(totals.projects),
+          })}
+        </p>
         <p className="mt-1 text-xs text-muted-foreground">{t("summaryHint")}</p>
       </div>
 
@@ -127,7 +135,7 @@ export function CsPendingWorkDashboard({
         >
           {t("filterAll")}
           <Badge variant="secondary" className="ms-2 tabular-nums">
-            {totals.units}
+            {formatCount(totals.units)}
           </Badge>
         </Button>
         {groups.map((group) => (
@@ -145,7 +153,7 @@ export function CsPendingWorkDashboard({
           >
             {group.projectLabel}
             <Badge variant="secondary" className="ms-2 tabular-nums">
-              {group.unitCount}
+              {formatCount(group.unitCount)}
             </Badge>
           </Button>
         ))}
@@ -179,12 +187,20 @@ export function CsPendingWorkDashboard({
                     <div className="min-w-0">
                       <p className="font-semibold">{group.projectLabel}</p>
                       <p className="text-xs text-muted-foreground">
-                        {t("projectSummary", { units: group.unitCount })}
+                        {group.unitCount === 1
+                          ? t("projectSummaryOne")
+                          : t("projectSummaryMany", {
+                              units: formatCount(group.unitCount),
+                            })}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <Badge variant="outline">
-                        {t("projectUnitCount", { count: group.unitCount })}
+                        {group.unitCount === 1
+                          ? t("projectUnitCountOne")
+                          : t("projectUnitCountMany", {
+                              count: formatCount(group.unitCount),
+                            })}
                       </Badge>
                       <ChevronDown
                         className={cn(
@@ -198,7 +214,11 @@ export function CsPendingWorkDashboard({
                   <div className="border-b px-4 py-3">
                     <p className="font-semibold">{group.projectLabel}</p>
                     <p className="text-xs text-muted-foreground">
-                      {t("projectSummary", { units: group.unitCount })}
+                      {group.unitCount === 1
+                        ? t("projectSummaryOne")
+                        : t("projectSummaryMany", {
+                            units: formatCount(group.unitCount),
+                          })}
                     </p>
                   </div>
                 )}
@@ -236,7 +256,7 @@ export function CsPendingWorkDashboard({
                           showMore(group.projectKey, group.items.length)
                         }
                       >
-                        {t("showMore", { count: hiddenCount })}
+                        {t("showMore", { count: formatCount(hiddenCount) })}
                       </Button>
                     ) : null}
                   </div>
