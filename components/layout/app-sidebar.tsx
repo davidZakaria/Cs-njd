@@ -47,6 +47,7 @@ import { AdminNavGroups } from "@/components/layout/admin-nav-groups";
 import { SidebarActivityNotificationsLink } from "@/components/layout/sidebar-activity-notifications-link";
 import { SidebarOperationsRequestsLink } from "@/components/layout/sidebar-operations-requests-link";
 import { GlobalAnnouncementBanner } from "@/components/layout/global-announcement-banner";
+import { StagingEnvironmentBanner } from "@/components/layout/staging-environment-banner";
 import { GlobalSpotlight } from "@/components/layout/global-spotlight";
 import { JCommunitiesLogo } from "@/components/brand/j-communities-logo";
 
@@ -177,10 +178,12 @@ export function AppSidebar({ role }: { role: Role }) {
 export function DashboardShell({
   role,
   announcementText,
+  showStagingBanner = false,
   children,
 }: {
   role: Role;
   announcementText?: string | null;
+  showStagingBanner?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -189,6 +192,9 @@ export function DashboardShell({
       <AppSidebar role={role} />
       <SidebarInset className="min-h-svh min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div className="flex min-h-full flex-col p-4 md:p-6">
+          {showStagingBanner ? (
+            <StagingEnvironmentBanner />
+          ) : null}
           {announcementText ? (
             <GlobalAnnouncementBanner text={announcementText} />
           ) : null}

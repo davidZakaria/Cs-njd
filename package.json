@@ -27,7 +27,10 @@
     "cleanup:import-users": "tsx scripts/cleanup-bogus-users.ts",
     "purge:imported-users": "tsx scripts/purge-imported-users.ts",
     "backup:cron": "tsx scripts/cron.ts",
-    "verify:cron-imports": "tsx scripts/cron-imports.ts"
+    "verify:cron-imports": "tsx scripts/cron-imports.ts",
+    "db:seed-staging": "tsx scripts/seed-staging-fake-data.ts",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts",
+    "test:e2e:ui": "playwright test -c e2e/playwright.config.ts --ui"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -79,6 +82,7 @@
     "deepmerge-ts": "8.0.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/node-cron": "^3.0.11",
