@@ -33,6 +33,7 @@ export default async function DashboardLayout({
       <DashboardShell
         role={session.user.role}
         announcementText={showAnnouncement ? announcement.text : null}
+        showStagingBanner={process.env.STAGING === "true"}
       >
         {children}
       </DashboardShell>

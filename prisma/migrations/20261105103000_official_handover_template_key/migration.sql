@@ -1,2 +1,2 @@
--- Persist selected official handover master variant on text drafts (Green Avenue / Jura).
-ALTER TABLE "OfficialDocumentTextDraft" ADD COLUMN "handoverTemplateKey" TEXT;
+-- Column added in 20261105190500_official_handover_template_key (after OfficialDocumentTextDraft exists).
+-- No-op for ordering on databases that already applied this migration name historically.

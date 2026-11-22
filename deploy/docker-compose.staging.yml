@@ -1,0 +1,26 @@
+# Staging Postgres — isolated from production (deploy/docker-compose.prod.yml).
+# Binds only to localhost:5435 (change host port if taken on your VPS).
+# Never share volumes or credentials with production.
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: njd-crm-postgres-staging
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: njd_staging
+      POSTGRES_PASSWORD: ${POSTGRES_STAGING_PASSWORD:-CHANGE_ME_STAGING_PASSWORD}
+      POSTGRES_DB: njd_crm_staging
+    ports:
+      - "127.0.0.1:5435:5432"
+    volumes:
+      - njd_crm_pg_staging:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U njd_staging -d njd_crm_staging"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  njd_crm_pg_staging:
+    name: njd_crm_pg_staging
