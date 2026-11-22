@@ -49,7 +49,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -825,16 +824,24 @@ export function CasesTable({
         {t("showingResults", { from, to, total })}
       </p>
 
-      <div className="min-w-0 rounded-md border">
-        <Table className="min-w-[56rem] table-fixed">
-          <TableHeader>
+      <div
+        data-cases-table-scroll
+        className="relative min-w-0 max-h-[min(70vh,calc(100dvh-14rem))] overflow-auto overscroll-x-contain rounded-md border bg-background"
+      >
+        <table
+          data-slot="table"
+          className={cn(
+            "w-full min-w-[56rem] table-fixed border-separate border-spacing-0 caption-bottom text-sm"
+          )}
+        >
+          <TableHeader className="sticky top-0 z-20 bg-background [&_tr]:border-b [&_tr]:shadow-[inset_0_-1px_0_0_hsl(var(--border))]">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
                     className={cn(
-                      "whitespace-nowrap",
+                      "sticky top-0 z-20 bg-background whitespace-nowrap",
                       CASE_COLUMN_WIDTHS[header.column.id]
                     )}
                   >
@@ -854,7 +861,7 @@ export function CasesTable({
                     <TableCell
                       key={cell.id}
                       className={cn(
-                        "align-top whitespace-normal break-words",
+                        "align-top whitespace-normal break-words bg-background",
                         CASE_COLUMN_WIDTHS[cell.column.id]
                       )}
                     >
@@ -871,7 +878,7 @@ export function CasesTable({
               </TableRow>
             )}
           </TableBody>
-        </Table>
+        </table>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

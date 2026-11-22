@@ -14,8 +14,9 @@ import {
 } from "@/lib/operations/operations-progress";
 import { recordUnitCycleAuditEvent } from "@/lib/unit-cycle/audit";
 import {
-  computeStageDeadline,
+  computeForwardStageDeadline,
   deadlineDaysForStage,
+  resolveStageActivationStartedAt,
 } from "@/lib/unit-cycle/deadlines";
 import { ensureUnitCycleForUnit } from "@/lib/unit-cycle/ensure-cycle";
 import {
@@ -226,14 +227,20 @@ export async function completeUnitCycleStageAction(input: {
         (row) => row.stageKey === following
       );
       if (nextStage) {
+        const startedAt = resolveStageActivationStartedAt({
+          stageKey: following,
+          snapshot,
+          now,
+        });
         await prisma.unitCycleStage.update({
           where: { id: nextStage.id },
           data: {
             status: "IN_PROGRESS",
-            startedAt: now,
-            deadlineAt: computeStageDeadline(
-              now,
-              deadlineDaysForStage(unit.project, following)
+            startedAt,
+            deadlineAt: computeForwardStageDeadline(
+              startedAt,
+              deadlineDaysForStage(unit.project, following),
+              now
             ),
           },
         });
