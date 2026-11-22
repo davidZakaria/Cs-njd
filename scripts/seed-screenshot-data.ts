@@ -497,6 +497,86 @@ async function main() {
   console.log(`  unitClients-only request: ${handoverRequest.id}`);
 
   // ============================================================
+  // WALKTHROUGH: Excel phone + duplicate timeline rows
+  // ============================================================
+  console.log("\n--- Walkthrough: phone .0 + timeline dedupe ---");
+
+  const walkUnitCode = "WALK-DEMO-AR";
+  let walkClient = await prisma.client.findFirst({
+    where: { email: "walkthrough-ar@test.local" },
+  });
+  if (!walkClient) {
+    walkClient = await prisma.client.create({
+      data: {
+        name: "عميل تجربة العرض",
+        phone1: "96599034830.0",
+        nationalId: "28801112223344",
+        email: "walkthrough-ar@test.local",
+        address1: "شارع ٩ — القاهرة",
+      },
+    });
+  } else {
+    walkClient = await prisma.client.update({
+      where: { id: walkClient.id },
+      data: { phone1: "96599034830.0" },
+    });
+  }
+
+  let walkUnit = await prisma.unit.findFirst({ where: { unitCode: walkUnitCode } });
+  if (!walkUnit) {
+    walkUnit = await prisma.unit.create({
+      data: {
+        unitCode: walkUnitCode,
+        projectId: project1.id,
+        clientId: walkClient.id,
+        agentId: csAgent.id,
+        gracePeriod: "Active until Dec 2026",
+      },
+    });
+    await prisma.contractWorkflow.create({
+      data: {
+        unitId: walkUnit.id,
+        deliveryDate: new Date("2026-08-01"),
+        contractDate: new Date("2025-03-01"),
+      },
+    });
+    await prisma.finishing.create({
+      data: {
+        unitId: walkUnit.id,
+        finishingType: "FULLY_FINISHED",
+      },
+    });
+  }
+
+  const dupNote = "ملاحظة متابعة — نفس النص في استيراد Excel";
+  const existingDup = await prisma.ticket.count({
+    where: { unitId: walkUnit.id, notes: dupNote },
+  });
+  if (existingDup < 2) {
+    await prisma.ticket.create({
+      data: {
+        unitId: walkUnit.id,
+        notes: dupNote,
+        category: "CUSTOMER_SERVICE",
+        status: "PENDING",
+        agentId: csAgent.id,
+        pendingParty: "NONE",
+      },
+    });
+    await prisma.ticket.create({
+      data: {
+        unitId: walkUnit.id,
+        notes: dupNote,
+        category: "FEEDBACK_HISTORY",
+        status: "RESOLVED",
+        agentId: csAgent.id,
+        pendingParty: "NONE",
+      },
+    });
+  }
+  console.log(`  Walkthrough unit: ${walkUnit.unitCode} (${walkUnit.id})`);
+
+  // ============================================================
   // DELETE FLOW SCENARIO
   // ============================================================
   console.log("\n--- Delete Flow Scenario ---");
@@ -593,6 +673,8 @@ async function main() {
   console.log(`  HANDOVER_LEGACY_CO_REQUEST_ID="${handoverLegacyCo.id}"`);
   console.log(`  HANDOVER_UC_ONLY_REQUEST_ID="${handoverRequest.id}"`);
   console.log(`  DELETE_REQUEST_ID="${deleteRequest.id}"`);
+  console.log(`  WALKTHROUGH_UNIT_ID="${walkUnit.id}"`);
+  console.log(`  Walkthrough AR timeline: /ar/units/${walkUnit.id}?tab=timeline`);
 }
 
 main()

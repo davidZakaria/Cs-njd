@@ -19,6 +19,11 @@ import { getHandoverMergedOwnerConvertHints } from "@/lib/official-documents/han
 import { mapUnitMergeInput } from "@/lib/official-documents/draft-context";
 import { recordAuditLog } from "@/lib/prisma/record-audit-log";
 import { splitMergedOwnerNames } from "@/lib/utils/arabic-normalize";
+import { searchDigitVariants } from "@/lib/format/locale-display";
+import {
+  formatPhoneForDisplay,
+  sanitizePhoneForStorage,
+} from "@/lib/phone/display";
 
 function optionalTrimmedString() {
   return z
@@ -91,15 +96,23 @@ export async function searchClientsForCoOwnerLink(
     unit.unitClients.map((l) => l.clientId).concat(unit.clientId ? [unit.clientId] : [])
   );
 
+  const digitVariants = searchDigitVariants(trimmed);
+  const phoneClauses = digitVariants.flatMap((variant) => [
+    { phone1: { contains: variant } },
+    { phones: { some: { phone: { contains: variant } } } },
+  ]);
+
   const clients = await prisma.client.findMany({
     where: {
       deletedAt: null,
       id: { notIn: [...linkedIds] },
       OR: [
         { nationalId: { contains: trimmed } },
+        ...digitVariants
+          .filter((v) => v !== trimmed)
+          .map((variant) => ({ nationalId: { contains: variant } })),
         { name: { contains: trimmed, mode: "insensitive" } },
-        { phone1: { contains: trimmed } },
-        { phones: { some: { phone: { contains: trimmed } } } },
+        ...phoneClauses,
       ],
     },
     take: 8,
@@ -107,7 +120,13 @@ export async function searchClientsForCoOwnerLink(
     select: { id: true, name: true, nationalId: true, phone1: true },
   });
 
-  return { success: true, clients };
+  return {
+    success: true,
+    clients: clients.map((client) => ({
+      ...client,
+      phone1: client.phone1 ? formatPhoneForDisplay(client.phone1) : null,
+    })),
+  };
 }
 
 export async function addUnitCoOwner(
@@ -163,7 +182,7 @@ export async function addUnitCoOwner(
             data: {
               name,
               nationalId: parsed.data.nationalId?.trim() || null,
-              phone1: parsed.data.phone?.trim() || null,
+              phone1: sanitizePhoneForStorage(parsed.data.phone),
               email: parsed.data.email,
               address1: parsed.data.address,
             },
@@ -436,7 +455,7 @@ export async function convertMergedHandoverOwnerToCoOwner(
           data: {
             name: owner2Name,
             nationalId,
-            phone1: parsed.data.coOwnerPhone,
+            phone1: sanitizePhoneForStorage(parsed.data.coOwnerPhone),
             email: parsed.data.coOwnerEmail,
             address1: parsed.data.coOwnerAddress,
           },

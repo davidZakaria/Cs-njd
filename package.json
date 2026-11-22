@@ -29,7 +29,9 @@
     "backup:cron": "tsx scripts/cron.ts",
     "verify:cron-imports": "tsx scripts/cron-imports.ts",
     "e2e:handover-request-edit": "tsx scripts/e2e-handover-request-edit-matrix.ts",
-    "e2e:dashboard-metric-parity": "tsx scripts/e2e-dashboard-metric-parity.ts"
+    "e2e:dashboard-metric-parity": "tsx scripts/e2e-dashboard-metric-parity.ts",
+    "e2e:walkthrough-ar-unit": "tsx scripts/e2e-walkthrough-ar-unit-timeline.ts",
+    "cleanup:excel-phones": "tsx scripts/cleanup-excel-phone-suffixes.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

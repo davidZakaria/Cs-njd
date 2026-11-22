@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { RemovableFilterChip } from "@/components/filters/removable-filter-chip";
 import { formatDateTime } from "@/lib/format/datetime";
+import { formatLocaleInteger } from "@/lib/format/locale-display";
 import { Link, useRouter } from "@/i18n/navigation";
 import { updateTicketStatus } from "@/lib/actions/crm";
 import { useCrudToast } from "@/hooks/use-crud-toast";
@@ -886,7 +887,7 @@ export function CasesTable({
             <SelectContent>
               {[10, 20, 50, 100].map((size) => (
                 <SelectItem key={size} value={String(size)}>
-                  {size}
+                  {formatLocaleInteger(size, locale)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -903,8 +904,8 @@ export function CasesTable({
           </Button>
           <span className="text-sm text-muted-foreground">
             {t("pageOf", {
-              page: pageIndex + 1,
-              pages: Math.max(table.getPageCount(), 1),
+              page: formatLocaleInteger(pageIndex + 1, locale),
+              pages: formatLocaleInteger(Math.max(table.getPageCount(), 1), locale),
             })}
           </span>
           <Button

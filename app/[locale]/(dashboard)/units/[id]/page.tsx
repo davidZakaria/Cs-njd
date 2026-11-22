@@ -59,6 +59,8 @@ import { orderedUnitOwners } from "@/lib/units/unit-owners";
 import { getAssignableAgentUsers } from "@/lib/units/assignable-agents";
 import type { SerializedResolutionContext } from "@/lib/workflow/resolution-checklist";
 import { formatDateTime } from "@/lib/format/datetime";
+import { dedupeTimelineTickets } from "@/lib/cases/timeline-dedupe";
+import { formatPhoneForDisplay } from "@/lib/phone/display";
 import {
   listClientExtraAddresses,
   listClientExtraPhones,
@@ -390,7 +392,7 @@ export default async function UnitProfilePage({
       role: row.role,
       coOwnerIndex,
       clientName: row.client.name,
-      phone1: row.client.phone1,
+      phone1: formatPhoneForDisplay(row.client.phone1) || null,
       email: row.client.email,
       nationalId: row.client.nationalId,
       address1: row.client.address1,
@@ -792,7 +794,7 @@ export default async function UnitProfilePage({
             unitId={unit.id}
             tickets={(
               await Promise.all(
-                unit.tickets.map(async (ticket) => ({
+                dedupeTimelineTickets(unit.tickets).map(async (ticket) => ({
                   id: ticket.id,
                   notes: ticket.notes,
                   category: ticket.category,

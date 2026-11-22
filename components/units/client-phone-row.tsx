@@ -3,6 +3,7 @@
 import { PhoneCountryBadge } from "@/components/phone/phone-country-badge";
 import { PhoneLtrText } from "@/components/phone/phone-ltr";
 import { WhatsAppButton } from "@/components/units/whatsapp-button";
+import { formatPhoneForDisplay } from "@/lib/phone/display";
 
 export function ClientPhoneRow({
   label,
@@ -21,22 +22,23 @@ export function ClientPhoneRow({
   messageTemplate: string;
   contactDisabled?: boolean;
 }) {
-  const display = phone?.trim() || "-";
+  const cleaned = phone ? formatPhoneForDisplay(phone) : "";
+  const display = cleaned || "-";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <p className="min-w-0 flex-1">
         <strong>{label}:</strong>{" "}
         {display === "-" ? display : <PhoneLtrText>{display}</PhoneLtrText>}
-        {phone?.trim() ? (
+        {cleaned ? (
           <span className="ms-2 inline-flex align-middle">
-            <PhoneCountryBadge phone={phone} />
+            <PhoneCountryBadge phone={cleaned} />
           </span>
         ) : null}
       </p>
-      {phone?.trim() && !contactDisabled ? (
+      {cleaned && !contactDisabled ? (
         <WhatsAppButton
-          phone={phone}
+          phone={cleaned}
           clientName={clientName}
           unitCode={unitCode}
           projectName={projectName}

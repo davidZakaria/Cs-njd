@@ -1,5 +1,7 @@
 import type { Client, ClientAddress, ClientPhone } from "@prisma/client";
 
+import { formatPhoneForDisplay } from "@/lib/phone/display";
+
 export type ClientExtraPhone = Pick<ClientPhone, "id" | "phone" | "sortOrder">;
 export type ClientExtraAddress = Pick<ClientAddress, "id" | "address" | "sortOrder">;
 
@@ -61,9 +63,9 @@ export function listClientExtraAddresses(
 }
 
 export function allClientPhoneValues(client: ClientWithContactLines): string[] {
-  const primary = normalizeContactValue(client.phone1);
+  const primary = formatPhoneForDisplay(normalizeContactValue(client.phone1));
   const extras = listClientExtraPhones(client).map((row) =>
-    normalizeContactValue(row.phone)
+    formatPhoneForDisplay(normalizeContactValue(row.phone))
   );
   return [primary, ...extras].filter(Boolean);
 }
@@ -89,7 +91,7 @@ export function toContactExtraLines(
   return {
     phones: phones.map((row) => ({
       id: isPersistedExtraId(row.id) ? row.id : "",
-      value: row.phone,
+      value: formatPhoneForDisplay(row.phone),
     })),
     addresses: addresses.map((row) => ({
       id: isPersistedExtraId(row.id) ? row.id : "",

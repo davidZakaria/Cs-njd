@@ -2,6 +2,7 @@ import {
   isPersistedExtraId,
   normalizeContactValue,
 } from "@/lib/client/contact-lines";
+import { sanitizePhoneForStorage } from "@/lib/phone/display";
 import { prisma } from "@/lib/prisma";
 
 export type ContactSyncClient = Pick<typeof prisma, "clientPhone" | "clientAddress">;
@@ -36,11 +37,11 @@ export async function syncClientExtraPhones(
   options?: ContactSyncOptions
 ): Promise<void> {
   const preserveOmittedPersisted = options?.preserveOmittedPersisted ?? false;
-  const primary = normalizeContactValue(primaryPhone);
+  const primary = sanitizePhoneForStorage(primaryPhone) ?? "";
   const desiredLines = lines
     .map((line) => ({
       id: line.id && isPersistedExtraId(line.id) ? line.id : null,
-      value: normalizeContactValue(line.value),
+      value: sanitizePhoneForStorage(line.value) ?? "",
     }))
     .filter((line) => line.value && line.value !== primary);
 
@@ -147,9 +148,11 @@ export function phonesForCreate(
   legacyPhone2: string | null,
   extras: ExtraLineInput[]
 ): string[] {
-  const primary = normalizeContactValue(primaryPhone);
-  const fromExtras = extras.map((line) => normalizeContactValue(line.value));
-  const legacy = normalizeContactValue(legacyPhone2);
+  const primary = sanitizePhoneForStorage(primaryPhone) ?? "";
+  const fromExtras = extras.map(
+    (line) => sanitizePhoneForStorage(line.value) ?? ""
+  );
+  const legacy = sanitizePhoneForStorage(legacyPhone2) ?? "";
   return uniqueNonEmpty([...fromExtras, legacy]).filter((phone) => phone !== primary);
 }
 

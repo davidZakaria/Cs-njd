@@ -17,6 +17,7 @@ import {
 } from "@/lib/cases/cases-filter-url";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
+import { dedupeTimelineTickets } from "@/lib/cases/timeline-dedupe";
 
 export default async function CasesPage({
   searchParams,
@@ -58,7 +59,11 @@ export default async function CasesPage({
     getAssignableAgentUsers(),
   ]);
 
-  const rows: CaseRow[] = tickets.map((ticket) => {
+  const displayTickets = dedupeTimelineTickets(
+    tickets.map((ticket) => ({ ...ticket, unitId: ticket.unitId }))
+  );
+
+  const rows: CaseRow[] = displayTickets.map((ticket) => {
     const effective = getEffectiveCaseAgent(
       ticket.agentId,
       ticket.agent?.name,
