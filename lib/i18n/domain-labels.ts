@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { formatLocaleNumber } from "@/lib/format/locale-display";
 
 async function enumLabel(
   t: Awaited<ReturnType<typeof getTranslations>>,
@@ -43,7 +44,9 @@ export async function getDomainLabels(locale: string) {
         : name;
     },
     areaWithUnit: async (area: number | null) =>
-      area == null ? "—" : `${area} ${await tEnums("areaSqm")}`,
+      area == null
+        ? "—"
+        : `${formatLocaleNumber(area, locale, { maximumFractionDigits: 2 })} ${await tEnums("areaSqm")}`,
   };
 }
 

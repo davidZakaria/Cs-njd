@@ -1,6 +1,7 @@
 import type { ExecutiveStats } from "@/lib/cases/executive-dashboard";
 import { Link } from "@/i18n/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { formatLocaleInteger } from "@/lib/format/locale-display";
 import {
   entranceAnimationClass,
   premiumCardHoverClass,
@@ -93,6 +94,7 @@ export function buildExecutiveKpiItems(
 }
 
 export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
+  const locale = useLocale();
   const t = useTranslations("executive.stats");
   return (
     <TooltipProvider>
@@ -143,11 +145,15 @@ export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
                   href={stat.href}
                   className="block font-heading text-3xl font-bold tabular-nums tracking-tight underline-offset-2 hover:underline"
                 >
-                  {stat.notTracked ? t("notTracked") : stat.value.toLocaleString()}
+                  {stat.notTracked
+                    ? t("notTracked")
+                    : formatLocaleInteger(stat.value, locale)}
                 </Link>
               ) : (
                 <div className="font-heading text-3xl font-bold tabular-nums tracking-tight transition-transform duration-300 group-hover:scale-[1.02]">
-                  {stat.notTracked ? t("notTracked") : stat.value.toLocaleString()}
+                  {stat.notTracked
+                    ? t("notTracked")
+                    : formatLocaleInteger(stat.value, locale)}
                 </div>
               )}
               {stat.percentOfTotal != null &&
@@ -170,11 +176,11 @@ export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
                           href={line.href}
                           className="shrink-0 font-medium text-foreground underline-offset-2 hover:underline"
                         >
-                          {line.value.toLocaleString()}
+                          {formatLocaleInteger(line.value, locale)}
                         </Link>
                       ) : (
                         <span className="shrink-0 font-medium text-foreground">
-                          {line.value.toLocaleString()}
+                          {formatLocaleInteger(line.value, locale)}
                         </span>
                       )}
                     </li>

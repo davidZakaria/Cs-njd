@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 import { parseUnitsFilterTodayStart } from "@/lib/units/filter-today-start";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { RemovableFilterChip } from "@/components/filters/removable-filter-chip";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
@@ -48,6 +48,7 @@ import {
 } from "@/lib/units/units-filter-url";
 import { projectNameToSlug } from "@/lib/cases/cases-filter-url";
 import { clampPageIndex } from "@/lib/ui/list-pagination";
+import { formatLocaleInteger, localeAgnosticIncludes } from "@/lib/format/locale-display";
 import { cn } from "@/lib/utils";
 
 const HANDOVER_GROUP_OPTIONS: UnitsHandoverGroup[] = [
@@ -120,6 +121,7 @@ export function UnitsTable({
 }) {
   const t = useTranslations("units");
   const tCommon = useTranslations("common");
+  const locale = useLocale();
   const labels = useDomainLabels();
   const router = useRouter();
   const [globalFilter, setGlobalFilter] = useState("");
@@ -256,14 +258,11 @@ export function UnitsTable({
       }
       if (statusFilter !== "all" && row.handoverStatus !== statusFilter) return false;
       if (!globalFilter) return true;
-      const q = globalFilter.toLowerCase();
-      const searchBlob = (
-        row.searchText ??
-        `${row.unitCode} ${row.client} ${row.project}`
-      ).toLowerCase();
+      const searchBlob =
+        row.searchText ?? `${row.unitCode} ${row.client} ${row.project}`;
       return (
-        searchBlob.includes(q) ||
-        labels.project(row.project).toLowerCase().includes(q)
+        localeAgnosticIncludes(searchBlob, globalFilter) ||
+        localeAgnosticIncludes(labels.project(row.project), globalFilter)
       );
     });
   }, [
@@ -684,7 +683,7 @@ export function UnitsTable({
             <SelectContent>
               {[10, 20, 50, 100].map((size) => (
                 <SelectItem key={size} value={String(size)}>
-                  {size}
+                  {formatLocaleInteger(size, locale)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -701,8 +700,8 @@ export function UnitsTable({
           </Button>
           <span className="text-sm text-muted-foreground">
             {t("pageOf", {
-              page: pageIndex + 1,
-              pages: Math.max(table.getPageCount(), 1),
+              page: formatLocaleInteger(pageIndex + 1, locale),
+              pages: formatLocaleInteger(Math.max(table.getPageCount(), 1), locale),
             })}
           </span>
           <Button

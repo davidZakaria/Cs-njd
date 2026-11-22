@@ -1,5 +1,6 @@
 import type { TicketCategory, TicketStatus } from "@prisma/client";
 import { normalizeMatchText } from "@/lib/import/fuzzy-match";
+import { normalizeTimelineNoteKey } from "@/lib/cases/timeline-dedupe";
 
 export const AWAITING_RESPONSE_NOTE =
   "Awaiting response — no current customer service feedback recorded.";
@@ -164,11 +165,16 @@ export function buildMasterSheetCases(input: MasterSheetCaseInput): ImportCase[]
   ];
 
   if (feedbackOld) {
-    cases.push({
-      notes: feedbackOld,
-      category: "FEEDBACK_HISTORY",
-      status: "RESOLVED",
-    });
+    const csNotes = cases[0]?.notes ?? "";
+    if (
+      normalizeTimelineNoteKey(feedbackOld) !== normalizeTimelineNoteKey(csNotes)
+    ) {
+      cases.push({
+        notes: feedbackOld,
+        category: "FEEDBACK_HISTORY",
+        status: "RESOLVED",
+      });
+    }
   }
 
   if (legal) {

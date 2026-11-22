@@ -15,6 +15,7 @@ import {
   mapUnitToDashboardRow,
   unitListContractWorkflowInclude,
 } from "@/lib/units/unit-dashboard-filters";
+import { formatPhoneForDisplay } from "@/lib/phone/display";
 
 export default async function UnitsPage({
   searchParams,
@@ -66,8 +67,8 @@ export default async function UnitsPage({
   const rows = units.map((unit) => {
     const coOwnerNames = unit.unitClients.map((l) => l.client.name);
     const coOwnerPhones = unit.unitClients.flatMap((l) => [
-      l.client.phone1,
-      ...l.client.phones.map((p) => p.phone),
+      formatPhoneForDisplay(l.client.phone1),
+      ...l.client.phones.map((p) => formatPhoneForDisplay(p.phone)),
     ]);
     const coOwnerNationalIds = unit.unitClients
       .map((l) => l.client.nationalId)
@@ -84,7 +85,9 @@ export default async function UnitsPage({
       searchText: [
         unit.unitCode,
         unit.client?.name,
-        unit.client?.phone1,
+        unit.client?.phone1
+          ? formatPhoneForDisplay(unit.client.phone1)
+          : undefined,
         unit.client?.nationalId,
         ...coOwnerNames,
         ...coOwnerPhones,

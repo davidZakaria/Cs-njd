@@ -1025,6 +1025,7 @@
       "contractDate": "Contract Date",
       "finishingType": "Finishing Type",
       "notSet": "Not set",
+      "graceActiveUntil": "Active until {month} {year}",
       "multiUnit": "Owns {count} units",
       "multiUnitTooltip": "This client owns {count} units"
     },
@@ -1275,7 +1276,8 @@
       "searchPlaceholder": "Search client or unit code…",
       "filterAll": "All projects",
       "noSearchResults": "No cases match your search.",
-      "projectSummary": "{units, plural, one {# unit with open work} other {# units with open work}}",
+      "projectSummaryOne": "1 unit with open work",
+      "projectSummaryMany": "{units} units with open work",
       "showMore": "Show {count} more",
       "openUnitShort": "Open unit",
       "showActions": "Update status",
@@ -1287,7 +1289,8 @@
       "updateStatus": "Save status",
       "markResolved": "Mark resolved",
       "openCount": "{count} open cases",
-      "projectUnitCount": "{count, plural, one {# unit} other {# units}}",
+      "projectUnitCountOne": "1 unit",
+      "projectUnitCountMany": "{count} units",
       "projectOpenCases": "{count, plural, one {# open case} other {# open cases}}",
       "workflow": {
         "customerServiceAwaiting": {

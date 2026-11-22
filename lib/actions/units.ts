@@ -28,6 +28,7 @@ import {
   syncClientExtraPhones,
 } from "@/lib/client/sync-contact-extras";
 import { normalizeUnitCode } from "@/lib/import/sanitize";
+import { sanitizePhoneForStorage } from "@/lib/phone/display";
 import { prisma } from "@/lib/prisma";
 import {
   getAssignableAgentUsers,
@@ -85,7 +86,8 @@ export async function createUnit(input: CreateUnitFormInput): Promise<ActionResu
     return actionFail("A unit with this code already exists in this project");
   }
 
-  const extraPhoneValues = phonesForCreate(data.phone1, data.phone2, []);
+  const primaryPhone = sanitizePhoneForStorage(data.phone1);
+  const extraPhoneValues = phonesForCreate(primaryPhone, data.phone2, []);
   const extraAddressValues = addressesForCreate(
     data.address1,
     data.address2,
@@ -98,7 +100,7 @@ export async function createUnit(input: CreateUnitFormInput): Promise<ActionResu
         const client = await tx.client.create({
           data: {
             name: data.clientName,
-            phone1: data.phone1,
+            phone1: primaryPhone,
             phone2: null,
             email: data.email,
             nationalId: data.nationalId,
@@ -377,7 +379,7 @@ export async function updateUnit(input: UnitProfileFormInput): Promise<ActionRes
 
   const clientData = {
     name: clientName,
-    phone1,
+    phone1: sanitizePhoneForStorage(phone1),
     phone2: null,
     email,
     nationalId,

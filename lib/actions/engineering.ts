@@ -94,16 +94,23 @@ export async function returnToCsAction(
       },
     });
 
-    await prisma.ticket.create({
-      data: {
-        unitId,
-        notes: timelineNote,
-        status: "PENDING",
-        category: "FEEDBACK_HISTORY",
-        agentId: session.user.id,
-        pendingParty: "NONE",
-      },
+    const latestTimeline = await prisma.ticket.findFirst({
+      where: { unitId, category: "FEEDBACK_HISTORY" },
+      orderBy: { createdAt: "desc" },
+      select: { notes: true },
     });
+    if (latestTimeline?.notes !== timelineNote) {
+      await prisma.ticket.create({
+        data: {
+          unitId,
+          notes: timelineNote,
+          status: "PENDING",
+          category: "FEEDBACK_HISTORY",
+          agentId: session.user.id,
+          pendingParty: "NONE",
+        },
+      });
+    }
   });
 
   if (unit.agentId) {

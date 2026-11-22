@@ -1,3 +1,5 @@
+import { sanitizePhoneForStorage } from "@/lib/phone/display";
+
 export function normalizeHeader(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -16,7 +18,7 @@ export function splitPhones(raw?: string): { phone1?: string; phone2?: string } 
   if (!raw) return {};
   const parts = raw
     .split(/[-/]/)
-    .map((p) => p.replace(/\s+/g, "").trim())
+    .map((p) => sanitizePhoneForStorage(p.replace(/\s+/g, "")) ?? "")
     .filter(Boolean);
   return { phone1: parts[0], phone2: parts[1] };
 }

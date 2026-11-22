@@ -28,6 +28,7 @@ import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
 import { buildUnitsFilterUrl } from "@/lib/units/units-filter-url";
 import { MyStageTasksQueue } from "@/components/unit-cycle/stage-task-queues";
 import { getMyStageTasks } from "@/lib/unit-cycle/queries";
+import { formatLocaleInteger } from "@/lib/format/locale-display";
 
 export const dynamic = "force-dynamic";
 
@@ -184,7 +185,7 @@ export default async function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="font-heading text-3xl font-bold tabular-nums transition-transform duration-300 group-hover:scale-[1.02]">
-                  {stat.value.toLocaleString()}
+                  {formatLocaleInteger(stat.value, locale)}
                 </div>
               </CardContent>
             </Card>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import { formatLocaleNumber } from "@/lib/format/locale-display";
 import { useMemo } from "react";
 
 function enumLabel(
@@ -51,7 +52,9 @@ export function useDomainLabels() {
           : name;
       },
       areaWithUnit: (area: number | null) =>
-        area == null ? "—" : `${area} ${tEnums("areaSqm")}`,
+        area == null
+          ? "—"
+          : `${formatLocaleNumber(area, locale, { maximumFractionDigits: 2 })} ${tEnums("areaSqm")}`,
     }),
     [locale, tCommon, tEnums, tStaff]
   );

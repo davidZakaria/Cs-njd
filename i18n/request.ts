@@ -11,5 +11,13 @@ export default getRequestConfig(async ({ requestLocale }) => {
   return {
     locale,
     messages: (await import(`../messages/${locale}.json`)).default,
+    formats: {
+      number: {
+        integer: {
+          maximumFractionDigits: 0,
+          ...(locale === "ar" ? { numberingSystem: "arab" as const } : {}),
+        },
+      },
+    },
   };
 });

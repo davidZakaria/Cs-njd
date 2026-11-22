@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { formatLocaleMessageNumber } from "@/lib/format/locale-display";
+import { LocaleIdentifierText, PhoneLtrText } from "@/components/phone/phone-ltr";
 import { Link } from "@/i18n/navigation";
 import { ChevronDown } from "lucide-react";
 import { updateTicketStatus } from "@/lib/actions/crm";
@@ -72,7 +74,9 @@ export function PendingCaseCard({
   compact = false,
   hideContextMeta = false,
 }: PendingCaseCardProps) {
+  const locale = useLocale();
   const t = useTranslations("cases.pendingWork");
+  const formatCount = (n: number) => formatLocaleMessageNumber(n, locale);
   const tCases = useTranslations("cases");
   const labels = useDomainLabels();
   const [ticketStatus, setTicketStatus] = useState(status);
@@ -114,14 +118,14 @@ export function PendingCaseCard({
                 {clientName}
               </Link>
               <Badge variant="outline" className="font-normal">
-                {unitCode}
+                <LocaleIdentifierText kind="unitCode">{unitCode}</LocaleIdentifierText>
               </Badge>
               <Badge variant="secondary">
                 {labels.ticketStatus(status)}
               </Badge>
               {openCount > 1 ? (
                 <Badge variant="outline">
-                  {t("openCount", { count: openCount })}
+                  {t("openCount", { count: formatCount(openCount) })}
                 </Badge>
               ) : null}
             </div>
@@ -198,13 +202,19 @@ export function PendingCaseCard({
           <Badge variant="outline">{labels.ticketCategory(category)}</Badge>
           <Badge variant="secondary">{labels.ticketStatus(status)}</Badge>
           {openCount > 1 && (
-            <Badge variant="outline">{t("openCount", { count: openCount })}</Badge>
+            <Badge variant="outline">{t("openCount", { count: formatCount(openCount) })}</Badge>
           )}
         </div>
         {!hideContextMeta ? (
           <p className="text-sm text-muted-foreground">
-            {labels.project(project)} · {unitCode}
-            {clientPhone ? ` · ${clientPhone}` : ""}
+            {labels.project(project)} ·{" "}
+            <LocaleIdentifierText kind="unitCode">{unitCode}</LocaleIdentifierText>
+            {clientPhone ? (
+              <>
+                {" · "}
+                <PhoneLtrText>{clientPhone}</PhoneLtrText>
+              </>
+            ) : null}
             {unitAgent ? ` · ${labels.staffName(unitAgent)}` : ""}
           </p>
         ) : null}

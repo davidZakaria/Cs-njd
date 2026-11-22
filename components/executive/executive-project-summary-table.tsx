@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { formatLocaleInteger } from "@/lib/format/locale-display";
 
 import { Link } from "@/i18n/navigation";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
@@ -28,6 +29,7 @@ export function ExecutiveProjectSummaryTable({
   byProject: ProjectDashboardSlice[];
   portfolioTotalUnits: number;
 }) {
+  const locale = useLocale();
   const t = useTranslations("executive.projectSummary");
   const labels = useDomainLabels();
 
@@ -92,7 +94,7 @@ export function ExecutiveProjectSummaryTable({
                     href={buildUnitsFilterUrl({ project: row.slug })}
                     className="underline-offset-2 hover:underline"
                   >
-                    {row.totalUnits.toLocaleString()}
+                    {formatLocaleInteger(row.totalUnits, locale)}
                   </Link>
                 </TableCell>
                 <TableCell className="text-end tabular-nums">
@@ -104,7 +106,7 @@ export function ExecutiveProjectSummaryTable({
                     })}
                     className="underline-offset-2 hover:underline"
                   >
-                    {row.unitsWithOpenWork.toLocaleString()}
+                    {formatLocaleInteger(row.unitsWithOpenWork, locale)}
                   </Link>
                 </TableCell>
                 <TableCell className="text-end tabular-nums">
@@ -115,7 +117,7 @@ export function ExecutiveProjectSummaryTable({
                     })}
                     className="underline-offset-2 hover:underline"
                   >
-                    {row.deliveredUnits.toLocaleString()}
+                    {formatLocaleInteger(row.deliveredUnits, locale)}
                   </Link>
                 </TableCell>
                 <TableCell className="text-end tabular-nums">
@@ -126,7 +128,7 @@ export function ExecutiveProjectSummaryTable({
                     })}
                     className="underline-offset-2 hover:underline"
                   >
-                    {row.deliveryOverdue.toLocaleString()}
+                    {formatLocaleInteger(row.deliveryOverdue, locale)}
                   </Link>
                 </TableCell>
                 <TableCell className="text-end tabular-nums">
@@ -137,7 +139,7 @@ export function ExecutiveProjectSummaryTable({
                     })}
                     className="underline-offset-2 hover:underline"
                   >
-                    {row.unassignedUnits.toLocaleString()}
+                    {formatLocaleInteger(row.unassignedUnits, locale)}
                   </Link>
                 </TableCell>
               </TableRow>
@@ -146,20 +148,20 @@ export function ExecutiveProjectSummaryTable({
               <TableCell>{t("portfolioTotal")}</TableCell>
               <TableCell className="text-end tabular-nums">
                 <Link href="/units" className="underline-offset-2 hover:underline">
-                  {portfolioTotalUnits.toLocaleString()}
+                  {formatLocaleInteger(portfolioTotalUnits, locale)}
                 </Link>
               </TableCell>
               <TableCell className="text-end tabular-nums">
-                {totals.unitsWithOpenWork.toLocaleString()}
+                {formatLocaleInteger(totals.unitsWithOpenWork, locale)}
               </TableCell>
               <TableCell className="text-end tabular-nums">
-                {totals.deliveredUnits.toLocaleString()}
+                {formatLocaleInteger(totals.deliveredUnits, locale)}
               </TableCell>
               <TableCell className="text-end tabular-nums">
-                {totals.deliveryOverdue.toLocaleString()}
+                {formatLocaleInteger(totals.deliveryOverdue, locale)}
               </TableCell>
               <TableCell className="text-end tabular-nums">
-                {totals.unassignedUnits.toLocaleString()}
+                {formatLocaleInteger(totals.unassignedUnits, locale)}
               </TableCell>
             </TableRow>
           </TableBody>
