@@ -17,10 +17,20 @@ import {
 
 import {
   STAGING_E2E_DUAL_UNIT_CODE,
-  STAGING_PASSWORD,
-  STAGING_TOTP_SECRET,
+  STAGING_E2E_LEGACY_COOWNER_UNIT_CODE,
+  STAGING_E2E_MERGED_SLASH_UNIT_CODE,
   STAGING_USERS,
 } from "../lib/staging/credentials";
+import {
+  resolveStagingPassword,
+  resolveStagingTotpSecret,
+} from "../lib/staging/e2e-secrets";
+import {
+  LEGACY_PHONE_ARTIFACTS,
+  SPELLING_VARIANT_NAMES,
+  mergedSlashClientName,
+  shouldUseMergedSlashOwnerShape,
+} from "../lib/staging/seed-shapes";
 
 const prisma = new PrismaClient();
 
@@ -132,7 +142,7 @@ async function upsertStagingUsers(passwordHash: string) {
         isActive: true,
         requiresPasswordChange: false,
         is2FAEnabled: requires2FA,
-        twoFactorSecret: requires2FA ? STAGING_TOTP_SECRET : null,
+        twoFactorSecret: requires2FA ? resolveStagingTotpSecret() : null,
       },
       create: {
         name: spec.name,
@@ -142,7 +152,7 @@ async function upsertStagingUsers(passwordHash: string) {
         isActive: true,
         requiresPasswordChange: false,
         is2FAEnabled: requires2FA,
-        twoFactorSecret: requires2FA ? STAGING_TOTP_SECRET : null,
+        twoFactorSecret: requires2FA ? resolveStagingTotpSecret() : null,
       },
     });
     byId[key] = user.id;
@@ -163,24 +173,43 @@ async function ensureProjects() {
   return out;
 }
 
-async function createClient(seed: number, useArabic: boolean) {
-  const name = useArabic
-    ? pick(AR_NAMES, seed)
-    : `${pick(EN_FIRST, seed)} ${pick(EN_LAST, seed + 3)}`;
-  const email = `staging-client-${seed}@fake.njd`;
+async function createClient(
+  seed: number,
+  useArabic: boolean,
+  override?: {
+    name?: string;
+    phone1?: string | null;
+    phone2?: string | null;
+    email?: string;
+  }
+) {
+  const name =
+    override?.name ??
+    (useArabic
+      ? pick(AR_NAMES, seed)
+      : `${pick(EN_FIRST, seed)} ${pick(EN_LAST, seed + 3)}`);
+  const email = override?.email ?? `staging-client-${seed}@fake.njd`;
   const nationalId = fakeNationalId(seed);
+  const phone1 =
+    override?.phone1 ?? `+2010${String(seed).padStart(8, "0")}`;
   return prisma.client.upsert({
     where: { nationalId },
-    update: { name, email, phone1: `+2010${String(seed).padStart(8, "0")}` },
+    update: { name, email, phone1, phone2: override?.phone2 ?? undefined },
     create: {
       name,
       nationalId,
       email,
-      phone1: `+2010${String(seed).padStart(8, "0")}`,
+      phone1,
+      phone2: override?.phone2 ?? undefined,
       address1: useArabic ? "القاهرة الجديدة — بيانات تجريبية" : "New Cairo — fake staging address",
     },
   });
 }
+
+type OwnerShape =
+  | { kind: "legacy-client-only" }
+  | { kind: "dual-links"; primaryId: string; coOwnerId: string }
+  | { kind: "legacy-plus-co"; primaryId: string; coOwnerId: string };
 
 async function createUnitBundle(input: {
   projectId: string;
@@ -188,12 +217,28 @@ async function createUnitBundle(input: {
   clientId: string;
   agentId: string;
   handoverStatus: HandoverStatus;
-  finishingType: FinishingType;
-  dualOwners?: { primaryId: string; coOwnerId: string };
+  finishingType?: FinishingType;
+  ownerShape?: OwnerShape;
   seed: number;
+  gracePeriod?: string | null;
+  contractPricePerMeter?: number | null;
+  skipFinishing?: boolean;
 }) {
   const deliveryDate = new Date(2025, (input.seed % 12) + 1, 15);
   const contractDate = new Date(2023, input.seed % 12, 1);
+  const gracePeriod =
+    input.gracePeriod !== undefined
+      ? input.gracePeriod
+      : input.seed % 2 === 0
+        ? "3 months"
+        : "6 months";
+  const contractPricePerMeter =
+    input.contractPricePerMeter !== undefined
+      ? input.contractPricePerMeter
+      : input.seed % 11 === 0
+        ? 0
+        : 15000 + (input.seed % 7000);
+
   const unit = await prisma.unit.upsert({
     where: {
       projectId_unitCode: { projectId: input.projectId, unitCode: input.unitCode },
@@ -201,7 +246,8 @@ async function createUnitBundle(input: {
     update: {
       clientId: input.clientId,
       agentId: input.agentId,
-      gracePeriod: input.seed % 2 === 0 ? "3 months" : "6 months",
+      gracePeriod,
+      contractPricePerMeter,
       deliveryYear: String(2024 + (input.seed % 3)),
       type: pick(
         ["APARTMENT", "DUPLEX", "PENTHOUSE", "COMMERCIAL"] as UnitType[],
@@ -214,7 +260,8 @@ async function createUnitBundle(input: {
       projectId: input.projectId,
       clientId: input.clientId,
       agentId: input.agentId,
-      gracePeriod: input.seed % 2 === 0 ? "3 months" : "6 months",
+      gracePeriod,
+      contractPricePerMeter,
       deliveryYear: String(2024 + (input.seed % 3)),
       type: pick(
         ["APARTMENT", "DUPLEX", "PENTHOUSE", "COMMERCIAL"] as UnitType[],
@@ -243,30 +290,35 @@ async function createUnitBundle(input: {
     },
   });
 
-  await prisma.finishing.upsert({
-    where: { unitId: unit.id },
-    update: { finishingType: input.finishingType },
-    create: {
-      unitId: unit.id,
-      finishingType: input.finishingType,
-      totalFinishingPrice: 50000 + input.seed * 100,
-      pricePerMeter: 2000 + (input.seed % 500),
-    },
-  });
+  if (input.skipFinishing) {
+    await prisma.finishing.deleteMany({ where: { unitId: unit.id } });
+  } else if (input.finishingType) {
+    await prisma.finishing.upsert({
+      where: { unitId: unit.id },
+      update: { finishingType: input.finishingType },
+      create: {
+        unitId: unit.id,
+        finishingType: input.finishingType,
+        totalFinishingPrice: 50000 + input.seed * 100,
+        pricePerMeter: 2000 + (input.seed % 500),
+      },
+    });
+  }
 
-  if (input.dualOwners) {
-    await prisma.unitClient.deleteMany({ where: { unitId: unit.id } });
+  await prisma.unitClient.deleteMany({ where: { unitId: unit.id } });
+  const shape = input.ownerShape ?? { kind: "legacy-client-only" as const };
+  if (shape.kind === "dual-links" || shape.kind === "legacy-plus-co") {
     await prisma.unitClient.createMany({
       data: [
         {
           unitId: unit.id,
-          clientId: input.dualOwners.primaryId,
+          clientId: shape.primaryId,
           role: UnitClientRole.PRIMARY,
           position: 0,
         },
         {
           unitId: unit.id,
-          clientId: input.dualOwners.coOwnerId,
+          clientId: shape.coOwnerId,
           role: UnitClientRole.CO_OWNER,
           position: 1,
         },
@@ -290,12 +342,46 @@ async function seedUnitsAndClients(userIds: Record<string, string>) {
   ] as const;
 
   let globalIndex = 0;
+  let mergedSlashCount = 0;
   for (const block of counts) {
     const projectId = projectIds[block.project]!;
     for (let i = 1; i <= block.total; i += 1) {
-      const client = await createClient(clientSeed, clientSeed % 3 !== 0);
-      clientSeed += 1;
       const unitCode = `${block.prefix}-${String(i).padStart(3, "0")}`;
+      const phones = pick(LEGACY_PHONE_ARTIFACTS, globalIndex);
+      const zeroGrace = globalIndex % 13 === 0;
+      const skipFinishing = globalIndex % 17 === 0;
+
+      if (shouldUseMergedSlashOwnerShape(globalIndex)) {
+        mergedSlashCount += 1;
+        const merged = await createClient(clientSeed, true, {
+          name: mergedSlashClientName(mergedSlashCount),
+          phone1: phones.phone1,
+          phone2: phones.phone2,
+        });
+        clientSeed += 1;
+        const unit = await createUnitBundle({
+          projectId,
+          unitCode,
+          clientId: merged.id,
+          agentId: csAgentId,
+          handoverStatus: pick(HANDOVER_STATUSES, globalIndex),
+          finishingType: pick(FINISHING_TYPES, globalIndex),
+          ownerShape: { kind: "legacy-client-only" },
+          gracePeriod: zeroGrace ? "0" : globalIndex % 2 === 0 ? "3 months" : "6 months",
+          contractPricePerMeter: globalIndex % 11 === 0 ? 0 : undefined,
+          skipFinishing,
+          seed: globalIndex,
+        });
+        unitsCreated.push(unit.id);
+        globalIndex += 1;
+        continue;
+      }
+
+      const client = await createClient(clientSeed, clientSeed % 3 !== 0, {
+        phone1: globalIndex % 5 === 0 ? phones.phone1 : undefined,
+        phone2: globalIndex % 7 === 0 ? phones.phone2 : undefined,
+      });
+      clientSeed += 1;
       const unit = await createUnitBundle({
         projectId,
         unitCode,
@@ -303,11 +389,43 @@ async function seedUnitsAndClients(userIds: Record<string, string>) {
         agentId: csAgentId,
         handoverStatus: pick(HANDOVER_STATUSES, globalIndex),
         finishingType: pick(FINISHING_TYPES, globalIndex),
+        gracePeriod: zeroGrace ? "0" : undefined,
+        contractPricePerMeter: globalIndex % 11 === 0 ? 0 : undefined,
+        skipFinishing,
         seed: globalIndex,
       });
       unitsCreated.push(unit.id);
       globalIndex += 1;
     }
+  }
+
+  for (let v = 0; v < SPELLING_VARIANT_NAMES.length; v += 1) {
+    const pair = SPELLING_VARIANT_NAMES[v]!;
+    const c1 = await createClient(50_000 + v * 2, true, { name: pair.canonical });
+    const c2 = await createClient(50_000 + v * 2 + 1, true, {
+      name: pair.variant,
+      email: `staging-variant-${v}@fake.njd`,
+    });
+    await createUnitBundle({
+      projectId: projectIds["JURA"]!,
+      unitCode: `VAR-${String(v + 1).padStart(2, "0")}A`,
+      clientId: c1.id,
+      agentId: csAgentId,
+      handoverStatus: "PENDING",
+      finishingType: "SEMI_FINISHED",
+      seed: 51_000 + v,
+    });
+    await createUnitBundle({
+      projectId: projectIds["JURA"]!,
+      unitCode: `VAR-${String(v + 1).padStart(2, "0")}B`,
+      clientId: c2.id,
+      agentId: csAgentId,
+      handoverStatus: "DELIVERY_PROTOCOL",
+      finishingType: "FULLY_FINISHED",
+      seed: 52_000 + v,
+    });
+    void c1;
+    void c2;
   }
 
   const multiUnitClientIds: string[] = [];
@@ -344,18 +462,64 @@ async function seedUnitsAndClients(userIds: Record<string, string>) {
       agentId: csAgentId,
       handoverStatus: "DELIVERY_PROTOCOL",
       finishingType: "FULLY_FINISHED_AC",
-      dualOwners: { primaryId: primary.id, coOwnerId: coOwner.id },
+      ownerShape: { kind: "dual-links", primaryId: primary.id, coOwnerId: coOwner.id },
       seed: 40_000 + d,
     });
     dualUnits.push(unit.id);
   }
 
+  const mergedPhones = LEGACY_PHONE_ARTIFACTS[0]!;
+  const mergedE2eClient = await createClient(60_001, true, {
+    name: mergedSlashClientName(0),
+    phone1: mergedPhones.phone1,
+    phone2: mergedPhones.phone2,
+  });
+  const mergedE2eUnit = await createUnitBundle({
+    projectId: projectIds["GREEN AVENUE"]!,
+    unitCode: STAGING_E2E_MERGED_SLASH_UNIT_CODE,
+    clientId: mergedE2eClient.id,
+    agentId: csAgentId,
+    handoverStatus: "DELIVERY_PROTOCOL",
+    finishingType: "FULLY_FINISHED",
+    ownerShape: { kind: "legacy-client-only" },
+    gracePeriod: "0",
+    contractPricePerMeter: 0,
+    seed: 60_001,
+  });
+
+  const legacyPrimary = await createClient(60_010, false, {
+    name: "Staging Legacy Primary",
+    phone1: "96599034830.0",
+  });
+  const legacyCo = await createClient(60_011, true, {
+    name: "سلمى وائل عثمان",
+    phone2: "0096551774292",
+  });
+  const legacyCoUnit = await createUnitBundle({
+    projectId: projectIds["GREEN AVENUE"]!,
+    unitCode: STAGING_E2E_LEGACY_COOWNER_UNIT_CODE,
+    clientId: legacyPrimary.id,
+    agentId: csAgentId,
+    handoverStatus: "DELIVERY_PROTOCOL",
+    finishingType: "COMPANY_PACKAGE",
+    ownerShape: {
+      kind: "legacy-plus-co",
+      primaryId: legacyPrimary.id,
+      coOwnerId: legacyCo.id,
+    },
+    skipFinishing: false,
+    seed: 60_010,
+  });
+
   return {
     projectIds,
     csAgentId,
     e2eDualUnitId: dualUnits[0]!,
+    e2eMergedSlashUnitId: mergedE2eUnit.id,
+    e2eLegacyCoOwnerUnitId: legacyCoUnit.id,
     sampleUnitId: unitsCreated[0]!,
     multiUnitClientIds,
+    mergedSlashBulkCount: mergedSlashCount,
   };
 }
 
@@ -434,7 +598,7 @@ async function seedRequestsAndCases(input: {
 
 async function main() {
   assertStagingDatabase();
-  const passwordHash = await bcrypt.hash(STAGING_PASSWORD, 12);
+  const passwordHash = await bcrypt.hash(resolveStagingPassword(), 12);
   const userIds = await upsertStagingUsers(passwordHash);
   const bundle = await seedUnitsAndClients(userIds);
   await seedRequestsAndCases({
@@ -445,9 +609,15 @@ async function main() {
   });
 
   console.log("Staging fake data seed complete.");
-  console.log("Test password:", STAGING_PASSWORD);
-  console.log("TOTP secret (staff):", STAGING_TOTP_SECRET);
-  console.log("E2E dual-owner unit code:", STAGING_E2E_DUAL_UNIT_CODE);
+  console.log("Merged '/' owner units (bulk):", bundle.mergedSlashBulkCount);
+  console.log("E2E unit codes:", {
+    mergedSlash: STAGING_E2E_MERGED_SLASH_UNIT_CODE,
+    legacyCoOwner: STAGING_E2E_LEGACY_COOWNER_UNIT_CODE,
+    twoUnitClients: STAGING_E2E_DUAL_UNIT_CODE,
+  });
+  console.log(
+    "Staff auth: set STAGING_E2E_PASSWORD and STAGING_TOTP_SECRET in .env (not printed)."
+  );
   console.log("Users:", JSON.stringify(STAGING_USERS, null, 2));
 }
 

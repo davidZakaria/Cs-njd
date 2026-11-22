@@ -75,21 +75,27 @@ Requirements checked by the script:
 - `STAGING=true` in `.env`
 - `DATABASE_URL` contains `njd_crm_staging` or port `5435`
 
+## Securing public staging
+
+`staging.njd-crm.com` must **not** rely on passwords committed to git.
+
+1. Set unique `STAGING_E2E_PASSWORD` and `STAGING_TOTP_SECRET` in `.env` before `npm run db:seed-staging`.
+2. Enable **nginx basic auth** (see `deploy/nginx-njd-crm-staging.conf.example`) and/or restrict by **IP allowlist** / firewall.
+3. App login + staff 2FA remain enabled (production code path unchanged).
+
 ## Test accounts (after seed)
 
-Defined in `lib/staging/credentials.ts`:
+Emails are fixed in `lib/staging/credentials.ts`. Password and TOTP come from your `.env` (see above).
 
-| Role | Email | Password |
-|------|-------|----------|
-| Super admin | `staging-superadmin@njd.staging` | `StagingTest12!` |
-| CS agent | `staging-cs@njd.staging` | same |
-| Supervisor (MANAGEMENT) | `staging-supervisor@njd.staging` | same |
-| Management / executive | `staging-management@njd.staging` | same |
-| Community management | `staging-community@njd.staging` | same |
+| Role | Email |
+|------|-------|
+| Super admin | `staging-superadmin@njd.staging` |
+| CS agent | `staging-cs@njd.staging` |
+| Supervisor (MANAGEMENT) | `staging-supervisor@njd.staging` |
+| Management / executive | `staging-management@njd.staging` |
+| Community management | `staging-community@njd.staging` |
 
-**2FA (staff roles):** TOTP secret `JBSWY3DPEHPK3PXP` (staging only). Production 2FA logic is unchanged; staging users are pre-enrolled in the seed script.
-
-**E2E dual-owner unit code:** `STAGING-E2E-GA-DUAL-01`
+**E2E owner-shape unit codes:** `STAGING-E2E-MERGED-SLASH-01`, `STAGING-E2E-LEGACY-COOWNER-01`, `STAGING-E2E-GA-DUAL-01`
 
 ## Local / CI E2E
 
@@ -97,6 +103,7 @@ Defined in `lib/staging/credentials.ts`:
 export DATABASE_URL="postgresql://test:test@localhost:5432/test"
 export AUTH_SECRET="test-secret-at-least-32-characters-long"
 export STAGING=true
+export STAGING_E2E_USE_DEFAULT_SECRETS=true   # CI only — never on public VPS
 npx prisma migrate deploy
 npm run db:seed-staging
 npm run build:strict
@@ -106,14 +113,11 @@ npm run test:e2e
 
 ## Seed contents (summary)
 
-- Projects: GREEN AVENUE, JURA, JAMILA NORTH COAST (~310 units)
-- Varied handover statuses, finishing types, contract/delivery dates, grace periods
-- Arabic and English client names
-- 12+ dual-owner units (PRIMARY + CO_OWNER)
-- 12+ clients with multiple units
+- Projects: GREEN AVENUE, JURA, JAMILA NORTH COAST (~310+ units)
+- Production-like shapes: merged `name` with `/` (legacy primary block only), spelling variants (`نصر الله` vs `نصرالله`), legacy phone strings, grace period `0`, contract price `0`, units without finishing rows
+- Clean dual-owner rows (two `UnitClient` links) alongside legacy patterns
 - Handover appointment requests in every `UnitRequestStatus`
 - Cases and answered call-log style tickets
-- Staging staff users with known passwords and TOTP
 
 ## Do not
 

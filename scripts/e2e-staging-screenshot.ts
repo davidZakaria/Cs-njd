@@ -4,11 +4,13 @@ import fs from "node:fs";
 import path from "node:path";
 
 import {
-  STAGING_PASSWORD,
-  STAGING_TOTP_SECRET,
   STAGING_USERS,
   STAGING_E2E_DUAL_UNIT_CODE,
 } from "../lib/staging/credentials";
+import {
+  resolveStagingPassword,
+  resolveStagingTotpSecret,
+} from "../lib/staging/e2e-secrets";
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3100";
 const outDir =
@@ -18,11 +20,11 @@ async function login(page: import("@playwright/test").Page) {
   const { email } = STAGING_USERS.csAgent;
   await page.goto(`${baseURL}/en/login`);
   await page.locator('input[name="email"]').fill(email);
-  await page.locator('input[name="password"]').fill(STAGING_PASSWORD);
+  await page.locator('input[name="password"]').fill(resolveStagingPassword());
   await page.locator('form button[type="submit"]').click();
   await page.waitForURL(/verify-2fa|dashboard|units/, { timeout: 60_000 });
   if (page.url().includes("verify-2fa")) {
-    await page.locator("#token").fill(authenticator.generate(STAGING_TOTP_SECRET));
+    await page.locator("#token").fill(authenticator.generate(resolveStagingTotpSecret()));
     await page
       .locator("form")
       .getByRole("button", { name: /continue/i })

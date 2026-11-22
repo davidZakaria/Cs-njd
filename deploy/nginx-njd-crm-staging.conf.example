@@ -1,11 +1,22 @@
 # Staging nginx — points to PM2 app on port 3002 (cs-njd-crm-staging).
 # Suggested hostname: staging.njd-crm.com (DNS A record → same VPS IP as production).
 #
+# PUBLIC STAGING: add HTTP basic auth and/or an IP allowlist in addition to app login + 2FA.
+# Create htpasswd (install apache2-utils): sudo htpasswd -c /etc/nginx/.htpasswd-staging-njd ops
+#
 # After DNS propagates:
 #   sudo cp deploy/nginx-njd-crm-staging.conf.example /etc/nginx/sites-available/njd-crm-staging
 #   sudo ln -sf /etc/nginx/sites-available/njd-crm-staging /etc/nginx/sites-enabled/
 #   sudo nginx -t && sudo systemctl reload nginx
 #   sudo certbot --nginx -d staging.njd-crm.com
+
+# Optional: allow only office/VPN IPs (replace with your CIDRs). Uncomment and use as
+# a second server block or include, or restrict in cloud firewall instead.
+# geo $staging_allowed_ip {
+#   default 0;
+#   203.0.113.0/24 1;   # example office
+#   198.51.100.50 1;    # example VPN egress
+# }
 
 server {
     listen 80;
@@ -13,7 +24,14 @@ server {
 
     client_max_body_size 12M;
 
-    location / {
+    # Optional IP gate (enable when using geo block above):
+    # if ($staging_allowed_ip = 0) { return 403; }
+
+  location / {
+        # Recommended for internet-facing staging (credentials are not in git):
+        # auth_basic "NJD CRM Staging";
+        # auth_basic_user_file /etc/nginx/.htpasswd-staging-njd;
+
         limit_req zone=crm_limit burst=40 nodelay;
         proxy_pass http://127.0.0.1:3002;
         proxy_http_version 1.1;

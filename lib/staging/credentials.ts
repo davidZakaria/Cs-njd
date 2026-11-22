@@ -1,12 +1,7 @@
 /**
- * Known staging / E2E credentials (fake data only — never use in production).
- * Must stay in sync with `scripts/seed-staging-fake-data.ts`.
+ * Staging / E2E identities and fixture unit codes (fake data only).
+ * Passwords and TOTP: use resolveStagingPassword() / resolveStagingTotpSecret().
  */
-export const STAGING_TOTP_SECRET = "JBSWY3DPEHPK3PXP";
-
-export const STAGING_PASSWORD = "StagingTest12!";
-
-export const STAGING_E2E_DUAL_UNIT_CODE = "STAGING-E2E-GA-DUAL-01";
 
 export type StagingRoleKey =
   | "superAdmin"
@@ -45,3 +40,21 @@ export const STAGING_USERS: Record<
     role: "COMMUNITY_MANAGEMENT",
   },
 };
+
+/** Clean dual owners — two UnitClient rows (PRIMARY + CO_OWNER). */
+export const STAGING_E2E_DUAL_UNIT_CODE = "STAGING-E2E-GA-DUAL-01";
+
+/** Merged Arabic names in one client.name with "/", legacy primary block only. */
+export const STAGING_E2E_MERGED_SLASH_UNIT_CODE = "STAGING-E2E-MERGED-SLASH-01";
+
+/** unit.clientId legacy primary plus CO_OWNER link added later. */
+export const STAGING_E2E_LEGACY_COOWNER_UNIT_CODE = "STAGING-E2E-LEGACY-COOWNER-01";
+
+/** Same as dual — explicit alias for E2E naming. */
+export const STAGING_E2E_TWO_UNIT_CLIENTS_CODE = STAGING_E2E_DUAL_UNIT_CODE;
+
+export const STAGING_E2E_OWNER_SHAPE_UNITS = {
+  mergedSlash: STAGING_E2E_MERGED_SLASH_UNIT_CODE,
+  legacyCoOwner: STAGING_E2E_LEGACY_COOWNER_UNIT_CODE,
+  twoUnitClients: STAGING_E2E_TWO_UNIT_CLIENTS_CODE,
+} as const;

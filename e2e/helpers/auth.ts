@@ -1,12 +1,12 @@
 import { authenticator } from "otplib";
 import type { Page } from "@playwright/test";
 
+import type { StagingRoleKey } from "../../lib/staging/credentials";
+import { STAGING_USERS } from "../../lib/staging/credentials";
 import {
-  STAGING_PASSWORD,
-  STAGING_TOTP_SECRET,
-  type StagingRoleKey,
-  STAGING_USERS,
-} from "../../lib/staging/credentials";
+  resolveStagingPassword,
+  resolveStagingTotpSecret,
+} from "../../lib/staging/e2e-secrets";
 
 export async function loginAsStagingRole(
   page: Page,
@@ -14,7 +14,7 @@ export async function loginAsStagingRole(
   locale: "en" | "ar" = "en"
 ) {
   const { email } = STAGING_USERS[role];
-  await loginWithCredentials(page, locale, email, STAGING_PASSWORD);
+  await loginWithCredentials(page, locale, email, resolveStagingPassword());
 }
 
 export async function loginWithCredentials(
@@ -41,7 +41,7 @@ export async function loginWithCredentials(
   );
 
   if (page.url().includes("verify-2fa")) {
-    const code = authenticator.generate(STAGING_TOTP_SECRET);
+    const code = authenticator.generate(resolveStagingTotpSecret());
     const tokenInput = page.locator("#token");
     await tokenInput.fill(code);
     const continueBtn = page

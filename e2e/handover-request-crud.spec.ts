@@ -40,6 +40,13 @@ test("create, edit, and cancel handover request on dual-owner unit", async ({
   await expect(page.getByText(updated)).toBeVisible();
 
   await page
+    .getByRole("button", { name: /Submit for approval|إرسال للموافقة/i })
+    .click();
+  await expect(
+    page.locator('[data-slot="badge"]').filter({ hasText: /Pending|قيد/i })
+  ).toBeVisible({ timeout: 30_000 });
+
+  await page
     .getByRole("button", { name: /Cancel request|إلغاء الطلب/i })
     .click();
   await expect(page.locator('[data-slot="badge"]').filter({ hasText: /cancelled|ملغى/i })).toBeVisible();
