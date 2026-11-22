@@ -11,6 +11,10 @@ import {
   isLimitedExportRole,
 } from "@/lib/auth/unit-roles";
 import { parseUnitsPageFilters } from "@/lib/units/units-filter-url";
+import {
+  mapUnitToDashboardRow,
+  unitListContractWorkflowInclude,
+} from "@/lib/units/unit-dashboard-filters";
 
 export default async function UnitsPage({
   searchParams,
@@ -34,7 +38,7 @@ export default async function UnitsPage({
         project: true,
         client: true,
         agent: true,
-        contractWorkflow: true,
+        contractWorkflow: unitListContractWorkflowInclude,
         finishing: { select: { doorFees: true, aluminumFees: true } },
         unitClients: {
           where: { role: "CO_OWNER" },
@@ -69,10 +73,12 @@ export default async function UnitsPage({
       .map((l) => l.client.nationalId)
       .filter(Boolean) as string[];
 
+    const dashboard = mapUnitToDashboardRow(unit);
+
     return {
       id: unit.id,
       unitCode: unit.unitCode,
-      project: unit.project.name,
+      project: dashboard.project,
       client: unit.client?.name ?? "-",
       extraOwnerCount: unit.unitClients.length,
       searchText: [
@@ -88,15 +94,12 @@ export default async function UnitsPage({
         .join(" "),
       type: unit.type,
       area: unit.area,
-      agent: unit.agent?.name ?? "-",
-      handoverStatus: unit.contractWorkflow?.handoverStatus ?? "PENDING",
-      deliveryDate: unit.contractWorkflow?.deliveryDate ?? null,
-      missingSignedProtocol: !unit.contractWorkflow?.signedProtocolStoredName,
-      feesOutstanding:
-        unit.contractWorkflow?.hasPaidFees === false &&
-        ((unit.finishing?.doorFees ?? 0) > 0 ||
-          (unit.finishing?.aluminumFees ?? 0) > 0),
-      agentUnassigned: unit.agentId == null,
+      agent: dashboard.agent,
+      handoverStatus: dashboard.handoverStatus,
+      deliveryDate: dashboard.deliveryDate,
+      missingSignedProtocol: dashboard.missingSignedProtocol,
+      feesOutstanding: dashboard.feesOutstanding,
+      agentUnassigned: dashboard.agentUnassigned,
     };
   });
 

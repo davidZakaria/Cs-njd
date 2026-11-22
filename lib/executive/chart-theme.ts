@@ -55,35 +55,14 @@ export function categoryChartKeyToFilter(
   const statusScope = options?.statusScope ?? "open";
   const project = options?.project;
   const base = project ? { project } : {};
+  const resolved = statusScope === "RESOLVED";
 
-  switch (key) {
-    case "legal":
-      return {
-        ...base,
-        status: statusScope === "RESOLVED" ? "RESOLVED" : "LEGAL",
-        category: "LEGAL",
-      };
-    case "engineering":
-      return { ...base, status: "ENGINEERING" };
-    case "customerService":
-      return {
-        ...base,
-        status: statusScope === "RESOLVED" ? "RESOLVED" : "open",
-        category: "CUSTOMER_SERVICE",
-      };
-    case "feedbackHistory":
-      return {
-        ...base,
-        status: statusScope === "RESOLVED" ? "RESOLVED" : "open",
-        category: "FEEDBACK_HISTORY",
-      };
-    case "general":
-      return {
-        ...base,
-        status: statusScope === "RESOLVED" ? "RESOLVED" : "open",
-        category: "GENERAL",
-      };
-  }
+  return {
+    ...base,
+    status: resolved ? "RESOLVED" : "open",
+    distinctUnit: true,
+    metricCategory: key,
+  };
 }
 
 export function projectBarFill(index: number): string {

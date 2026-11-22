@@ -19,6 +19,7 @@ import { ProjectDistributionChart } from "@/components/executive/project-distrib
 import { StatusDonutChart } from "@/components/executive/status-donut-chart";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
+import { executiveCaseMetricUrls } from "@/lib/dashboard/executive-metric-urls";
 import { filterExecutiveCaseRows } from "@/lib/executive/filter-case-rows";
 import { ExecutiveFinancialsPanel } from "@/components/executive/executive-financials-panel";
 import type { ExecutiveDashboardData } from "@/lib/cases/executive-dashboard";
@@ -67,7 +68,7 @@ export function ExecutiveOverviewPanel({
         key: party,
         label: labels.pendingParty(party),
         value: breakdown[party],
-        href: buildCasesFilterUrl({ status: "open", pendingParty: party }),
+        href: executiveCaseMetricUrls.pendingParty(party),
       }))
       .filter((line) => line.value > 0);
   }, [data.global.pendingPartyBreakdown, labels]);
@@ -88,19 +89,19 @@ export function ExecutiveOverviewPanel({
         key: "PENDING",
         label: labels.ticketStatus("PENDING"),
         value: primary.pending,
-        href: buildCasesFilterUrl({ status: "PENDING" }),
+        href: executiveCaseMetricUrls.openPending(),
       },
       {
         key: "ENGINEERING",
         label: labels.ticketStatus("ENGINEERING"),
         value: primary.engineering,
-        href: buildCasesFilterUrl({ status: "ENGINEERING" }),
+        href: executiveCaseMetricUrls.openEngineering(),
       },
       {
         key: "LEGAL",
         label: labels.ticketStatus("LEGAL"),
         value: primary.legal,
-        href: buildCasesFilterUrl({ status: "LEGAL" }),
+        href: executiveCaseMetricUrls.openLegal(),
       },
     ];
 
@@ -116,7 +117,7 @@ export function ExecutiveOverviewPanel({
         key: "openTotal",
         label: kpiLabels.openTotal,
         value: data.global.stats.openTotal,
-        href: buildCasesFilterUrl({ status: "open" }),
+        href: executiveCaseMetricUrls.openTotal(),
         description: tMetric("openTotal"),
         percentOfTotal: pctOfUnits(openTotal),
         breakdown: openStatusBreakdown,
@@ -125,7 +126,7 @@ export function ExecutiveOverviewPanel({
         key: "unassigned",
         label: kpiLabels.unassigned,
         value: data.global.stats.unassigned,
-        href: buildCasesFilterUrl({ status: "open", agent: "unassigned" }),
+        href: executiveCaseMetricUrls.unassigned(),
         description: tMetric("unassigned"),
         percentOfTotal: pctOfOpen(data.global.stats.unassigned),
       },
@@ -133,7 +134,7 @@ export function ExecutiveOverviewPanel({
         key: "legal",
         label: kpiLabels.legal,
         value: data.global.stats.legal,
-        href: buildCasesFilterUrl({ status: "LEGAL" }),
+        href: executiveCaseMetricUrls.openLegal(),
         description: tMetric("legal"),
         percentOfTotal: pctOfOpen(data.global.stats.legal),
       },
@@ -141,7 +142,7 @@ export function ExecutiveOverviewPanel({
         key: "engineering",
         label: kpiLabels.engineering,
         value: data.global.stats.engineering,
-        href: buildCasesFilterUrl({ status: "ENGINEERING" }),
+        href: executiveCaseMetricUrls.openEngineering(),
         description: tMetric("engineering"),
         percentOfTotal: pctOfOpen(data.global.stats.engineering),
       },
@@ -149,7 +150,7 @@ export function ExecutiveOverviewPanel({
         key: "waitingOnAnotherParty",
         label: t("stats.waitingOnAnotherParty"),
         value: data.global.stats.pendingWithParty,
-        href: buildCasesFilterUrl({ status: "open" }),
+        href: executiveCaseMetricUrls.awaitingParty(),
         description: tMetric("waitingOnAnotherParty"),
         percentOfTotal: pctOfOpen(data.global.stats.pendingWithParty),
         breakdown: partyBreakdownLines,
@@ -158,7 +159,7 @@ export function ExecutiveOverviewPanel({
         key: "followUpDue",
         label: t("stats.followUpDue"),
         value: portfolio.followUpDueToday + portfolio.followUpOverdue,
-        href: buildCasesFilterUrl({ status: "open", followUp: "due" }),
+        href: executiveCaseMetricUrls.followUpDue(),
         description: tMetric("followUpDue"),
       },
       {
@@ -189,21 +190,31 @@ export function ExecutiveOverviewPanel({
         key: "signedProtocolMissing",
         label: t("stats.signedProtocolMissing"),
         value: signedProtocolMissing,
-        href: buildUnitsFilterUrl({ signedProtocol: "missing" }),
+        notTracked: !portfolio.signedProtocolIsTracked,
+        href: portfolio.signedProtocolIsTracked
+          ? buildUnitsFilterUrl({ signedProtocol: "missing" })
+          : undefined,
         description: tMetric("signedProtocolMissingDetail", {
           fileUploaded: portfolio.signedProtocolDetail.fileUploaded,
           dateMarked: portfolio.signedProtocolDetail.dateMarked,
           checkboxMarked: portfolio.signedProtocolDetail.checkboxMarked,
         }),
-        percentOfTotal: pctOfUnits(signedProtocolMissing),
+        percentOfTotal: portfolio.signedProtocolIsTracked
+          ? pctOfUnits(signedProtocolMissing)
+          : undefined,
       },
       {
         key: "feesOutstanding",
         label: t("stats.feesOutstanding"),
         value: portfolio.feesOutstanding,
-        href: buildUnitsFilterUrl({ fees: "outstanding" }),
+        notTracked: !portfolio.feesOutstandingIsTracked,
+        href: portfolio.feesOutstandingIsTracked
+          ? buildUnitsFilterUrl({ fees: "outstanding" })
+          : undefined,
         description: tMetric("feesOutstanding"),
-        percentOfTotal: pctOfUnits(portfolio.feesOutstanding),
+        percentOfTotal: portfolio.feesOutstandingIsTracked
+          ? pctOfUnits(portfolio.feesOutstanding)
+          : undefined,
       },
     ];
   }, [

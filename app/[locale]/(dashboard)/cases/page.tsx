@@ -11,7 +11,10 @@ import { splitCasesForManager, getEffectiveCaseAgent } from "@/lib/cases/ownersh
 import { CasesTable, type CaseRow } from "@/components/cases/cases-table";
 import { CsAgentPreviewBanner } from "@/components/layout/cs-agent-preview-banner";
 import { canUseManagementOverride } from "@/lib/workflow/management-override";
-import { parseCasesPageFilters } from "@/lib/cases/cases-filter-url";
+import {
+  isCasesFilterActive,
+  parseCasesPageFilters,
+} from "@/lib/cases/cases-filter-url";
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
 
@@ -88,6 +91,7 @@ export default async function CasesPage({
 
   if (isManager && session?.user.id) {
     const { mine, team } = splitCasesForManager(rows, session.user.id);
+    const drillDownActive = isCasesFilterActive(filters);
 
     return (
       <div className="space-y-8">
@@ -95,35 +99,40 @@ export default async function CasesPage({
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">{t("manager.pageSubtitle")}</p>
         </div>
-        <CasesTable
-          data={team}
-          agents={agents}
-          canAssign={true}
-          canUseManagementOverride={canOverride}
-          defaultStatusFilter={filters.status}
-          defaultProjectFilter={filters.project}
-          defaultCategoryFilter={filters.category}
-          defaultAgentFilter={filters.agent}
-          defaultFollowUpFilter={filters.followUp}
-          defaultPendingPartyFilter={filters.pendingParty}
-          sectionTitle={t("manager.teamCases.title", { count: team.length })}
-          sectionDescription={t("manager.teamCases.subtitle")}
-        />
-        <CasesTable
-          data={mine}
-          agents={agents}
-          canAssign={false}
-          canUseManagementOverride={canOverride}
-          defaultCollapsed={true}
-          defaultStatusFilter={filters.status}
-          defaultProjectFilter={filters.project}
-          defaultCategoryFilter={filters.category}
-          defaultAgentFilter={filters.agent}
-          defaultFollowUpFilter={filters.followUp}
-          defaultPendingPartyFilter={filters.pendingParty}
-          sectionTitle={t("manager.myCases.title", { count: mine.length })}
-          sectionDescription={t("manager.myCases.subtitle")}
-        />
+        {drillDownActive ? (
+          <CasesTable
+            data={rows}
+            agents={agents}
+            canAssign={true}
+            canUseManagementOverride={canOverride}
+            defaultPageFilters={filters}
+            viewerUserId={session.user.id}
+          />
+        ) : (
+          <>
+            <CasesTable
+              data={team}
+              agents={agents}
+              canAssign={true}
+              canUseManagementOverride={canOverride}
+              defaultPageFilters={filters}
+              viewerUserId={session.user.id}
+              sectionTitle={t("manager.teamCases.title", { count: team.length })}
+              sectionDescription={t("manager.teamCases.subtitle")}
+            />
+            <CasesTable
+              data={mine}
+              agents={agents}
+              canAssign={false}
+              canUseManagementOverride={canOverride}
+              defaultCollapsed={true}
+              defaultPageFilters={filters}
+              viewerUserId={session.user.id}
+              sectionTitle={t("manager.myCases.title", { count: mine.length })}
+              sectionDescription={t("manager.myCases.subtitle")}
+            />
+          </>
+        )}
       </div>
     );
   }
@@ -147,12 +156,8 @@ export default async function CasesPage({
         canAssign={canAssign}
         canUseManagementOverride={canOverride}
         canExport={canExport}
-        defaultStatusFilter={filters.status}
-        defaultProjectFilter={filters.project}
-        defaultCategoryFilter={filters.category}
-        defaultAgentFilter={filters.agent}
-        defaultFollowUpFilter={filters.followUp}
-        defaultPendingPartyFilter={filters.pendingParty}
+        defaultPageFilters={filters}
+        viewerUserId={session?.user.id}
         sectionTitle={
           isCsAgent
             ? t("assignedToMe.title", { count: rows.length })

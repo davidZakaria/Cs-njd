@@ -1,10 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { activeContractWorkflowWhere, activeUnitWhere } from "@/lib/prisma";
-import {
-  DELIVERED_HANDOVER_STATUSES,
-  OVERDUE_DELIVERY_EXCLUDED_STATUSES,
-} from "@/lib/executive/handover-status-groups";
+import { activeUnitWhere } from "@/lib/prisma";
 import { projectNameToSlug } from "@/lib/cases/cases-filter-url";
+import { countUnitsForDashboardFilters } from "@/lib/dashboard/unit-metric-counts";
+import { startOfDay } from "@/lib/units/unit-dashboard-filters";
 
 export type ExecutiveProjectUnitSummary = {
   projectId: string;
@@ -15,12 +13,6 @@ export type ExecutiveProjectUnitSummary = {
   deliveredUnits: number;
   deliveryOverdue: number;
 };
-
-function startOfDay(date: Date) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 export async function getExecutiveProjectUnitSummaries(): Promise<
   ExecutiveProjectUnitSummary[]
@@ -40,19 +32,28 @@ export async function getExecutiveProjectUnitSummaries(): Promise<
           prisma.unit.count({
             where: activeUnitWhere({ ...unitScope, agentId: null }),
           }),
-          prisma.contractWorkflow.count({
-            where: activeContractWorkflowWhere({
-              unit: unitScope,
-              handoverStatus: { in: [...DELIVERED_HANDOVER_STATUSES] },
-            }),
-          }),
-          prisma.contractWorkflow.count({
-            where: activeContractWorkflowWhere({
-              unit: unitScope,
-              deliveryDate: { lt: todayStart },
-              handoverStatus: { notIn: [...OVERDUE_DELIVERY_EXCLUDED_STATUSES] },
-            }),
-          }),
+          countUnitsForDashboardFilters(
+            {
+              handover: "delivered",
+              delivery: "all",
+              fees: "all",
+              signedProtocol: "all",
+              agent: "all",
+              project: "all",
+            },
+            { unitScope, todayStart }
+          ),
+          countUnitsForDashboardFilters(
+            {
+              handover: "all",
+              delivery: "overdue",
+              fees: "all",
+              signedProtocol: "all",
+              agent: "all",
+              project: "all",
+            },
+            { unitScope, todayStart }
+          ),
         ]);
 
       return {

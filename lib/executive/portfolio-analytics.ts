@@ -4,6 +4,8 @@ import {
   activeTicketWhere,
   activeUnitWhere,
 } from "@/lib/prisma";
+import { countUnitsForDashboardFilters } from "@/lib/dashboard/unit-metric-counts";
+import { startOfDay } from "@/lib/units/unit-dashboard-filters";
 import {
   ENGINEERING_FINISHING_PHASES,
   isFinishingWorkComplete,
@@ -54,12 +56,16 @@ export type ExecutivePortfolioMetrics = {
   followUpDueToday: number;
   followUpOverdue: number;
   feesOutstanding: number;
+  /** False when fee fields were never populated — hide misleading “0 outstanding”. */
+  feesOutstandingIsTracked: boolean;
   finishingInProgress: number;
   finishingComplete: number;
   handoverPipeline: HandoverPipelineSlice[];
   finishingPhases: FinishingPhaseSlice[];
   signedProtocol: SignedProtocolSlice[];
   signedProtocolDetail: SignedProtocolDetailCounts;
+  /** False when no signed-protocol signals exist in the database. */
+  signedProtocolIsTracked: boolean;
 };
 
 const IN_PROGRESS_HANDOVER: HandoverStatus[] = [
@@ -70,12 +76,6 @@ const IN_PROGRESS_HANDOVER: HandoverStatus[] = [
   "WAIVER",
   "EXTENSION",
 ];
-
-function startOfDay(date: Date) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 function endOfDay(date: Date) {
   const d = new Date(date);
@@ -120,6 +120,15 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
     999
   );
 
+  const defaultUnitFilters = {
+    handover: "all" as const,
+    delivery: "all" as const,
+    fees: "all" as const,
+    signedProtocol: "all" as const,
+    agent: "all" as const,
+    project: "all",
+  };
+
   const [
     totalUnits,
     deliveredUnits,
@@ -130,6 +139,7 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
     followUpDueToday,
     followUpOverdue,
     feesOutstanding,
+    feeTrackingPopulation,
     unitsWithFinishing,
     workflows,
     signedUploadedResolved,
@@ -138,25 +148,21 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
     signedCheckboxMarkedResolved,
   ] = await Promise.all([
     prisma.unit.count({ where: activeUnitWhere() }),
-    prisma.contractWorkflow.count({
-      where: activeContractWorkflowWhere({
-        handoverStatus: { in: [...DELIVERED_HANDOVER_STATUSES] },
-      }),
-    }),
-    prisma.contractWorkflow.count({
-      where: activeContractWorkflowWhere({
-        handoverStatus: { in: [...AT_RISK_HANDOVER_STATUSES] },
-      }),
-    }),
+    countUnitsForDashboardFilters(
+      { ...defaultUnitFilters, handover: "delivered" },
+      { todayStart }
+    ),
+    countUnitsForDashboardFilters(
+      { ...defaultUnitFilters, handover: "atRisk" },
+      { todayStart }
+    ),
     prisma.contractWorkflow.count({
       where: activeContractWorkflowWhere({ handoverStatus: "PENDING" }),
     }),
-    prisma.contractWorkflow.count({
-      where: activeContractWorkflowWhere({
-        deliveryDate: { lt: todayStart },
-        handoverStatus: { notIn: [...OVERDUE_DELIVERY_EXCLUDED_STATUSES] },
-      }),
-    }),
+    countUnitsForDashboardFilters(
+      { ...defaultUnitFilters, delivery: "overdue" },
+      { todayStart }
+    ),
     prisma.contractWorkflow.count({
       where: activeContractWorkflowWhere({
         deliveryDate: { gte: todayStart, lte: monthEnd },
@@ -175,15 +181,16 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
         nextFollowUpDate: { lt: todayStart },
       }),
     }),
-    prisma.contractWorkflow.count({
-      where: activeContractWorkflowWhere({
-        hasPaidFees: false,
-        unit: {
-          finishing: {
-            OR: [{ doorFees: { gt: 0 } }, { aluminumFees: { gt: 0 } }],
-          },
-        },
-      }),
+    countUnitsForDashboardFilters(
+      { ...defaultUnitFilters, fees: "outstanding" },
+      { todayStart }
+    ),
+    prisma.finishing.count({
+      where: {
+        deletedAt: null,
+        unit: activeUnitWhere(),
+        OR: [{ doorFees: { gt: 0 } }, { aluminumFees: { gt: 0 } }],
+      },
     }),
     prisma.finishing.findMany({
       where: { deletedAt: null, unit: activeUnitWhere() },
@@ -273,6 +280,12 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
     }))
     .filter((slice) => slice.count > 0);
 
+  const signedProtocolIsTracked =
+    signedUploadedResolved > 0 ||
+    signedDateMarkedResolved > 0 ||
+    signedCheckboxMarkedResolved > 0;
+  const feesOutstandingIsTracked = feeTrackingPopulation > 0;
+
   return {
     totalUnits,
     deliveredUnits,
@@ -283,6 +296,7 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
     followUpDueToday,
     followUpOverdue,
     feesOutstanding,
+    feesOutstandingIsTracked,
     finishingInProgress,
     finishingComplete,
     handoverPipeline: (
@@ -299,5 +313,6 @@ export async function getExecutivePortfolioMetrics(): Promise<ExecutivePortfolio
       checkboxMarked: signedCheckboxMarkedResolved,
       missingUpload: signedMissingResolved,
     },
+    signedProtocolIsTracked,
   };
 }

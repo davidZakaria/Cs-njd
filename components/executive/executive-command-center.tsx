@@ -11,6 +11,7 @@ import type { ExecutiveKpiKey } from "@/components/executive/executive-kpi-grid"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
+import { executiveCaseMetricUrls } from "@/lib/dashboard/executive-metric-urls";
 import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import type { AgentKPIRow } from "@/lib/cases/kpi-types";
@@ -126,7 +127,7 @@ export function ExecutiveCommandCenter({
               <span className="flex items-center gap-2">
                 {t("overview")}
                 <Link
-                  href={buildCasesFilterUrl({ status: "open" })}
+                  href={executiveCaseMetricUrls.openTotal()}
                   onClick={(event) => event.stopPropagation()}
                   className="inline-flex"
                   title={t("viewAllCases")}
@@ -195,10 +196,7 @@ export function ExecutiveCommandCenter({
                 <span className="flex max-w-[11rem] items-center gap-2 sm:max-w-none">
                   <span className="truncate">{projectLabel(slice.project)}</span>
                   <Link
-                    href={buildCasesFilterUrl({
-                      status: "open",
-                      project: slice.slug,
-                    })}
+                    href={executiveCaseMetricUrls.openTotal(slice.slug)}
                     onClick={(event) => event.stopPropagation()}
                     className="inline-flex"
                     title={t("viewProjectCases")}
@@ -210,6 +208,7 @@ export function ExecutiveCommandCenter({
                       href={buildCasesFilterUrl({
                         status: "RESOLVED",
                         project: slice.slug,
+                        distinctUnit: true,
                       })}
                       onClick={(event) => event.stopPropagation()}
                       className="inline-flex"

@@ -708,7 +708,8 @@
       "followUpDue": "متابعات مستحقة",
       "signedProtocolMissing": "محضر موقّع مفقود",
       "finishingInProgress": "تشطيب قيد التنفيذ",
-      "feesOutstanding": "رسوم غير مسدّدة"
+      "feesOutstanding": "رسوم غير مسدّدة",
+      "notTracked": "غير متتبّع"
     },
     "charts": {
       "openCases": "وحدات بعمل مفتوح",

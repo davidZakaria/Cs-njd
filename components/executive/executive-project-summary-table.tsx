@@ -100,6 +100,7 @@ export function ExecutiveProjectSummaryTable({
                     href={buildCasesFilterUrl({
                       status: "open",
                       project: row.slug,
+                      distinctUnit: true,
                     })}
                     className="underline-offset-2 hover:underline"
                   >

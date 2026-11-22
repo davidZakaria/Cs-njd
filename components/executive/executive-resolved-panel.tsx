@@ -35,19 +35,19 @@ export function ExecutiveResolvedPanel({
         key: "resolvedTotal",
         label: t("stats.resolvedTotal"),
         value: data.resolved.stats.resolvedTotal,
-        href: buildCasesFilterUrl({ status: "RESOLVED" }),
+        href: buildCasesFilterUrl({ status: "RESOLVED", distinctUnit: true }),
       },
       {
         key: "myResolved",
         label: t("stats.myResolved"),
         value: data.resolved.stats.myResolved,
-        href: buildCasesFilterUrl({ status: "RESOLVED" }),
+        href: buildCasesFilterUrl({ status: "RESOLVED", distinctUnit: true }),
       },
       {
         key: "teamResolved",
         label: t("stats.teamResolved"),
         value: data.resolved.stats.teamResolved,
-        href: buildCasesFilterUrl({ status: "RESOLVED" }),
+        href: buildCasesFilterUrl({ status: "RESOLVED", distinctUnit: true }),
       },
     ],
     [data.resolved.stats, t]
@@ -86,7 +86,7 @@ export function ExecutiveResolvedPanel({
           <ExecutiveKpiGrid items={resolvedKpis} />
         </div>
         <Link
-          href={buildCasesFilterUrl({ status: "RESOLVED" })}
+          href={buildCasesFilterUrl({ status: "RESOLVED", distinctUnit: true })}
           className={cn(buttonVariants({ variant: "outline" }), "shrink-0")}
         >
           {t("viewAllResolved")}
