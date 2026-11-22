@@ -1,4 +1,6 @@
-import { OPEN_TICKET_STATUSES, type TicketStatus } from "@/lib/cases/workflow";
+import type { TicketStatus } from "@prisma/client";
+
+import { OPEN_TICKET_STATUSES } from "@/lib/cases/workflow";
 
 export type TimelineTicketLike = {
   id: string;
