@@ -34,11 +34,11 @@ async function main() {
       `  workflow ${row.id} unit ${row.unitId} ← ${row.finalSaleContractDate.toISOString()}`
     );
     if (apply) {
-      await prisma.contractWorkflow.update({
-        where: { id: row.id },
+      const result = await prisma.contractWorkflow.updateMany({
+        where: { id: row.id, contractDate: null },
         data: { contractDate: row.finalSaleContractDate },
       });
-      updated += 1;
+      updated += result.count;
     }
   }
 

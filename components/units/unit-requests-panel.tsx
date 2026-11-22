@@ -4,15 +4,12 @@ import { Link } from "@/i18n/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { UnitDisplayFieldsStrip } from "@/components/units/unit-display-fields-strip";
-import type { SerializableUnitDisplayFields } from "@/lib/units/unit-display-fields";
 import type { UnitRequest } from "@prisma/client";
 
 export async function UnitRequestsPanel({
   unitId,
   requests,
   locale,
-  unitDisplayFields,
 }: {
   unitId: string;
   requests: Array<
@@ -21,20 +18,9 @@ export async function UnitRequestsPanel({
     }
   >;
   locale: string;
-  unitDisplayFields: SerializableUnitDisplayFields;
 }) {
   const t = await getTranslations("requests.unitPanel");
   const tEnums = await getTranslations({ locale, namespace: "enums" });
-
-  const fieldsStrip = (
-    <UnitDisplayFieldsStrip
-      fields={unitDisplayFields}
-      locale={locale}
-      surface="unit-requests-panel"
-      compact
-      className="mb-3"
-    />
-  );
 
   if (requests.length === 0) {
     return (
@@ -43,9 +29,14 @@ export async function UnitRequestsPanel({
           <CardTitle className="text-base">{t("title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          {fieldsStrip}
           <p className="text-sm text-muted-foreground">{t("empty")}</p>
-          <Button className="mt-3" size="sm" variant="outline" render={<Link href="/requests" />}>
+          <Button
+            className="mt-3"
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/requests" />}
+          >
             {t("create")}
           </Button>
         </CardContent>
@@ -57,12 +48,16 @@ export async function UnitRequestsPanel({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base">{t("title")}</CardTitle>
-        <Button size="sm" variant="outline" render={<Link href="/requests" />}>
+        <Button
+          size="sm"
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/requests" />}
+        >
           {t("viewAll")}
         </Button>
       </CardHeader>
       <CardContent className="space-y-2">
-        {fieldsStrip}
         {requests.slice(0, 8).map((request) => (
           <Link
             key={request.id}

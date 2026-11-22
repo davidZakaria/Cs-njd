@@ -17,6 +17,8 @@ export type UnitDisplayFieldsStripProps = {
   surface?: string;
   className?: string;
   compact?: boolean;
+  /** Single wrapped line for request detail (no card chrome). */
+  layout?: "panel" | "inline";
 };
 
 export function UnitDisplayFieldsStrip({
@@ -25,8 +27,10 @@ export function UnitDisplayFieldsStrip({
   surface = "unit-display-fields",
   className,
   compact = false,
+  layout = "panel",
 }: UnitDisplayFieldsStripProps) {
   const t = useTranslations("units.csSummary");
+  const tCompact = useTranslations("units.displayFieldsCompact");
   const labels = useDomainLabels();
 
   const deliveryLabel = formatUnitDisplayDate(fields.deliveryDate, locale);
@@ -34,6 +38,41 @@ export function UnitDisplayFieldsStrip({
   const finishingLabel = fields.finishingType
     ? labels.finishingType(fields.finishingType)
     : null;
+
+  if (layout === "inline") {
+    const delivery = deliveryLabel ?? t("notSet");
+    const contract = contractLabel ?? t("notSet");
+    const finishing = finishingLabel ?? t("notSet");
+    const line = `${tCompact("delivery")} ${delivery} · ${tCompact("contract")} ${contract} · ${tCompact("finishing")} ${finishing}`;
+    return (
+      <p
+        data-locale-digit-surface={surface}
+        className={cn("text-sm leading-relaxed text-muted-foreground", className)}
+        title={line}
+      >
+        <span className="inline-flex flex-wrap gap-x-2 gap-y-0.5">
+          <span className="whitespace-nowrap">
+            {tCompact("delivery")}{" "}
+            <span className="font-medium text-foreground tabular-nums">{delivery}</span>
+          </span>
+          <span aria-hidden className="text-border">
+            ·
+          </span>
+          <span className="whitespace-nowrap">
+            {tCompact("contract")}{" "}
+            <span className="font-medium text-foreground tabular-nums">{contract}</span>
+          </span>
+          <span aria-hidden className="text-border">
+            ·
+          </span>
+          <span className="whitespace-nowrap">
+            {tCompact("finishing")}{" "}
+            <span className="font-medium text-foreground">{finishing}</span>
+          </span>
+        </span>
+      </p>
+    );
+  }
 
   const itemClass = compact
     ? "flex min-w-0 flex-1 items-center gap-2 text-xs sm:text-sm"

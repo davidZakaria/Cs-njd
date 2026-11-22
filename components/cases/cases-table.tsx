@@ -57,7 +57,7 @@ import {
 } from "@/components/ui/table";
 import { ExportCsvButton } from "@/components/export/export-csv-button";
 import { cn } from "@/lib/utils";
-import { UnitDisplayFieldsStrip } from "@/components/units/unit-display-fields-strip";
+import { UnitDisplayFieldsCompactLine } from "@/components/units/unit-display-fields-compact-line";
 import type { SerializableUnitDisplayFields } from "@/lib/units/unit-display-fields";
 
 export type CaseRow = {
@@ -494,20 +494,19 @@ export function CasesTable({
         accessorKey: "unit",
         header: t("unit"),
         cell: ({ row }) => (
-          <div className="space-y-1.5">
+          <div className="max-w-[11rem] sm:max-w-[14rem]">
             <Link
               href={`/units/${row.original.unitId}`}
-              className="font-medium hover:underline"
+              className="block truncate font-medium hover:underline"
+              title={`${labels.project(row.original.project)} · ${row.original.unitCode}`}
             >
               {labels.project(row.original.project)} · {row.original.unitCode}
             </Link>
             {row.original.unitDisplayFields ? (
-              <UnitDisplayFieldsStrip
+              <UnitDisplayFieldsCompactLine
                 fields={row.original.unitDisplayFields}
                 locale={locale}
-                surface="cases-table"
-                compact
-                className="max-w-md border-none bg-transparent p-0"
+                maxWidthClass="max-w-full"
               />
             ) : null}
           </div>

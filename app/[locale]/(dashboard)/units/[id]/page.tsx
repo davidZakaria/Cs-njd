@@ -77,9 +77,9 @@ import { listUnitGeneratedDocumentsAction, listUnitOfficialDocumentTextDraftsAct
 import { UnitOfficialDocumentsPanel } from "@/components/units/unit-official-documents-panel";
 import { canCreateUnitRequest } from "@/lib/requests/permissions-core";
 import { CsSummaryHeader } from "@/components/units/cs-summary-header";
-import { UnitDisplayFieldsStrip } from "@/components/units/unit-display-fields-strip";
 import { getMultiUnitBadgeData } from "@/lib/units/multi-unit-badge";
 import {
+  formatUnitDisplayDate,
   resolveUnitDisplayFields,
   serializeUnitDisplayFields,
 } from "@/lib/units/unit-display-fields";
@@ -514,15 +514,9 @@ export default async function UnitProfilePage({
         userId={session?.user.id}
         unitAgentId={unit.agentId}
         locale={locale}
-        unitDisplayFields={unitDisplayFields}
       />
 
-      <UnitRequestsPanel
-        unitId={unit.id}
-        requests={unitRequests}
-        locale={locale}
-        unitDisplayFields={unitDisplayFields}
-      />
+      <UnitRequestsPanel unitId={unit.id} requests={unitRequests} locale={locale} />
 
       {officialDocsEnabled && session?.user && canViewOfficialDocuments(session.user.role) ? (
         <UnitOfficialDocumentsPanel
@@ -565,11 +559,6 @@ export default async function UnitProfilePage({
         </TabsList>
 
         <TabsContent value="client" className="space-y-4">
-          <UnitDisplayFieldsStrip
-            fields={unitDisplayFields}
-            locale={locale}
-            surface="unit-tab-client"
-          />
           <UnitOwnersTab
             unitId={unit.id}
             owners={owners}
@@ -600,11 +589,6 @@ export default async function UnitProfilePage({
         </TabsContent>
 
         <TabsContent value="financials" className="space-y-6">
-          <UnitDisplayFieldsStrip
-            fields={unitDisplayFields}
-            locale={locale}
-            surface="unit-tab-financials"
-          />
           {canUseEngineeringApprovals ? (
             <UnitEngineeringApprovalsPanel
               canUse={canUseEngineeringApprovals}
@@ -671,11 +655,6 @@ export default async function UnitProfilePage({
         </TabsContent>
 
         <TabsContent value="legal" className="space-y-4">
-          <UnitDisplayFieldsStrip
-            fields={unitDisplayFields}
-            locale={locale}
-            surface="unit-tab-legal"
-          />
           {showLegalHandoverForm ? (
             <UnitLegalHandoverForm
               canEditManagement={canEditAdmin || canEditLegalHandover}
@@ -695,10 +674,8 @@ export default async function UnitProfilePage({
                 contractUnitUpdateFlags: contractUpdateFlags,
                 handoverStatus: unit.contractWorkflow?.handoverStatus ?? "PENDING",
                 actionLabel: unit.contractWorkflow?.actionLabel ?? null,
-                contractDate:
-                  unit.contractWorkflow?.contractDate?.toISOString() ?? null,
-                deliveryDate:
-                  unit.contractWorkflow?.deliveryDate?.toISOString() ?? null,
+                contractDate: unitDisplayFields.saleContractDate,
+                deliveryDate: unitDisplayFields.deliveryDate,
                 hasPreliminarySaleContract:
                   unit.contractWorkflow?.hasPreliminarySaleContract ?? false,
                 hasSignedProtocol: unit.contractWorkflow?.hasSignedProtocol ?? false,
@@ -759,12 +736,15 @@ export default async function UnitProfilePage({
                   <strong>{t("actionLabel")}:</strong>{" "}
                   {unit.contractWorkflow?.actionLabel ?? "-"}
                 </p>
-                <UnitDisplayFieldsStrip
-                  fields={unitDisplayFields}
-                  locale={locale}
-                  surface="unit-tab-legal-readonly"
-                  compact
-                />
+                <p>
+                  <strong>{t("contractDate")}:</strong>{" "}
+                  {formatUnitDisplayDate(unitDisplayFields.saleContractDate, locale) ??
+                    "-"}
+                </p>
+                <p>
+                  <strong>{t("deliveryDate")}:</strong>{" "}
+                  {formatUnitDisplayDate(unitDisplayFields.deliveryDate, locale) ?? "-"}
+                </p>
                 <p>
                   <strong>{tWorkflowEdge("powerOfAttorneyReceived")}:</strong>{" "}
                   {poaStatusLabel}
@@ -816,11 +796,6 @@ export default async function UnitProfilePage({
         </TabsContent>
 
         <TabsContent value="timeline" className="space-y-4">
-          <UnitDisplayFieldsStrip
-            fields={unitDisplayFields}
-            locale={locale}
-            surface="unit-tab-timeline"
-          />
           {hasResolvedCase ? (
             <SignedProtocolUpload
               info={signedProtocolInfo}

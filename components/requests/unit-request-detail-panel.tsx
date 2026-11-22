@@ -226,6 +226,7 @@ export function UnitRequestDetailPanel({
           fields={unitDisplayFields}
           locale={locale}
           surface="request-detail"
+          layout="inline"
         />
       ) : null}
 
