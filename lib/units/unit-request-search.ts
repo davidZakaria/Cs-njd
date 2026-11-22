@@ -45,6 +45,15 @@ export function unitWhereVisibleForRequestUnitPicker(
   return canCreateUnitRequest(role) ? {} : { id: { in: [] } };
 }
 
+export function resolvePrimaryClientId(input: {
+  clientId: string | null;
+  unitClients: Array<{ role: string; clientId: string }>;
+}): string | null {
+  const primaryLink = input.unitClients.find((link) => link.role === "PRIMARY");
+  if (primaryLink) return primaryLink.clientId;
+  return input.clientId;
+}
+
 export function resolvePrimaryClientName(input: {
   client: { name: string } | null;
   unitClients: Array<{ role: string; client: { name: string } }>;
@@ -87,7 +96,7 @@ export function mapUnitRowToRequestPickerOption(unit: {
   client: { name: string } | null;
   unitClients: Array<{ role: string; client: { name: string } }>;
 }): UnitRequestPickerOption {
-  const clientName = resolvePrimaryClientName(unit);
+  const clientName = formatUnitOwnersDisplayName(unit);
   return {
     unitId: unit.id,
     unitCode: unit.unitCode,

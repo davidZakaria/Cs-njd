@@ -71,6 +71,13 @@ async function main() {
   });
   console.log(`  CS Agent user: ${csAgent.email} (${csAgent.id})`);
 
+  const communityUser = await createTestUser({
+    email: "demo-community@test.local",
+    name: "Demo Community Mgmt",
+    role: "COMMUNITY_MANAGEMENT",
+  });
+  console.log(`  Community user: ${communityUser.email} (${communityUser.id})`);
+
   // Create or find projects
   let project1 = await prisma.project.findFirst({ where: { name: "جرين أفنيو" } });
   if (!project1) {
@@ -423,43 +430,71 @@ async function main() {
   console.log(`  Unit 2: ${samePersonUnit.unitCode} (${samePersonUnit.id})`);
 
   // ============================================================
-  // HANDOVER REQUEST FOR EDIT TESTING
+  // HANDOVER REQUESTS FOR EDIT TESTING (each owner shape)
   // ============================================================
-  console.log("\n--- Handover Request for Edit Testing ---");
+  console.log("\n--- Handover Requests for Edit Testing ---");
 
-  let handoverRequest = await prisma.unitRequest.findFirst({
-    where: { unitId: ucOnlyUnit.id, type: "HANDOVER_APPOINTMENT", deletedAt: null },
-  });
-  if (!handoverRequest) {
-    handoverRequest = await prisma.unitRequest.create({
+  async function ensureHandoverRequest(input: {
+    unitId: string;
+    clientId: string | null;
+    description: string;
+    key: string;
+  }) {
+    let existing = await prisma.unitRequest.findFirst({
+      where: {
+        unitId: input.unitId,
+        type: "HANDOVER_APPOINTMENT",
+        deletedAt: null,
+        description: { startsWith: input.key },
+      },
+    });
+    if (existing) return existing;
+    existing = await prisma.unitRequest.create({
       data: {
         type: "HANDOVER_APPOINTMENT",
         status: "PENDING",
-        unitId: ucOnlyUnit.id,
+        unitId: input.unitId,
+        clientId: input.clientId,
         requestedById: csAgent.id,
-        description: "طلب موعد تسليم - يرجى الجدولة للأسبوع القادم",
+        description: `${input.key} — ${input.description}`,
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         currentStepIndex: 0,
-        currentApproverKind: "MANAGEMENT",
+        currentApproverKind: "CS_AGENT",
+        unitCycleStageKey: "LEGAL_HANDOVER",
         submittedAt: new Date(),
       },
     });
-    await prisma.requestAuditEvent.create({
-      data: {
-        requestId: handoverRequest.id,
-        userId: csAgent.id,
-        action: "created",
-      },
+    await prisma.requestAuditEvent.createMany({
+      data: [
+        { requestId: existing.id, userId: csAgent.id, action: "created" },
+        { requestId: existing.id, userId: csAgent.id, action: "submitted" },
+      ],
     });
-    await prisma.requestAuditEvent.create({
-      data: {
-        requestId: handoverRequest.id,
-        userId: csAgent.id,
-        action: "submitted",
-      },
-    });
+    return existing;
   }
-  console.log(`  Handover request: ${handoverRequest.id}`);
+
+  const handoverMerged = await ensureHandoverRequest({
+    unitId: mergedUnit.id,
+    clientId: mergedClient.id,
+    key: "[MERGED]",
+    description: "Handover on merged '/' owner name unit",
+  });
+  const handoverLegacyCo = await ensureHandoverRequest({
+    unitId: legacyCoOwnerUnit.id,
+    clientId: legacyClient.id,
+    key: "[LEGACY+CO]",
+    description: "Handover on legacy primary + CO_OWNER row",
+  });
+  const handoverRequest = await ensureHandoverRequest({
+    unitId: ucOnlyUnit.id,
+    clientId: primaryOnlyOwner.id,
+    key: "[UC_ONLY]",
+    description: "Handover on PRIMARY+CO_OWNER unitClients only",
+  });
+
+  console.log(`  Merged owner request:   ${handoverMerged.id}`);
+  console.log(`  Legacy+CO request:      ${handoverLegacyCo.id}`);
+  console.log(`  unitClients-only request: ${handoverRequest.id}`);
 
   // ============================================================
   // DELETE FLOW SCENARIO
@@ -545,14 +580,18 @@ async function main() {
   console.log(`  3. Two unitClients:        /en/units/${ucOnlyUnit.id}`);
   console.log(`  4. Multi-unit (var):       /en/units/${multiVar1Unit.id}`);
   console.log(`     Multi-unit (B5-30/31):  /en/units/${ucOnlyUnit.id}`);
-  console.log(`  Handover request:          /en/requests/${handoverRequest.id}`);
+  console.log(`  Handover (merged):         /en/requests/${handoverMerged.id}`);
+  console.log(`  Handover (legacy+co):      /en/requests/${handoverLegacyCo.id}`);
+  console.log(`  Handover (unitClients):    /en/requests/${handoverRequest.id}`);
   console.log(`  Delete demo:               /en/requests/${deleteRequest.id}`);
   console.log("\nUnit IDs for scripts:");
   console.log(`  MERGED_UNIT_ID="${mergedUnit.id}"`);
   console.log(`  LEGACY_COOWNER_UNIT_ID="${legacyCoOwnerUnit.id}"`);
   console.log(`  UC_ONLY_UNIT_ID="${ucOnlyUnit.id}"`);
   console.log(`  MULTI_VAR_UNIT_ID="${multiVar1Unit.id}"`);
-  console.log(`  HANDOVER_REQUEST_ID="${handoverRequest.id}"`);
+  console.log(`  HANDOVER_MERGED_REQUEST_ID="${handoverMerged.id}"`);
+  console.log(`  HANDOVER_LEGACY_CO_REQUEST_ID="${handoverLegacyCo.id}"`);
+  console.log(`  HANDOVER_UC_ONLY_REQUEST_ID="${handoverRequest.id}"`);
   console.log(`  DELETE_REQUEST_ID="${deleteRequest.id}"`);
 }
 

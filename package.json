@@ -27,7 +27,8 @@
     "cleanup:import-users": "tsx scripts/cleanup-bogus-users.ts",
     "purge:imported-users": "tsx scripts/purge-imported-users.ts",
     "backup:cron": "tsx scripts/cron.ts",
-    "verify:cron-imports": "tsx scripts/cron-imports.ts"
+    "verify:cron-imports": "tsx scripts/cron-imports.ts",
+    "e2e:handover-request-edit": "tsx scripts/e2e-handover-request-edit-matrix.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

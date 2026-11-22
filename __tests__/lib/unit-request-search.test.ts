@@ -24,21 +24,24 @@ describe("unit request picker search", () => {
     ).toBe("Primary Name");
   });
 
-  it("maps unit rows to picker options", () => {
+  it("maps unit rows to picker options with both owners in label", () => {
     expect(
       mapUnitRowToRequestPickerOption({
         id: "unit-1",
         unitCode: "B-2",
         project: { name: "Jamila" },
         client: null,
-        unitClients: [{ role: "PRIMARY", client: { name: "Sara" } }],
+        unitClients: [
+          { role: "PRIMARY", client: { name: "Sara" } },
+          { role: "CO_OWNER", client: { name: "Nadia" } },
+        ],
       })
     ).toEqual({
       unitId: "unit-1",
       unitCode: "B-2",
       projectName: "Jamila",
-      clientName: "Sara",
-      label: "B-2 · Jamila · Sara",
+      clientName: "Sara · Nadia",
+      label: "B-2 · Jamila · Sara · Nadia",
     });
   });
 
