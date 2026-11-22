@@ -31,7 +31,8 @@
     "e2e:handover-request-edit": "tsx scripts/e2e-handover-request-edit-matrix.ts",
     "e2e:dashboard-metric-parity": "tsx scripts/e2e-dashboard-metric-parity.ts",
     "e2e:walkthrough-ar-unit": "tsx scripts/e2e-walkthrough-ar-unit-timeline.ts",
-    "cleanup:excel-phones": "tsx scripts/cleanup-excel-phone-suffixes.ts"
+    "cleanup:excel-phones": "tsx scripts/cleanup-excel-phone-suffixes.ts",
+    "capture:walkthrough-proof": "tsx scripts/capture-walkthrough-proof.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

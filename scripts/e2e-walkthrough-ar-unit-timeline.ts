@@ -70,10 +70,13 @@ async function main() {
       failures.push(`${locale}: cleaned phone not visible`);
     }
 
-    const dupCount = body?.split(DUP_NOTE).length ?? 0;
-    if (dupCount - 1 !== 1) {
+    const timelineNoteCards = page
+      .locator("article")
+      .filter({ hasText: DUP_NOTE });
+    const visibleDupCards = await timelineNoteCards.count();
+    if (visibleDupCards !== 1) {
       failures.push(
-        `${locale}: expected 1 duplicate timeline note, saw ${Math.max(0, dupCount - 1)}`
+        `${locale}: expected 1 timeline card for duplicate note, saw ${visibleDupCards}`
       );
     }
 
