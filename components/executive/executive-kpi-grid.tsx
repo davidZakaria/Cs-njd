@@ -1,5 +1,6 @@
 import type { ExecutiveStats } from "@/lib/cases/executive-dashboard";
 import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import {
   entranceAnimationClass,
   premiumCardHoverClass,
@@ -33,6 +34,8 @@ export type StatItem = {
   key: ExecutiveKpiKey | string;
   label: string;
   value: number;
+  /** When data was never captured in CRM, show a label instead of a misleading number. */
+  notTracked?: boolean;
   href?: string;
   description?: string;
   percentOfTotal?: number;
@@ -90,6 +93,7 @@ export function buildExecutiveKpiItems(
 }
 
 export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
+  const t = useTranslations("executive.stats");
   return (
     <TooltipProvider>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
@@ -139,14 +143,16 @@ export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
                   href={stat.href}
                   className="block font-heading text-3xl font-bold tabular-nums tracking-tight underline-offset-2 hover:underline"
                 >
-                  {stat.value.toLocaleString()}
+                  {stat.notTracked ? t("notTracked") : stat.value.toLocaleString()}
                 </Link>
               ) : (
                 <div className="font-heading text-3xl font-bold tabular-nums tracking-tight transition-transform duration-300 group-hover:scale-[1.02]">
-                  {stat.value.toLocaleString()}
+                  {stat.notTracked ? t("notTracked") : stat.value.toLocaleString()}
                 </div>
               )}
-              {stat.percentOfTotal != null && stat.percentOfTotal > 0 ? (
+              {stat.percentOfTotal != null &&
+              stat.percentOfTotal > 0 &&
+              !stat.notTracked ? (
                 <p className="text-xs text-muted-foreground tabular-nums">
                   {stat.percentOfTotal.toFixed(1)}%
                 </p>
@@ -180,11 +186,13 @@ export function ExecutiveKpiGrid({ items }: { items: StatItem[] }) {
         );
 
         return mainLink ? (
-          <Link key={stat.key} href={stat.href!} className="block">
+          <Link key={stat.key} href={stat.href!} className="block" data-testid={`kpi-${stat.key}`}>
             {card}
           </Link>
         ) : (
-          <div key={stat.key}>{card}</div>
+          <div key={stat.key} data-testid={`kpi-${stat.key}`}>
+            {card}
+          </div>
         );
       })}
     </div>

@@ -2,15 +2,13 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import {
+  csAgentTicketScope,
   csAgentUnitScope,
   resolveCsAgentScope,
 } from "@/lib/auth/cs-agent-scope";
 import { prisma } from "@/lib/prisma";
-import {
-  activeContractWorkflowWhere,
-  activeTicketWhere,
-  activeUnitWhere,
-} from "@/lib/prisma";
+import { activeTicketWhere, activeUnitWhere } from "@/lib/prisma";
+import { countUnitsForDashboardFilters } from "@/lib/dashboard/unit-metric-counts";
 import { getTranslations } from "next-intl/server";
 import { getPendingWorkForSession } from "@/lib/cases/pending-work";
 import { PendingWorkQueue } from "@/components/cases/pending-work-queue";
@@ -61,37 +59,39 @@ export default async function DashboardPage() {
         where: activeUnitWhere(csScope ? {} : assignedUnitScope),
       }),
       prisma.ticket.count({
-        where: activeTicketWhere({
-          status: "PENDING",
-          unit: assignedUnitScope.agentId
-            ? { agentId: assignedUnitScope.agentId }
-            : {},
-        }),
+        where: activeTicketWhere(
+          csScope
+            ? { status: "PENDING", ...csAgentTicketScope(csScope) }
+            : {
+                status: "PENDING",
+                unit: assignedUnitScope.agentId
+                  ? { agentId: assignedUnitScope.agentId }
+                  : {},
+              }
+        ),
       }),
-      prisma.contractWorkflow.count({
-        where: activeContractWorkflowWhere({
-          handoverStatus: { in: ["DELIVERY_PROTOCOL", "DELIVERED"] },
-          unit: assignedUnitScope.agentId
-            ? { agentId: assignedUnitScope.agentId }
-            : {},
-        }),
-      }),
-      prisma.contractWorkflow.count({
-        where: activeContractWorkflowWhere({
-          handoverStatus: {
-            in: [
-              "REFUSED_DELIVERY",
-              "REFUSED_EXTENSION",
-              "INSTALLMENT_STOP_WARNING",
-              "DELIVERY_WARNING",
-              "LEGAL_DISPUTE",
-            ],
-          },
-          unit: assignedUnitScope.agentId
-            ? { agentId: assignedUnitScope.agentId }
-            : {},
-        }),
-      }),
+      countUnitsForDashboardFilters(
+        {
+          handover: "delivered",
+          delivery: "all",
+          fees: "all",
+          signedProtocol: "all",
+          agent: "all",
+          project: "all",
+        },
+        { unitScope: {} }
+      ),
+      countUnitsForDashboardFilters(
+        {
+          handover: "legal",
+          delivery: "all",
+          fees: "all",
+          signedProtocol: "all",
+          agent: "all",
+          project: "all",
+        },
+        { unitScope: {} }
+      ),
       session?.user
         ? getPendingWorkForSession({
             id: session.user.id,

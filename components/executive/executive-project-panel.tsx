@@ -18,6 +18,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
+import { executiveCaseMetricUrls } from "@/lib/dashboard/executive-metric-urls";
 import { filterExecutiveCaseRows } from "@/lib/executive/filter-case-rows";
 import type {
   ExecutiveDashboardData,
@@ -56,19 +57,25 @@ export function ExecutiveProjectPanel({
     const openItems =
       slice.stats.openTotal > 0
         ? buildExecutiveKpiItems(slice.stats, kpiLabels, {
-            openTotal: buildCasesFilterUrl({
-              status: "open",
-              project: slice.slug,
-            }),
+            openTotal: executiveCaseMetricUrls.openTotal(slice.slug),
             unassigned: buildCasesFilterUrl({
               status: "open",
               project: slice.slug,
               agent: "unassigned",
+              distinctUnit: true,
+              queue: "team",
             }),
-            legal: buildCasesFilterUrl({ status: "LEGAL", project: slice.slug }),
-            engineering: buildCasesFilterUrl({
-              status: "ENGINEERING",
+            legal: buildCasesFilterUrl({
+              status: "open",
               project: slice.slug,
+              primaryStatus: "LEGAL",
+              distinctUnit: true,
+            }),
+            engineering: buildCasesFilterUrl({
+              status: "open",
+              project: slice.slug,
+              primaryStatus: "ENGINEERING",
+              distinctUnit: true,
             }),
           })
         : [];

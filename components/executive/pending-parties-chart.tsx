@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/chart";
 import { useDomainLabels } from "@/hooks/use-domain-labels";
 import type { PendingPartyBreakdown } from "@/lib/cases/executive-dashboard";
-import { buildCasesFilterUrl } from "@/lib/cases/cases-filter-url";
+import { executiveCaseMetricUrls } from "@/lib/dashboard/executive-metric-urls";
 import { premiumCardHoverClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
 import {
@@ -74,12 +74,7 @@ export function PendingPartiesChart({
   const total = chartData.reduce((sum, item) => sum + item.count, 0);
 
   function handleBarClick(key: PendingPartyChartKey) {
-    router.push(
-      buildCasesFilterUrl({
-        status: "open",
-        pendingParty: key,
-      })
-    );
+    router.push(executiveCaseMetricUrls.pendingParty(key));
   }
 
   return (

@@ -708,7 +708,8 @@
       "followUpDue": "Follow-ups due",
       "signedProtocolMissing": "Missing signed protocol",
       "finishingInProgress": "Finishing in progress",
-      "feesOutstanding": "Outstanding fees"
+      "feesOutstanding": "Outstanding fees",
+      "notTracked": "Not tracked"
     },
     "charts": {
       "openCases": "Units with open work",

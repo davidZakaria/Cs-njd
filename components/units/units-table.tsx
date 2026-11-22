@@ -39,13 +39,9 @@ import { Badge } from "@/components/ui/badge";
 import { ExportCsvButton } from "@/components/export/export-csv-button";
 import { CreateUnitDialog } from "@/components/units/create-unit-dialog";
 
-import {
-  isCancelledHandover,
-  isDeliveredHandover,
-} from "@/lib/executive/handover-status-groups";
+import { matchesUnitDashboardFilters } from "@/lib/units/unit-dashboard-filters";
 import {
   buildUnitsPageUrl,
-  matchesUnitsHandoverGroup,
   resolveUnitsProjectFilterParam,
   type UnitsHandoverGroup,
   type UnitsPageFilters,
@@ -242,28 +238,20 @@ export function UnitsTable({
         return false;
       }
       if (
-        handoverGroupFilter !== "all" &&
-        !matchesUnitsHandoverGroup(row.handoverStatus, handoverGroupFilter)
+        !matchesUnitDashboardFilters(
+          {
+            project: row.project,
+            agent: row.agent,
+            handoverStatus: row.handoverStatus,
+            deliveryDate: row.deliveryDate ?? null,
+            missingSignedProtocol: row.missingSignedProtocol ?? false,
+            feesOutstanding: row.feesOutstanding ?? false,
+            agentUnassigned: row.agentUnassigned ?? false,
+          },
+          pageFilters,
+          filterTodayStart
+        )
       ) {
-        return false;
-      }
-      if (deliveryOverdueOnly) {
-        const deliveryDate = row.deliveryDate
-          ? new Date(row.deliveryDate)
-          : null;
-        if (
-          !deliveryDate ||
-          !filterTodayStart ||
-          deliveryDate >= filterTodayStart ||
-          isDeliveredHandover(row.handoverStatus) ||
-          isCancelledHandover(row.handoverStatus)
-        ) {
-          return false;
-        }
-      }
-      if (feesOutstandingOnly && !row.feesOutstanding) return false;
-      if (signedProtocolMissingOnly && !row.missingSignedProtocol) return false;
-      if (pageFilters.agent === "unassigned" && !row.agentUnassigned) {
         return false;
       }
       if (statusFilter !== "all" && row.handoverStatus !== statusFilter) return false;

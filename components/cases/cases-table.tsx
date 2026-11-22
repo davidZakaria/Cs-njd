@@ -31,6 +31,7 @@ import {
   resolveAgentFilterParam,
 } from "@/lib/cases/cases-filter-url";
 import { PENDING_PARTY_CHART_KEYS } from "@/lib/executive/chart-theme";
+import { filterCaseDashboardRows } from "@/lib/cases/case-dashboard-filters";
 import { isFollowUpDue } from "@/lib/cases/follow-up-sprint";
 import {
   confirmManagementOverride,
@@ -85,6 +86,11 @@ const DEFAULT_CASES_FILTERS: CasesPageFilters = {
   agent: "all",
   followUp: "all",
   pendingParty: "all",
+  distinctUnit: false,
+  queue: "all",
+  primaryStatus: "all",
+  metricCategory: "all",
+  awaitingParty: false,
 };
 
 const CATEGORY_FILTER_ORDER = [
@@ -194,6 +200,8 @@ export function CasesTable({
   defaultAgentFilter = "all",
   defaultFollowUpFilter = "all",
   defaultPendingPartyFilter = "all",
+  defaultPageFilters,
+  viewerUserId,
   defaultCollapsed = false,
   canExport = true,
 }: {
@@ -209,6 +217,10 @@ export function CasesTable({
   defaultAgentFilter?: string;
   defaultFollowUpFilter?: "all" | "due";
   defaultPendingPartyFilter?: string;
+  /** Full URL filters from the server (includes distinctUnit, queue, etc.). */
+  defaultPageFilters?: CasesPageFilters;
+  /** Required for `queue=team` drill-down filters. */
+  viewerUserId?: string;
   defaultCollapsed?: boolean;
   canExport?: boolean;
 }) {
@@ -220,18 +232,9 @@ export function CasesTable({
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [query, setQuery] = useState("");
-  const [urlFilters, setUrlFilters] = useState<CasesPageFilters>(() => ({
-    ...DEFAULT_CASES_FILTERS,
-    status: defaultStatusFilter,
-    project: defaultProjectFilter,
-    category: defaultCategoryFilter,
-    agent: defaultAgentFilter,
-    followUp: defaultFollowUpFilter,
-    pendingParty: defaultPendingPartyFilter,
-  }));
-
-  useEffect(() => {
-    setUrlFilters({
+  const resolvedInitialFilters = useMemo((): CasesPageFilters => {
+    if (defaultPageFilters) return defaultPageFilters;
+    return {
       ...DEFAULT_CASES_FILTERS,
       status: defaultStatusFilter,
       project: defaultProjectFilter,
@@ -239,8 +242,9 @@ export function CasesTable({
       agent: defaultAgentFilter,
       followUp: defaultFollowUpFilter,
       pendingParty: defaultPendingPartyFilter,
-    });
+    };
   }, [
+    defaultPageFilters,
     defaultAgentFilter,
     defaultCategoryFilter,
     defaultFollowUpFilter,
@@ -248,6 +252,14 @@ export function CasesTable({
     defaultProjectFilter,
     defaultStatusFilter,
   ]);
+
+  const [urlFilters, setUrlFilters] = useState<CasesPageFilters>(
+    resolvedInitialFilters
+  );
+
+  useEffect(() => {
+    setUrlFilters(resolvedInitialFilters);
+  }, [resolvedInitialFilters]);
 
   const pushUrlFilters = useCallback(
     (next: CasesPageFilters) => {
@@ -334,67 +346,29 @@ export function CasesTable({
   }, [data, labels, t]);
 
   const filtered = useMemo(() => {
-    const rows = data.filter((row) => {
-      if (
-        statusFilter === "open" &&
-        !OPEN_TICKET_STATUSES.includes(
-          row.status as (typeof OPEN_TICKET_STATUSES)[number]
-        )
-      ) {
-        return false;
-      }
-      if (
-        statusFilter !== "all" &&
-        statusFilter !== "open" &&
-        row.status !== statusFilter
-      ) {
-        return false;
-      }
-      if (categoryFilter !== "all" && row.category !== categoryFilter) return false;
-      if (
-        projectFilter !== "all" &&
-        projectNameToSlug(row.project) !== projectFilter
-      ) {
-        return false;
-      }
-      if (agentFilter === UNASSIGNED_AGENT_FILTER) {
-        if (!isUnassignedAgentName(row.effectiveAgent)) return false;
-      } else if (agentFilter !== "all") {
-        const filterAgent = agents.find((agent) => agent.name === agentFilter);
-        if (filterAgent) {
-          if (row.effectiveAgentId !== filterAgent.id) return false;
-        } else if (row.effectiveAgent !== agentFilter) {
-          return false;
-        }
-      }
-      if (
-        followUpFilter === "due" &&
-        !isFollowUpDue(row.nextFollowUpDate)
-      ) {
-        return false;
-      }
-      if (
-        pendingPartyFilter !== "all" &&
-        row.pendingParty !== pendingPartyFilter
-      ) {
-        return false;
-      }
-      if (!query) return true;
-      const q = query.toLowerCase();
-      return (
-        row.notes.toLowerCase().includes(q) ||
-        row.unitCode.toLowerCase().includes(q) ||
-        row.client.toLowerCase().includes(q) ||
-        row.project.toLowerCase().includes(q)
-      );
+    const rows = filterCaseDashboardRows(data, urlFilters, {
+      viewerUserId,
+      agents,
     });
 
-    if (categoryFilter !== "all") return rows;
+  const searched = !query
+      ? rows
+      : rows.filter((row) => {
+          const q = query.toLowerCase();
+          return (
+            row.notes.toLowerCase().includes(q) ||
+            (row.unitCode ?? "").toLowerCase().includes(q) ||
+            (row.client ?? "").toLowerCase().includes(q) ||
+            row.project.toLowerCase().includes(q)
+          );
+        });
 
-    return [...rows].sort(
+    if (categoryFilter !== "all") return searched;
+
+    return [...searched].sort(
       (a, b) => categoryFilterRank(a.category) - categoryFilterRank(b.category)
     );
-  }, [data, statusFilter, projectFilter, categoryFilter, agentFilter, followUpFilter, pendingPartyFilter, query, agents]);
+  }, [data, urlFilters, viewerUserId, agents, categoryFilter, query]);
 
   const activeFilterChips = useMemo(() => {
     const chips: Array<{ key: string; label: string; clear: () => void }> = [];
