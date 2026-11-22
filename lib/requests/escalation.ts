@@ -3,6 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import { recordRequestAuditEvent } from "@/lib/requests/audit";
 import { isRequestOverdue } from "@/lib/requests/overdue";
 import type { UnitRequestListRow } from "@/lib/requests/types";
+import { resolvePrimaryClientName } from "@/lib/units/unit-request-search";
 
 function digestDayKey(now: Date): string {
   return now.toISOString().slice(0, 10);
@@ -19,6 +20,11 @@ const listInclude = {
       agentId: true,
       project: { select: { name: true } },
       client: { select: { name: true } },
+      unitClients: {
+        where: { role: "PRIMARY" as const },
+        take: 1,
+        select: { role: true, client: { select: { name: true } } },
+      },
     },
   },
 } as const;
@@ -30,6 +36,7 @@ export async function getOverduePendingRequests(
   const now = new Date();
   const rows = await prisma.unitRequest.findMany({
     where: {
+      deletedAt: null,
       status: "PENDING",
       dueDate: { lt: now },
     },
@@ -56,7 +63,10 @@ export async function getOverduePendingRequests(
     unitId: row.unit.id,
     unitCode: row.unit.unitCode,
     projectName: row.unit.project.name,
-    clientName: row.unit.client?.name ?? "—",
+    clientName: resolvePrimaryClientName({
+      client: row.unit.client,
+      unitClients: row.unit.unitClients,
+    }),
     unitAgentId: row.unit.agentId,
     unitCycleStageKey: row.unitCycleStageKey,
   }));

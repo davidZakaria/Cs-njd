@@ -107,6 +107,7 @@ export async function createBulkArchiveCheckAction(
       unitId: { in: units.map((unit) => unit.id) },
       type: "ARCHIVE_CHECK",
       status: { in: OPEN_ARCHIVE_CHECK_STATUSES },
+      deletedAt: null,
     },
     select: { unitId: true },
   });
@@ -320,7 +321,7 @@ async function maybeCompleteBulkArchiveCheckParent(
   userId: string
 ) {
   const children = await prisma.unitRequest.findMany({
-    where: { parentRequestId: parentId },
+    where: { parentRequestId: parentId, deletedAt: null },
     select: { id: true, status: true },
   });
   if (children.length === 0) return;

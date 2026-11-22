@@ -74,6 +74,8 @@ import {
 import { listUnitGeneratedDocumentsAction, listUnitOfficialDocumentTextDraftsAction } from "@/lib/actions/official-documents";
 import { UnitOfficialDocumentsPanel } from "@/components/units/unit-official-documents-panel";
 import { canCreateUnitRequest } from "@/lib/requests/permissions-core";
+import { CsSummaryHeader } from "@/components/units/cs-summary-header";
+import { getMultiUnitBadgeData } from "@/lib/units/multi-unit-badge";
 
 export default async function UnitProfilePage({
   params,
@@ -421,6 +423,22 @@ export default async function UnitProfilePage({
     unit.swappedFromUnitId && unit.swappedFromAt
   );
 
+  const clientIdsForBadge = owners.map((o) => o.clientId);
+  const multiUnitBadge = await getMultiUnitBadgeData(clientIdsForBadge, unit.id);
+  
+  const primaryOwner = owners.find((o) => o.role === "PRIMARY");
+  const csSummaryProps = {
+    clientName: primaryOwner?.clientName ?? "",
+    unitCode: unit.unitCode,
+    projectName: unit.project.name,
+    gracePeriod: unit.gracePeriod,
+    deliveryDate: unit.contractWorkflow?.deliveryDate?.toISOString() ?? null,
+    contractDate: unit.contractWorkflow?.contractDate?.toISOString() ?? null,
+    finishingType: unit.finishing?.finishingType ?? null,
+    locale,
+    multiUnitBadge,
+  };
+
   return (
     <div className="space-y-6">
       {isLegallyBlocked ? <LegalBlockBanner /> : null}
@@ -447,6 +465,9 @@ export default async function UnitProfilePage({
           <PrintProtocolButton unitId={unit.id} locale={locale} projectName={unit.project.name} />
         </div>
       </div>
+
+      {/* CS Summary Header - prominent client info visible at a glance */}
+      <CsSummaryHeader {...csSummaryProps} />
 
       {swapHistoryMessage ? (
         <Alert>

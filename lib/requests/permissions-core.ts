@@ -121,6 +121,28 @@ export function canCancelRequest(input: {
   );
 }
 
+/**
+ * Delete permissions:
+ * - Open requests (DRAFT, PENDING): submitter or management can delete
+ * - Closed requests (APPROVED, REJECTED, CANCELLED): only management can delete
+ */
+export function canDeleteRequest(input: {
+  role: Role;
+  userId: string;
+  requestedById: string;
+  status: UnitRequestStatus;
+}): boolean {
+  const isManagement =
+    isAdminUnitManager(input.role) || input.role === "SUPER_ADMIN";
+  const isOpen = !isClosedUnitRequestStatus(input.status);
+  const isRequester = input.requestedById === input.userId;
+
+  if (isOpen) {
+    return isRequester || isManagement;
+  }
+  return isManagement;
+}
+
 export function isClosedUnitRequestStatus(status: UnitRequestStatus): boolean {
   return (
     status === "APPROVED" || status === "REJECTED" || status === "CANCELLED"

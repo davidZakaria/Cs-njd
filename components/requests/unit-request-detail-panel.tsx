@@ -2,12 +2,14 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
 import { Link } from "@/i18n/navigation";
 
 import {
   approveUnitRequestStepAction,
   cancelUnitRequestAction,
+  deleteUnitRequestAction,
   rejectUnitRequestAction,
   submitUnitRequestAction,
   addUnitRequestCommentAction,
@@ -19,7 +21,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { UnitRequestStatus, UnitRequestType } from "@prisma/client";
 import { ArchiveCheckProgressPanel } from "@/components/archive-check/archive-check-progress-panel";
@@ -61,6 +73,7 @@ export function UnitRequestDetailPanel({
   canReject,
   canSubmit,
   canCancel,
+  canDelete,
   canComment,
   canUpload,
   canManageContent,
@@ -97,6 +110,7 @@ export function UnitRequestDetailPanel({
   canReject: boolean;
   canSubmit: boolean;
   canCancel: boolean;
+  canDelete: boolean;
   canComment: boolean;
   canUpload: boolean;
   canManageContent: boolean;
@@ -116,6 +130,7 @@ export function UnitRequestDetailPanel({
 }) {
   const t = useTranslations("requests.detail");
   const tEnums = useTranslations("enums");
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [note, setNote] = useState("");
   const [comment, setComment] = useState("");
@@ -123,6 +138,8 @@ export function UnitRequestDetailPanel({
   const [descriptionDraft, setDescriptionDraft] = useState(
     request.description ?? ""
   );
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
 
   const run = (fn: () => Promise<{ success: boolean; error?: string }>) => {
     startTransition(async () => {
@@ -379,6 +396,63 @@ export function UnitRequestDetailPanel({
           >
             {t("cancel")}
           </Button>
+        ) : null}
+        {canDelete ? (
+          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <DialogTrigger
+              render={<Button variant="destructive" disabled={pending} />}
+            >
+              {t("delete")}
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{t("deleteConfirmTitle")}</DialogTitle>
+                <DialogDescription>{t("deleteConfirmBody")}</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-2">
+                <Label htmlFor="delete-reason">{t("deleteReasonLabel")}</Label>
+                <Textarea
+                  id="delete-reason"
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder={t("deleteReasonPlaceholder")}
+                  maxLength={500}
+                />
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteDialogOpen(false)}
+                  disabled={pending}
+                >
+                  {t("cancelEdit")}
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={pending}
+                  onClick={() => {
+                    startTransition(async () => {
+                      const result = await deleteUnitRequestAction({
+                        requestId: request.id,
+                        reason: deleteReason || undefined,
+                      });
+                      if (result.success) {
+                        toast.success(t("deleted"));
+                        setDeleteDialogOpen(false);
+                        router.push(`/units/${request.unitId}`);
+                      } else {
+                        toast.error(
+                          "error" in result ? result.error : t("failed")
+                        );
+                      }
+                    });
+                  }}
+                >
+                  {t("deleteConfirmButton")}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         ) : null}
       </div>
 

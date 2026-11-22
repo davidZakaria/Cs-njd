@@ -14,6 +14,7 @@ const openRequestVisibility = {
 import { canAccessRequestsDashboard } from "@/lib/auth/role-permissions";
 import {
   canCreateUnitRequest,
+  canDeleteRequest,
   canManageOpenRequestContent,
   canManageRequestAttachment,
   canUploadRequestAttachment,
@@ -260,5 +261,121 @@ describe("request permissions", () => {
         unitAgentId: "agent-1",
       })
     ).toBe(true);
+  });
+
+  describe("canDeleteRequest", () => {
+    it("lets requester delete their own open request", () => {
+      expect(
+        canDeleteRequest({
+          role: "CS_AGENT",
+          userId: "agent-1",
+          requestedById: "agent-1",
+          status: "PENDING",
+        })
+      ).toBe(true);
+      expect(
+        canDeleteRequest({
+          role: "CS_AGENT",
+          userId: "agent-1",
+          requestedById: "agent-1",
+          status: "DRAFT",
+        })
+      ).toBe(true);
+    });
+
+    it("blocks requester from deleting closed requests", () => {
+      expect(
+        canDeleteRequest({
+          role: "CS_AGENT",
+          userId: "agent-1",
+          requestedById: "agent-1",
+          status: "APPROVED",
+        })
+      ).toBe(false);
+      expect(
+        canDeleteRequest({
+          role: "CS_AGENT",
+          userId: "agent-1",
+          requestedById: "agent-1",
+          status: "REJECTED",
+        })
+      ).toBe(false);
+      expect(
+        canDeleteRequest({
+          role: "CS_AGENT",
+          userId: "agent-1",
+          requestedById: "agent-1",
+          status: "CANCELLED",
+        })
+      ).toBe(false);
+    });
+
+    it("blocks non-requester from deleting others' open requests", () => {
+      expect(
+        canDeleteRequest({
+          role: "CS_AGENT",
+          userId: "agent-2",
+          requestedById: "agent-1",
+          status: "PENDING",
+        })
+      ).toBe(false);
+    });
+
+    it("lets management delete any open request", () => {
+      expect(
+        canDeleteRequest({
+          role: "MANAGEMENT",
+          userId: "mgr",
+          requestedById: "agent-1",
+          status: "PENDING",
+        })
+      ).toBe(true);
+      expect(
+        canDeleteRequest({
+          role: "SUPER_ADMIN",
+          userId: "admin",
+          requestedById: "agent-1",
+          status: "DRAFT",
+        })
+      ).toBe(true);
+    });
+
+    it("lets management delete closed requests", () => {
+      expect(
+        canDeleteRequest({
+          role: "MANAGEMENT",
+          userId: "mgr",
+          requestedById: "agent-1",
+          status: "APPROVED",
+        })
+      ).toBe(true);
+      expect(
+        canDeleteRequest({
+          role: "SUPER_ADMIN",
+          userId: "admin",
+          requestedById: "agent-1",
+          status: "REJECTED",
+        })
+      ).toBe(true);
+    });
+
+    it("blocks non-management from deleting others' closed requests", () => {
+      expect(
+        canDeleteRequest({
+          role: "OPERATIONS",
+          userId: "ops",
+          requestedById: "agent-1",
+          status: "APPROVED",
+        })
+      ).toBe(false);
+      expect(
+        canDeleteRequest({
+          role: "LEGAL",
+          userId: "legal",
+          requestedById: "agent-1",
+          status: "REJECTED",
+        })
+      ).toBe(false);
+    });
   });
 });

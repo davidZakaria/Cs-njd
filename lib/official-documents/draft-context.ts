@@ -150,6 +150,7 @@ export async function resolveOfficialDocumentGenerationContext(input: {
         unitId: unit.id,
         type: requiredType,
         status: "APPROVED",
+        deletedAt: null,
       },
     });
     if (!request) {
@@ -158,7 +159,7 @@ export async function resolveOfficialDocumentGenerationContext(input: {
     requestDescription = request.description;
   } else if (unitRequestId) {
     const request = await prisma.unitRequest.findFirst({
-      where: { id: unitRequestId, unitId: unit.id },
+      where: { id: unitRequestId, unitId: unit.id, deletedAt: null },
     });
     if (!request) return { ok: false, error: "Request not found for this unit" };
     if (!documentTypeMatchesRequest(input.documentType, request.type)) {

@@ -123,7 +123,7 @@ export async function markOperationsArchiveFileRequestReadAction(
   if (!parsed.success) return actionFail("Invalid input");
 
   const request = await prisma.unitRequest.findFirst({
-    where: { id: parsed.data.requestId, type: "ARCHIVE_FILE_REQUEST" },
+    where: { id: parsed.data.requestId, type: "ARCHIVE_FILE_REQUEST", deletedAt: null },
     select: { id: true },
   });
   if (!request) return actionFail("Request not found");
