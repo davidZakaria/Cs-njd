@@ -3,12 +3,7 @@
  * Run: npx tsx scripts/seed-handover-merged-owner-ui.ts
  */
 import "dotenv/config";
-import {
-  PrismaClient,
-  Role,
-  UnitClientRole,
-  UnitRequestType,
-} from "@prisma/client";
+import { PrismaClient, Role, UnitClientRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -97,28 +92,7 @@ async function main() {
     });
   }
 
-  let request = await prisma.unitRequest.findFirst({
-    where: {
-      unitId: unit.id,
-      type: UnitRequestType.HANDOVER,
-      status: "APPROVED",
-      deletedAt: null,
-    },
-  });
-  if (!request) {
-    request = await prisma.unitRequest.create({
-      data: {
-        unitId: unit.id,
-        type: UnitRequestType.HANDOVER,
-        status: "APPROVED",
-        requestedById: user.id,
-        submittedAt: new Date(),
-        description: "Handover screenshot demo",
-      },
-    });
-  }
-
-  console.log(JSON.stringify({ unitId: unit.id, requestId: request.id, userEmail: user.email }, null, 2));
+  console.log(JSON.stringify({ unitId: unit.id, userEmail: user.email }, null, 2));
 }
 
 main()
