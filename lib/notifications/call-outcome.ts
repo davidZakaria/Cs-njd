@@ -1,10 +1,9 @@
-import type { CallLogOutcome } from "@prisma/client";
+export type CallOutcome = "answered" | "not_answered" | "unknown";
 
-export type CallOutcome = "answered" | "not_answered" | "other";
-
+/** Legacy note sniffing — not used for Call Logs inbox dispatch. */
 export function parseCallLogOutcome(notes: string): CallOutcome {
   const text = notes.trim();
-  if (!text) return "other";
+  if (!text) return "unknown";
 
   if (
     /(not\s+answered|no\s+answer|unanswered|didn't\s+answer|لم\s*يرد|لم يتم\s*الرد|ما\s*رد)/iu.test(
@@ -18,29 +17,5 @@ export function parseCallLogOutcome(notes: string): CallOutcome {
     return "answered";
   }
 
-  return "other";
-}
-
-export function resolveCallOutcome(
-  explicit: CallLogOutcome | null | undefined,
-  notes: string
-): CallOutcome {
-  if (explicit === "ANSWERED") return "answered";
-  if (explicit === "NO_ANSWER") return "not_answered";
-  if (explicit === "OTHER") return "other";
-  return parseCallLogOutcome(notes);
-}
-
-export function callOutcomePhrase(outcome: CallOutcome): {
-  en: string;
-  ar: string;
-} {
-  switch (outcome) {
-    case "answered":
-      return { en: "answered", ar: "تم الرد" };
-    case "not_answered":
-      return { en: "no answer", ar: "لم يرد" };
-    default:
-      return { en: "other", ar: "أخرى" };
-  }
+  return "unknown";
 }

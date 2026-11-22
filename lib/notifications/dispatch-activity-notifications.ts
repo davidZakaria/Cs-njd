@@ -1,12 +1,6 @@
-import type { CallLogOutcome } from "@prisma/client";
-
 import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { isCommunityManagementRole } from "@/lib/auth/unit-roles";
-import {
-  callOutcomePhrase,
-  resolveCallOutcome,
-  type CallOutcome,
-} from "@/lib/notifications/call-outcome";
+import { callLogDedupeKey } from "@/lib/notifications/call-log-dedupe";
 import { encodeBilingual } from "@/lib/notifications/bilingual";
 import { basePrisma } from "@/lib/prisma";
 
@@ -73,65 +67,46 @@ async function resolveRecipientUserIds(unit: UnitContext): Promise<string[]> {
   return [...recipientIds];
 }
 
-function titleForOutcome(outcome: CallOutcome): { en: string; ar: string } {
-  switch (outcome) {
-    case "answered":
-      return { en: "Call answered", ar: "مكالمة تم الرد عليها" };
-    case "not_answered":
-      return { en: "Call not answered", ar: "مكالمة دون رد" };
-    default:
-      return { en: "Call logged", ar: "مكالمة مسجّلة" };
-  }
-}
-
 function buildCallLogCopy(
   actorName: string,
   unit: UnitContext,
-  notes: string,
-  outcome: CallOutcome
+  notes: string
 ): { titleEn: string; titleAr: string; messageEn: string; messageAr: string } {
   const clientName = unit.client?.name?.trim() || "—";
   const unitLabel = unit.unitCode;
-  const outcomeLabel = callOutcomePhrase(outcome);
   const snippet = notesSnippet(notes);
 
-  const title = titleForOutcome(outcome);
-
   return {
-    titleEn: title.en,
-    titleAr: title.ar,
-    messageEn: `${actorName} · ${outcomeLabel.en} · Unit ${unitLabel} · ${clientName}${snippet ? ` · ${snippet}` : ""}`,
-    messageAr: `${actorName} · ${outcomeLabel.ar} · وحدة ${unitLabel} · ${clientName}${snippet ? ` · ${snippet}` : ""}`,
+    titleEn: "Call logged",
+    titleAr: "مكالمة مسجّلة",
+    messageEn: `${actorName} · Unit ${unitLabel} · ${clientName}${snippet ? ` · ${snippet}` : ""}`,
+    messageAr: `${actorName} · وحدة ${unitLabel} · ${clientName}${snippet ? ` · ${snippet}` : ""}`,
   };
 }
 
-/** Activity feed: all logged calls (CALL_LOG inbox tab). */
+/** Activity feed: every logged call (CALL_LOG inbox tab). */
 export async function dispatchCallLogActivity(input: {
   actorUserId: string;
   actorName: string;
   unit: UnitContext;
   notes: string;
-  callLogOutcome: CallLogOutcome | null;
+  ticketId: string;
 }): Promise<void> {
-  const outcome = resolveCallOutcome(input.callLogOutcome, input.notes);
   const recipientIds = (await resolveRecipientUserIds(input.unit)).filter(
     (id) => id !== input.actorUserId
   );
   if (recipientIds.length === 0) return;
 
-  const copy = buildCallLogCopy(
-    input.actorName,
-    input.unit,
-    input.notes,
-    outcome
-  );
+  const copy = buildCallLogCopy(input.actorName, input.unit, input.notes);
   const link = activityLink(input.unit.id);
+  const dedupeKey = callLogDedupeKey(input.ticketId);
 
   await basePrisma.notification.createMany({
     data: recipientIds.map((userId) => ({
       userId,
       kind: "ACTIVITY",
       inboxTab: "CALL_LOG",
+      dedupeKey,
       title: encodeBilingual(copy.titleEn, copy.titleAr),
       message: encodeBilingual(copy.messageEn, copy.messageAr),
       link,

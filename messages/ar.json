@@ -155,13 +155,6 @@
     "pendingParty": "جهة العطلة (في انتظار)",
     "nextFollowUpDate": "تاريخ المتابعة القادم",
     "logCall": "📞 تسجيل مكالمة",
-    "callOutcome": "نتيجة المكالمة",
-    "callOutcomePlaceholder": "اختر النتيجة",
-    "callOutcomes": {
-      "ANSWERED": "تم الرد",
-      "NO_ANSWER": "لم يرد",
-      "OTHER": "أخرى"
-    },
     "searchShortcut": "البحث السريع (Cmd+K)",
     "override": {
       "title": "تجاوز الإدارة",
@@ -317,6 +310,11 @@
     "subtitle": "سجل المكالمات، تنبيهات الطلبات وملفات الأرشيف، وملخصات مراحل الدورة المتأخرة.",
     "markAllRead": "تعليم التبويب كمقروء",
     "emptyCallLogs": "لا توجد مكالمات مسجّلة بعد. عند تسجيل مكالمة ستظهر هنا.",
+    "callLogSeen": {
+      "seenBy": "شوهد من {agent} في {time}",
+      "notSeenYet": "لم يُشاهد بعد",
+      "noCsAgent": "لا يوجد موظف خدمة عملاء معيّن"
+    },
     "emptyRequestsAndFiles": "لا تنبيهات طلبات أو ملفات أرشيف بعد.",
     "emptyOverdueTasks": "لا ملخصات دورة متأخرة بعد.",
     "tabs": {

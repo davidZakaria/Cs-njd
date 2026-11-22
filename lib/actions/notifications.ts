@@ -2,11 +2,14 @@
 
 import { auth } from "@/lib/auth";
 import { pickBilingual } from "@/lib/notifications/bilingual";
+import { attachCallLogSeenToItems } from "@/lib/notifications/call-log-seen";
+import type { CallLogSeenInfo } from "@/lib/notifications/call-log-seen-types";
 import {
   INBOX_TAB_TO_ENUM,
   type InboxTabKey,
 } from "@/lib/notifications/inbox-types";
 import { basePrisma } from "@/lib/prisma";
+import type { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
@@ -20,7 +23,9 @@ export type NotificationItem = {
   createdAt: string;
 };
 
-export type ActivityNotificationItem = NotificationItem;
+export type ActivityNotificationItem = NotificationItem & {
+  callLogSeen?: CallLogSeenInfo | null;
+};
 
 export type InboxUnreadCounts = {
   callLogs: number;
@@ -119,7 +124,7 @@ export async function getMyActivityNotifications(
 
   const locale = await getLocale();
 
-  const items = await basePrisma.notification.findMany({
+  const rows = await basePrisma.notification.findMany({
     where: inboxWhereForTab(session.user.id, tab),
     orderBy: { createdAt: "desc" },
     take: 60,
@@ -130,10 +135,26 @@ export async function getMyActivityNotifications(
       isRead: true,
       link: true,
       createdAt: true,
+      dedupeKey: true,
     },
   });
 
-  return { success: true, items: mapNotificationRows(items, locale) };
+  const mapped = mapNotificationRows(rows, locale);
+  if (tab !== "callLogs") {
+    return { success: true, items: mapped };
+  }
+
+  const seenById = await attachCallLogSeenToItems(
+    rows.map((row) => ({ id: row.id, dedupeKey: row.dedupeKey })),
+    session.user.role as Role
+  );
+
+  const items: ActivityNotificationItem[] = mapped.map((item) => ({
+    ...item,
+    callLogSeen: seenById.get(item.id) ?? null,
+  }));
+
+  return { success: true, items };
 }
 
 export async function getMyUnreadActivityNotificationCount(
@@ -215,14 +236,21 @@ export async function markActivityNotificationAsRead(
         { kind: "GENERAL", inboxTab: null },
       ],
     },
+    select: { id: true, isRead: true, readAt: true },
   });
 
   if (!notification) return actionFail("Notification not found");
 
+  const now = new Date();
   if (!notification.isRead) {
     await basePrisma.notification.update({
       where: { id },
-      data: { isRead: true },
+      data: { isRead: true, readAt: now },
+    });
+  } else if (!notification.readAt) {
+    await basePrisma.notification.update({
+      where: { id },
+      data: { readAt: now },
     });
   }
 
@@ -236,9 +264,10 @@ export async function markAllActivityNotificationsAsRead(
   const session = await auth();
   if (!session?.user?.id) return actionFail("Unauthorized");
 
+  const now = new Date();
   await basePrisma.notification.updateMany({
     where: markReadWhereForTab(session.user.id, tab),
-    data: { isRead: true },
+    data: { isRead: true, readAt: now },
   });
 
   revalidatePath("/notifications");

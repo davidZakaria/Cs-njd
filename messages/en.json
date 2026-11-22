@@ -155,13 +155,6 @@
     "pendingParty": "Pending with",
     "nextFollowUpDate": "Next follow-up date",
     "logCall": "📞 Log call",
-    "callOutcome": "Call outcome",
-    "callOutcomePlaceholder": "Select outcome",
-    "callOutcomes": {
-      "ANSWERED": "Answered",
-      "NO_ANSWER": "No answer",
-      "OTHER": "Other"
-    },
     "searchShortcut": "Quick search (Cmd+K)",
     "override": {
       "title": "Management override",
@@ -317,6 +310,11 @@
     "subtitle": "Call activity, request and archive file alerts, and overdue unit cycle digests.",
     "markAllRead": "Mark tab as read",
     "emptyCallLogs": "No logged calls yet. When someone logs a call, it will appear here.",
+    "callLogSeen": {
+      "seenBy": "Seen by {agent} at {time}",
+      "notSeenYet": "Not seen yet",
+      "noCsAgent": "No CS agent assigned"
+    },
     "emptyRequestsAndFiles": "No request or archive file alerts yet.",
     "emptyOverdueTasks": "No overdue unit cycle digests yet.",
     "tabs": {

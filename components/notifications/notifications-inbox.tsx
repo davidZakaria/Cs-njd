@@ -16,6 +16,7 @@ import {
   inboxTabQueryParam,
   type InboxTabKey,
 } from "@/lib/notifications/inbox-types";
+import { CallLogSeenLabel } from "@/components/notifications/call-log-seen-label";
 import { formatDateTime } from "@/lib/format/datetime";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -153,6 +154,9 @@ export function NotificationsInbox({
                 </time>
               </div>
               <p className="text-sm text-muted-foreground">{item.message}</p>
+              {tab === "callLogs" && item.callLogSeen ? (
+                <CallLogSeenLabel seen={item.callLogSeen} />
+              ) : null}
             </button>
           </li>
         ))}

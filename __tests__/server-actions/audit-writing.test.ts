@@ -139,7 +139,6 @@ describe("server actions write audit context for mutations", () => {
     const result = await logCallQuickAction({
       unitId: "unit-1",
       notes: "Called client about delivery",
-      callLogOutcome: "OTHER",
     });
 
     expect(result.success).toBe(true);

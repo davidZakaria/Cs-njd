@@ -535,7 +535,6 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
       const result = await logCallQuickAction({
         unitId: "unit-1",
         notes: "📞 Called client",
-        callLogOutcome: "ANSWERED",
       });
 
       expect(result.success).toBe(true);
@@ -560,7 +559,6 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
       const result = await logCallQuickAction({
         unitId: "unit-ga",
         notes: "📞 Answered",
-        callLogOutcome: "ANSWERED",
       });
 
       expect(result.success).toBe(true);

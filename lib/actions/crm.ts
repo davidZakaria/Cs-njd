@@ -1255,12 +1255,9 @@ export async function updateCsFinishingAdditions(
   return actionOk();
 }
 
-const CALL_LOG_OUTCOMES = ["ANSWERED", "NO_ANSWER", "OTHER"] as const;
-
 export async function logCallQuickAction(input: {
   unitId: string;
   notes: string;
-  callLogOutcome: (typeof CALL_LOG_OUTCOMES)[number];
 }): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user) return actionFail("Unauthorized");
@@ -1270,9 +1267,6 @@ export async function logCallQuickAction(input: {
 
   const notes = input.notes.trim();
   if (!notes) return actionFail("Notes are required");
-  if (!CALL_LOG_OUTCOMES.includes(input.callLogOutcome)) {
-    return actionFail("Call outcome is required");
-  }
 
   const unit = await prisma.unit.findUnique({
     where: { id: input.unitId },
@@ -1290,12 +1284,11 @@ export async function logCallQuickAction(input: {
     return actionFail("Unauthorized");
   }
 
-  await withAudit(() =>
+  const ticket = await withAudit(() =>
     prisma.ticket.create({
       data: {
         unitId: unit.id,
         notes,
-        callLogOutcome: input.callLogOutcome,
         status: "PENDING",
         category: "FEEDBACK_HISTORY",
         agentId: session.user.id,
@@ -1312,7 +1305,7 @@ export async function logCallQuickAction(input: {
     actorName,
     unit,
     notes,
-    callLogOutcome: input.callLogOutcome,
+    ticketId: ticket.id,
   });
 
   revalidatePath(`/units/${unit.id}`);

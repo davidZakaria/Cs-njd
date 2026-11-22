@@ -505,7 +505,6 @@ export function UnitTimelineCrud({
   const { pending, notify, runAction } = useCrudToast();
   const [logCallOpen, setLogCallOpen] = useState(false);
   const [callNotes, setCallNotes] = useState("📞 ");
-  const [callOutcome, setCallOutcome] = useState<string | null>(null);
   const [editingTicketId, setEditingTicketId] = useState<string | null>(null);
 
   const partyItems = useMemo(() => {
@@ -547,25 +546,16 @@ export function UnitTimelineCrud({
   }
 
   function handleLogCall() {
-    if (
-      callOutcome !== "ANSWERED" &&
-      callOutcome !== "NO_ANSWER" &&
-      callOutcome !== "OTHER"
-    ) {
-      return;
-    }
     runAction(
       () =>
         logCallQuickAction({
           unitId,
           notes: callNotes.trim(),
-          callLogOutcome: callOutcome,
         }),
       "created",
       tWorkflow("logCall")
     );
     setCallNotes("📞 ");
-    setCallOutcome(null);
     setLogCallOpen(false);
   }
 
@@ -608,30 +598,6 @@ export function UnitTimelineCrud({
                   <DialogHeader>
                     <DialogTitle>{tWorkflow("logCall")}</DialogTitle>
                   </DialogHeader>
-                  <Field label={tWorkflow("callOutcome")}>
-                    <Select
-                      value={callOutcome ?? ""}
-                      onValueChange={(value) =>
-                        setCallOutcome(value === "" ? null : value)
-                      }
-                      disabled={pending}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={tWorkflow("callOutcomePlaceholder")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ANSWERED">
-                          {tWorkflow("callOutcomes.ANSWERED")}
-                        </SelectItem>
-                        <SelectItem value="NO_ANSWER">
-                          {tWorkflow("callOutcomes.NO_ANSWER")}
-                        </SelectItem>
-                        <SelectItem value="OTHER">
-                          {tWorkflow("callOutcomes.OTHER")}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </Field>
                   <Field label={tCases("caseNotes")}>
                     <Textarea
                       value={callNotes}
@@ -652,11 +618,7 @@ export function UnitTimelineCrud({
                     <Button
                       type="button"
                       onClick={handleLogCall}
-                      disabled={
-                        pending ||
-                        !callNotes.trim() ||
-                        callOutcome === null
-                      }
+                      disabled={pending || !callNotes.trim()}
                     >
                       {tActions("logCall")}
                     </Button>

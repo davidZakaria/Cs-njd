@@ -35,11 +35,7 @@ describe("dispatch call log activity", () => {
     client: { name: "Client A" },
   };
 
-  async function loadDispatch() {
-    return import("@/lib/notifications/dispatch-activity-notifications");
-  }
-
-  it("notifies management and assigned CS agent for answered calls", async () => {
+  it("notifies management and assigned CS agent for every call", async () => {
     mockUserFindMany.mockResolvedValue([
       { id: "mgmt-1", role: "MANAGEMENT", email: "m@njd.com" },
       { id: "agent-1", role: "CS_AGENT", email: "a@njd.com" },
@@ -47,14 +43,16 @@ describe("dispatch call log activity", () => {
       { id: "community-1", role: "COMMUNITY_MANAGEMENT", email: "c@njd.com" },
     ]);
 
-    const { dispatchCallLogActivity } = await loadDispatch();
+    const { dispatchCallLogActivity } = await import(
+      "@/lib/notifications/dispatch-activity-notifications"
+    );
 
     await dispatchCallLogActivity({
       actorUserId: "community-1",
       actorName: "Community Agent",
       unit: jamilaUnit,
       notes: "عند الاتصال مع العميلة",
-      callLogOutcome: "ANSWERED",
+      ticketId: "ticket-abc",
     });
 
     expect(mockNotificationCreateMany).toHaveBeenCalledTimes(1);
@@ -66,35 +64,18 @@ describe("dispatch call log activity", () => {
     expect(userIds).not.toContain("agent-2");
     expect(payload.data[0].kind).toBe("ACTIVITY");
     expect(payload.data[0].inboxTab).toBe("CALL_LOG");
-  });
-
-  it("notifies for no-answer and other outcomes", async () => {
-    mockUserFindMany.mockResolvedValue([
-      { id: "mgmt-1", role: "MANAGEMENT", email: "m@njd.com" },
-    ]);
-
-    const { dispatchCallLogActivity } = await loadDispatch();
-
-    for (const callLogOutcome of ["NO_ANSWER", "OTHER"] as const) {
-      await dispatchCallLogActivity({
-        actorUserId: "mgmt-1",
-        actorName: "Manager",
-        unit: jamilaUnit,
-        notes: "Will retry tomorrow",
-        callLogOutcome,
-      });
-    }
-
-    expect(mockNotificationCreateMany).toHaveBeenCalledTimes(2);
+    expect(payload.data[0].dedupeKey).toBe("call-log:ticket-abc");
+    expect(payload.data[0].link).toMatch(/^\/units\/unit-1/);
   });
 
   it("notifies management when unit has no assigned agent", async () => {
     mockUserFindMany.mockResolvedValue([
       { id: "mgmt-1", role: "MANAGEMENT", email: "m@njd.com" },
-      { id: "community-1", role: "COMMUNITY_MANAGEMENT", email: "c@njd.com" },
     ]);
 
-    const { dispatchCallLogActivity } = await loadDispatch();
+    const { dispatchCallLogActivity } = await import(
+      "@/lib/notifications/dispatch-activity-notifications"
+    );
 
     await dispatchCallLogActivity({
       actorUserId: "logger-outside",
@@ -108,13 +89,13 @@ describe("dispatch call log activity", () => {
         client: { name: "Client B" },
       },
       notes: "Follow up next week",
-      callLogOutcome: "OTHER",
+      ticketId: "ticket-ga",
     });
 
     const payload = mockNotificationCreateMany.mock.calls[0][0];
-    const userIds = payload.data.map((row: { userId: string }) => row.userId);
-    expect(userIds).toContain("mgmt-1");
-    expect(userIds).toContain("community-1");
+    expect(payload.data.map((row: { userId: string }) => row.userId)).toContain(
+      "mgmt-1"
+    );
   });
 
   it("excludes the user who logged the call", async () => {
@@ -123,14 +104,16 @@ describe("dispatch call log activity", () => {
       { id: "agent-1", role: "CS_AGENT", email: "a@njd.com" },
     ]);
 
-    const { dispatchCallLogActivity } = await loadDispatch();
+    const { dispatchCallLogActivity } = await import(
+      "@/lib/notifications/dispatch-activity-notifications"
+    );
 
     await dispatchCallLogActivity({
       actorUserId: "agent-1",
       actorName: "CS Agent",
       unit: jamilaUnit,
       notes: "Spoke with client",
-      callLogOutcome: "ANSWERED",
+      ticketId: "ticket-cs",
     });
 
     const payload = mockNotificationCreateMany.mock.calls[0][0];
