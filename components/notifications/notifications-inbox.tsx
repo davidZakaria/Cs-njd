@@ -16,6 +16,7 @@ import {
   inboxTabQueryParam,
   type InboxTabKey,
 } from "@/lib/notifications/inbox-types";
+import { CallLogInboxList } from "@/components/notifications/call-log-inbox-list";
 import { formatDateTime } from "@/lib/format/datetime";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,10 +40,12 @@ export function NotificationsInbox({
   initialTab,
   initialItemsByTab,
   initialUnreadCounts,
+  viewerRole,
 }: {
   initialTab: InboxTabKey;
   initialItemsByTab: Record<InboxTabKey, ActivityNotificationItem[]>;
   initialUnreadCounts: InboxUnreadCounts;
+  viewerRole: string;
 }) {
   const t = useTranslations("activityNotifications");
   const locale = useLocale();
@@ -111,6 +114,17 @@ export function NotificationsInbox({
         : tab === "requestsAndFiles"
           ? "emptyRequestsAndFiles"
           : "emptyOverdueTasks";
+
+    if (tab === "callLogs" && items.length > 0) {
+      return (
+        <CallLogInboxList
+          items={items}
+          pending={pending}
+          viewerRole={viewerRole}
+          onItemClick={handleItemClick}
+        />
+      );
+    }
 
     if (items.length === 0) {
       return (

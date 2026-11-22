@@ -309,7 +309,19 @@
     "title": "Notifications",
     "subtitle": "Call activity, request and archive file alerts, and overdue unit cycle digests.",
     "markAllRead": "Mark tab as read",
-    "emptyCallLogs": "No answered calls yet. When someone logs an answered call, it will appear here.",
+    "emptyCallLogs": "No logged calls yet. When someone logs a call, it will appear here.",
+    "loggedBy": "Logged by {name}",
+    "callLogSeen": {
+      "seenBadge": "Seen · {agent} · {time}",
+      "notSeenYet": "Not seen yet",
+      "noCsAgent": "No CS agent assigned"
+    },
+    "callLogFilters": {
+      "all": "All",
+      "not_seen": "Not seen",
+      "no_agent": "No agent",
+      "emptyFilter": "No call logs match this filter."
+    },
     "emptyRequestsAndFiles": "No request or archive file alerts yet.",
     "emptyOverdueTasks": "No overdue unit cycle digests yet.",
     "tabs": {

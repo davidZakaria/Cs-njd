@@ -1,5 +1,6 @@
 export type CallOutcome = "answered" | "not_answered" | "unknown";
 
+/** Legacy note sniffing — not used for Call Logs inbox dispatch. */
 export function parseCallLogOutcome(notes: string): CallOutcome {
   const text = notes.trim();
   if (!text) return "unknown";
@@ -17,18 +18,4 @@ export function parseCallLogOutcome(notes: string): CallOutcome {
   }
 
   return "unknown";
-}
-
-export function callOutcomePhrase(outcome: CallOutcome): {
-  en: string;
-  ar: string;
-} {
-  switch (outcome) {
-    case "answered":
-      return { en: "answered", ar: "تم الرد" };
-    case "not_answered":
-      return { en: "not answered", ar: "لم يرد" };
-    default:
-      return { en: "call logged", ar: "مكالمة مسجّلة" };
-  }
 }

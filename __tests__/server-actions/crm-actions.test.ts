@@ -59,14 +59,13 @@ vi.mock("@/lib/notifications/dispatch-ticket-notifications", () => ({
 }));
 
 vi.mock("@/lib/notifications/dispatch-activity-notifications", () => ({
-  dispatchAnsweredCallLogActivity: vi.fn().mockResolvedValue(undefined),
+  dispatchCallLogActivity: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/notifications/triggers", () => ({
   notifyUnitAssigned: vi.fn().mockResolvedValue(undefined),
   notifyFinishingUpdatedByAgent: vi.fn().mockResolvedValue(undefined),
   notifyHandoverChecklistUpdatedByAgent: vi.fn().mockResolvedValue(undefined),
-  notifyInboundCall: vi.fn().mockResolvedValue(undefined),
   notifyCrossAgentTicketOpened: vi.fn().mockResolvedValue(undefined),
 }));
 

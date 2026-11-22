@@ -46,10 +46,9 @@ import { applyCsFinishingAdditions } from "@/lib/workflow/cs-finishing-fields";
 import {
   notifyFinishingUpdatedByAgent,
   notifyHandoverChecklistUpdatedByAgent,
-  notifyInboundCall,
   notifyUnitAssigned,
 } from "@/lib/notifications/triggers";
-import { dispatchAnsweredCallLogActivity } from "@/lib/notifications/dispatch-activity-notifications";
+import { dispatchCallLogActivity } from "@/lib/notifications/dispatch-activity-notifications";
 import { sortPhases, normalizeFinishingPhases } from "@/lib/finishing/phases";
 import {
   evaluateResolutionGates,
@@ -1285,7 +1284,7 @@ export async function logCallQuickAction(input: {
     return actionFail("Unauthorized");
   }
 
-  await withAudit(() =>
+  const ticket = await withAudit(() =>
     prisma.ticket.create({
       data: {
         unitId: unit.id,
@@ -1301,20 +1300,13 @@ export async function logCallQuickAction(input: {
 
   const actorName =
     session.user.name ?? session.user.email ?? "Agent";
-  await dispatchAnsweredCallLogActivity({
+  await dispatchCallLogActivity({
+    actorUserId: session.user.id,
     actorName,
     unit,
     notes,
+    ticketId: ticket.id,
   });
-
-  if (unit.agentId && unit.agentId !== session.user.id) {
-    await notifyInboundCall({
-      agentUserId: unit.agentId,
-      unitCode: unit.unitCode,
-      unitId: unit.id,
-      callerName: session.user.name ?? session.user.email ?? "Agent",
-    });
-  }
 
   revalidatePath(`/units/${unit.id}`);
   revalidatePath("/cases");
