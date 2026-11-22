@@ -264,6 +264,7 @@ model User {
   engineeringApprovals   UnitEngineeringApproval[]
   submittedRequests      UnitRequest[]             @relation("UnitRequestRequestedBy")
   resolvedRequests       UnitRequest[]             @relation("UnitRequestResolvedBy")
+  deletedRequests        UnitRequest[]             @relation("UnitRequestDeletedBy")
   ownedArchiveCheckGapTasks ArchiveCheckGapTask[]  @relation("ArchiveCheckGapTaskOwner")
   completedArchiveCheckGapTasks ArchiveCheckGapTask[] @relation("ArchiveCheckGapTaskCompletedBy")
   requestComments        RequestComment[]
@@ -757,6 +758,9 @@ model UnitRequest {
   submittedAt             DateTime?
   resolvedAt              DateTime?
   resolvedById            String?
+  deletedAt               DateTime?
+  deletedById             String?
+  deleteReason            String?
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
 
@@ -768,6 +772,7 @@ model UnitRequest {
   requestedBy           User                     @relation("UnitRequestRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
   assignedApprover      User?                    @relation("UnitRequestAssignedApprover", fields: [assignedApproverUserId], references: [id], onDelete: SetNull)
   resolvedBy            User?                    @relation("UnitRequestResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  deletedBy             User?                    @relation("UnitRequestDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
   engineeringApproval   UnitEngineeringApproval? @relation(fields: [engineeringApprovalId], references: [id], onDelete: SetNull)
   comments              RequestComment[]
   attachments           RequestAttachment[]
@@ -791,6 +796,7 @@ model UnitRequest {
   @@index([unitCycleStageKey])
   @@index([status, dueDate])
   @@index([assignedApproverUserId, status])
+  @@index([deletedAt])
 }
 
 model OfficialDocumentTemplate {

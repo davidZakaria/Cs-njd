@@ -8,6 +8,7 @@ import { isBulkArchiveCheckParent } from "@/lib/archive-check/permissions";
 import {
   canAddRequestComment,
   canCancelRequest,
+  canDeleteRequest,
   canEditDraftRequest,
   canManageOpenRequestContent,
   canUploadRequestAttachment,
@@ -58,6 +59,13 @@ export default async function RequestDetailPage({
     });
 
   const canCancel = canCancelRequest({
+    role: session.user.role,
+    userId: session.user.id,
+    requestedById: request.requestedById,
+    status: request.status,
+  });
+
+  const canDelete = canDeleteRequest({
     role: session.user.role,
     userId: session.user.id,
     requestedById: request.requestedById,
@@ -203,6 +211,7 @@ export default async function RequestDetailPage({
         canReject={canReject}
         canSubmit={canSubmit}
         canCancel={canCancel}
+        canDelete={canDelete}
         canComment={canComment}
         canUpload={canUpload}
         canManageContent={canManageContent}

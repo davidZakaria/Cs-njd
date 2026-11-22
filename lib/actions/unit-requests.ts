@@ -25,6 +25,7 @@ import {
   canAddRequestComment,
   canCancelRequest,
   canCreateUnitRequest,
+  canDeleteRequest,
   canEditDraftRequest,
   canManageOpenRequestContent,
   canManageRequestAttachment,
@@ -78,6 +79,10 @@ const attachmentIdSchema = idSchema.extend({
 
 const decisionSchema = idSchema.extend({
   note: z.string().max(2000).optional(),
+});
+
+const deleteSchema = idSchema.extend({
+  reason: z.string().max(500).optional(),
 });
 
 async function loadRequestContext(requestId: string) {
@@ -617,6 +622,81 @@ export async function cancelUnitRequestAction(
     requestId: request.id,
     userId: session.user.id,
     action: "cancelled",
+  });
+
+  revalidatePath("/requests");
+  revalidateUnitPath(request.unitId);
+  revalidatePath(`/requests/${request.id}`);
+  return actionOk(undefined);
+}
+
+export async function deleteUnitRequestAction(
+  input: z.input<typeof deleteSchema>
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user) return actionFail("Unauthorized");
+
+  const parsed = deleteSchema.safeParse(input);
+  if (!parsed.success) return actionFail("Invalid input");
+
+  const request = await prisma.unitRequest.findUnique({
+    where: { id: parsed.data.requestId },
+    include: {
+      archiveCheckGapTasks: { select: { id: true } },
+      officialDocumentTextDrafts: { select: { id: true } },
+    },
+  });
+  if (!request) return actionFail("Request not found");
+  if (request.deletedAt) return actionFail("Request already deleted");
+
+  if (
+    !canDeleteRequest({
+      role: session.user.role,
+      userId: session.user.id,
+      requestedById: request.requestedById,
+      status: request.status,
+    })
+  ) {
+    return actionFail("Unauthorized");
+  }
+
+  const now = new Date();
+
+  await prisma.$transaction(async (tx) => {
+    await tx.unitRequest.update({
+      where: { id: request.id },
+      data: {
+        deletedAt: now,
+        deletedById: session.user!.id,
+        deleteReason: parsed.data.reason?.trim() || null,
+        currentApproverKind: null,
+      },
+    });
+
+    if (request.archiveCheckGapTasks.length > 0) {
+      await tx.archiveCheckGapTask.updateMany({
+        where: { unitRequestId: request.id },
+        data: { status: "COMPLETED", completedAt: now, completedById: session.user!.id },
+      });
+    }
+
+    if (request.officialDocumentTextDrafts.length > 0) {
+      await tx.officialDocumentTextDraft.deleteMany({
+        where: { unitRequestId: request.id },
+      });
+    }
+
+    await tx.requestAuditEvent.create({
+      data: {
+        requestId: request.id,
+        userId: session.user!.id,
+        action: "deleted",
+        details: {
+          reason: parsed.data.reason?.trim() || null,
+          previousStatus: request.status,
+        },
+      },
+    });
   });
 
   revalidatePath("/requests");

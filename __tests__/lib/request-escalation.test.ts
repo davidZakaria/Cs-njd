@@ -64,6 +64,7 @@ describe("request escalation", () => {
           agentId: "u1",
           project: { name: "Green Avenue" },
           client: { name: "Client" },
+          unitClients: [{ role: "PRIMARY", client: { name: "Client" } }],
         },
       },
     ]);
