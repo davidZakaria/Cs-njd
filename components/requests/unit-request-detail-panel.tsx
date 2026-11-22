@@ -42,6 +42,8 @@ import type {
   ArchiveFileItemStatus,
   ArchiveFileKind,
 } from "@prisma/client";
+import { UnitDisplayFieldsStrip } from "@/components/units/unit-display-fields-strip";
+import type { SerializableUnitDisplayFields } from "@/lib/units/unit-display-fields";
 
 type AuditEventRow = {
   id: string;
@@ -81,6 +83,7 @@ export function UnitRequestDetailPanel({
   archiveProgressUnits,
   bulkProjectName,
   isBulkArchiveCheckParentRequest,
+  unitDisplayFields = null,
 }: {
   request: {
     id: string;
@@ -127,6 +130,7 @@ export function UnitRequestDetailPanel({
   }>;
   bulkProjectName?: string | null;
   isBulkArchiveCheckParentRequest?: boolean;
+  unitDisplayFields?: SerializableUnitDisplayFields | null;
 }) {
   const t = useTranslations("requests.detail");
   const tEnums = useTranslations("enums");
@@ -216,6 +220,15 @@ export function UnitRequestDetailPanel({
           ) : null}
         </div>
       </div>
+
+      {unitDisplayFields && !isBulkArchiveCheckParentRequest ? (
+        <UnitDisplayFieldsStrip
+          fields={unitDisplayFields}
+          locale={locale}
+          surface="request-detail"
+          layout="inline"
+        />
+      ) : null}
 
       {showDescriptionCard ? (
         <Card>

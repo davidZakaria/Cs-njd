@@ -30,7 +30,13 @@ export async function UnitRequestsPanel({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">{t("empty")}</p>
-          <Button className="mt-3" size="sm" variant="outline" render={<Link href="/requests" />}>
+          <Button
+            className="mt-3"
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/requests" />}
+          >
             {t("create")}
           </Button>
         </CardContent>
@@ -42,7 +48,12 @@ export async function UnitRequestsPanel({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base">{t("title")}</CardTitle>
-        <Button size="sm" variant="outline" render={<Link href="/requests" />}>
+        <Button
+          size="sm"
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/requests" />}
+        >
           {t("viewAll")}
         </Button>
       </CardHeader>

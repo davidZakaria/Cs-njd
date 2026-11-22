@@ -18,6 +18,10 @@ import {
 import { entranceAnimationClass } from "@/lib/ui/premium-motion";
 import { cn } from "@/lib/utils";
 import { dedupeTimelineTickets } from "@/lib/cases/timeline-dedupe";
+import {
+  resolveUnitDisplayFields,
+  serializeUnitDisplayFields,
+} from "@/lib/units/unit-display-fields";
 
 export default async function CasesPage({
   searchParams,
@@ -51,6 +55,8 @@ export default async function CasesPage({
             project: true,
             client: true,
             agent: true,
+            contractWorkflow: true,
+            finishing: true,
           },
         },
       },
@@ -81,6 +87,12 @@ export default async function CasesPage({
       createdAt: ticket.createdAt.toISOString(),
       unitId: ticket.unitId,
       unitCode: ticket.unit.unitCode,
+      unitDisplayFields: serializeUnitDisplayFields(
+        resolveUnitDisplayFields({
+          contractWorkflow: ticket.unit.contractWorkflow,
+          finishing: ticket.unit.finishing,
+        })
+      ),
       project: ticket.unit.project.name,
       client: ticket.unit.client?.name ?? "-",
       agentId: ticket.agentId,

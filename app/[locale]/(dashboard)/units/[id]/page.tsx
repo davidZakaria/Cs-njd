@@ -78,6 +78,11 @@ import { UnitOfficialDocumentsPanel } from "@/components/units/unit-official-doc
 import { canCreateUnitRequest } from "@/lib/requests/permissions-core";
 import { CsSummaryHeader } from "@/components/units/cs-summary-header";
 import { getMultiUnitBadgeData } from "@/lib/units/multi-unit-badge";
+import {
+  formatUnitDisplayDate,
+  resolveUnitDisplayFields,
+  serializeUnitDisplayFields,
+} from "@/lib/units/unit-display-fields";
 
 export default async function UnitProfilePage({
   params,
@@ -430,6 +435,13 @@ export default async function UnitProfilePage({
   
   const primaryOwner = owners.find((o) => o.role === "PRIMARY");
   const coOwnerFromLinks = owners.find((o) => o.role === "CO_OWNER");
+  const unitDisplayFields = serializeUnitDisplayFields(
+    resolveUnitDisplayFields({
+      contractWorkflow: unit.contractWorkflow,
+      finishing: unit.finishing,
+    })
+  );
+
   const csSummaryProps = {
     clientName: primaryOwner?.clientName ?? "",
     coOwnerDisplayName:
@@ -441,9 +453,9 @@ export default async function UnitProfilePage({
     unitCode: unit.unitCode,
     projectName: unit.project.name,
     gracePeriod: unit.gracePeriod,
-    deliveryDate: unit.contractWorkflow?.deliveryDate?.toISOString() ?? null,
-    contractDate: unit.contractWorkflow?.contractDate?.toISOString() ?? null,
-    finishingType: unit.finishing?.finishingType ?? null,
+    deliveryDate: unitDisplayFields.deliveryDate,
+    contractDate: unitDisplayFields.saleContractDate,
+    finishingType: unitDisplayFields.finishingType,
     locale,
     multiUnitBadge,
   };
@@ -546,7 +558,7 @@ export default async function UnitProfilePage({
           <TabsTrigger value="timeline">{t("timeline")}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="client">
+        <TabsContent value="client" className="space-y-4">
           <UnitOwnersTab
             unitId={unit.id}
             owners={owners}
@@ -610,9 +622,12 @@ export default async function UnitProfilePage({
               unitId: unit.id,
               packageType: unit.finishing?.packageType ?? null,
               executingCompany: unit.finishing?.executingCompany ?? null,
-              contractDate: unit.finishing?.contractDate?.toISOString() ?? null,
+              contractDate:
+                unitDisplayFields.finishingContractDate ??
+                unit.finishing?.contractDate?.toISOString() ??
+                null,
               datedAt: unit.finishing?.datedAt?.toISOString() ?? null,
-              deliveryDate: unit.contractWorkflow?.deliveryDate?.toISOString() ?? null,
+              deliveryDate: unitDisplayFields.deliveryDate,
               emailDate: unit.finishing?.emailDate?.toISOString() ?? null,
               pricePerMeter: unit.finishing?.pricePerMeter ?? null,
               totalFinishingPrice: unit.finishing?.totalFinishingPrice ?? null,
@@ -629,7 +644,7 @@ export default async function UnitProfilePage({
               modificationsCompleted: unit.finishing?.modificationsCompleted ?? true,
               packageLabel: unit.finishing?.packageLabel ?? null,
               companyName: unit.finishing?.companyName ?? null,
-              finishingType: unit.finishing?.finishingType ?? null,
+              finishingType: unitDisplayFields.finishingType,
               finishingContractFile: unit.finishing?.finishingContractFile ?? null,
             }}
             canUploadFinishingContract={canCsPortfolioDocs}
@@ -659,10 +674,8 @@ export default async function UnitProfilePage({
                 contractUnitUpdateFlags: contractUpdateFlags,
                 handoverStatus: unit.contractWorkflow?.handoverStatus ?? "PENDING",
                 actionLabel: unit.contractWorkflow?.actionLabel ?? null,
-                contractDate:
-                  unit.contractWorkflow?.contractDate?.toISOString() ?? null,
-                deliveryDate:
-                  unit.contractWorkflow?.deliveryDate?.toISOString() ?? null,
+                contractDate: unitDisplayFields.saleContractDate,
+                deliveryDate: unitDisplayFields.deliveryDate,
                 hasPreliminarySaleContract:
                   unit.contractWorkflow?.hasPreliminarySaleContract ?? false,
                 hasSignedProtocol: unit.contractWorkflow?.hasSignedProtocol ?? false,
@@ -725,11 +738,12 @@ export default async function UnitProfilePage({
                 </p>
                 <p>
                   <strong>{t("contractDate")}:</strong>{" "}
-                  {unit.contractWorkflow?.contractDate?.toLocaleDateString(locale) ?? "-"}
+                  {formatUnitDisplayDate(unitDisplayFields.saleContractDate, locale) ??
+                    "-"}
                 </p>
                 <p>
                   <strong>{t("deliveryDate")}:</strong>{" "}
-                  {unit.contractWorkflow?.deliveryDate?.toLocaleDateString(locale) ?? "-"}
+                  {formatUnitDisplayDate(unitDisplayFields.deliveryDate, locale) ?? "-"}
                 </p>
                 <p>
                   <strong>{tWorkflowEdge("powerOfAttorneyReceived")}:</strong>{" "}

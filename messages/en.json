@@ -1029,6 +1029,11 @@
       "multiUnit": "Owns {count} units",
       "multiUnitTooltip": "This client owns {count} units"
     },
+    "displayFieldsCompact": {
+      "delivery": "Delivery",
+      "contract": "Contract",
+      "finishing": "Finishing"
+    },
     "clientInfo": "Client Info",
     "financials": "Finishing Financials",
     "finishingDetails": "Finishing Details",

@@ -57,6 +57,8 @@ import {
 } from "@/components/ui/table";
 import { ExportCsvButton } from "@/components/export/export-csv-button";
 import { cn } from "@/lib/utils";
+import { UnitDisplayFieldsCompactLine } from "@/components/units/unit-display-fields-compact-line";
+import type { SerializableUnitDisplayFields } from "@/lib/units/unit-display-fields";
 
 export type CaseRow = {
   id: string;
@@ -68,6 +70,7 @@ export type CaseRow = {
   createdAt: string;
   unitId: string;
   unitCode: string;
+  unitDisplayFields?: SerializableUnitDisplayFields;
   project: string;
   client: string;
   agentId: string | null;
@@ -491,12 +494,22 @@ export function CasesTable({
         accessorKey: "unit",
         header: t("unit"),
         cell: ({ row }) => (
-          <Link
-            href={`/units/${row.original.unitId}`}
-            className="font-medium hover:underline"
-          >
-            {labels.project(row.original.project)} · {row.original.unitCode}
-          </Link>
+          <div className="max-w-[11rem] sm:max-w-[14rem]">
+            <Link
+              href={`/units/${row.original.unitId}`}
+              className="block truncate font-medium hover:underline"
+              title={`${labels.project(row.original.project)} · ${row.original.unitCode}`}
+            >
+              {labels.project(row.original.project)} · {row.original.unitCode}
+            </Link>
+            {row.original.unitDisplayFields ? (
+              <UnitDisplayFieldsCompactLine
+                fields={row.original.unitDisplayFields}
+                locale={locale}
+                maxWidthClass="max-w-full"
+              />
+            ) : null}
+          </div>
         ),
       },
       {

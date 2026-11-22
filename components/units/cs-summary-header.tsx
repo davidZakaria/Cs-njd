@@ -22,7 +22,7 @@ import {
   extractPrimaryOwnerName,
   extractCoOwnerName,
 } from "@/lib/utils/arabic-normalize";
-import { formatDate } from "@/lib/format/datetime";
+import { formatUnitDisplayDate } from "@/lib/units/unit-display-fields";
 import { formatGracePeriodLabel } from "@/lib/format/grace-period-display";
 import { formatLocaleMessageNumber } from "@/lib/format/locale-display";
 import { LocaleIdentifierText } from "@/components/phone/phone-ltr";
@@ -177,18 +177,8 @@ export function CsSummaryHeader({
   const t = useTranslations("units.csSummary");
   const labels = useDomainLabels();
 
-  const formatSummaryDate = (dateStr: string | null) => {
-    if (!dateStr) return null;
-    try {
-      return formatDate(dateStr, locale, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    } catch {
-      return dateStr;
-    }
-  };
+  const formatSummaryDate = (dateStr: string | null) =>
+    formatUnitDisplayDate(dateStr, locale);
 
   const graceDisplay = formatGracePeriodLabel(gracePeriod, locale, (month, year) =>
     t("graceActiveUntil", { month, year })

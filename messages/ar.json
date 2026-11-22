@@ -1029,6 +1029,11 @@
       "multiUnit": "يمتلك {count} وحدات",
       "multiUnitTooltip": "هذا العميل يمتلك {count} وحدات"
     },
+    "displayFieldsCompact": {
+      "delivery": "التسليم",
+      "contract": "العقد",
+      "finishing": "التشطيب"
+    },
     "clientInfo": "بيانات العميل",
     "financials": "التشطيبات والماليات",
     "finishingDetails": "تفاصيل التشطيب",
