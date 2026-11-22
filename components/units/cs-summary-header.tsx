@@ -25,6 +25,8 @@ import {
 
 export type CsSummaryHeaderProps = {
   clientName: string;
+  /** Separate co-owner when unit uses unitClients (not merged "/" primary name). */
+  coOwnerDisplayName?: string | null;
   unitCode: string;
   projectName: string;
   gracePeriod: string | null;
@@ -147,6 +149,7 @@ function MultiUnitBadgeDisplay({ badge, t, labels }: MultiUnitBadgeProps) {
 
 export function CsSummaryHeader({
   clientName,
+  coOwnerDisplayName,
   unitCode,
   projectName,
   gracePeriod,
@@ -177,7 +180,12 @@ export function CsSummaryHeader({
   const hasClient = clientName && clientName.length > 0;
   const hasMergedOwners = isMergedOwnerName(clientName);
   const primaryOwnerName = hasMergedOwners ? extractPrimaryOwnerName(clientName) : clientName;
-  const coOwnerName = hasMergedOwners ? extractCoOwnerName(clientName) : null;
+  const coOwnerName = hasMergedOwners
+    ? extractCoOwnerName(clientName)
+  : coOwnerDisplayName?.trim()
+    ? coOwnerDisplayName.trim()
+    : null;
+  const showDualOwners = Boolean(coOwnerName);
 
   return (
     <Card className="overflow-hidden border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/10 shadow-lg dark:border-primary/30 dark:from-primary/10 dark:via-background dark:to-primary/5">
@@ -185,17 +193,17 @@ export function CsSummaryHeader({
         {/* Client Header Section */}
         <div className="border-b border-primary/10 bg-primary/5 px-6 py-4 dark:bg-primary/10">
           <div className="flex flex-wrap items-center gap-3">
-            {hasMergedOwners ? (
+            {showDualOwners ? (
               <Users className="h-6 w-6 text-primary dark:text-primary" />
             ) : (
               <User className="h-6 w-6 text-primary dark:text-primary" />
             )}
             <span className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-              {hasMergedOwners ? t("owners") : t("clientName")}
+              {showDualOwners ? t("owners") : t("clientName")}
             </span>
           </div>
           
-          {hasMergedOwners && coOwnerName ? (
+          {showDualOwners && coOwnerName ? (
             <div className="mt-2 space-y-2">
               {/* Primary Owner */}
               <div className="flex flex-wrap items-center gap-3">

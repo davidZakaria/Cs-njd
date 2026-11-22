@@ -9,6 +9,7 @@ import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { prisma, basePrisma, activeUnitWhere } from "@/lib/prisma";
 import {
   mapUnitRowToRequestPickerOption,
+  resolvePrimaryClientId,
   unitMatchesRequestPickerSearchQuery,
   unitWhereVisibleForRequestUnitPicker,
   type UnitRequestPickerOption,
@@ -119,16 +120,24 @@ const unitPickerInclude = {
   project: { select: { name: true } },
   client: { select: { name: true } },
   unitClients: {
-    where: { role: "PRIMARY" as const },
-    take: 1,
+    orderBy: [{ role: "asc" as const }, { position: "asc" as const }],
     select: { role: true, client: { select: { name: true } } },
   },
-} as const;
+};
 
 async function loadActiveUnitForRequest(unitId: string) {
   return prisma.unit.findUnique({
     where: { id: unitId },
-    select: { id: true, clientId: true, deletedAt: true },
+    select: {
+      id: true,
+      clientId: true,
+      deletedAt: true,
+      unitClients: {
+        where: { role: "PRIMARY" },
+        take: 1,
+        select: { role: true, clientId: true },
+      },
+    },
   });
 }
 
@@ -290,7 +299,7 @@ export async function createUnitRequestAction(
     data: {
       type: parsed.data.type,
       unitId: unit.id,
-      clientId: unit.clientId,
+      clientId: resolvePrimaryClientId(unit),
       requestedById: session.user.id,
       status: "DRAFT",
       description: parsed.data.description?.trim() || null,

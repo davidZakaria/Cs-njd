@@ -427,8 +427,15 @@ export default async function UnitProfilePage({
   const multiUnitBadge = await getMultiUnitBadgeData(clientIdsForBadge, unit.id);
   
   const primaryOwner = owners.find((o) => o.role === "PRIMARY");
+  const coOwnerFromLinks = owners.find((o) => o.role === "CO_OWNER");
   const csSummaryProps = {
     clientName: primaryOwner?.clientName ?? "",
+    coOwnerDisplayName:
+      coOwnerFromLinks &&
+      primaryOwner &&
+      !primaryOwner.clientName.includes("/")
+        ? coOwnerFromLinks.clientName
+        : null,
     unitCode: unit.unitCode,
     projectName: unit.project.name,
     gracePeriod: unit.gracePeriod,

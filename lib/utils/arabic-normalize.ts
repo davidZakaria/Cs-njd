@@ -101,10 +101,16 @@ export function anyNameMatches(names1: string[], names2: string[]): boolean {
  * Normalize a phone number for comparison.
  * Strips common prefixes and non-digit characters.
  */
+/** Strip Excel / import float suffix (e.g. `96599034830.0` → `96599034830`). */
+export function stripExcelNumericSuffix(value: string): string {
+  return value.replace(/\.0+$/u, "").trim();
+}
+
 export function normalizePhone(phone: string | null | undefined): string {
   if (!phone) return "";
-  
-  let digits = phone.replace(/\D/g, ""); // Remove non-digits
+
+  const normalizedInput = stripExcelNumericSuffix(phone);
+  let digits = normalizedInput.replace(/\D/g, ""); // Remove non-digits
   
   // Remove Egypt country code prefixes in order of specificity
   if (digits.startsWith("002")) {
