@@ -11,10 +11,17 @@ vi.mock("@/lib/auth", () => ({
   auth: () => mockAuth(),
 }));
 
+const mockRecordAuditLog = vi.fn();
+
+vi.mock("@/lib/prisma/record-audit-log", () => ({
+  recordAuditLog: (...args: unknown[]) => mockRecordAuditLog(...args),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: mockPrismaUser,
   },
+  basePrisma: {},
   auditContext: {
     run: <T>(_ctx: unknown, fn: () => T) => fn(),
   },

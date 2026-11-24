@@ -1404,6 +1404,7 @@
     "subtitle": "Changes to units, cases, users, and clients recorded when you take action.",
     "action": "Action",
     "table": "Table",
+    "recordId": "Record ID",
     "user": "User",
     "timestamp": "Timestamp",
     "ip": "IP Address",
@@ -1413,7 +1414,10 @@
       "CREATE": "Create",
       "UPDATE": "Update",
       "DELETE": "Delete",
-      "TWO_FACTOR_RESET": "2FA reset"
+      "TWO_FACTOR_RESET": "2FA reset",
+      "PASSWORD_CHANGE": "Password change",
+      "SESSION_REVOKE": "Session revoke",
+      "EXPORT": "CSV export"
     },
     "tables": {
       "Client": "Client",
@@ -1423,7 +1427,43 @@
       "ContractWorkflow": "Handover checklist",
       "Finishing": "Finishing",
       "Ticket": "Case",
-      "User": "User"
+      "User": "User",
+      "AuditLog": "Audit log"
+    },
+    "filters": {
+      "dateFrom": "From date",
+      "dateTo": "To date",
+      "actor": "Actor",
+      "allActors": "All actors",
+      "entity": "Entity type",
+      "allEntities": "All types",
+      "action": "Action",
+      "allActions": "All actions",
+      "recordId": "Record ID",
+      "recordIdPlaceholder": "Filter by record id…",
+      "search": "Search",
+      "searchPlaceholder": "User, record id, IP, entity…"
+    },
+    "pagination": {
+      "summary": "Showing {from}–{to} of {total}"
+    },
+    "diff": {
+      "title": "Change details",
+      "before": "Before",
+      "after": "After",
+      "noChanges": "No field-level differences recorded for this entry."
+    },
+    "export": {
+      "action": "Export CSV",
+      "columns": {
+        "timestamp": "Timestamp",
+        "action": "Action",
+        "table": "Entity",
+        "recordId": "Record ID",
+        "user": "Actor",
+        "ip": "IP address",
+        "changes": "Changes"
+      }
     }
   },
   "backups": {
@@ -1592,6 +1632,9 @@
     "tabSessions": "Active sessions",
     "statusSuccess": "Success",
     "statusFailed": "Failed",
+    "statusPasswordOk": "Password OK",
+    "statusTwoFactorSuccess": "2FA verified",
+    "statusTwoFactorFailed": "2FA failed",
     "killSessions": "Kill sessions",
     "killConfirm": "Revoke all active sessions for {name}? They will be signed out on their next request.",
     "killSuccess": "Sessions revoked — user will be signed out shortly.",

@@ -1,0 +1,9 @@
+-- AlterEnum AuditAction
+ALTER TYPE "AuditAction" ADD VALUE 'PASSWORD_CHANGE';
+ALTER TYPE "AuditAction" ADD VALUE 'SESSION_REVOKE';
+ALTER TYPE "AuditAction" ADD VALUE 'EXPORT';
+
+-- AlterEnum LoginAttemptStatus
+ALTER TYPE "LoginAttemptStatus" ADD VALUE 'PASSWORD_OK';
+ALTER TYPE "LoginAttemptStatus" ADD VALUE 'TWO_FACTOR_SUCCESS';
+ALTER TYPE "LoginAttemptStatus" ADD VALUE 'TWO_FACTOR_FAILED';

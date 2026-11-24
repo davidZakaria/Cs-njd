@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 
 import { auth } from "@/lib/auth";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
+import { recordLoginAttempt } from "@/lib/auth/login-history";
 import { prisma } from "@/lib/prisma";
 import {
   AUTH_RATE_LIMIT_ERROR,
@@ -21,8 +22,15 @@ async function getClientIpFromHeaders(): Promise<string | undefined> {
   return headersList.get("x-real-ip") ?? undefined;
 }
 
-export async function verifyTwoFactorCode(token: string): Promise<ActionResult> {
+async function loginMeta() {
+  const headersList = await headers();
   const ipAddress = await getClientIpFromHeaders();
+  const userAgent = headersList.get("user-agent") ?? undefined;
+  return { ipAddress, userAgent };
+}
+
+export async function verifyTwoFactorCode(token: string): Promise<ActionResult> {
+  const { ipAddress, userAgent } = await loginMeta();
   const rateLimitKey = authRateLimitKey("2fa", ipAddress);
   const rateCheck = checkRateLimit(rateLimitKey);
   if (!rateCheck.allowed) {
@@ -44,7 +52,11 @@ export async function verifyTwoFactorCode(token: string): Promise<ActionResult> 
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { twoFactorSecret: true, is2FAEnabled: true },
+    select: {
+      email: true,
+      twoFactorSecret: true,
+      is2FAEnabled: true,
+    },
   });
 
   if (!user?.twoFactorSecret || !user.is2FAEnabled) {
@@ -53,10 +65,39 @@ export async function verifyTwoFactorCode(token: string): Promise<ActionResult> 
 
   if (!verifyTotp(normalized, user.twoFactorSecret)) {
     recordFailure(rateLimitKey);
+    await recordLoginAttempt({
+      email: user.email,
+      status: "TWO_FACTOR_FAILED",
+      userId: session.user.id,
+      ipAddress,
+      userAgent,
+    });
     return actionFail("INVALID_CODE");
   }
 
   clearFailures(rateLimitKey);
+
+  await recordLoginAttempt({
+    email: user.email,
+    status: "TWO_FACTOR_SUCCESS",
+    userId: session.user.id,
+    ipAddress,
+    userAgent,
+  });
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { lastLoginAt: new Date() },
+  });
+
+  await recordLoginAttempt({
+    email: user.email,
+    status: "SUCCESS",
+    userId: session.user.id,
+    ipAddress,
+    userAgent,
+  });
+
   return actionOk();
 }
 

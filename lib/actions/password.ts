@@ -1,8 +1,12 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
+
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { AUDIT_REDACTED } from "@/lib/audit/redact-secrets";
+import { basePrisma, prisma } from "@/lib/prisma";
+import { recordAuditLog } from "@/lib/prisma/record-audit-log";
 import { STAFF_DEFAULT_PASSWORD } from "@/lib/staff";
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -50,6 +54,20 @@ export async function forcePasswordChange(formData: FormData) {
       password: passwordHash,
       requiresPasswordChange: false,
     },
+  });
+
+  const headersList = await headers();
+  const ipAddress =
+    headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    headersList.get("x-real-ip") ??
+    "unknown";
+
+  await recordAuditLog(basePrisma, { userId: session.user.id, ipAddress }, {
+    model: "User",
+    action: "PASSWORD_CHANGE",
+    recordId: session.user.id,
+    oldData: { password: AUDIT_REDACTED },
+    newData: { password: { changed: true } },
   });
 
   return { success: true as const };

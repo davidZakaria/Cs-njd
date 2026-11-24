@@ -20,7 +20,7 @@ import {
 import {
   applySessionVersionToToken,
 } from "@/lib/auth/session-version";
-import { engineerSessionFlags } from "@/lib/auth/two-factor-policy";
+import { engineerSessionFlags, isTwoFactorRequired } from "@/lib/auth/two-factor-policy";
 import { prisma } from "@/lib/prisma";
 import {
   AUTH_RATE_LIMIT_ERROR,
@@ -147,20 +147,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         clearFailures(rateLimitKey);
         clearFailures(authRateLimitKey("2fa", ipAddress));
 
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { lastLoginAt: new Date() },
-        });
-
-        await recordLoginAttempt({
-          email,
-          status: "SUCCESS",
-          userId: user.id,
-          ipAddress,
-          userAgent,
-        });
-
         const engineerFlags = engineerSessionFlags(user.role);
+        const passwordOnlyLogin =
+          engineerFlags !== null || !isTwoFactorRequired(user.role);
+
+        if (passwordOnlyLogin) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { lastLoginAt: new Date() },
+          });
+          await recordLoginAttempt({
+            email,
+            status: "SUCCESS",
+            userId: user.id,
+            ipAddress,
+            userAgent,
+          });
+        } else {
+          await recordLoginAttempt({
+            email,
+            status: "PASSWORD_OK",
+            userId: user.id,
+            ipAddress,
+            userAgent,
+          });
+        }
 
         return {
           id: user.id,
