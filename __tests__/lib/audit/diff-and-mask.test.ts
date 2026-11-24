@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildAuditFieldDiff } from "@/lib/audit/diff";
+import { formatAuditExportFilters } from "@/lib/audit/format-export-filters";
 import {
   maskNationalIdForDisplay,
   maskPhoneForDisplay,
@@ -23,6 +24,18 @@ describe("mask sensitive display values", () => {
     expect(masked?.name).toBe("Demo Client");
     expect(String(masked?.phone1)).toContain("••••");
     expect(String(masked?.nationalId)).toContain("•");
+  });
+});
+
+describe("formatAuditExportFilters", () => {
+  it("renders filter map with translated keys", () => {
+    const text = formatAuditExportFilters(
+      { q: "demo", tableName: "Client" },
+      "en"
+    );
+    expect(text).toContain("Search: demo");
+    expect(text).toContain("Entity type: Client");
+    expect(formatAuditExportFilters({}, "en")).toBe("None");
   });
 });
 

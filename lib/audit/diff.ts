@@ -1,4 +1,5 @@
-import { AUDIT_REDACTED } from "@/lib/audit/redact-secrets";
+import { formatAuditExportFilters } from "@/lib/audit/format-export-filters";
+import { AUDIT_REDACTED, isSensitiveAuditKey } from "@/lib/audit/redact-secrets";
 import { maskSensitiveFieldForDisplay } from "@/lib/audit/mask-sensitive";
 import { auditFieldLabel } from "@/lib/audit/field-labels";
 
@@ -11,10 +12,18 @@ export type AuditDiffRow = {
 };
 
 function formatDisplayValue(
+  model: string,
   fieldKey: string,
   value: unknown,
   locale: "en" | "ar"
 ): string {
+  if (model === "AuditLog" && fieldKey === "filters") {
+    return formatAuditExportFilters(value, locale);
+  }
+  if (model === "AuditLog" && fieldKey === "rowCount") {
+    if (value == null) return "—";
+    return String(value);
+  }
   if (value === undefined) {
     return locale === "ar" ? "—" : "—";
   }
@@ -79,9 +88,12 @@ export function buildAuditFieldDiff(
   return keys.map((fieldKey) => {
     const beforeRaw = oldNorm?.[fieldKey];
     const afterRaw = newNorm?.[fieldKey];
-    const before = formatDisplayValue(fieldKey, beforeRaw, locale);
-    const after = formatDisplayValue(fieldKey, afterRaw, locale);
-    const changed = before !== after;
+    const before = formatDisplayValue(model, fieldKey, beforeRaw, locale);
+    const after = formatDisplayValue(model, fieldKey, afterRaw, locale);
+    const sensitivePresent =
+      isSensitiveAuditKey(fieldKey) &&
+      (beforeRaw !== undefined || afterRaw !== undefined);
+    const changed = before !== after || sensitivePresent;
     return {
       fieldKey,
       label: auditFieldLabel(model, fieldKey, locale),

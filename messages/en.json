@@ -1404,7 +1404,10 @@
     "subtitle": "Changes to units, cases, users, and clients recorded when you take action.",
     "action": "Action",
     "table": "Table",
+    "entity": "Entity",
+    "record": "Record",
     "recordId": "Record ID",
+    "copyRecordId": "Copy record ID",
     "user": "User",
     "timestamp": "Timestamp",
     "ip": "IP Address",
@@ -1449,6 +1452,7 @@
     },
     "diff": {
       "title": "Change details",
+      "view": "Details",
       "before": "Before",
       "after": "After",
       "noChanges": "No field-level differences recorded for this entry."

@@ -13,8 +13,23 @@ const USER_FIELDS: FieldLabelMap = {
     ar: "يتطلب تغيير كلمة المرور",
   },
   password: { en: "Password", ar: "كلمة المرور" },
+  twoFactorSecret: { en: "2FA secret", ar: "سر المصادقة الثنائية" },
   sessionVersion: { en: "Session version", ar: "إصدار الجلسة" },
   deletedAt: { en: "Deleted at", ar: "تاريخ الحذف" },
+};
+
+const AUDIT_LOG_FIELDS: FieldLabelMap = {
+  rowCount: { en: "Rows exported", ar: "عدد الصفوف المُصدَّرة" },
+  filters: { en: "Applied filters", ar: "عوامل التصفية المطبّقة" },
+  filter_q: { en: "Search", ar: "بحث" },
+  filter_dateFrom: { en: "From date", ar: "من تاريخ" },
+  filter_dateTo: { en: "To date", ar: "إلى تاريخ" },
+  filter_actorId: { en: "Actor", ar: "الفاعل" },
+  filter_tableName: { en: "Entity type", ar: "نوع الكيان" },
+  filter_action: { en: "Action", ar: "الإجراء" },
+  filter_recordId: { en: "Record ID", ar: "معرّف السجل" },
+  filter_page: { en: "Page", ar: "الصفحة" },
+  filter_pageSize: { en: "Page size", ar: "حجم الصفحة" },
 };
 
 const CLIENT_FIELDS: FieldLabelMap = {
@@ -76,6 +91,7 @@ const CONTRACT_WORKFLOW_FIELDS: FieldLabelMap = {
 
 const MODEL_FIELD_LABELS: Partial<Record<AuditedModel | string, FieldLabelMap>> =
   {
+    AuditLog: AUDIT_LOG_FIELDS,
     User: USER_FIELDS,
     Client: CLIENT_FIELDS,
     ClientPhone: CLIENT_PHONE_FIELDS,

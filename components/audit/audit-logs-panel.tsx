@@ -30,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { AuditRecordCell } from "@/components/audit/audit-record-cell";
 import { exportAuditLogsCsv } from "@/lib/actions/audit-logs";
 import { downloadCsvFile } from "@/lib/export/csv";
 import { AUDITED_MODELS } from "@/lib/prisma/audited-models";
@@ -42,6 +43,7 @@ export type AuditLogListRow = {
   tableName: string;
   tableKey: string;
   recordId: string;
+  recordLabel: string | null;
   user: string;
   timestamp: string;
   ipAddress: string;
@@ -134,6 +136,8 @@ export function AuditLogsPanel({
             <label className="text-xs text-muted-foreground">{t("filters.dateFrom")}</label>
             <Input
               type="date"
+              dir="ltr"
+              className="text-start"
               value={filterValue("dateFrom")}
               onChange={(e) => pushFilters({ dateFrom: e.target.value, page: null })}
             />
@@ -142,6 +146,8 @@ export function AuditLogsPanel({
             <label className="text-xs text-muted-foreground">{t("filters.dateTo")}</label>
             <Input
               type="date"
+              dir="ltr"
+              className="text-start"
               value={filterValue("dateTo")}
               onChange={(e) => pushFilters({ dateTo: e.target.value, page: null })}
             />
@@ -268,11 +274,14 @@ export function AuditLogsPanel({
           <TableHeader>
             <TableRow>
               <TableHead>{t("action")}</TableHead>
-              <TableHead>{t("table")}</TableHead>
-              <TableHead>{t("recordId")}</TableHead>
+              <TableHead>{t("entity")}</TableHead>
+              <TableHead>{t("record")}</TableHead>
               <TableHead>{t("user")}</TableHead>
               <TableHead>{t("timestamp")}</TableHead>
               <TableHead>{t("ip")}</TableHead>
+              <TableHead className="w-[6rem]">
+                <span className="sr-only">{t("diff.view")}</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -280,20 +289,40 @@ export function AuditLogsPanel({
               rows.map((row) => (
                 <TableRow
                   key={row.id}
+                  data-audit-entry={`${row.tableKey}:${row.actionKey}`}
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => setSelected(row)}
                 >
                   <TableCell>{row.action}</TableCell>
                   <TableCell>{row.tableName}</TableCell>
-                  <TableCell className="font-mono text-xs">{row.recordId}</TableCell>
+                  <TableCell>
+                    <AuditRecordCell
+                      recordId={row.recordId}
+                      recordLabel={row.recordLabel}
+                    />
+                  </TableCell>
                   <TableCell>{row.user}</TableCell>
                   <TableCell className="whitespace-nowrap">{row.timestamp}</TableCell>
                   <TableCell>{row.ipAddress}</TableCell>
+                  <TableCell>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      data-audit-details={row.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelected(row);
+                      }}
+                    >
+                      {t("diff.view")}
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   {t("empty")}
                 </TableCell>
               </TableRow>
@@ -329,14 +358,18 @@ export function AuditLogsPanel({
       <Sheet open={selected != null} onOpenChange={(open) => !open && setSelected(null)}>
         <SheetContent
           side={locale === "ar" ? "left" : "right"}
-          className={cn("w-full overflow-y-auto sm:max-w-lg")}
+          className={cn(
+            "flex w-full max-w-md flex-col overflow-y-auto sm:max-w-md",
+            locale === "ar" ? "left-0 border-r" : "right-0 border-l"
+          )}
         >
           {selected ? (
             <>
               <SheetHeader>
                 <SheetTitle>{t("diff.title")}</SheetTitle>
                 <SheetDescription>
-                  {selected.action} · {selected.tableName} · {selected.recordId}
+                  {selected.action} · {selected.tableName} ·{" "}
+                  {selected.recordLabel ?? selected.recordId}
                 </SheetDescription>
               </SheetHeader>
               <div className="mt-4">

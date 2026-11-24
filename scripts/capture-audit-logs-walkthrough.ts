@@ -1,6 +1,8 @@
 /**
- * Capture audit logs UI screenshots against a running dev server.
- * Prerequisites: npm run dev, npm run seed:audit-logs-demo
+ * Capture audit logs UI screenshots against a production Next server.
+ * Prerequisites:
+ *   npm run build && npm run start
+ *   npm run seed:audit-logs-demo
  */
 import "dotenv/config";
 
@@ -8,7 +10,7 @@ import { mkdirSync } from "fs";
 import path from "path";
 
 import { authenticator } from "otplib";
-import { chromium, type Page } from "playwright";
+import { chromium, type Locator, type Page } from "playwright";
 
 const OUT = path.join("/opt/cursor/artifacts", "audit-logs-walkthrough");
 const EMAIL = "audit-demo-super@test.local";
@@ -19,7 +21,7 @@ const BASE = process.env.AUTH_URL ?? "http://localhost:3000";
 mkdirSync(OUT, { recursive: true });
 
 async function login(page: Page, locale: "en" | "ar") {
-  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${BASE}/${locale}/login`);
   await page.locator("#email").fill(EMAIL);
   await page.locator("#password").fill(PASSWORD);
@@ -35,77 +37,84 @@ async function login(page: Page, locale: "en" | "ar") {
   }
 }
 
+async function waitForSheet(page: Page) {
+  const sheet = page.locator('[data-slot="sheet-content"]');
+  await sheet.waitFor({ state: "visible", timeout: 15_000 });
+  await page.waitForTimeout(400);
+  return sheet;
+}
+
+async function screenshotSheet(page: Page, outFile: string) {
+  const sheet = await waitForSheet(page);
+  await sheet.screenshot({ path: path.join(OUT, outFile) });
+}
+
+async function openAuditRow(page: Page, entry: string) {
+  const row = page.locator(`tr[data-audit-entry="${entry}"]`);
+  await row.getByRole("button", { name: /details|التفاصيل/i }).click();
+}
+
+async function screenshotPageRegion(page: Page, outFile: string, height = 520) {
+  await page.screenshot({
+    path: path.join(OUT, outFile),
+    clip: { x: 0, y: 0, width: 1440, height },
+  });
+}
+
 async function main() {
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext();
-  const page = await context.newPage();
 
+  const page = await browser.newPage();
   await login(page, "en");
   await page.goto(`${BASE}/en/audit-logs`);
   await page.waitForSelector("h1");
+  await page.waitForSelector('[data-audit-entry]');
+
   await page.screenshot({
     path: path.join(OUT, "audit-logs-list-en-desktop.png"),
     fullPage: true,
   });
 
-  await page.screenshot({
-    path: path.join(OUT, "audit-logs-filters-en-desktop.png"),
-    fullPage: false,
-  });
+  await screenshotPageRegion(page, "audit-logs-filters-en-desktop.png", 560);
 
-  await page.getByRole("row").nth(1).click();
-  await page.locator('[data-slot="sheet-content"]').waitFor({
-    state: "visible",
-    timeout: 15_000,
-  });
-  await page.screenshot({
-    path: path.join(OUT, "audit-diff-client-en.png"),
-    fullPage: false,
-  });
+  await openAuditRow(page, "Client:UPDATE");
+  await screenshotSheet(page, "audit-diff-client-en.png");
   await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
 
-  await page
-    .getByRole("row", { name: /password change|Password change/i })
-    .first()
-    .click();
-  await page.locator('[data-slot="sheet-content"]').waitFor({
-    state: "visible",
-    timeout: 15_000,
-  });
-  await page.screenshot({
-    path: path.join(OUT, "audit-diff-user-redacted-en.png"),
-    fullPage: false,
-  });
+  await openAuditRow(page, "User:UPDATE");
+  await screenshotSheet(page, "audit-diff-user-redacted-en.png");
   await page.keyboard.press("Escape");
 
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: /export csv/i }).click();
   const download = await downloadPromise;
-  const csvPath = path.join(OUT, await download.suggestedFilename());
-  await download.saveAs(csvPath);
+  await download.saveAs(
+    path.join(OUT, await download.suggestedFilename())
+  );
 
-  await context.close();
+  await page.goto(`${BASE}/en/system/security`);
+  await page.getByRole("tab", { name: /login history|سجل الدخول/i }).click();
+  await page.waitForSelector("table tbody tr");
+  await page.screenshot({
+    path: path.join(OUT, "login-history-statuses-en.png"),
+    fullPage: false,
+  });
 
-  const arContext = await browser.newContext();
-  const arPage = await arContext.newPage();
+  await page.close();
+
+  const arPage = await browser.newPage();
   await login(arPage, "ar");
   await arPage.goto(`${BASE}/ar/audit-logs`);
   await arPage.waitForSelector("h1");
-  await arPage.getByRole("row").nth(1).click();
-  await arPage.locator('[data-slot="sheet-content"]').waitFor({
-    state: "visible",
-    timeout: 15_000,
-  });
-  await arPage.screenshot({
-    path: path.join(OUT, "audit-diff-client-ar-rtl.png"),
-    fullPage: false,
-  });
-  await arContext.close();
+  await screenshotPageRegion(arPage, "audit-logs-filters-ar-desktop.png", 580);
+  await openAuditRow(arPage, "Client:UPDATE");
+  await screenshotSheet(arPage, "audit-diff-client-ar-rtl.png");
+  await arPage.close();
 
-  const mobileContext = await browser.newContext({
+  const mobilePage = await browser.newPage({
     viewport: { width: 390, height: 844 },
   });
-  const mobilePage = await mobileContext.newPage();
   await login(mobilePage, "en");
   await mobilePage.goto(`${BASE}/en/audit-logs`);
   await mobilePage.waitForSelector("h1");
@@ -113,10 +122,9 @@ async function main() {
     path: path.join(OUT, "audit-logs-mobile-390.png"),
     fullPage: true,
   });
+  await mobilePage.close();
 
-  await mobileContext.close();
   await browser.close();
-
   console.log(`Screenshots saved under ${OUT}`);
 }
 

@@ -1,10 +1,16 @@
 import { listAuditLogActors } from "@/lib/actions/audit-logs";
+import {
+  getAuditRecordLabel,
+  resolveAuditRecordLabels,
+} from "@/lib/audit/record-labels";
 import { auditTableNameTranslationKey } from "@/lib/audit/table-name-key";
 import {
   auditLogFiltersFromSearchParams,
   queryAuditLogs,
 } from "@/lib/audit/query";
 import { AuditLogsPanel } from "@/components/audit/audit-logs-panel";
+import { AuditLogsSkeleton } from "@/components/audit/audit-logs-skeleton";
+import { Suspense } from "react";
 import { requireSuperAdmin } from "@/lib/auth/require-super-admin";
 import { formatDateTime } from "@/lib/format/datetime";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -43,10 +49,16 @@ export default async function AuditLogsPage({
   ]);
 
   const filters = auditLogFiltersFromSearchParams(resolvedSearch);
+  const lang = locale === "ar" ? "ar" : "en";
   const [{ rows, total, page, pageCount, pageSize }, actors] = await Promise.all([
     queryAuditLogs(filters),
     listAuditLogActors(),
   ]);
+
+  const recordLabels = await resolveAuditRecordLabels(
+    rows.map((log) => ({ tableName: log.tableName, recordId: log.recordId })),
+    lang
+  );
 
   const listRows = rows.map((log) => {
     const tableKey = auditTableNameTranslationKey(log.tableName);
@@ -63,6 +75,11 @@ export default async function AuditLogsPage({
       tableName,
       tableKey: log.tableName,
       recordId: log.recordId,
+      recordLabel: getAuditRecordLabel(
+        recordLabels,
+        log.tableName,
+        log.recordId
+      ),
       user: log.user?.name ?? t("systemUser"),
       timestamp: formatDateTime(log.timestamp, locale),
       ipAddress: log.ipAddress ?? "—",
@@ -77,14 +94,16 @@ export default async function AuditLogsPage({
         <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
         <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
-      <AuditLogsPanel
-        rows={listRows}
-        total={total}
-        page={page}
-        pageCount={pageCount}
-        pageSize={pageSize}
-        actors={actors}
-      />
+      <Suspense fallback={<AuditLogsSkeleton />}>
+        <AuditLogsPanel
+          rows={listRows}
+          total={total}
+          page={page}
+          pageCount={pageCount}
+          pageSize={pageSize}
+          actors={actors}
+        />
+      </Suspense>
     </div>
   );
 }
