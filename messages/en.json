@@ -820,7 +820,8 @@
   },
   "operations": {
     "title": "Operations progress",
-    "subtitle": "Contract archive checklist by unit — read-only for CS agents; operations staff can file papers from the unit Legal tab.",
+    "subtitleCsViewer": "Contract archive checklist by unit — read-only for CS agents; operations staff can file papers from each unit's Legal tab.",
+    "subtitleOperations": "Contract papers checklist by unit. File papers from each unit's Legal tab.",
     "search": "Search",
     "searchPlaceholder": "Unit, client, or project…",
     "progressLabel": "{done} of {total} done",

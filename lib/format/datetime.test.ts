@@ -4,6 +4,7 @@ import {
   APP_DISPLAY_TIME_ZONE,
   cairoCalendarDayKey,
   formatDateTime,
+  formatDisplayDate,
 } from "./datetime";
 
 describe("formatDateTime", () => {
@@ -26,6 +27,13 @@ describe("formatDateTime", () => {
   it("formats Arabic locale without throwing", () => {
     const utcInstant = new Date("2026-09-30T00:17:17.000Z");
     expect(formatDateTime(utcInstant, "ar").length).toBeGreaterThan(0);
+  });
+
+  it("formatDisplayDate uses medium style for en-GB", () => {
+    const label = formatDisplayDate("2026-11-15T12:00:00.000Z", "en");
+    expect(label).toMatch(/15/);
+    expect(label).toMatch(/Nov/);
+    expect(label).toMatch(/2026/);
   });
 
   it("allows dateStyle and timeStyle without mixing granular date fields", () => {

@@ -8,7 +8,7 @@ import {
   getMyActivityNotifications,
   getMyInboxUnreadCounts,
 } from "@/lib/actions/notifications";
-import { canAccessRoute } from "@/lib/rbac";
+import { canAccessRoute, getHomeRoute } from "@/lib/rbac";
 import {
   inboxTabFromParam,
   type InboxTabKey,
@@ -32,7 +32,7 @@ export default async function ActivityNotificationsPage({
   }
 
   if (!canAccessRoute(session.user.role, "/notifications")) {
-    redirect(`/${locale}/dashboard`);
+    redirect(`/${locale}${getHomeRoute(session.user.role)}`);
   }
 
   const tabs: InboxTabKey[] = ["callLogs", "requestsAndFiles", "overdueTasks"];

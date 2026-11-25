@@ -50,7 +50,9 @@ export default async function OperationsPage({
     <div className="space-y-8">
       <div>
         <h1 className="font-heading text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("subtitle")}</p>
+        <p className="text-muted-foreground">
+          {role === "OPERATIONS" ? t("subtitleOperations") : t("subtitleCsViewer")}
+        </p>
       </div>
 
       <OperationsProjectSummaryBar summaries={summaries} />

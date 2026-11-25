@@ -97,7 +97,10 @@ describe("escalation jobs dry run", () => {
 
     const prisma = {
       unitRequest: { findMany, findUnique, update },
-      user: { findMany: vi.fn() },
+      user: {
+        findMany: vi.fn(),
+        findUnique: vi.fn().mockResolvedValue({ role: "FINANCE" }),
+      },
       systemSetting: { findUnique: vi.fn() },
     };
 

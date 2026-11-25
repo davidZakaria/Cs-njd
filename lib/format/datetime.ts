@@ -49,6 +49,14 @@ export function cairoCalendarDayKey(value: Date): string {
   return value.toLocaleDateString("en-CA", { timeZone: APP_DISPLAY_TIME_ZONE });
 }
 
+/** Consistent app date label (e.g. en: "15 Nov 2026", ar: Egypt locale medium). */
+export function formatDisplayDate(
+  value: Date | string | number,
+  locale: string
+): string {
+  return formatDateTime(value, locale, { dateStyle: "medium" });
+}
+
 export function formatDate(
   value: Date | string | number,
   locale: string,

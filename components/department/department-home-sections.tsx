@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { UnitRequestListRow } from "@/lib/requests/types";
+import { formatDisplayDate } from "@/lib/format/datetime";
 import { cn } from "@/lib/utils";
 
 export async function DepartmentAwaitingRequestsQueue({
@@ -47,7 +48,7 @@ export async function DepartmentAwaitingRequestsQueue({
               </div>
               {row.dueDate ? (
                 <Badge variant="outline">
-                  {row.dueDate.toLocaleDateString(locale)}
+                  {formatDisplayDate(row.dueDate, locale)}
                 </Badge>
               ) : null}
             </Link>

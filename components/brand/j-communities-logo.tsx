@@ -34,12 +34,20 @@ export function JCommunitiesLogo({
         : paletteByVariant.auto;
 
   return (
+    <span
+      dir="ltr"
+      className={cn(
+        "inline-flex max-w-full shrink-0 items-center leading-none",
+        className
+      )}
+      style={{ width, height }}
+    >
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
       width={width}
       height={height}
-      className={cn("max-w-full shrink-0", paletteClass, className)}
+      className={cn("block h-full w-full max-w-none", paletteClass)}
       role="img"
       aria-label="J Communities"
     >
@@ -81,5 +89,6 @@ export function JCommunitiesLogo({
         COMMUNITIES
       </text>
     </svg>
+    </span>
   );
 }
