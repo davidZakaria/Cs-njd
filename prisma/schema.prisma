@@ -133,6 +133,9 @@ enum AuditAction {
   UPDATE
   DELETE
   TWO_FACTOR_RESET
+  PASSWORD_CHANGE
+  SESSION_REVOKE
+  EXPORT
 }
 
 enum BackupStatus {
@@ -149,6 +152,9 @@ enum BackupSource {
 enum LoginAttemptStatus {
   SUCCESS
   FAILED
+  PASSWORD_OK
+  TWO_FACTOR_SUCCESS
+  TWO_FACTOR_FAILED
 }
 
 enum TwoFactorResetRequestStatus {

@@ -34,7 +34,9 @@
     "cleanup:excel-phones": "tsx scripts/cleanup-excel-phone-suffixes.ts",
     "cleanup:retroactive-unit-cycle-deadlines": "tsx scripts/cleanup-retroactive-unit-cycle-deadlines.ts",
     "seed:overdue-walkthrough": "tsx scripts/seed-overdue-contract-walkthrough.ts",
-    "capture:walkthrough-proof": "tsx scripts/capture-walkthrough-proof.ts"
+    "capture:walkthrough-proof": "tsx scripts/capture-walkthrough-proof.ts",
+    "seed:audit-logs-demo": "tsx scripts/seed-audit-logs-demo.ts",
+    "audit:redact-secrets": "tsx scripts/redact-audit-secrets.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

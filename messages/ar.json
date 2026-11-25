@@ -1404,6 +1404,10 @@
     "subtitle": "يتم تسجيل التغييرات على الوحدات والبلاغات والمستخدمين والعملاء عند تنفيذ الإجراءات.",
     "action": "الإجراء",
     "table": "الجدول",
+    "entity": "الكيان",
+    "record": "السجل",
+    "recordId": "معرّف السجل",
+    "copyRecordId": "نسخ معرّف السجل",
     "user": "المستخدم",
     "timestamp": "الوقت",
     "ip": "عنوان IP",
@@ -1413,7 +1417,10 @@
       "CREATE": "إنشاء",
       "UPDATE": "تحديث",
       "DELETE": "حذف",
-      "TWO_FACTOR_RESET": "إعادة ضبط 2FA"
+      "TWO_FACTOR_RESET": "إعادة ضبط 2FA",
+      "PASSWORD_CHANGE": "تغيير كلمة المرور",
+      "SESSION_REVOKE": "إلغاء الجلسة",
+      "EXPORT": "تصدير CSV"
     },
     "tables": {
       "Client": "العميل",
@@ -1423,7 +1430,44 @@
       "ContractWorkflow": "قائمة التسليم",
       "Finishing": "التشطيب",
       "Ticket": "البلاغ",
-      "User": "المستخدم"
+      "User": "المستخدم",
+      "AuditLog": "سجل التدقيق"
+    },
+    "filters": {
+      "dateFrom": "من تاريخ",
+      "dateTo": "إلى تاريخ",
+      "actor": "الفاعل",
+      "allActors": "كل الفاعلين",
+      "entity": "نوع الكيان",
+      "allEntities": "كل الأنواع",
+      "action": "الإجراء",
+      "allActions": "كل الإجراءات",
+      "recordId": "معرّف السجل",
+      "recordIdPlaceholder": "تصفية بمعرّف السجل…",
+      "search": "بحث",
+      "searchPlaceholder": "مستخدم، معرّف، IP، كيان…"
+    },
+    "pagination": {
+      "summary": "عرض {from}–{to} من {total}"
+    },
+    "diff": {
+      "title": "تفاصيل التغيير",
+      "view": "التفاصيل",
+      "before": "قبل",
+      "after": "بعد",
+      "noChanges": "لا توجد اختلافات على مستوى الحقول في هذا السجل."
+    },
+    "export": {
+      "action": "تصدير CSV",
+      "columns": {
+        "timestamp": "الوقت",
+        "action": "الإجراء",
+        "table": "الكيان",
+        "recordId": "معرّف السجل",
+        "user": "الفاعل",
+        "ip": "عنوان IP",
+        "changes": "التغييرات"
+      }
     }
   },
   "backups": {
@@ -1592,6 +1636,9 @@
     "tabSessions": "الجلسات النشطة",
     "statusSuccess": "ناجح",
     "statusFailed": "فاشل",
+    "statusPasswordOk": "كلمة المرور صحيحة",
+    "statusTwoFactorSuccess": "تم التحقق من 2FA",
+    "statusTwoFactorFailed": "فشل 2FA",
     "killSessions": "إنهاء الجلسات",
     "killConfirm": "إلغاء جميع الجلسات النشطة لـ {name}؟ سيتم تسجيل خروجه عند الطلب التالي.",
     "killSuccess": "تم إلغاء الجلسات — سيتم تسجيل خروج المستخدم قريبًا.",

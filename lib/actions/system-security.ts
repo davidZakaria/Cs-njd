@@ -2,9 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 
+import { headers } from "next/headers";
+
 import { auth } from "@/lib/auth";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
-import { prisma } from "@/lib/prisma";
+import { basePrisma, prisma } from "@/lib/prisma";
+import { recordAuditLog } from "@/lib/prisma/record-audit-log";
 
 export async function killUserSessions(userId: string): Promise<ActionResult> {
   const session = await auth();
@@ -28,6 +31,19 @@ export async function killUserSessions(userId: string): Promise<ActionResult> {
   await prisma.user.update({
     where: { id: userId },
     data: { sessionVersion: { increment: 1 } },
+  });
+
+  const headersList = await headers();
+  const ipAddress =
+    headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    headersList.get("x-real-ip") ??
+    "unknown";
+
+  await recordAuditLog(basePrisma, { userId: session.user.id, ipAddress }, {
+    model: "User",
+    action: "SESSION_REVOKE",
+    recordId: userId,
+    newData: { sessionVersion: { changed: true } },
   });
 
   revalidatePath("/system/security");

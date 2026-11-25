@@ -27,9 +27,46 @@ export type LoginHistoryRow = {
   email: string;
   ipAddress: string | null;
   browser: string;
-  status: "SUCCESS" | "FAILED";
+  status:
+    | "SUCCESS"
+    | "FAILED"
+    | "PASSWORD_OK"
+    | "TWO_FACTOR_SUCCESS"
+    | "TWO_FACTOR_FAILED";
   timestampLabel: string;
 };
+
+function statusLabel(
+  status: LoginHistoryRow["status"],
+  t: ReturnType<typeof useTranslations>
+): string {
+  switch (status) {
+    case "SUCCESS":
+      return t("statusSuccess");
+    case "FAILED":
+      return t("statusFailed");
+    case "PASSWORD_OK":
+      return t("statusPasswordOk");
+    case "TWO_FACTOR_SUCCESS":
+      return t("statusTwoFactorSuccess");
+    case "TWO_FACTOR_FAILED":
+      return t("statusTwoFactorFailed");
+    default:
+      return status;
+  }
+}
+
+function statusVariant(
+  status: LoginHistoryRow["status"]
+): "secondary" | "destructive" | "outline" {
+  if (status === "FAILED" || status === "TWO_FACTOR_FAILED") {
+    return "destructive";
+  }
+  if (status === "PASSWORD_OK") {
+    return "outline";
+  }
+  return "secondary";
+}
 
 const COLUMN_WIDTHS: Record<string, string> = {
   email: "w-[22%]",
@@ -65,12 +102,8 @@ export function LoginHistoryTable({ data }: { data: LoginHistoryRow[] }) {
         accessorKey: "status",
         header: t("columns.status"),
         cell: ({ row }) => (
-          <Badge
-            variant={row.original.status === "SUCCESS" ? "secondary" : "destructive"}
-          >
-            {row.original.status === "SUCCESS"
-              ? t("statusSuccess")
-              : t("statusFailed")}
+          <Badge variant={statusVariant(row.original.status)}>
+            {statusLabel(row.original.status, t)}
           </Badge>
         ),
       },
