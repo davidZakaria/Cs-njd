@@ -48,6 +48,22 @@ const TYPE_LABEL_AR: Record<UnitRequestType, string> = {
   ARCHIVE_FILE_REQUEST: "طلب ملف أرشيف",
 };
 
+export function formatOldestLateSuffixEn(days: number): string {
+  if (days <= 0) return "";
+  if (days === 1) return "; oldest is 1 day late";
+  return `; oldest is ${days} days late`;
+}
+
+export function formatOldestLateSuffixAr(days: number): string {
+  if (days <= 0) return "";
+  if (days === 1) return "؛ الأقدم متأخر يوم واحد";
+  if (days === 2) return "؛ الأقدم متأخر يومان";
+  if (days >= 3 && days <= 10) {
+    return `؛ الأقدم متأخر ${days} أيام`;
+  }
+  return `؛ الأقدم متأخر ${days} يومًا`;
+}
+
 export function requestDaysOverdue(
   dueDate: Date | null,
   now: Date
@@ -134,10 +150,8 @@ export function formatLateRequestDigestMessage(
   const titleEn = total === 1 ? "1 late request" : `${total} late requests`;
   const titleAr = total === 1 ? "طلب متأخر" : `${total} طلبات متأخرة`;
 
-  const oldestSuffixEn =
-    oldestDaysLate > 0 ? `; oldest ${oldestDaysLate} day(s) late` : "";
-  const oldestSuffixAr =
-    oldestDaysLate > 0 ? `؛ الأقدم متأخر ${oldestDaysLate} يوم` : "";
+  const oldestSuffixEn = formatOldestLateSuffixEn(oldestDaysLate);
+  const oldestSuffixAr = formatOldestLateSuffixAr(oldestDaysLate);
 
   return {
     titleEn,

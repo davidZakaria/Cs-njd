@@ -49,7 +49,7 @@ async function upsertUser(email: string, name: string, role: Role) {
 }
 
 async function main() {
-  const mgmt = await upsertUser(
+  await upsertUser(
     "demo-mgmt@test.local",
     "Demo Manager (Walkthrough)",
     "MANAGEMENT"

@@ -9,6 +9,7 @@ CREATE TABLE "OfficialDocumentTextDraft" (
     "templateLocale" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "currentBody" TEXT NOT NULL,
+    "handoverTemplateKey" TEXT,
     "createdById" TEXT NOT NULL,
     "updatedById" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

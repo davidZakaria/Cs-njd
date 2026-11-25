@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatLateRequestDigestMessage,
+  formatOldestLateSuffixEn,
+  formatOldestLateSuffixAr,
   groupLateRequestsForDigest,
 } from "@/lib/requests/overdue-digest";
 
@@ -53,5 +55,12 @@ describe("late request digest", () => {
     expect(digest.messageEn).toContain("Legal");
     expect(digest.messageEn).toContain("contract issue/amendment");
     expect(digest.messageAr).toContain("القانونية");
+  });
+
+  it("uses natural oldest-overdue phrasing", () => {
+    expect(formatOldestLateSuffixEn(1)).toBe("; oldest is 1 day late");
+    expect(formatOldestLateSuffixEn(24)).toBe("; oldest is 24 days late");
+    expect(formatOldestLateSuffixAr(1)).toContain("يوم واحد");
+    expect(formatOldestLateSuffixAr(24)).toContain("يومًا");
   });
 });

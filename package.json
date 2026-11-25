@@ -31,6 +31,7 @@
     "cron:dry-run-escalations": "tsx scripts/cron-dry-run-escalations.ts",
     "seed:late-request-walkthrough": "tsx scripts/seed-late-request-digest-walkthrough.ts",
     "capture:late-request-walkthrough": "tsx scripts/capture-late-request-digest-walkthrough.ts",
+    "capture:late-request-key-screenshots": "tsx scripts/capture-late-request-key-screenshots.ts",
     "e2e:handover-request-edit": "tsx scripts/e2e-handover-request-edit-matrix.ts",
     "e2e:dashboard-metric-parity": "tsx scripts/e2e-dashboard-metric-parity.ts",
     "e2e:walkthrough-ar-unit": "tsx scripts/e2e-walkthrough-ar-unit-timeline.ts",
