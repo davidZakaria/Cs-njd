@@ -1194,8 +1194,12 @@
       "subtitle": "Users waiting for Super Admin approval to scan a new authenticator QR code.",
       "emptyTitle": "No pending requests",
       "emptyDescription": "When someone requests a reset from the verify screen, they will appear here.",
+      "consumedTitle": "Recently completed resets",
+      "consumedSubtitle": "Approvals where the user finished scanning a new authenticator.",
       "columns": {
-        "actions": "Actions"
+        "actions": "Actions",
+        "user": "User",
+        "consumedAt": "Consumed at"
       },
       "openReview": "Review"
     },

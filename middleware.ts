@@ -99,6 +99,17 @@ export default middlewareAuth(async (req) => {
 
   if (
     isTwoFactorRequired(user.role) &&
+    normalizedPath.startsWith("/setup-2fa") &&
+    !user.needs2FASetup
+  ) {
+    const target = user.twoFactorVerified
+      ? getHomeRoute(user.role)
+      : "/verify-2fa";
+    return NextResponse.redirect(new URL(`/${locale}${target}`, req.url));
+  }
+
+  if (
+    isTwoFactorRequired(user.role) &&
     !user.twoFactorVerified &&
     !normalizedPath.startsWith("/setup-2fa") &&
     !normalizedPath.startsWith("/verify-2fa")
@@ -110,11 +121,7 @@ export default middlewareAuth(async (req) => {
   }
 
   if (user.twoFactorVerified && isAuthRoute(normalizedPath)) {
-    // Allow setup-2fa even when the JWT still says verified (e.g. right after reset).
-    if (
-      normalizedPath.startsWith("/setup-2fa") ||
-      user.needs2FASetup
-    ) {
+    if (normalizedPath.startsWith("/setup-2fa") && user.needs2FASetup) {
       return intlMiddleware(req);
     }
     const home = getHomeRoute(user.role);

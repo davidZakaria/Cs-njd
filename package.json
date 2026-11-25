@@ -36,7 +36,10 @@
     "seed:overdue-walkthrough": "tsx scripts/seed-overdue-contract-walkthrough.ts",
     "capture:walkthrough-proof": "tsx scripts/capture-walkthrough-proof.ts",
     "seed:audit-logs-demo": "tsx scripts/seed-audit-logs-demo.ts",
-    "audit:redact-secrets": "tsx scripts/redact-audit-secrets.ts"
+    "audit:redact-secrets": "tsx scripts/redact-audit-secrets.ts",
+    "2fa:consume-stale-approvals": "tsx scripts/consume-stale-2fa-reset-approvals.ts",
+    "seed:2fa-reset-walkthrough": "tsx scripts/seed-2fa-reset-walkthrough.ts",
+    "capture:2fa-reset-walkthrough": "tsx scripts/capture-2fa-reset-walkthrough.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

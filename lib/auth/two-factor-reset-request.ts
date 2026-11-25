@@ -1,8 +1,21 @@
 import { auth } from "@/lib/auth";
 import { actionFail, actionOk, type ActionResult } from "@/lib/actions/result";
+import { recordTwoFactorFlowAudit } from "@/lib/auth/two-factor-audit";
+import {
+  findUnusedApprovedTwoFactorReset,
+  userNeedsTwoFactorEnrollment,
+} from "@/lib/auth/two-factor-enrollment";
 import { prisma } from "@/lib/prisma";
 import { twoFactorResetRequestsPath } from "@/lib/auth/two-factor-reset-links";
 import { notifyRoles, notifyUser } from "@/lib/services/notifications";
+import {
+  authRateLimitKey,
+  checkRateLimit,
+  recordFailure,
+  userRateLimitKey,
+  AUTH_RATE_LIMIT_ERROR,
+} from "@/lib/security/rate-limit";
+import { headers } from "next/headers";
 
 export type TwoFactorResetStatus =
   | "none"
@@ -11,19 +24,38 @@ export type TwoFactorResetStatus =
   | "rejected"
   | "ready";
 
+async function clientIp(): Promise<string | undefined> {
+  const headersList = await headers();
+  const forwarded = headersList.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0]?.trim() || undefined;
+  }
+  return headersList.get("x-real-ip") ?? undefined;
+}
+
 export async function requestTwoFactorResetForSession(): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) {
     return actionFail("SESSION_EXPIRED");
   }
 
+  const ip = await clientIp();
+  const rateKey = userRateLimitKey("2fa-reset-request", session.user.id);
+  const ipKey = authRateLimitKey("2fa-reset-request", ip);
+  if (!checkRateLimit(rateKey).allowed || !checkRateLimit(ipKey).allowed) {
+    return actionFail(AUTH_RATE_LIMIT_ERROR);
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, name: true, email: true, is2FAEnabled: true },
+    select: { id: true, name: true, email: true, is2FAEnabled: true, twoFactorSecret: true },
   });
 
-  if (!user?.is2FAEnabled) {
-    // Already cleared / never finished — user should enroll, not request approval.
+  if (!user) {
+    return actionFail("SESSION_EXPIRED");
+  }
+
+  if (!user.is2FAEnabled) {
     return actionOk();
   }
 
@@ -33,8 +65,16 @@ export async function requestTwoFactorResetForSession(): Promise<ActionResult> {
   });
 
   if (!existing) {
-    await prisma.twoFactorResetRequest.create({
+    const created = await prisma.twoFactorResetRequest.create({
       data: { userId: user.id },
+    });
+
+    recordFailure(rateKey);
+    recordFailure(ipKey);
+
+    await recordTwoFactorFlowAudit("TWO_FACTOR_RESET_REQUEST", created.id, {
+      status: "PENDING",
+      userId: user.id,
     });
 
     await notifyRoles(
@@ -42,7 +82,7 @@ export async function requestTwoFactorResetForSession(): Promise<ActionResult> {
       "2FA reset requested",
       "طلب إعادة ضبط المصادقة الثنائية",
       `${user.name} (${user.email}) requested a new authenticator setup. Open 2FA Reset Requests to approve or decline.`,
-      `طلب ${user.name} (${user.email}) إعادة ضبط المصادقة الثنائية. افتح «طلبات إعادة ضبط 2FA» للموافقة أو الرفض.`,
+      `طلب ${user.name} (${user.email}) إعادة ضبط المصادقة. افتح «طلبات إعادة ضبط 2FA» للموافقة أو الرفض.`,
       twoFactorResetRequestsPath()
     );
   }
@@ -67,6 +107,8 @@ export async function getTwoFactorResetStatusForSession(): Promise<{
     select: { is2FAEnabled: true, twoFactorSecret: true },
   });
 
+  const needsEnrollment = user ? userNeedsTwoFactorEnrollment(user) : false;
+
   const pending = await prisma.twoFactorResetRequest.findFirst({
     where: { userId, status: "PENDING" },
     orderBy: { requestedAt: "desc" },
@@ -76,7 +118,11 @@ export async function getTwoFactorResetStatusForSession(): Promise<{
     return { success: true, status: "pending", needsEnrollment: false };
   }
 
-  if (user && !user.is2FAEnabled) {
+  if (needsEnrollment) {
+    const unusedApproved = await findUnusedApprovedTwoFactorReset(userId);
+    if (unusedApproved) {
+      return { success: true, status: "approved", needsEnrollment: true };
+    }
     return { success: true, status: "ready", needsEnrollment: true };
   }
 
@@ -86,17 +132,8 @@ export async function getTwoFactorResetStatusForSession(): Promise<{
       status: { in: ["APPROVED", "REJECTED"] },
     },
     orderBy: { reviewedAt: "desc" },
-    select: { status: true, reviewedAt: true },
+    select: { status: true, reviewedAt: true, usedAt: true },
   });
-
-  if (
-    latestReviewed?.status === "APPROVED" &&
-    user &&
-    !user.is2FAEnabled &&
-    !user.twoFactorSecret
-  ) {
-    return { success: true, status: "ready", needsEnrollment: true };
-  }
 
   if (
     latestReviewed?.status === "REJECTED" &&
@@ -104,10 +141,6 @@ export async function getTwoFactorResetStatusForSession(): Promise<{
     Date.now() - latestReviewed.reviewedAt.getTime() < 1000 * 60 * 60 * 24
   ) {
     return { success: true, status: "rejected", needsEnrollment: false };
-  }
-
-  if (latestReviewed?.status === "APPROVED") {
-    return { success: true, status: "approved", needsEnrollment: false };
   }
 
   return { success: true, status: "none", needsEnrollment: false };
@@ -151,6 +184,7 @@ export async function approveTwoFactorResetRequest(
         status: "APPROVED",
         reviewedAt: new Date(),
         reviewedById: session.user!.id,
+        usedAt: null,
       },
     });
 
@@ -171,6 +205,11 @@ export async function approveTwoFactorResetRequest(
         reviewedById: session.user!.id,
       },
     });
+  });
+
+  await recordTwoFactorFlowAudit("TWO_FACTOR_RESET_APPROVE", pending.id, {
+    status: "APPROVED",
+    targetUserId,
   });
 
   await notifyUser(
@@ -210,6 +249,11 @@ export async function rejectTwoFactorResetRequest(
       reviewedAt: new Date(),
       reviewedById: session.user.id,
     },
+  });
+
+  await recordTwoFactorFlowAudit("TWO_FACTOR_RESET_DECLINE", pending.id, {
+    status: "REJECTED",
+    targetUserId,
   });
 
   await notifyUser(

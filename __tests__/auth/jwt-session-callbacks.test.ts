@@ -96,23 +96,7 @@ describe("JWT Session Callbacks", () => {
       expect(result).toEqual(token);
     });
 
-    it("updates needs2FASetup from session", () => {
-      const token: JWT = {
-        id: "user-1",
-        role: "CS_AGENT",
-        is2FAEnabled: false,
-        needs2FASetup: true,
-        twoFactorVerified: false,
-        requiresPasswordChange: false,
-      };
-      const session = { needs2FASetup: false };
-
-      const result = applyJwtClientUpdate(token, session);
-
-      expect(result.needs2FASetup).toBe(false);
-    });
-
-    it("updates twoFactorVerified from session", () => {
+    it("ignores client attempts to override 2FA gate flags", () => {
       const token: JWT = {
         id: "user-1",
         role: "CS_AGENT",
@@ -121,26 +105,16 @@ describe("JWT Session Callbacks", () => {
         twoFactorVerified: false,
         requiresPasswordChange: false,
       };
-      const session = { twoFactorVerified: true };
-
-      const result = applyJwtClientUpdate(token, session);
-
-      expect(result.twoFactorVerified).toBe(true);
-    });
-
-    it("updates is2FAEnabled from session", () => {
-      const token: JWT = {
-        id: "user-1",
-        role: "CS_AGENT",
-        is2FAEnabled: false,
-        needs2FASetup: false,
+      const session = {
+        needs2FASetup: true,
         twoFactorVerified: true,
-        requiresPasswordChange: false,
+        is2FAEnabled: false,
       };
-      const session = { is2FAEnabled: true };
 
       const result = applyJwtClientUpdate(token, session);
 
+      expect(result.needs2FASetup).toBe(false);
+      expect(result.twoFactorVerified).toBe(false);
       expect(result.is2FAEnabled).toBe(true);
     });
 
