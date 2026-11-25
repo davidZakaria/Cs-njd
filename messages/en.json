@@ -307,7 +307,7 @@
   },
   "activityNotifications": {
     "title": "Notifications",
-    "subtitle": "Call activity, request and archive file alerts, and overdue unit cycle digests.",
+    "subtitle": "Call activity, request and scanned-copy alerts, and overdue unit cycle digests.",
     "markAllRead": "Mark tab as read",
     "emptyCallLogs": "No logged calls yet. When someone logs a call, it will appear here.",
     "loggedBy": "Logged by {name}",
@@ -322,7 +322,7 @@
       "no_agent": "No agent",
       "emptyFilter": "No call logs match this filter."
     },
-    "emptyRequestsAndFiles": "No request or archive file alerts yet.",
+    "emptyRequestsAndFiles": "No request or scanned-copy alerts yet.",
     "emptyOverdueTasks": "No overdue unit cycle digests yet.",
     "tabs": {
       "callLogs": "Call logs",
@@ -1852,8 +1852,8 @@
       "SNAG_OR_DEFECT": "Snag or defect",
       "HANDOVER_APPOINTMENT": "Handover appointment",
       "DOCUMENT_CORRECTION": "Document correction",
-      "ARCHIVE_CHECK": "Archive check",
-      "ARCHIVE_FILE_REQUEST": "Archive file request"
+      "ARCHIVE_CHECK": "Contract papers check",
+      "ARCHIVE_FILE_REQUEST": "Request scanned copies"
     },
     "archiveFileKind": {
       "CONTRACT": "Contract",
@@ -1939,13 +1939,15 @@
       "submit": "Create draft",
       "created": "Draft created",
       "failed": "Could not create request",
-      "archiveScope": "Archive check scope",
+      "archiveScope": "Contract papers check scope",
       "archiveScopeSingle": "Single unit",
       "archiveScopeBulk": "Whole project (one check per unit)",
+      "typeHintArchiveCheck": "Operations reviews the unit's contract papers (found, missing, unsigned) and opens follow-ups for gaps. Part of the Legal & Handover stage.",
+      "typeHintArchiveFileRequest": "Ask Operations to send scans of specific files (e.g. National ID, contract). Doesn't change the unit's stage.",
       "project": "Project",
       "projectPlaceholder": "Select project",
       "projectRequired": "Select a project",
-      "createdBulkWithSkipped": "Draft created for {included} units ({skipped} skipped — already have an open check)",
+      "createdBulkWithSkipped": "Draft created for {included} units ({skipped} skipped — already have an open contract papers check)",
       "archiveFileKinds": "Files needed from archive",
       "archiveFileKindsRequired": "Select at least one file type",
       "archiveFilePriority": "Priority"
@@ -1988,7 +1990,7 @@
       "escalated": "Escalated to management",
       "unitSwapHint": "After management approval, complete the swap from the unit profile (management only).",
       "openUnitSwap": "Open unit profile",
-      "archiveBulkProject": "Bulk archive check — {project}",
+      "archiveBulkProject": "Bulk contract papers check — {project}",
       "auditActions": {
         "created": "Created",
         "submitted": "Submitted",
@@ -2003,14 +2005,14 @@
         "attachment_replaced": "{user} replaced {previousName} with {newName} · {when}",
         "description_updated": "{user} updated the description · {when}",
         "escalated_overdue": "Escalated (overdue)",
-        "archive_check_submitted": "Archive check submitted by operations",
-        "archive_check_bulk_created": "Bulk archive check created",
-        "archive_gap_completed": "Archive gap resolved",
-        "archive_gap_escalated": "Archive gap escalated",
+        "archive_check_submitted": "Contract papers check submitted by operations",
+        "archive_check_bulk_created": "Bulk contract papers check created",
+        "archive_gap_completed": "Contract papers gap resolved",
+        "archive_gap_escalated": "Contract papers gap escalated",
         "archive_scan_uploaded": "Archive scan uploaded",
-        "archive_file_uploaded": "Archive file uploaded",
-        "archive_file_not_found": "Archive file marked not found in archive",
-        "archive_file_request_completed": "Archive file request completed"
+        "archive_file_uploaded": "Scanned copy uploaded",
+        "archive_file_not_found": "Scanned copy marked not found in archive",
+        "archive_file_request_completed": "Scanned copy request completed"
       }
     },
     "unitPanel": {
@@ -2023,12 +2025,12 @@
   },
   "archiveCheck": {
     "operations": {
-      "queueTitle": "Archive checks awaiting operations",
-      "queueEmpty": "No archive checks in your queue.",
+      "queueTitle": "Contract papers checks awaiting operations",
+      "queueEmpty": "No contract papers checks in your queue.",
       "requestedBy": "Requested by {name}",
       "itemsPending": "{pending} of {total} items pending",
       "workspaceHint": "Mark each archive item as found, missing, or unsigned. Upload scans where available (upload-only — files cannot be replaced or deleted).",
-      "checklistTitle": "Archive checklist",
+      "checklistTitle": "Contract papers checklist",
       "itemColumn": "Item",
       "statusColumn": "Status",
       "scanColumn": "Scans",
@@ -2036,9 +2038,9 @@
       "uploadScan": "Upload scan",
       "viewScan": "View",
       "scanUploaded": "Scan uploaded",
-      "submitCheck": "Submit archive check",
+      "submitCheck": "Submit contract papers check",
       "pendingItems": "{count} items still need a status",
-      "submitted": "Archive check submitted",
+      "submitted": "Contract papers check submitted",
       "failed": "Action failed",
       "backToQueue": "Back to operations"
     },
@@ -2048,7 +2050,7 @@
       "UNSIGNED": "Unsigned"
     },
     "progress": {
-      "title": "Archive check progress",
+      "title": "Contract papers check progress",
       "overallCount": "{done} of {total} items complete",
       "unitColumn": "Unit",
       "itemColumn": "Item",
@@ -2060,8 +2062,8 @@
       "bulkProjectLabel": "Project: {project}"
     },
     "gapTasks": {
-      "title": "Archive gap follow-ups",
-      "empty": "No open archive gaps assigned to you.",
+      "title": "Contract papers gap follow-ups",
+      "empty": "No open contract papers gaps assigned to you.",
       "openRequest": "Open request",
       "markDone": "Mark gap resolved",
       "completed": "Gap marked resolved",
@@ -2229,17 +2231,17 @@
     }
   },
   "operationsArchiveFileRequests": {
-    "pageTitle": "Archive file requests",
+    "pageTitle": "Scanned copy requests",
     "pageSubtitle": "CS and management requests for scans from the physical archive.",
     "title": "Open requests",
-    "empty": "No open archive file requests.",
+    "empty": "No open scanned copy requests.",
     "urgent": "Urgent",
     "unreadBadge": "{count} unread",
     "requestedBy": "Requested by {name}",
     "pendingFiles": "{count, plural, one {# file pending} other {# files pending}}",
     "requestCompleted": "This request is complete.",
     "backToInbox": "Back to requests inbox",
-    "detailTitle": "Fulfill archive file request",
+    "detailTitle": "Fulfill scanned copy request",
     "openUnit": "Open unit",
     "note": "Requester note",
     "uploadScan": "Upload scan",

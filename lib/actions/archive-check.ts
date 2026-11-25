@@ -120,7 +120,7 @@ export async function createBulkArchiveCheckAction(
   if (eligibleUnits.length === 0) {
     return {
       success: false,
-      error: "Every unit in this project already has an open archive check",
+      error: "Every unit in this project already has an open contract papers check",
     };
   }
 

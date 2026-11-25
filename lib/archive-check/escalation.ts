@@ -58,8 +58,8 @@ export async function runArchiveCheckGapEscalationJob(
     await notifyRolesInboxTab({
       roles: ["MANAGEMENT", "SUPER_ADMIN"],
       inboxTab: "REQUESTS_AND_FILES",
-      titleEn: "Overdue archive check gap",
-      titleAr: "فجوة فحص أرشيف متأخرة",
+      titleEn: "Overdue contract papers check gap",
+      titleAr: "فجوة متأخرة في مراجعة أوراق العقد",
       messageEn: `${unit.project.name} · ${unit.unitCode} · ${task.itemKey}`,
       messageAr: `${unit.project.name} · ${unit.unitCode} · ${task.itemKey}`,
       link: `/requests/${task.unitRequestId}`,

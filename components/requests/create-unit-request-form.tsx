@@ -256,6 +256,12 @@ export function CreateUnitRequestForm({
               ))}
             </SelectContent>
           </Select>
+          {type === UnitRequestType.ARCHIVE_CHECK ? (
+            <p className="text-xs text-muted-foreground">{t("typeHintArchiveCheck")}</p>
+          ) : null}
+          {type === UnitRequestType.ARCHIVE_FILE_REQUEST ? (
+            <p className="text-xs text-muted-foreground">{t("typeHintArchiveFileRequest")}</p>
+          ) : null}
         </div>
         <div className="md:col-span-2 space-y-1">
           <label className="text-sm font-medium">{t("description")}</label>
