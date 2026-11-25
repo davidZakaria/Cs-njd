@@ -2174,7 +2174,7 @@
       "ownerUnclaimed": "غير مُسنَد",
       "taskMeta": "متأخر {days} يوم · قائمة {checklist}",
       "deadline": "المهلة {date}",
-      "daysOverdueBadge": "متأخر {days} ي",
+      "daysOverdueBadge": "{days, plural, one {متأخر يوم واحد} two {متأخر يومين} few {متأخر # أيام} many {متأخر # يوماً} other {متأخر # يوم}}",
       "filters": {
         "project": "المشروع",
         "stage": "المرحلة",

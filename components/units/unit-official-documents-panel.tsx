@@ -42,6 +42,7 @@ import {
   resolveAutoLinkedUnitRequestId,
 } from "@/lib/official-documents/approved-request-option";
 import { requiredRequestTypeForDocument } from "@/lib/official-documents/request-binding";
+import { formatDisplayDateTime } from "@/lib/format/datetime";
 import { cn } from "@/lib/utils";
 import { handoverUsesOfficialMasters } from "@/lib/official-documents/handover/constants";
 import {
@@ -800,7 +801,7 @@ export function UnitOfficialDocumentsPanel({
                 {versionHistory.map((v) => (
                   <li key={v.id} className="flex flex-wrap items-center gap-2">
                     <span>
-                      {v.editorName} · {new Date(v.createdAt).toLocaleString(locale)}
+                      {v.editorName} · {formatDisplayDateTime(v.createdAt, locale)}
                     </span>
                     {canEditDraftText ? (
                       <Button
