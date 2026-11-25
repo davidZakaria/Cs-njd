@@ -8,6 +8,7 @@ import { ClaimWorkButton } from "@/components/work/claim-work-button";
 import { WorkScopeToggle } from "@/components/work/work-scope-toggle";
 import { cn } from "@/lib/utils";
 import type { WorkScopeMode } from "@/lib/work/personal-scope";
+import { formatDisplayDate } from "@/lib/format/datetime";
 
 export async function MyStageTasksQueue({
   tasks,
@@ -69,7 +70,7 @@ export async function MyStageTasksQueue({
               </Badge>
               {task.deadlineAt ? (
                 <span className="text-xs text-muted-foreground">
-                  {new Date(task.deadlineAt).toLocaleDateString(locale)}
+                  {formatDisplayDate(task.deadlineAt, locale)}
                 </span>
               ) : null}
               {task.overdue ? (
@@ -121,7 +122,7 @@ export async function OverdueStagesList({
                 </p>
               </div>
               {task.deadlineAt ? (
-                <span className="text-xs">{new Date(task.deadlineAt).toLocaleDateString(locale)}</span>
+                <span className="text-xs">{formatDisplayDate(task.deadlineAt, locale)}</span>
               ) : null}
             </Link>
           ))

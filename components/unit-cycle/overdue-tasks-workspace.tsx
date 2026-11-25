@@ -26,6 +26,7 @@ import {
   type OverdueTasksPageFilters,
   projectNameToSlug,
 } from "@/lib/unit-cycle/overdue-filter-url";
+import { formatDisplayDate } from "@/lib/format/datetime";
 import {
   filterOverdueStageRows,
   groupOverdueStageRows,
@@ -349,9 +350,7 @@ export function OverdueTasksWorkspace({
                           {task.deadlineAt ? (
                             <p className="text-xs text-muted-foreground">
                               {t("deadline", {
-                                date: new Date(task.deadlineAt).toLocaleDateString(
-                                  locale
-                                ),
+                                date: formatDisplayDate(task.deadlineAt, locale),
                               })}
                             </p>
                           ) : null}

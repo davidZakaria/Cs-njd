@@ -81,12 +81,9 @@ function DashboardTopBar() {
   return (
     <header className="sticky top-0 z-50 -mx-4 mb-5 border-b border-border/50 bg-background/80 px-4 py-3 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 md:-mx-6 md:px-6">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2 [dir=rtl]:flex-row-reverse">
           <SidebarTrigger className="shrink-0 transition-transform duration-300 active:scale-95" />
-          <JCommunitiesLogo
-            height={26}
-            className="min-w-0 max-w-[min(100%,10rem)] shrink"
-          />
+          <JCommunitiesLogo height={26} className="max-w-[min(100%,12rem)]" />
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <NotificationBell locale={locale} />
@@ -111,10 +108,10 @@ export function AppSidebar({ role }: { role: Role }) {
   return (
     <Sidebar collapsible="icon" side={isRtl ? "right" : "left"}>
       <SidebarHeader className="border-b border-border/50 px-4 py-4">
-        <div className="flex min-w-0 items-center [dir=rtl]:flex-row-reverse">
+        <div className="flex min-w-0 items-center justify-start px-0.5">
           <JCommunitiesLogo
             height={34}
-            className="max-w-[10.5rem] group-data-[collapsible=icon]:max-w-8 group-data-[collapsible=icon]:overflow-hidden"
+            className="w-[10.5rem] max-w-full group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:overflow-hidden"
           />
         </div>
       </SidebarHeader>

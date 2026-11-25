@@ -12,6 +12,7 @@ import {
 } from "@/lib/requests/overdue-digest";
 import { buildRequestsFilterUrl } from "@/lib/requests/requests-filter-url";
 import type { UnitRequestListRow } from "@/lib/requests/types";
+import { unitRequestViewerLinkForRole } from "@/lib/requests/viewer-link";
 import { formatUnitOwnersDisplayName } from "@/lib/units/unit-request-search";
 
 export const REQUEST_ESCALATION_CRON_TIMEZONE = APP_DISPLAY_TIME_ZONE;
@@ -137,6 +138,16 @@ export async function runRequestEscalationJob(
     }
 
     if (row.assignedApproverUserId) {
+      const assignee = await prisma.user.findUnique({
+        where: { id: row.assignedApproverUserId },
+        select: { role: true },
+      });
+      const viewerLink = unitRequestViewerLinkForRole(
+        assignee?.role ?? "MANAGEMENT",
+        row.id,
+        row.type
+      );
+
       if (dryRun) {
         preview.approverNotifications.push({
           userId: row.assignedApproverUserId,
@@ -151,7 +162,7 @@ export async function runRequestEscalationJob(
           titleAr: "طلب وحدة متأخر",
           messageEn: `${row.projectName} · ${row.unitCode} · ${row.type}`,
           messageAr: `${row.projectName} · ${row.unitCode} · ${row.type}`,
-          link: `/requests/${row.id}`,
+          link: viewerLink,
           dedupeKey: `request-overdue:${row.id}:${dayKey}`,
         });
         if (sent) notified += 1;

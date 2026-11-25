@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DepartmentGapCompleteButton } from "@/components/archive-check/department-gap-complete-button";
+import { formatDisplayDate } from "@/lib/format/datetime";
 
 export async function DepartmentArchiveGapTasksQueue({
   tasks,
@@ -46,7 +47,7 @@ export async function DepartmentArchiveGapTasksQueue({
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline">
-                  {task.deadlineAt.toLocaleDateString(locale)}
+                  {formatDisplayDate(task.deadlineAt, locale)}
                 </Badge>
                 <Button variant="secondary" size="sm" render={
                   <Link href={`/requests/${task.unitRequestId}`} />

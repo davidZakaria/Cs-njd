@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { ArchiveCheckQueueRow } from "@/lib/archive-check/queries";
+import { formatDisplayDate } from "@/lib/format/datetime";
 
 export async function OperationsArchiveCheckQueue({
   rows,
@@ -45,7 +46,7 @@ export async function OperationsArchiveCheckQueue({
                 </Badge>
                 {row.dueDate ? (
                   <Badge variant="outline">
-                    {new Date(row.dueDate).toLocaleDateString(locale)}
+                    {formatDisplayDate(row.dueDate, locale)}
                   </Badge>
                 ) : null}
               </div>
