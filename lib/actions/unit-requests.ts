@@ -277,7 +277,7 @@ export async function createUnitRequestAction(
     if (await unitHasOpenArchiveCheck(unit.id)) {
       return {
         success: false as const,
-        error: "An archive check is already open for this unit",
+        error: "A contract papers check is already open for this unit",
       };
     }
   }

@@ -69,12 +69,12 @@ export async function notifyRequesterArchiveFileItemOutcome(input: {
 
   const titleEn =
     input.status === "FULFILLED_UPLOAD"
-      ? "Archive file ready"
-      : "Archive file not found";
+      ? "Scanned copy ready"
+      : "Scanned copy not found";
   const titleAr =
     input.status === "FULFILLED_UPLOAD"
-      ? "ملف الأرشيف جاهز"
-      : "الملف غير موجود في الأرشيف";
+      ? "النسخة الممسوحة جاهزة"
+      : "تعذّر العثور على النسخة الممسوحة";
 
   const kindLabels = ARCHIVE_FILE_KIND_BILINGUAL[input.fileKind];
   const messageEn =

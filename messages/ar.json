@@ -307,7 +307,7 @@
   },
   "activityNotifications": {
     "title": "الإشعارات",
-    "subtitle": "سجل المكالمات، تنبيهات الطلبات وملفات الأرشيف، وملخصات مراحل الدورة المتأخرة.",
+    "subtitle": "سجل المكالمات، تنبيهات الطلبات والنسخ الممسوحة، وملخصات مراحل الدورة المتأخرة.",
     "markAllRead": "تعليم التبويب كمقروء",
     "emptyCallLogs": "لا توجد مكالمات مسجّلة بعد. عند تسجيل مكالمة ستظهر هنا.",
     "loggedBy": "سجّلها {name}",
@@ -322,7 +322,7 @@
       "no_agent": "بلا موظف",
       "emptyFilter": "لا توجد مكالمات تطابق هذا التصفية."
     },
-    "emptyRequestsAndFiles": "لا تنبيهات طلبات أو ملفات أرشيف بعد.",
+    "emptyRequestsAndFiles": "لا تنبيهات طلبات أو نسخ ممسوحة بعد.",
     "emptyOverdueTasks": "لا ملخصات دورة متأخرة بعد.",
     "tabs": {
       "callLogs": "سجل المكالمات",
@@ -1874,8 +1874,8 @@
       "SNAG_OR_DEFECT": "عيب أو ملاحظة",
       "HANDOVER_APPOINTMENT": "موعد تسليم",
       "DOCUMENT_CORRECTION": "تصحيح مستند",
-      "ARCHIVE_CHECK": "فحص الأرشيف",
-      "ARCHIVE_FILE_REQUEST": "طلب ملف من الأرشيف"
+      "ARCHIVE_CHECK": "مراجعة أوراق العقد",
+      "ARCHIVE_FILE_REQUEST": "طلب نسخ ممسوحة من الأرشيف"
     },
     "archiveFileKind": {
       "CONTRACT": "عقد",
@@ -1961,13 +1961,15 @@
       "submit": "إنشاء مسودة",
       "created": "تم إنشاء المسودة",
       "failed": "تعذّر إنشاء الطلب",
-      "archiveScope": "نطاق فحص الأرشيف",
+      "archiveScope": "نطاق مراجعة أوراق العقد",
       "archiveScopeSingle": "وحدة واحدة",
-      "archiveScopeBulk": "مشروع كامل (فحص لكل وحدة)",
+      "archiveScopeBulk": "مشروع كامل (مراجعة لكل وحدة)",
+      "typeHintArchiveCheck": "تراجع العمليات أوراق عقد الوحدة (موجودة، ناقصة، غير موقّعة) وتفتح متابعات للثغرات. جزء من مرحلة القانوني والتسليم.",
+      "typeHintArchiveFileRequest": "اطلب من العمليات إرسال مسوحات لملفات محددة (مثل بطاقة الرقم القومي أو العقد). لا يغيّر مرحلة الوحدة.",
       "project": "المشروع",
       "projectPlaceholder": "اختر المشروع",
       "projectRequired": "اختر مشروعاً",
-      "createdBulkWithSkipped": "تم إنشاء مسودة لـ {included} وحدة (تم تخطي {skipped} — لديها فحص مفتوح)",
+      "createdBulkWithSkipped": "تم إنشاء مسودة لـ {included} وحدة (تم تخطي {skipped} — لديها مراجعة أوراق عقد مفتوحة)",
       "archiveFileKinds": "الملفات المطلوبة من الأرشيف",
       "archiveFileKindsRequired": "اختر نوع ملف واحد على الأقل",
       "archiveFilePriority": "الأولوية"
@@ -2010,7 +2012,7 @@
       "escalated": "مُصعَّد للإدارة",
       "unitSwapHint": "بعد موافقة الإدارة، أكمل التبديل من ملف الوحدة (للإدارة فقط).",
       "openUnitSwap": "فتح ملف الوحدة",
-      "archiveBulkProject": "فحص أرشيف جماعي — {project}",
+      "archiveBulkProject": "مراجعة جماعية لأوراق العقد — {project}",
       "auditActions": {
         "created": "تم الإنشاء",
         "submitted": "تم الإرسال",
@@ -2025,14 +2027,14 @@
         "attachment_replaced": "{user} استبدل {previousName} بـ {newName} · {when}",
         "description_updated": "{user} عدّل الوصف · {when}",
         "escalated_overdue": "تصعيد (متأخر)",
-        "archive_check_submitted": "تم إرسال فحص الأرشيف من العمليات",
-        "archive_check_bulk_created": "تم إنشاء فحص أرشيف جماعي",
-        "archive_gap_completed": "تم حل فجوة الأرشيف",
-        "archive_gap_escalated": "تم تصعيد فجوة الأرشيف",
+        "archive_check_submitted": "أرسلت العمليات مراجعة أوراق العقد",
+        "archive_check_bulk_created": "تم إنشاء مراجعة جماعية لأوراق العقد",
+        "archive_gap_completed": "تم حل فجوة في أوراق العقد",
+        "archive_gap_escalated": "تم تصعيد فجوة في أوراق العقد",
         "archive_scan_uploaded": "تم رفع مسح الأرشيف",
-        "archive_file_uploaded": "تم رفع ملف من الأرشيف",
-        "archive_file_not_found": "تعذر العثور على الملف في الأرشيف",
-        "archive_file_request_completed": "اكتمل طلب ملف الأرشيف"
+        "archive_file_uploaded": "تم رفع نسخة ممسوحة",
+        "archive_file_not_found": "تُعذّر العثور على النسخة الممسوحة في الأرشيف",
+        "archive_file_request_completed": "اكتمل طلب النسخ الممسوحة"
       }
     },
     "unitPanel": {
@@ -2045,12 +2047,12 @@
   },
   "archiveCheck": {
     "operations": {
-      "queueTitle": "فحوصات أرشيف بانتظار العمليات",
-      "queueEmpty": "لا توجد فحوصات أرشيف في قائمتك.",
+      "queueTitle": "مراجعات أوراق العقد بانتظار العمليات",
+      "queueEmpty": "لا توجد مراجعات أوراق عقد في قائمتك.",
       "requestedBy": "طلب من {name}",
       "itemsPending": "{pending} من {total} عناصر بانتظار التقييم",
       "workspaceHint": "حدّد كل عنصر أرشيف كموجود أو ناقص أو غير موقّع. ارفع المسوحات عند توفرها (رفع فقط — لا يمكن استبدال الملفات أو حذفها).",
-      "checklistTitle": "قائمة فحص الأرشيف",
+      "checklistTitle": "قائمة مراجعة أوراق العقد",
       "itemColumn": "العنصر",
       "statusColumn": "الحالة",
       "scanColumn": "المسوحات",
@@ -2058,9 +2060,9 @@
       "uploadScan": "رفع مسح",
       "viewScan": "عرض",
       "scanUploaded": "تم رفع المسح",
-      "submitCheck": "إرسال فحص الأرشيف",
+      "submitCheck": "إرسال مراجعة أوراق العقد",
       "pendingItems": "{count} عناصر ما زالت بلا حالة",
-      "submitted": "تم إرسال فحص الأرشيف",
+      "submitted": "تم إرسال مراجعة أوراق العقد",
       "failed": "فشل الإجراء",
       "backToQueue": "العودة للعمليات"
     },
@@ -2070,7 +2072,7 @@
       "UNSIGNED": "غير موقّع"
     },
     "progress": {
-      "title": "تقدّم فحص الأرشيف",
+      "title": "تقدّم مراجعة أوراق العقد",
       "overallCount": "{done} من {total} عناصر مكتملة",
       "unitColumn": "الوحدة",
       "itemColumn": "العنصر",
@@ -2082,8 +2084,8 @@
       "bulkProjectLabel": "المشروع: {project}"
     },
     "gapTasks": {
-      "title": "متابعات فجوات الأرشيف",
-      "empty": "لا توجد فجوات أرشيف مفتوحة مسندة إليك.",
+      "title": "متابعات فجوات أوراق العقد",
+      "empty": "لا توجد فجوات في أوراق العقد مسندة إليك.",
       "openRequest": "فتح الطلب",
       "markDone": "تعليم الفجوة كمحلولة",
       "completed": "تم تعليم الفجوة كمحلولة",
@@ -2249,17 +2251,17 @@
     }
   },
   "operationsArchiveFileRequests": {
-    "pageTitle": "طلبات ملفات الأرشيف",
+    "pageTitle": "طلبات النسخ الممسوحة",
     "pageSubtitle": "طلبات خدمة العملاء والإدارة لمسح مستندات من الأرشيف الورقي.",
     "title": "الطلبات المفتوحة",
-    "empty": "لا توجد طلبات ملفات أرشيف مفتوحة.",
+    "empty": "لا توجد طلبات نسخ ممسوحة مفتوحة.",
     "urgent": "عاجل",
     "unreadBadge": "{count} غير مقروء",
     "requestedBy": "طلب {name}",
     "pendingFiles": "{count, plural, one {ملف واحد معلّق} other {# ملفات معلّقة}}",
     "requestCompleted": "اكتمل هذا الطلب.",
     "backToInbox": "العودة إلى صندوق الطلبات",
-    "detailTitle": "تنفيذ طلب ملف أرشيف",
+    "detailTitle": "تنفيذ طلب النسخ الممسوحة",
     "openUnit": "فتح الوحدة",
     "note": "ملاحظة مقدّم الطلب",
     "uploadScan": "رفع المسح",

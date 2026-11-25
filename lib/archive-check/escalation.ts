@@ -1,16 +1,41 @@
 import { prisma as appPrisma } from "@/lib/prisma";
 
 import { isGapTaskOverdue } from "@/lib/archive-check/gap-tasks";
+import type { EscalationJobRunOptions } from "@/lib/cron/escalation-job-options";
 import { notifyRolesInboxTab } from "@/lib/notifications/inbox-delivery";
+import { resolveActiveUserIdsForRoles } from "@/lib/notifications/inbox-recipients";
 import { recordRequestAuditEvent } from "@/lib/requests/audit";
 
 export type ArchiveGapEscalationDb = typeof appPrisma;
 
+export type ArchiveGapEscalationPreview = {
+  wouldEscalateGaps: Array<{
+    gapTaskId: string;
+    requestId: string;
+    unitCode: string;
+    itemKey: string;
+    recipientUserIds: string[];
+  }>;
+  skippedCooldownGapTaskIds: string[];
+};
+
+export type ArchiveGapEscalationJobResult = {
+  scanned: number;
+  notified: number;
+  preview?: ArchiveGapEscalationPreview;
+};
+
 export async function runArchiveCheckGapEscalationJob(
-  prisma: ArchiveGapEscalationDb
-): Promise<{ notified: number; scanned: number }> {
+  prisma: ArchiveGapEscalationDb,
+  options?: EscalationJobRunOptions
+): Promise<ArchiveGapEscalationJobResult> {
+  const dryRun = options?.dryRun === true;
   const ESCALATION_COOLDOWN_MS = 20 * 60 * 60 * 1000;
   const now = new Date();
+  const preview: ArchiveGapEscalationPreview = {
+    wouldEscalateGaps: [],
+    skippedCooldownGapTaskIds: [],
+  };
 
   const openTasks = await prisma.archiveCheckGapTask.findMany({
     where: { status: "OPEN", deadlineAt: { lt: now } },
@@ -48,6 +73,9 @@ export async function runArchiveCheckGapEscalationJob(
       task.lastEscalatedAt &&
       now.getTime() - task.lastEscalatedAt.getTime() < ESCALATION_COOLDOWN_MS
     ) {
+      if (dryRun) {
+        preview.skippedCooldownGapTaskIds.push(task.id);
+      }
       continue;
     }
 
@@ -55,41 +83,59 @@ export async function runArchiveCheckGapEscalationJob(
     if (!unit) {
       continue;
     }
-    await notifyRolesInboxTab({
-      roles: ["MANAGEMENT", "SUPER_ADMIN"],
-      inboxTab: "REQUESTS_AND_FILES",
-      titleEn: "Overdue archive check gap",
-      titleAr: "فجوة فحص أرشيف متأخرة",
-      messageEn: `${unit.project.name} · ${unit.unitCode} · ${task.itemKey}`,
-      messageAr: `${unit.project.name} · ${unit.unitCode} · ${task.itemKey}`,
-      link: `/requests/${task.unitRequestId}`,
-    });
 
-    await prisma.archiveCheckGapTask.update({
-      where: { id: task.id },
-      data: {
-        escalatedToManagement: true,
-        lastEscalatedAt: now,
-        ownerRole: "MANAGEMENT",
-        ownerUserId: task.ownerUserId,
-      },
-    });
+    if (dryRun) {
+      preview.wouldEscalateGaps.push({
+        gapTaskId: task.id,
+        requestId: task.unitRequestId,
+        unitCode: unit.unitCode,
+        itemKey: task.itemKey,
+        recipientUserIds: await resolveActiveUserIdsForRoles(prisma, [
+          "MANAGEMENT",
+          "SUPER_ADMIN",
+        ]),
+      });
+    } else {
+      await notifyRolesInboxTab({
+        roles: ["MANAGEMENT", "SUPER_ADMIN"],
+        inboxTab: "REQUESTS_AND_FILES",
+        titleEn: "Overdue contract papers check gap",
+        titleAr: "فجوة متأخرة في مراجعة أوراق العقد",
+        messageEn: `${unit.project.name} · ${unit.unitCode} · ${task.itemKey}`,
+        messageAr: `${unit.project.name} · ${unit.unitCode} · ${task.itemKey}`,
+        link: `/requests/${task.unitRequestId}`,
+      });
 
-    await prisma.unitRequest.update({
-      where: { id: task.unitRequestId },
-      data: { escalatedToManagement: true, lastEscalatedAt: now },
-    });
+      await prisma.archiveCheckGapTask.update({
+        where: { id: task.id },
+        data: {
+          escalatedToManagement: true,
+          lastEscalatedAt: now,
+          ownerRole: "MANAGEMENT",
+          ownerUserId: task.ownerUserId,
+        },
+      });
 
-    await recordRequestAuditEvent({
-      requestId: task.unitRequestId,
-      action: "archive_gap_escalated",
-      details: { itemKey: task.itemKey, gapTaskId: task.id },
-    });
+      await prisma.unitRequest.update({
+        where: { id: task.unitRequestId },
+        data: { escalatedToManagement: true, lastEscalatedAt: now },
+      });
 
-    notified += 1;
+      await recordRequestAuditEvent({
+        requestId: task.unitRequestId,
+        action: "archive_gap_escalated",
+        details: { itemKey: task.itemKey, gapTaskId: task.id },
+      });
+
+      notified += 1;
+    }
   }
 
-  return { notified, scanned: openTasks.length };
+  return {
+    notified: dryRun ? 0 : notified,
+    scanned: openTasks.length,
+    ...(dryRun ? { preview } : {}),
+  };
 }
 
 export function getArchiveGapEscalationCronSchedule(): string {
