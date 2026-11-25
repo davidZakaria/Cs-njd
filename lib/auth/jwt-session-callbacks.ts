@@ -28,6 +28,7 @@ export function applyJwtUserFields(token: JWT, user: JwtUser): JWT {
   };
 }
 
+/** Client session updates must not override 2FA gate flags — those are DB-derived on the server. */
 export function applyJwtClientUpdate(
   token: JWT,
   session: Record<string, unknown> | undefined
@@ -36,13 +37,6 @@ export function applyJwtClientUpdate(
 
   return {
     ...token,
-    needs2FASetup:
-      (session.needs2FASetup as boolean | undefined) ?? token.needs2FASetup,
-    twoFactorVerified:
-      (session.twoFactorVerified as boolean | undefined) ??
-      token.twoFactorVerified,
-    is2FAEnabled:
-      (session.is2FAEnabled as boolean | undefined) ?? token.is2FAEnabled,
     requiresPasswordChange:
       (session.requiresPasswordChange as boolean | undefined) ??
       token.requiresPasswordChange,

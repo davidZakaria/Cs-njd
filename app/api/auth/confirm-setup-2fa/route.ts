@@ -1,3 +1,4 @@
+import { withAudit } from "@/lib/audit/with-audit";
 import { confirmSetupTwoFactor } from "@/lib/auth/setup-two-factor";
 
 export async function POST(request: Request) {
@@ -15,6 +16,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await confirmSetupTwoFactor(secret, token);
-  return Response.json(result, { status: result.success ? 200 : 401 });
+  return withAudit(async () => {
+    const result = await confirmSetupTwoFactor(secret, token);
+    return Response.json(result, { status: result.success ? 200 : 401 });
+  });
 }

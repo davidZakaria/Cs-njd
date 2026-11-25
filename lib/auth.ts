@@ -20,6 +20,7 @@ import {
 import {
   applySessionVersionToToken,
 } from "@/lib/auth/session-version";
+import { userNeedsTwoFactorEnrollment } from "@/lib/auth/two-factor-enrollment";
 import { engineerSessionFlags, isTwoFactorRequired } from "@/lib/auth/two-factor-policy";
 import { prisma } from "@/lib/prisma";
 import {
@@ -181,7 +182,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           is2FAEnabled: engineerFlags?.is2FAEnabled ?? user.is2FAEnabled,
           needs2FASetup:
             engineerFlags?.needs2FASetup ??
-            (!user.is2FAEnabled || !user.twoFactorSecret),
+            userNeedsTwoFactorEnrollment(user),
           twoFactorVerified: engineerFlags?.twoFactorVerified ?? false,
           requiresPasswordChange: user.requiresPasswordChange,
           sessionVersion: user.sessionVersion,

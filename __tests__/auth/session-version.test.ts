@@ -4,16 +4,23 @@ import type { JWT } from "@auth/core/jwt";
 const mockPrismaUser = {
   findUnique: vi.fn(),
 };
+const mockLoginHistory = {
+  findFirst: vi.fn(),
+};
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: mockPrismaUser,
+    loginHistory: mockLoginHistory,
   },
 }));
 
 describe("Session Version & Revocation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLoginHistory.findFirst
+      .mockResolvedValueOnce({ timestamp: new Date("2026-01-01T09:00:00Z") })
+      .mockResolvedValueOnce({ timestamp: new Date("2026-01-01T09:05:00Z") });
   });
 
   afterEach(() => {

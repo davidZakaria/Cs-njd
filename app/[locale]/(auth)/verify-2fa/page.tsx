@@ -59,23 +59,7 @@ export default function Verify2FAPage() {
   const [needsEnrollment, setNeedsEnrollment] = useState(false);
 
   const goToSetup = useCallback(async () => {
-    await update({
-      needs2FASetup: true,
-      is2FAEnabled: false,
-      twoFactorVerified: false,
-    });
-
-    for (let attempt = 0; attempt < 12; attempt += 1) {
-      const session = await getSession();
-      if (
-        session?.user?.needs2FASetup &&
-        !session.user.twoFactorVerified
-      ) {
-        break;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-
+    await update();
     window.location.assign(`/${resolveLocale(locale)}/setup-2fa`);
   }, [locale, update]);
 
@@ -88,11 +72,7 @@ export default function Verify2FAPage() {
         if (cancelled) return;
         setResetStatus(result.status as TwoFactorResetStatus);
         setNeedsEnrollment(result.needsEnrollment);
-        if (
-          result.status === "ready" ||
-          result.status === "approved" ||
-          result.needsEnrollment
-        ) {
+        if (result.needsEnrollment) {
           await goToSetup();
         }
       } catch (pollError) {
@@ -148,7 +128,7 @@ export default function Verify2FAPage() {
         return;
       }
 
-      await update({ twoFactorVerified: true });
+      await update();
 
       const refreshed = await getSession();
       if (!refreshed?.user?.role) {

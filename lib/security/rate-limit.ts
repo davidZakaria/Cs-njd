@@ -16,8 +16,20 @@ function pruneExpired(now: number) {
   }
 }
 
-export function authRateLimitKey(scope: "login" | "2fa", ip: string | undefined): string {
+type AuthRateScope = "login" | "2fa" | "2fa-reset-request";
+
+export function authRateLimitKey(
+  scope: AuthRateScope,
+  ip: string | undefined
+): string {
   return `${scope}:${ip ?? "unknown"}`;
+}
+
+export function userRateLimitKey(
+  scope: "2fa-reset-request" | "2fa-qr",
+  userId: string
+): string {
+  return `${scope}:user:${userId}`;
 }
 
 export function checkRateLimit(key: string): {

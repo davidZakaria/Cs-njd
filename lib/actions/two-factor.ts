@@ -127,14 +127,16 @@ export async function approveUser2FAResetRequest(
     return actionFail("User not found");
   }
 
-  const result = await approveTwoFactorResetRequest(userId);
+  const result = await withAudit(async () => {
+    const approved = await approveTwoFactorResetRequest(userId);
+    if (approved.success) {
+      await recordTwoFactorResetAudit(userId, userBefore);
+    }
+    return approved;
+  });
   if (!result.success) {
     return result;
   }
-
-  await withAudit(async () => {
-    await recordTwoFactorResetAudit(userId, userBefore);
-  });
 
   revalidatePath("/users");
   revalidatePath("/users/2fa-requests");
@@ -145,7 +147,7 @@ export async function approveUser2FAResetRequest(
 export async function rejectUser2FAResetRequest(
   userId: string
 ): Promise<ActionResult> {
-  const result = await rejectTwoFactorResetRequest(userId);
+  const result = await withAudit(() => rejectTwoFactorResetRequest(userId));
   if (result.success) {
     revalidatePath("/users");
     revalidatePath("/users/2fa-requests");
