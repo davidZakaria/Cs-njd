@@ -399,14 +399,22 @@ describe("RBAC Navigation Items", () => {
       expect(keys).not.toContain("system");
     });
 
-    it("returns legal home and requests only for LEGAL nav", () => {
+    it("returns legal home, requests, and overdue tasks for LEGAL nav", () => {
       const items = getNavItems("LEGAL");
-      expect(items.map((i) => i.href)).toEqual(["/legal", "/requests"]);
+      expect(items.map((i) => i.href)).toEqual([
+        "/legal",
+        "/requests",
+        "/legal/overdue-tasks",
+      ]);
     });
 
-    it("returns finance home and requests only for FINANCE nav", () => {
+    it("returns finance home, requests, and overdue tasks for FINANCE nav", () => {
       const items = getNavItems("FINANCE");
-      expect(items.map((i) => i.href)).toEqual(["/finance", "/requests"]);
+      expect(items.map((i) => i.href)).toEqual([
+        "/finance",
+        "/requests",
+        "/finance/overdue-tasks",
+      ]);
     });
 
     it("includes overdueTasks nav for MANAGEMENT", () => {

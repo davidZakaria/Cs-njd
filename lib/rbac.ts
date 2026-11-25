@@ -191,6 +191,11 @@ export function getCoreNavItems(role: Role) {
     return [
       { href: "/legal", key: "legalHome" as const, roles: ["LEGAL" as Role] },
       { href: "/requests", key: "requests" as const, roles: ["LEGAL" as Role] },
+      {
+        href: "/legal/overdue-tasks",
+        key: "overdueTasks" as const,
+        roles: ["LEGAL" as Role],
+      },
     ];
   }
 
@@ -198,6 +203,11 @@ export function getCoreNavItems(role: Role) {
     return [
       { href: "/finance", key: "financeHome" as const, roles: ["FINANCE" as Role] },
       { href: "/requests", key: "requests" as const, roles: ["FINANCE" as Role] },
+      {
+        href: "/finance/overdue-tasks",
+        key: "overdueTasks" as const,
+        roles: ["FINANCE" as Role],
+      },
     ];
   }
 
