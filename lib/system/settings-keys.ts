@@ -11,6 +11,7 @@ export const SYSTEM_SETTING_KEYS = {
   BACKUP_RETENTION_DAYS: "BACKUP_RETENTION_DAYS",
   OBJECT_STORAGE_DRIVER: "OBJECT_STORAGE_DRIVER",
   BACKUP_REMOTE_ENABLED: "BACKUP_REMOTE_ENABLED",
+  LATE_REQUEST_WATCHERS: "lateRequestWatchers",
 } as const;
 
 export type SystemSettingKey =
@@ -27,4 +28,5 @@ export const SYSTEM_SETTING_DEFAULTS: Record<SystemSettingKey, string> = {
   BACKUP_RETENTION_DAYS: "14",
   OBJECT_STORAGE_DRIVER: "local",
   BACKUP_REMOTE_ENABLED: "false",
+  lateRequestWatchers: '{"include":[],"exclude":[]}',
 };

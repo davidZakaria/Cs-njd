@@ -1,6 +1,7 @@
 import { prisma as appPrisma } from "@/lib/prisma";
 
 import { isGapTaskOverdue } from "@/lib/archive-check/gap-tasks";
+import { notifyRolesInboxTab } from "@/lib/notifications/inbox-delivery";
 import { recordRequestAuditEvent } from "@/lib/requests/audit";
 
 export type ArchiveGapEscalationDb = typeof appPrisma;
@@ -31,7 +32,6 @@ export async function runArchiveCheckGapEscalationJob(
   });
 
   let notified = 0;
-  const { notifyRolesInboxTab } = await import("@/lib/notifications/inbox.server");
 
   for (const task of openTasks) {
     if (

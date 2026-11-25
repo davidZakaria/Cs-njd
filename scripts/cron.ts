@@ -12,6 +12,7 @@ import {
 } from "../lib/unit-cycle/escalation";
 import {
   getRequestEscalationCronSchedule,
+  getRequestEscalationCronTimezone,
   runRequestEscalationJob,
 } from "../lib/requests/escalation";
 import {
@@ -25,6 +26,7 @@ const backupSchedule = getBackupCronSchedule();
 const unitCycleSchedule = getUnitCycleCronSchedule();
 const archiveGapSchedule = getArchiveGapEscalationCronSchedule();
 const requestEscalationSchedule = getRequestEscalationCronSchedule();
+const requestEscalationTimezone = getRequestEscalationCronTimezone();
 
 async function runScheduledBackup() {
   try {
@@ -102,9 +104,11 @@ console.log(
 cron.schedule(unitCycleSchedule, runScheduledUnitCycleEscalation);
 
 console.log(
-  `[request-escalation-cron] Overdue escalation scheduled: ${requestEscalationSchedule}`
+  `[request-escalation-cron] Overdue escalation scheduled: ${requestEscalationSchedule} (${requestEscalationTimezone})`
 );
-cron.schedule(requestEscalationSchedule, runScheduledRequestEscalation);
+cron.schedule(requestEscalationSchedule, runScheduledRequestEscalation, {
+  timezone: requestEscalationTimezone,
+});
 
 console.log(
   `[archive-gap-cron] Overdue escalation scheduled: ${archiveGapSchedule}`
