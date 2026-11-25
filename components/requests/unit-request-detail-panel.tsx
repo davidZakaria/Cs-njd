@@ -42,6 +42,7 @@ import type {
   ArchiveFileItemStatus,
   ArchiveFileKind,
 } from "@prisma/client";
+import { formatDisplayDateTime } from "@/lib/format/datetime";
 import { UnitDisplayFieldsStrip } from "@/components/units/unit-display-fields-strip";
 import type { SerializableUnitDisplayFields } from "@/lib/units/unit-display-fields";
 
@@ -52,17 +53,6 @@ type AuditEventRow = {
   userName: string | null;
   details: Record<string, unknown> | null;
 };
-
-function formatAuditTimestamp(iso: string, locale: string): string {
-  try {
-    return new Intl.DateTimeFormat(locale, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
-}
 
 function auditDetailString(value: unknown): string {
   if (value == null || value === "") return "—";
@@ -155,7 +145,7 @@ export function UnitRequestDetailPanel({
 
   const auditLines = useMemo(() => {
     return request.auditEvents.map((event) => {
-      const when = formatAuditTimestamp(event.createdAt, locale);
+      const when = formatDisplayDateTime(event.createdAt, locale);
       const who = event.userName ?? t("auditUnknownUser");
       const details = event.details ?? {};
       let body = t(`auditActions.${event.action}`, {

@@ -18,6 +18,7 @@ import {
   resolveStageOwnerRole,
   viewerOwnsStageByRole,
 } from "@/lib/unit-cycle/owners";
+import { formatDisplayDate } from "@/lib/format/datetime";
 import { isStageOverdue } from "@/lib/unit-cycle/stage-rules";
 import type { Role, UnitCycleStageKey, UnitCycleStageStatus, UnitRequestType } from "@prisma/client";
 
@@ -211,14 +212,10 @@ export function UnitCycleStepper({
               >
                 {activeOverdue
                   ? t("yourTask.overdue", {
-                      date: new Date(activeStage.deadlineAt).toLocaleDateString(
-                        locale
-                      ),
+                      date: formatDisplayDate(activeStage.deadlineAt, locale),
                     })
                   : t("due", {
-                      date: new Date(activeStage.deadlineAt).toLocaleDateString(
-                        locale
-                      ),
+                      date: formatDisplayDate(activeStage.deadlineAt, locale),
                     })}
               </p>
             ) : null}
@@ -323,7 +320,7 @@ export function UnitCycleStepper({
                 {stage.deadlineAt && active ? (
                   <span className="text-[10px] text-muted-foreground">
                     {t("due", {
-                      date: new Date(stage.deadlineAt).toLocaleDateString(locale),
+                      date: formatDisplayDate(stage.deadlineAt, locale),
                     })}
                   </span>
                 ) : null}

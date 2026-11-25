@@ -58,7 +58,7 @@ import {
 import { orderedUnitOwners } from "@/lib/units/unit-owners";
 import { getAssignableAgentUsers } from "@/lib/units/assignable-agents";
 import type { SerializedResolutionContext } from "@/lib/workflow/resolution-checklist";
-import { formatDateTime } from "@/lib/format/datetime";
+import { formatDateTime, formatDisplayDate } from "@/lib/format/datetime";
 import { dedupeTimelineTickets } from "@/lib/cases/timeline-dedupe";
 import { formatPhoneForDisplay } from "@/lib/phone/display";
 import {
@@ -375,7 +375,7 @@ export default async function UnitProfilePage({
 
   const isLegallyBlocked = workflow?.isLegallyBlocked ?? false;
   const inspectionDateLabel = workflow?.inspectionDate
-    ? workflow.inspectionDate.toLocaleDateString(locale)
+    ? formatDisplayDate(workflow.inspectionDate, locale)
     : null;
   const assignableAgents = canEditAdmin ? rosterAgents : [];
 

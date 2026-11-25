@@ -57,6 +57,17 @@ export function formatDisplayDate(
   return formatDateTime(value, locale, { dateStyle: "medium" });
 }
 
+/** Medium calendar date and short local time in Egypt (e.g. en: "9 Dec 2026, 16:00"). */
+export function formatDisplayDateTime(
+  value: Date | string | number,
+  locale: string
+): string {
+  return formatDateTime(value, locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 export function formatDate(
   value: Date | string | number,
   locale: string,

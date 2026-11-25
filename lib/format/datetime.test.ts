@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import arMessages from "@/messages/ar.json";
+
 import {
   APP_DISPLAY_TIME_ZONE,
   cairoCalendarDayKey,
   formatDateTime,
   formatDisplayDate,
+  formatDisplayDateTime,
 } from "./datetime";
 
 describe("formatDateTime", () => {
@@ -36,6 +39,14 @@ describe("formatDateTime", () => {
     expect(label).toMatch(/2026/);
   });
 
+  it("formatDisplayDateTime uses en-GB medium date and Cairo short time", () => {
+    const label = formatDisplayDateTime("2026-12-09T14:00:00.000Z", "en");
+    expect(label).toMatch(/9/);
+    expect(label).toMatch(/Dec/);
+    expect(label).toMatch(/2026/);
+    expect(label).toMatch(/16:00/);
+  });
+
   it("allows dateStyle and timeStyle without mixing granular date fields", () => {
     const utcInstant = new Date("2026-09-30T00:17:17.000Z");
     expect(() =>
@@ -49,5 +60,15 @@ describe("formatDateTime", () => {
       timeStyle: "short",
     });
     expect(label.length).toBeGreaterThan(0);
+  });
+});
+
+describe("Arabic daysOverdueBadge copy", () => {
+  it("uses ICU plural forms and is not truncated", () => {
+    const badge = arMessages.unitCycle.overdueManagement.daysOverdueBadge;
+    expect(badge).toContain("{days, plural");
+    expect(badge).toContain("يومين");
+    expect(badge).toContain("أيام");
+    expect(badge).not.toBe("متأخر {days} ي");
   });
 });
