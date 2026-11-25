@@ -1,14 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-vi.mock("server-only", () => ({}));
-
-const notifyRolesInboxTab = vi.fn();
 const notifyUserInboxTab = vi.fn();
 const recordRequestAuditEvent = vi.fn();
 
-vi.mock("@/lib/notifications/inbox.server", () => ({
-  notifyRolesInboxTab: (...args: unknown[]) => notifyRolesInboxTab(...args),
+vi.mock("@/lib/notifications/inbox-delivery", () => ({
   notifyUserInboxTab: (...args: unknown[]) => notifyUserInboxTab(...args),
+  notifyRolesInboxTab: vi.fn(),
 }));
 
 vi.mock("@/lib/requests/audit", () => ({
@@ -16,13 +13,18 @@ vi.mock("@/lib/requests/audit", () => ({
     recordRequestAuditEvent(...args),
 }));
 
+vi.mock("@/lib/requests/late-request-watchers", () => ({
+  resolveLateRequestWatcherUserIds: vi.fn().mockResolvedValue(["watcher-1"]),
+}));
+
 import { isRequestOverdue } from "@/lib/requests/overdue";
 import { runRequestEscalationJob } from "@/lib/requests/escalation";
 
 describe("request escalation", () => {
   beforeEach(() => {
-    notifyRolesInboxTab.mockClear();
-    recordRequestAuditEvent.mockClear();
+    notifyUserInboxTab.mockReset();
+    recordRequestAuditEvent.mockReset();
+    notifyUserInboxTab.mockResolvedValue(true);
   });
 
   it("detects overdue pending requests", () => {
@@ -43,7 +45,7 @@ describe("request escalation", () => {
     ).toBe(false);
   });
 
-  it("escalates overdue rows to management approver", async () => {
+  it("escalates without reassigning approver and sends watcher digest", async () => {
     const update = vi.fn();
     const findMany = vi.fn().mockResolvedValue([
       {
@@ -54,6 +56,7 @@ describe("request escalation", () => {
         submittedAt: new Date("2020-01-01T00:00:00Z"),
         currentApproverKind: "FINANCE",
         escalatedToManagement: false,
+        assignedApproverUserId: null,
         requestedById: "u1",
         requestedBy: { id: "u1", name: "Agent" },
         unitId: "unit-1",
@@ -73,21 +76,33 @@ describe("request escalation", () => {
 
     const prisma = {
       unitRequest: { findMany, findUnique, update },
+      user: { findMany: vi.fn() },
+      systemSetting: { findUnique: vi.fn() },
     };
 
     const result = await runRequestEscalationJob(prisma as never);
     expect(result.scanned).toBe(1);
-    expect(result.notified).toBe(1);
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "req-1" },
-        data: expect.objectContaining({
+        data: {
           escalatedToManagement: true,
-          currentApproverKind: "MANAGEMENT",
-        }),
+          lastEscalatedAt: expect.any(Date),
+        },
       })
     );
-    expect(notifyRolesInboxTab).toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ currentApproverKind: "MANAGEMENT" }),
+      })
+    );
+    expect(notifyUserInboxTab).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "watcher-1",
+        inboxTab: "REQUESTS_AND_FILES",
+        dedupeKey: expect.stringMatching(/^late-request-digest:/),
+      })
+    );
     expect(recordRequestAuditEvent).toHaveBeenCalled();
   });
 });

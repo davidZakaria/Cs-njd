@@ -24,7 +24,9 @@ describe("notifyRolesInboxTab", () => {
   });
 
   it("creates digest notifications with dedupe and inbox tab", async () => {
-    const { notifyRolesInboxTab } = await import("@/lib/notifications/inbox.server");
+    const { notifyRolesInboxTab } = await import(
+      "@/lib/notifications/inbox-delivery"
+    );
 
     const count = await notifyRolesInboxTab({
       roles: ["MANAGEMENT"],

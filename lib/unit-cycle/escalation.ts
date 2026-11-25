@@ -15,11 +15,12 @@ import {
   type OverdueStageRow,
   type UnitCycleDb,
 } from "@/lib/unit-cycle/queries";
+import { cairoCalendarDayKey } from "@/lib/format/datetime";
+import {
+  notifyRolesInboxTab,
+  notifyUserInboxTab,
+} from "@/lib/notifications/inbox-delivery";
 import { unitCycleStageLabelEnAr } from "@/lib/unit-cycle/stage-labels";
-
-function digestDayKey(now: Date): string {
-  return now.toISOString().slice(0, 10);
-}
 
 export { groupOverdueStagesForDigest, groupOverdueStagesForOwnerDigest } from "@/lib/unit-cycle/overdue-digest";
 
@@ -39,12 +40,9 @@ export async function runUnitCycleEscalationJob(
 ): Promise<{ notified: number; scanned: number }> {
   const overdue = await getOverdueStagesForManagement(prisma, 500);
   const now = new Date();
-  const dayKey = digestDayKey(now);
+  const dayKey = cairoCalendarDayKey(now);
   const groups = groupOverdueStagesForDigest(overdue);
   let notified = 0;
-  const { notifyRolesInboxTab, notifyUserInboxTab } = await import(
-    "@/lib/notifications/inbox.server"
-  );
 
   for (const group of groups) {
     const stageLabels = unitCycleStageLabelEnAr(group.stageKey);
