@@ -52,7 +52,11 @@ const MATRIX: Array<{
 
 async function login(page: Page, url: string, email: string) {
   const locale = url.includes("/ar/") ? "ar" : "en";
-  await page.goto(`${BASE_URL}/${locale}/login`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE_URL}/${locale}/login`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  });
+  await page.waitForSelector('input[name="email"]', { timeout: 60_000 });
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', PASSWORD);
   await page.click('button[type="submit"]');
@@ -79,7 +83,10 @@ async function main() {
       if (shot.file === entry.shots[0]!.file) {
         await login(page, shot.path, entry.email);
       }
-      await page.goto(`${BASE_URL}${shot.path}`, { waitUntil: "networkidle" });
+      await page.goto(`${BASE_URL}${shot.path}`, {
+        waitUntil: "domcontentloaded",
+        timeout: 60_000,
+      });
       await page.waitForTimeout(500);
       const out = path.join(dir, shot.file);
       await page.screenshot({ path: out, fullPage: true });
