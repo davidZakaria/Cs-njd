@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 
+import type { EscalationJobRunOptions } from "@/lib/cron/escalation-job-options";
 import { APP_DISPLAY_TIME_ZONE, cairoCalendarDayKey } from "@/lib/format/datetime";
 import { notifyUserInboxTab } from "@/lib/notifications/inbox-delivery";
 import { recordRequestAuditEvent } from "@/lib/requests/audit";
@@ -14,6 +15,23 @@ import type { UnitRequestListRow } from "@/lib/requests/types";
 import { formatUnitOwnersDisplayName } from "@/lib/units/unit-request-search";
 
 export const REQUEST_ESCALATION_CRON_TIMEZONE = APP_DISPLAY_TIME_ZONE;
+
+export type RequestEscalationPreview = {
+  wouldEscalateRequestIds: string[];
+  approverNotifications: Array<{
+    userId: string;
+    requestId: string;
+    unitCode: string;
+  }>;
+  watcherDigestUserIds: string[];
+  skippedCooldownRequestIds: string[];
+};
+
+export type RequestEscalationJobResult = {
+  scanned: number;
+  notified: number;
+  preview?: RequestEscalationPreview;
+};
 
 export type RequestEscalationDb = Pick<
   PrismaClient,
@@ -82,13 +100,22 @@ export async function getOverduePendingRequests(
 }
 
 export async function runRequestEscalationJob(
-  prisma: RequestEscalationDb
-): Promise<{ notified: number; scanned: number }> {
+  prisma: RequestEscalationDb,
+  options?: EscalationJobRunOptions
+): Promise<RequestEscalationJobResult> {
+  const dryRun = options?.dryRun === true;
   const ESCALATION_COOLDOWN_MS = 20 * 60 * 60 * 1000;
   const overdue = await getOverduePendingRequests(prisma, 500);
   const now = new Date();
   const dayKey = cairoCalendarDayKey(now);
   let notified = 0;
+
+  const preview: RequestEscalationPreview = {
+    wouldEscalateRequestIds: [],
+    approverNotifications: [],
+    watcherDigestUserIds: [],
+    skippedCooldownRequestIds: [],
+  };
 
   const overdueRows = overdue.filter((row) =>
     isRequestOverdue({ status: row.status, dueDate: row.dueDate, now })
@@ -103,40 +130,55 @@ export async function runRequestEscalationJob(
       record?.lastEscalatedAt &&
       now.getTime() - record.lastEscalatedAt.getTime() < ESCALATION_COOLDOWN_MS
     ) {
+      if (dryRun) {
+        preview.skippedCooldownRequestIds.push(row.id);
+      }
       continue;
     }
 
     if (row.assignedApproverUserId) {
-      const sent = await notifyUserInboxTab({
-        userId: row.assignedApproverUserId,
-        inboxTab: "REQUESTS_AND_FILES",
-        titleEn: "Overdue unit request",
-        titleAr: "طلب وحدة متأخر",
-        messageEn: `${row.projectName} · ${row.unitCode} · ${row.type}`,
-        messageAr: `${row.projectName} · ${row.unitCode} · ${row.type}`,
-        link: `/requests/${row.id}`,
-        dedupeKey: `request-overdue:${row.id}:${dayKey}`,
-      });
-      if (sent) notified += 1;
+      if (dryRun) {
+        preview.approverNotifications.push({
+          userId: row.assignedApproverUserId,
+          requestId: row.id,
+          unitCode: row.unitCode,
+        });
+      } else {
+        const sent = await notifyUserInboxTab({
+          userId: row.assignedApproverUserId,
+          inboxTab: "REQUESTS_AND_FILES",
+          titleEn: "Overdue unit request",
+          titleAr: "طلب وحدة متأخر",
+          messageEn: `${row.projectName} · ${row.unitCode} · ${row.type}`,
+          messageAr: `${row.projectName} · ${row.unitCode} · ${row.type}`,
+          link: `/requests/${row.id}`,
+          dedupeKey: `request-overdue:${row.id}:${dayKey}`,
+        });
+        if (sent) notified += 1;
+      }
     }
 
-    await prisma.unitRequest.update({
-      where: { id: row.id },
-      data: {
-        escalatedToManagement: true,
-        lastEscalatedAt: now,
-      },
-    });
+    if (dryRun) {
+      preview.wouldEscalateRequestIds.push(row.id);
+    } else {
+      await prisma.unitRequest.update({
+        where: { id: row.id },
+        data: {
+          escalatedToManagement: true,
+          lastEscalatedAt: now,
+        },
+      });
 
-    await recordRequestAuditEvent({
-      requestId: row.id,
-      action: "escalated_overdue",
-      details: {
-        daysOverdue: row.dueDate
-          ? Math.floor((now.getTime() - row.dueDate.getTime()) / 86_400_000)
-          : 0,
-      },
-    });
+      await recordRequestAuditEvent({
+        requestId: row.id,
+        action: "escalated_overdue",
+        details: {
+          daysOverdue: row.dueDate
+            ? Math.floor((now.getTime() - row.dueDate.getTime()) / 86_400_000)
+            : 0,
+        },
+      });
+    }
   }
 
   if (overdueRows.length > 0) {
@@ -145,22 +187,30 @@ export async function runRequestEscalationJob(
     const watcherIds = await resolveLateRequestWatcherUserIds(prisma);
     const link = buildRequestsFilterUrl({ view: "all", overdue: "yes", tasks: "all" });
 
-    for (const userId of watcherIds) {
-      const sent = await notifyUserInboxTab({
-        userId,
-        inboxTab: "REQUESTS_AND_FILES",
-        titleEn: digest.titleEn,
-        titleAr: digest.titleAr,
-        messageEn: digest.messageEn,
-        messageAr: digest.messageAr,
-        link,
-        dedupeKey: `late-request-digest:${userId}:${dayKey}`,
-      });
-      if (sent) notified += 1;
+    if (dryRun) {
+      preview.watcherDigestUserIds = watcherIds;
+    } else {
+      for (const userId of watcherIds) {
+        const sent = await notifyUserInboxTab({
+          userId,
+          inboxTab: "REQUESTS_AND_FILES",
+          titleEn: digest.titleEn,
+          titleAr: digest.titleAr,
+          messageEn: digest.messageEn,
+          messageAr: digest.messageAr,
+          link,
+          dedupeKey: `late-request-digest:${userId}:${dayKey}`,
+        });
+        if (sent) notified += 1;
+      }
     }
   }
 
-  return { notified, scanned: overdue.length };
+  return {
+    notified: dryRun ? 0 : notified,
+    scanned: overdue.length,
+    ...(dryRun ? { preview } : {}),
+  };
 }
 
 export function getRequestEscalationCronSchedule(): string {
