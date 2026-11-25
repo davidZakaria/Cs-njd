@@ -69,11 +69,7 @@ async function fetchSetupData(resetFirst = false): Promise<SetupData> {
 async function waitForVerifiedSession(
   update: ReturnType<typeof useSession>["update"]
 ) {
-  await update({
-    needs2FASetup: false,
-    is2FAEnabled: true,
-    twoFactorVerified: true,
-  });
+  await update();
 
   for (let attempt = 0; attempt < 12; attempt += 1) {
     const session = await getSession();

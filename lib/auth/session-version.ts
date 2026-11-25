@@ -3,16 +3,11 @@ import type { JWT } from "@auth/core/jwt";
 import { prisma } from "@/lib/prisma";
 
 import { SESSION_REVOKED_ERROR } from "@/lib/auth/session-constants";
+import { userNeedsTwoFactorEnrollment } from "@/lib/auth/two-factor-enrollment";
+import { isTwoFactorVerifiedForUser } from "@/lib/auth/two-factor-verified";
 import { engineerSessionFlags, isTwoFactorRequired } from "@/lib/auth/two-factor-policy";
 
 export { SESSION_REVOKED_ERROR };
-
-function deriveNeeds2FASetup(
-  is2FAEnabled: boolean,
-  twoFactorSecret: string | null
-) {
-  return !is2FAEnabled || !twoFactorSecret;
-}
 
 export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
   if (!token.id) return token;
@@ -34,7 +29,7 @@ export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
   }
 
   const needs2FASetup = isTwoFactorRequired(dbUser.role)
-    ? deriveNeeds2FASetup(dbUser.is2FAEnabled, dbUser.twoFactorSecret)
+    ? userNeedsTwoFactorEnrollment(dbUser)
     : false;
 
   const engineerFlags = engineerSessionFlags(dbUser.role);
@@ -42,12 +37,20 @@ export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
   const tokenVersion =
     typeof token.sessionVersion === "number" ? token.sessionVersion : null;
 
+  let twoFactorVerified = false;
+  if (engineerFlags) {
+    twoFactorVerified = true;
+  } else if (!needs2FASetup && isTwoFactorRequired(dbUser.role)) {
+    twoFactorVerified = await isTwoFactorVerifiedForUser(String(token.id));
+  }
+
   const synced = {
     sessionVersion: dbUser.sessionVersion,
     role: dbUser.role,
     is2FAEnabled: engineerFlags?.is2FAEnabled ?? dbUser.is2FAEnabled,
     requiresPasswordChange: dbUser.requiresPasswordChange,
     needs2FASetup: engineerFlags?.needs2FASetup ?? needs2FASetup,
+    twoFactorVerified,
     error: undefined as string | undefined,
   };
 
@@ -55,11 +58,6 @@ export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
     return {
       ...token,
       ...synced,
-      twoFactorVerified: engineerFlags
-        ? true
-        : needs2FASetup
-          ? false
-          : token.twoFactorVerified,
     };
   }
 
@@ -70,10 +68,5 @@ export async function applySessionVersionToToken(token: JWT): Promise<JWT> {
   return {
     ...token,
     ...synced,
-    twoFactorVerified: engineerFlags
-      ? true
-      : needs2FASetup
-        ? false
-        : token.twoFactorVerified,
   };
 }

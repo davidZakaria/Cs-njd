@@ -136,6 +136,11 @@ enum AuditAction {
   PASSWORD_CHANGE
   SESSION_REVOKE
   EXPORT
+  TWO_FACTOR_RESET_REQUEST
+  TWO_FACTOR_RESET_APPROVE
+  TWO_FACTOR_RESET_DECLINE
+  TWO_FACTOR_SECRET_ROTATE
+  TWO_FACTOR_ENROLL
 }
 
 enum BackupStatus {
@@ -297,12 +302,14 @@ model TwoFactorResetRequest {
   requestedAt  DateTime                    @default(now())
   reviewedAt   DateTime?
   reviewedById String?
+  usedAt       DateTime?
 
   user       User  @relation("TwoFactorResetRequestUser", fields: [userId], references: [id], onDelete: Cascade)
   reviewedBy User? @relation("TwoFactorResetRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([userId, status])
   @@index([status, requestedAt])
+  @@index([userId, status, usedAt])
 }
 
 model Project {

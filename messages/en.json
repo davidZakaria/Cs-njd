@@ -1194,8 +1194,12 @@
       "subtitle": "Users waiting for Super Admin approval to scan a new authenticator QR code.",
       "emptyTitle": "No pending requests",
       "emptyDescription": "When someone requests a reset from the verify screen, they will appear here.",
+      "consumedTitle": "Recently completed resets",
+      "consumedSubtitle": "Approvals where the user finished scanning a new authenticator.",
       "columns": {
-        "actions": "Actions"
+        "actions": "Actions",
+        "user": "User",
+        "consumedAt": "Consumed at"
       },
       "openReview": "Review"
     },
@@ -1702,6 +1706,24 @@
       "description": "Official details printed on handover documents and exported PDFs.",
       "nameLabel": "Official company name",
       "addressLabel": "Official company address"
+    },
+    "lateRequestWatchers": {
+      "title": "Late request digest watchers",
+      "description": "Who receives the daily late unit-request digest in the Requests & files inbox tab.",
+      "defaultHint": "By default, every active Management user is included. Add extra recipients or exclude accounts (for example test users). Super Admins are not included unless you add them explicitly.",
+      "defaultManagementBadge": "Active Management (default)",
+      "includeLabel": "Always include",
+      "excludeLabel": "Exclude",
+      "emptyList": "None",
+      "removeUser": "Remove",
+      "addUserLabel": "Add user",
+      "addToInclude": "Include list",
+      "addToExclude": "Exclude list",
+      "listTargetPlaceholder": "Target list",
+      "userPlaceholder": "Select user…",
+      "addUser": "Add",
+      "save": "Save watchers",
+      "savedToast": "Late request watchers saved"
     }
   },
   "maintenance": {

@@ -44,6 +44,11 @@ export function formatDateTime(
   });
 }
 
+/** Calendar day in Egypt (YYYY-MM-DD) for digest dedupe keys. */
+export function cairoCalendarDayKey(value: Date): string {
+  return value.toLocaleDateString("en-CA", { timeZone: APP_DISPLAY_TIME_ZONE });
+}
+
 export function formatDate(
   value: Date | string | number,
   locale: string,

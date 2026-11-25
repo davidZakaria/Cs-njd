@@ -143,7 +143,11 @@ export function RequestsTable({
           }
         >
           <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder={t("filters.status")} />
+            <SelectValue placeholder={t("filters.status")}>
+              {filters.status === "all"
+                ? t("filters.allStatuses")
+                : tEnums(`unitRequestStatus.${filters.status}`)}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("filters.allStatuses")}</SelectItem>
@@ -161,7 +165,11 @@ export function RequestsTable({
           }
         >
           <SelectTrigger className="w-[220px]">
-            <SelectValue placeholder={t("filters.type")} />
+            <SelectValue placeholder={t("filters.type")}>
+              {filters.type === "all"
+                ? t("filters.allTypes")
+                : tEnums(`unitRequestType.${filters.type}`)}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("filters.allTypes")}</SelectItem>
@@ -185,7 +193,11 @@ export function RequestsTable({
           }
         >
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder={t("filters.project")} />
+            <SelectValue placeholder={t("filters.project")}>
+              {filters.project === "all"
+                ? t("filters.allProjects")
+                : filters.project}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("filters.allProjects")}</SelectItem>

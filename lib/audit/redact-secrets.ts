@@ -1,38 +1,50 @@
 /** Marker stored in audit snapshots instead of sensitive values. */
 export const AUDIT_REDACTED = "[redacted]" as const;
 
-const SENSITIVE_KEY_EXACT = new Set(
+/**
+ * Exact field names (compared case-insensitively) whose values must never appear in audits.
+ */
+const SENSITIVE_KEYS = new Set(
   [
     "password",
     "passwordhash",
+    "currentpassword",
+    "newpassword",
+    "confirmpassword",
     "twofactorsecret",
+    "totpsecret",
+    "otpsecret",
     "sessiontoken",
     "resettoken",
     "refreshtoken",
     "accesstoken",
+    "idtoken",
     "backupcodes",
     "recoverycodes",
     "twofactorbackupcodes",
+    "mfabackupcodes",
   ].map((k) => k.toLowerCase())
 );
 
-const SENSITIVE_KEY_PARTIALS = [
-  "password",
-  "totp",
-  "backupcode",
-  "recoverycode",
-  "resettoken",
-  "sessiontoken",
-];
+/**
+ * Substrings allowed only when the whole key is not a known safe boolean/flag field.
+ * Do not include "password" — it would hide requiresPasswordChange and similar flags.
+ */
+const SENSITIVE_KEY_SUBSTRINGS = ["totp", "backupcode", "recoverycode"] as const;
+
+const SAFE_KEYS = new Set(
+  ["requirespasswordchange", "sessionversion"].map((k) => k.toLowerCase())
+);
 
 export function isSensitiveAuditKey(key: string): boolean {
   const normalized = key.toLowerCase();
-  if (SENSITIVE_KEY_EXACT.has(normalized)) {
+  if (SAFE_KEYS.has(normalized)) {
+    return false;
+  }
+  if (SENSITIVE_KEYS.has(normalized)) {
     return true;
   }
-  return SENSITIVE_KEY_PARTIALS.some(
-    (part) => normalized.includes(part) && normalized !== "sessionversion"
-  );
+  return SENSITIVE_KEY_SUBSTRINGS.some((part) => normalized.includes(part));
 }
 
 function redactValueAtKey(key: string, value: unknown): unknown {

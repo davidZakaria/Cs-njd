@@ -1,10 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { APP_DISPLAY_TIME_ZONE, formatDateTime } from "./datetime";
+import {
+  APP_DISPLAY_TIME_ZONE,
+  cairoCalendarDayKey,
+  formatDateTime,
+} from "./datetime";
 
 describe("formatDateTime", () => {
   it("uses Africa/Cairo for display", () => {
     expect(APP_DISPLAY_TIME_ZONE).toBe("Africa/Cairo");
+  });
+
+  it("builds Cairo calendar day keys", () => {
+    expect(cairoCalendarDayKey(new Date("2026-11-24T22:30:00.000Z"))).toBe(
+      "2026-11-25"
+    );
   });
 
   it("shows Cairo local time for a UTC instant (3h ahead of UTC)", () => {

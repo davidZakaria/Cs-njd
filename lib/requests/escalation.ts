@@ -1,15 +1,24 @@
 import type { PrismaClient } from "@prisma/client";
 
+import { APP_DISPLAY_TIME_ZONE, cairoCalendarDayKey } from "@/lib/format/datetime";
+import { notifyUserInboxTab } from "@/lib/notifications/inbox-delivery";
 import { recordRequestAuditEvent } from "@/lib/requests/audit";
+import { resolveLateRequestWatcherUserIds } from "@/lib/requests/late-request-watchers";
 import { isRequestOverdue } from "@/lib/requests/overdue";
+import {
+  formatLateRequestDigestMessage,
+  groupLateRequestsForDigest,
+} from "@/lib/requests/overdue-digest";
+import { buildRequestsFilterUrl } from "@/lib/requests/requests-filter-url";
 import type { UnitRequestListRow } from "@/lib/requests/types";
 import { formatUnitOwnersDisplayName } from "@/lib/units/unit-request-search";
 
-function digestDayKey(now: Date): string {
-  return now.toISOString().slice(0, 10);
-}
+export const REQUEST_ESCALATION_CRON_TIMEZONE = APP_DISPLAY_TIME_ZONE;
 
-export type RequestEscalationDb = Pick<PrismaClient, "unitRequest">;
+export type RequestEscalationDb = Pick<
+  PrismaClient,
+  "unitRequest" | "user" | "systemSetting"
+>;
 
 const listInclude = {
   requestedBy: { select: { id: true, name: true } },
@@ -45,30 +54,31 @@ export async function getOverduePendingRequests(
   });
 
   return rows
-    .filter((row): row is typeof row & { unit: NonNullable<(typeof row)["unit"]> } =>
-      row.unit != null
+    .filter(
+      (row): row is typeof row & { unit: NonNullable<(typeof row)["unit"]> } =>
+        row.unit != null
     )
     .map((row) => ({
-    id: row.id,
-    type: row.type,
-    status: row.status,
-    dueDate: row.dueDate,
-    submittedAt: row.submittedAt,
-    currentApproverKind: row.currentApproverKind,
-    escalatedToManagement: row.escalatedToManagement,
-    assignedApproverUserId: row.assignedApproverUserId,
-    requestedById: row.requestedById,
-    requestedByName: row.requestedBy.name,
-    unitId: row.unit.id,
-    unitCode: row.unit.unitCode,
-    projectName: row.unit.project.name,
-    clientName: formatUnitOwnersDisplayName({
-      client: row.unit.client,
-      unitClients: row.unit.unitClients,
-    }),
-    unitAgentId: row.unit.agentId,
-    unitCycleStageKey: row.unitCycleStageKey,
-  }));
+      id: row.id,
+      type: row.type,
+      status: row.status,
+      dueDate: row.dueDate,
+      submittedAt: row.submittedAt,
+      currentApproverKind: row.currentApproverKind,
+      escalatedToManagement: row.escalatedToManagement,
+      assignedApproverUserId: row.assignedApproverUserId,
+      requestedById: row.requestedById,
+      requestedByName: row.requestedBy.name,
+      unitId: row.unit.id,
+      unitCode: row.unit.unitCode,
+      projectName: row.unit.project.name,
+      clientName: formatUnitOwnersDisplayName({
+        client: row.unit.client,
+        unitClients: row.unit.unitClients,
+      }),
+      unitAgentId: row.unit.agentId,
+      unitCycleStageKey: row.unitCycleStageKey,
+    }));
 }
 
 export async function runRequestEscalationJob(
@@ -77,16 +87,14 @@ export async function runRequestEscalationJob(
   const ESCALATION_COOLDOWN_MS = 20 * 60 * 60 * 1000;
   const overdue = await getOverduePendingRequests(prisma, 500);
   const now = new Date();
+  const dayKey = cairoCalendarDayKey(now);
   let notified = 0;
-  const { notifyRolesInboxTab, notifyUserInboxTab } = await import(
-    "@/lib/notifications/inbox.server"
+
+  const overdueRows = overdue.filter((row) =>
+    isRequestOverdue({ status: row.status, dueDate: row.dueDate, now })
   );
 
-  for (const row of overdue) {
-    if (!isRequestOverdue({ status: row.status, dueDate: row.dueDate, now })) {
-      continue;
-    }
-
+  for (const row of overdueRows) {
     const record = await prisma.unitRequest.findUnique({
       where: { id: row.id },
       select: { lastEscalatedAt: true },
@@ -107,28 +115,16 @@ export async function runRequestEscalationJob(
         messageEn: `${row.projectName} · ${row.unitCode} · ${row.type}`,
         messageAr: `${row.projectName} · ${row.unitCode} · ${row.type}`,
         link: `/requests/${row.id}`,
-        dedupeKey: `request-overdue:${row.id}:${digestDayKey(now)}`,
+        dedupeKey: `request-overdue:${row.id}:${dayKey}`,
       });
       if (sent) notified += 1;
     }
-
-    await notifyRolesInboxTab({
-      roles: ["MANAGEMENT", "SUPER_ADMIN"],
-      inboxTab: "REQUESTS_AND_FILES",
-      titleEn: "Overdue request escalated",
-      titleAr: "طلب متأخر تم تصعيده",
-      messageEn: `${row.projectName} · ${row.unitCode} · ${row.type}`,
-      messageAr: `${row.projectName} · ${row.unitCode} · ${row.type}`,
-      link: `/requests/${row.id}`,
-      dedupeKey: `request-overdue-mgmt:${row.id}:${digestDayKey(now)}`,
-    });
 
     await prisma.unitRequest.update({
       where: { id: row.id },
       data: {
         escalatedToManagement: true,
         lastEscalatedAt: now,
-        currentApproverKind: "MANAGEMENT",
       },
     });
 
@@ -137,21 +133,40 @@ export async function runRequestEscalationJob(
       action: "escalated_overdue",
       details: {
         daysOverdue: row.dueDate
-          ? Math.floor((now.getTime() - row.dueDate.getTime()) / 86400000)
+          ? Math.floor((now.getTime() - row.dueDate.getTime()) / 86_400_000)
           : 0,
       },
     });
+  }
 
-    notified += 1;
+  if (overdueRows.length > 0) {
+    const groups = groupLateRequestsForDigest(overdueRows, now);
+    const digest = formatLateRequestDigestMessage(groups);
+    const watcherIds = await resolveLateRequestWatcherUserIds(prisma);
+    const link = buildRequestsFilterUrl({ view: "all", overdue: "yes", tasks: "all" });
+
+    for (const userId of watcherIds) {
+      const sent = await notifyUserInboxTab({
+        userId,
+        inboxTab: "REQUESTS_AND_FILES",
+        titleEn: digest.titleEn,
+        titleAr: digest.titleAr,
+        messageEn: digest.messageEn,
+        messageAr: digest.messageAr,
+        link,
+        dedupeKey: `late-request-digest:${userId}:${dayKey}`,
+      });
+      if (sent) notified += 1;
+    }
   }
 
   return { notified, scanned: overdue.length };
 }
 
 export function getRequestEscalationCronSchedule(): string {
-  return (
-    process.env.REQUEST_ESCALATION_CRON ??
-    process.env.UNIT_CYCLE_CRON ??
-    "0 8 * * *"
-  );
+  return process.env.REQUEST_ESCALATION_CRON ?? "0 10 * * *";
+}
+
+export function getRequestEscalationCronTimezone(): string {
+  return process.env.REQUEST_ESCALATION_CRON_TZ ?? REQUEST_ESCALATION_CRON_TIMEZONE;
 }
