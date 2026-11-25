@@ -17,11 +17,10 @@ async function login(page: Page, locale: "en" | "ar", email: string) {
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(PASSWORD);
   const submit = page.locator('form button[type="submit"]');
+  const postLoginUrl =
+    /\/(en|ar)\/(setup-2fa|verify-2fa|dashboard|notifications|requests|system|executive)/;
   await Promise.all([
-    page.waitForURL(
-      /\/(en|ar)\/(setup-2fa|verify-2fa|dashboard|notifications|requests|system)/,
-      { timeout: 90_000 }
-    ),
+    page.waitForURL(postLoginUrl, { timeout: 90_000 }),
     submit.click(),
   ]);
 
@@ -31,9 +30,10 @@ async function login(page: Page, locale: "en" | "ar", email: string) {
     await tokenInput.fill("");
     await tokenInput.pressSequentially(code, { delay: 30 });
     await Promise.all([
-      page.waitForURL(/\/(en|ar)\/(dashboard|notifications|requests|system)/, {
-        timeout: 90_000,
-      }),
+      page.waitForURL(
+        /\/(en|ar)\/(dashboard|notifications|requests|system|executive)/,
+        { timeout: 90_000 }
+      ),
       page.getByRole("button", { name: /continue|متابعة/i }).click(),
     ]);
   }
@@ -82,6 +82,41 @@ async function main() {
       waitUntil: "networkidle",
     });
     await screenshot(page, `late-request-watchers-settings-${locale}.png`);
+    await context.close();
+  }
+
+  const mobileWidth = 390;
+  for (const locale of ["en", "ar"] as const) {
+    const context = await browser.newContext({
+      locale: locale === "ar" ? "ar-EG" : "en-US",
+      viewport: { width: mobileWidth, height: 844 },
+      isMobile: true,
+    });
+    const page = await context.newPage();
+    await login(page, locale, "demo-mgmt@test.local");
+    await page.goto(`${BASE_URL}/${locale}/notifications?tab=requests`, {
+      waitUntil: "networkidle",
+    });
+    await screenshot(page, `late-request-digest-inbox-${locale}-mobile.png`);
+    await page.goto(`${BASE_URL}/${locale}/requests?overdue=yes&view=all`, {
+      waitUntil: "networkidle",
+    });
+    await screenshot(page, `requests-overdue-filter-${locale}-mobile.png`);
+    await context.close();
+  }
+
+  for (const locale of ["en", "ar"] as const) {
+    const context = await browser.newContext({
+      locale: locale === "ar" ? "ar-EG" : "en-US",
+      viewport: { width: mobileWidth, height: 844 },
+      isMobile: true,
+    });
+    const page = await context.newPage();
+    await login(page, locale, "demo-super@test.local");
+    await page.goto(`${BASE_URL}/${locale}/system/general-settings`, {
+      waitUntil: "networkidle",
+    });
+    await screenshot(page, `late-request-watchers-settings-${locale}-mobile.png`);
     await context.close();
   }
 

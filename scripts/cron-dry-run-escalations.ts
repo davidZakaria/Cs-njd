@@ -15,12 +15,12 @@ async function main() {
     `[dry-run] request-escalation scanned=${request.scanned} notified=${request.notified}`
   );
 
-  const unitCycle = await runUnitCycleEscalationJob(prisma);
+  const unitCycle = await runUnitCycleEscalationJob(prisma as never);
   console.log(
     `[dry-run] unit-cycle scanned=${unitCycle.scanned} notified=${unitCycle.notified}`
   );
 
-  const archive = await runArchiveCheckGapEscalationJob(basePrisma);
+  const archive = await runArchiveCheckGapEscalationJob(basePrisma as never);
   console.log(
     `[dry-run] archive-gap scanned=${archive.scanned} notified=${archive.notified}`
   );

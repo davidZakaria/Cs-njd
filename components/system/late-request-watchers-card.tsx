@@ -190,7 +190,7 @@ export function LateRequestWatchersCard({
             </Select>
             <Select
               value={selectedUserId || undefined}
-              onValueChange={setSelectedUserId}
+              onValueChange={(value) => setSelectedUserId(value ?? "")}
             >
               <SelectTrigger className="w-full sm:max-w-md">
                 <SelectValue placeholder={t("userPlaceholder")} />
