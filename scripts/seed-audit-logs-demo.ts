@@ -56,7 +56,7 @@ async function main() {
     },
   });
 
-  let project =
+  const project =
     (await prisma.project.findFirst({ where: { name: "Audit Demo Project" } })) ??
     (await prisma.project.create({ data: { name: "Audit Demo Project" } }));
 

@@ -79,6 +79,30 @@ export function RequestsTable({
     router.replace(buildRequestsPageUrl(next));
   };
 
+  const statusItems = useMemo(() => {
+    const items: Record<string, string> = { all: t("filters.allStatuses") };
+    for (const status of REQUEST_STATUSES) {
+      items[status] = tEnums(`unitRequestStatus.${status}`);
+    }
+    return items;
+  }, [t, tEnums]);
+
+  const typeItems = useMemo(() => {
+    const items: Record<string, string> = { all: t("filters.allTypes") };
+    for (const type of REQUEST_TYPES) {
+      items[type] = tEnums(`unitRequestType.${type}`);
+    }
+    return items;
+  }, [t, tEnums]);
+
+  const projectItems = useMemo(() => {
+    const items: Record<string, string> = { all: t("filters.allProjects") };
+    for (const project of projects) {
+      items[projectNameToSlug(project)] = project;
+    }
+    return items;
+  }, [projects, t]);
+
   const chips = useMemo(() => {
     const list: Array<{ key: string; label: string; onRemove: () => void }> = [];
     if (filters.status !== "all") {
@@ -138,16 +162,13 @@ export function RequestsTable({
       <div className="flex flex-wrap gap-2">
         <Select
           value={filters.status}
+          items={statusItems}
           onValueChange={(value) =>
             syncUrl({ ...filters, status: value as RequestsPageFilters["status"] })
           }
         >
           <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder={t("filters.status")}>
-              {filters.status === "all"
-                ? t("filters.allStatuses")
-                : tEnums(`unitRequestStatus.${filters.status}`)}
-            </SelectValue>
+            <SelectValue placeholder={t("filters.status")} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("filters.allStatuses")}</SelectItem>
@@ -160,16 +181,13 @@ export function RequestsTable({
         </Select>
         <Select
           value={filters.type}
+          items={typeItems}
           onValueChange={(value) =>
             syncUrl({ ...filters, type: value as RequestsPageFilters["type"] })
           }
         >
           <SelectTrigger className="w-[220px]">
-            <SelectValue placeholder={t("filters.type")}>
-              {filters.type === "all"
-                ? t("filters.allTypes")
-                : tEnums(`unitRequestType.${filters.type}`)}
-            </SelectValue>
+            <SelectValue placeholder={t("filters.type")} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("filters.allTypes")}</SelectItem>
@@ -182,6 +200,7 @@ export function RequestsTable({
         </Select>
         <Select
           value={filters.project === "all" ? "all" : projectNameToSlug(filters.project)}
+          items={projectItems}
           onValueChange={(slug) =>
             syncUrl({
               ...filters,
@@ -193,11 +212,7 @@ export function RequestsTable({
           }
         >
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder={t("filters.project")}>
-              {filters.project === "all"
-                ? t("filters.allProjects")
-                : filters.project}
-            </SelectValue>
+            <SelectValue placeholder={t("filters.project")} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("filters.allProjects")}</SelectItem>
