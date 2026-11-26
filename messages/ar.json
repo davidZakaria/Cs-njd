@@ -1040,7 +1040,8 @@
       "notSet": "غير محدد",
       "graceActiveUntil": "سارية حتى {month} {year}",
       "multiUnit": "يمتلك {count} وحدات",
-      "multiUnitTooltip": "هذا العميل يمتلك {count} وحدات"
+      "multiUnitTooltip": "هذا العميل يمتلك {count} وحدات",
+      "multiUnitCurrentUnit": "الوحدة الحالية"
     },
     "displayFieldsCompact": {
       "delivery": "التسليم",

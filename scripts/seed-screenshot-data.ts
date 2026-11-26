@@ -310,7 +310,7 @@ async function main() {
   if (!multiUnit1Client) {
     multiUnit1Client = await prisma.client.create({
       data: {
-        name: "نصر الله",
+        name: "نصر الله محمد",
         phone1: "01556667777",
         nationalId: "28501234567890",
         email: "multiunit-var1@test.local",
@@ -325,10 +325,19 @@ async function main() {
   if (!multiUnit2Client) {
     multiUnit2Client = await prisma.client.create({
       data: {
-        name: "نصرالله",
+        // Spelling variation on the name; no NID on duplicate CRM row (phone + full name match).
+        name: "نصرالله محمد",
         phone1: "01556667777",
         email: "multiunit-var2@test.local",
         address1: "111 فيصل، الجيزة",
+      },
+    });
+  } else {
+    multiUnit2Client = await prisma.client.update({
+      where: { id: multiUnit2Client.id },
+      data: {
+        name: "نصرالله محمد",
+        nationalId: null,
       },
     });
   }
@@ -389,7 +398,9 @@ async function main() {
 
   console.log(`  Client 1: "${multiUnit1Client.name}" → Unit ${multiVar1Unit.unitCode}`);
   console.log(`  Client 2: "${multiUnit2Client.name}" → Unit ${multiVar2Unit.unitCode}`);
-  console.log(`  (Same phone: ${multiUnit1Client.phone1} - should match by phone)`);
+  console.log(
+    `  (Shared phone + matching full name — counts both units; different NIDs would not)`
+  );
 
   // Create same-person unit with sameحامد إبراهيم for another multi-unit demo
   const samePersonUnitCode = "GENESIS-B5-31";

@@ -430,11 +430,26 @@ export default async function UnitProfilePage({
     unit.swappedFromUnitId && unit.swappedFromAt
   );
 
-  const clientIdsForBadge = owners.map((o) => o.clientId);
-  const multiUnitBadge = await getMultiUnitBadgeData(clientIdsForBadge, unit.id);
-  
   const primaryOwner = owners.find((o) => o.role === "PRIMARY");
   const coOwnerFromLinks = owners.find((o) => o.role === "CO_OWNER");
+  const currentUnitMeta = {
+    unitCode: unit.unitCode,
+    projectName: unit.project.name,
+  };
+  const primaryMultiUnitBadge = primaryOwner
+    ? await getMultiUnitBadgeData(
+        primaryOwner.clientId,
+        unit.id,
+        currentUnitMeta
+      )
+    : null;
+  const coOwnerMultiUnitBadge = coOwnerFromLinks
+    ? await getMultiUnitBadgeData(
+        coOwnerFromLinks.clientId,
+        unit.id,
+        currentUnitMeta
+      )
+    : null;
   const unitDisplayFields = serializeUnitDisplayFields(
     resolveUnitDisplayFields({
       contractWorkflow: unit.contractWorkflow,
@@ -457,7 +472,8 @@ export default async function UnitProfilePage({
     contractDate: unitDisplayFields.saleContractDate,
     finishingType: unitDisplayFields.finishingType,
     locale,
-    multiUnitBadge,
+    primaryMultiUnitBadge,
+    coOwnerMultiUnitBadge,
   };
 
   return (
