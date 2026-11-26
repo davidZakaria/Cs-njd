@@ -539,6 +539,34 @@ describe("CRM Server Actions - Authentication & RBAC", () => {
 
       expect(result.success).toBe(true);
       expect(mockPrismaTicket.create).toHaveBeenCalled();
+      const createArg = mockPrismaTicket.create.mock.calls.at(-1)?.[0];
+      expect(String(createArg?.data?.notes)).toContain("Called client");
+    });
+
+    it("stores Arabic call notes with a server marker", async () => {
+      mockAuth.mockResolvedValue(
+        createMockSession({ id: "community-1", role: "COMMUNITY_MANAGEMENT" })
+      );
+      mockPrismaUnit.findUnique.mockResolvedValue({
+        id: "unit-1",
+        agentId: "agent-1",
+        unitCode: "5C05",
+        agent: { id: "agent-1" },
+        project: { id: "proj-jamila", name: "JAMILA NORTH COAST" },
+        client: { name: "Client" },
+      });
+      mockPrismaTicket.create.mockResolvedValue({ id: "call-ar" });
+
+      const { logCallQuickAction } = await import("@/lib/actions/crm");
+      const result = await logCallQuickAction({
+        unitId: "unit-1",
+        notes: "عند الاتصال مع العميلة",
+      });
+
+      expect(result.success).toBe(true);
+      const createArg = mockPrismaTicket.create.mock.calls.at(-1)?.[0];
+      expect(createArg?.data?.notes).toMatch(/عند الاتصال مع العميلة/);
+      expect(createArg?.data?.notes).not.toMatch(/^📞/);
     });
 
     it("allows COMMUNITY_MANAGEMENT to log calls on non-Jamila units", async () => {

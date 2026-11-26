@@ -10,10 +10,12 @@ export function AuditLogDiffPanel({
   tableName,
   oldData,
   newData,
+  referenceLabels,
 }: {
   tableName: string;
   oldData: Record<string, unknown> | null;
   newData: Record<string, unknown> | null;
+  referenceLabels?: Record<string, string>;
 }) {
   const locale = useLocale();
   const t = useTranslations("audit");
@@ -21,7 +23,16 @@ export function AuditLogDiffPanel({
 
   const maskedOld = maskSensitiveSnapshotForDisplay(oldData);
   const maskedNew = maskSensitiveSnapshotForDisplay(newData);
-  const rows = buildAuditFieldDiff(tableName, maskedOld, maskedNew, lang);
+  const labelsMap = referenceLabels
+    ? new Map(Object.entries(referenceLabels))
+    : undefined;
+  const rows = buildAuditFieldDiff(
+    tableName,
+    maskedOld,
+    maskedNew,
+    lang,
+    labelsMap
+  );
   const changed = rows.filter((row) => row.changed);
 
   if (!changed.length) {

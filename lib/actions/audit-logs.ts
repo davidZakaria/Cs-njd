@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { buildAuditFieldDiff } from "@/lib/audit/diff";
 import { maskSensitiveSnapshotForDisplay } from "@/lib/audit/mask-sensitive";
+import { resolveAuditReferenceLabels } from "@/lib/audit/resolve-reference-labels";
 import {
   auditLogFiltersFromSearchParams,
   queryAuditLogs,
@@ -56,6 +57,15 @@ export async function exportAuditLogsCsv(
     t("export.columns.changes"),
   ];
 
+  const lang = locale === "ar" ? "ar" : "en";
+  const referenceLabels = await resolveAuditReferenceLabels(
+    rows.flatMap((log) => [
+      (log.oldData as Record<string, unknown> | null) ?? null,
+      (log.newData as Record<string, unknown> | null) ?? null,
+    ]),
+    lang
+  );
+
   const dataRows = rows.map((log) => {
     const tableKey = auditTableNameTranslationKey(log.tableName);
     const tableName = tableKey ? t(tableKey) : log.tableName;
@@ -85,7 +95,8 @@ export async function exportAuditLogsCsv(
       log.tableName,
       oldMasked,
       newMasked,
-      locale === "ar" ? "ar" : "en"
+      lang,
+      referenceLabels
     )
       .filter((row) => row.changed)
       .map((row) => `${row.label}: ${row.before} → ${row.after}`)

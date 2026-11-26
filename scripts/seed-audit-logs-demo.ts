@@ -203,6 +203,9 @@ async function main() {
       ipAddress: "203.0.113.14",
       timestamp: ts(140),
       newData: {
+        unitId: unit.id,
+        agentId: agent.id,
+        createdById: superAdmin.id,
         status: "PENDING",
         category: "GENERAL",
         notes: `${DEMO_MARKER} Follow-up on handover docs`,

@@ -1,12 +1,7 @@
+import { callLogNotesSnippetForInbox } from "@/lib/calls/call-log-notes";
 import { parseCallLogTicketId } from "@/lib/notifications/call-log-dedupe";
 import type { CallLogInboxDisplay } from "@/lib/notifications/call-log-inbox-display-types";
 import { basePrisma } from "@/lib/prisma";
-
-function snippet(notes: string, maxLen = 160): string {
-  const trimmed = notes.trim();
-  if (trimmed.length <= maxLen) return trimmed;
-  return `${trimmed.slice(0, maxLen - 1)}…`;
-}
 
 export async function attachCallLogDisplayToItems(
   rows: Array<{ id: string; dedupeKey: string | null }>
@@ -52,7 +47,7 @@ export async function attachCallLogDisplayToItems(
       projectName: ticket.unit.project.name,
       clientName: ticket.unit.client?.name?.trim() || "—",
       loggerName,
-      notesSnippet: snippet(ticket.notes),
+      notesSnippet: callLogNotesSnippetForInbox(ticket.notes),
     };
     for (const inboxId of idsByTicket.get(ticket.id) ?? []) {
       result.set(inboxId, display);

@@ -49,6 +49,7 @@ export type AuditLogListRow = {
   ipAddress: string;
   oldData: Record<string, unknown> | null;
   newData: Record<string, unknown> | null;
+  referenceLabels?: Record<string, string>;
 };
 
 const ALL = "__all__";
@@ -377,6 +378,7 @@ export function AuditLogsPanel({
                   tableName={selected.tableKey}
                   oldData={selected.oldData}
                   newData={selected.newData}
+                  referenceLabels={selected.referenceLabels}
                 />
               </div>
             </>

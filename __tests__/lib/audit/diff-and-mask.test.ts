@@ -63,4 +63,20 @@ describe("buildAuditFieldDiff", () => {
     const row = rows.find((r) => r.fieldKey === "nationalId");
     expect(row?.label).toBe("الرقم القومي");
   });
+
+  it("resolves user reference ids when labels are provided", () => {
+    const labels = new Map<string, string>([
+      [`User\0cmuema00m0000l94nfd3g6yqx`, "Nardine Community"],
+    ]);
+    const rows = buildAuditFieldDiff(
+      "Ticket",
+      { agentId: null },
+      { agentId: "cmuema00m0000l94nfd3g6yqx" },
+      "en",
+      labels
+    );
+    const agentRow = rows.find((r) => r.fieldKey === "agentId");
+    expect(agentRow?.before).toBe("empty");
+    expect(agentRow?.after).toBe("Nardine Community");
+  });
 });
