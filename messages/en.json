@@ -1040,7 +1040,8 @@
       "notSet": "Not set",
       "graceActiveUntil": "Active until {month} {year}",
       "multiUnit": "Owns {count} units",
-      "multiUnitTooltip": "This client owns {count} units"
+      "multiUnitTooltip": "This client owns {count} units",
+      "multiUnitCurrentUnit": "Current unit"
     },
     "displayFieldsCompact": {
       "delivery": "Delivery",
