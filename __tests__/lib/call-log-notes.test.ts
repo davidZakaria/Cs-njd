@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CALL_LOG_NOTE_MARKER,
+  callLogNotesSnippetForInbox,
   formatCallLogNotesForDisplay,
   isPersistedCallLogNote,
   normalizeCallLogNotesForStorage,
@@ -23,5 +25,16 @@ describe("call log notes", () => {
     const once = normalizeCallLogNotesForStorage("ملاحظة");
     const twice = normalizeCallLogNotesForStorage(once);
     expect(twice).toBe(once);
+  });
+
+  it("inbox snippets never expose the storage marker or CL prefix", () => {
+    const stored = normalizeCallLogNotesForStorage(
+      "عند الاتصال مع العميلة — تأكيد الموعد"
+    );
+    const snippet = callLogNotesSnippetForInbox(stored);
+    expect(snippet).toBe("عند الاتصال مع العميلة — تأكيد الموعد");
+    expect(snippet).not.toContain("CL");
+    expect(snippet).not.toContain(CALL_LOG_NOTE_MARKER);
+    expect(snippet).not.toMatch(/\u2063/);
   });
 });

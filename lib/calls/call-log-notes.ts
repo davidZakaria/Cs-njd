@@ -27,16 +27,37 @@ export function isPersistedCallLogNote(notes: string): boolean {
   );
 }
 
+const CALL_LOG_MARKER_TEXT_LEAK = /\u2063|(?:^|(?<=\s))CL(?=\S)/u;
+
+/** True when stored notes still contain a call-log machine marker (incl. visible leaks). */
+export function containsCallLogStorageMarker(notes: string): boolean {
+  return (
+    notes.includes(CALL_LOG_NOTE_MARKER) ||
+    CALL_LOG_MARKER_TEXT_LEAK.test(notes)
+  );
+}
+
 /** Strip machine markers for timeline / inbox snippets (keeps user text). */
 export function formatCallLogNotesForDisplay(notes: string): string {
   let text = notes;
   if (text.includes(CALL_LOG_NOTE_MARKER)) {
     text = text.split(CALL_LOG_NOTE_MARKER).join("");
   }
+  text = text.replaceAll("\u2063", "").replace(/^CL(?=\S)/u, "");
   const trimmed = text.trimStart();
   if (trimmed.startsWith(CALL_NOTE_EMOJI_PREFIX)) {
     const rest = trimmed.slice(CALL_NOTE_EMOJI_PREFIX.length).trimStart();
     return rest || trimmed;
   }
   return text.trim();
+}
+
+export function callLogNotesSnippetForInbox(
+  notes: string,
+  maxLen = 160
+): string {
+  const display = formatCallLogNotesForDisplay(notes);
+  const trimmed = display.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  return `${trimmed.slice(0, maxLen - 1)}…`;
 }
