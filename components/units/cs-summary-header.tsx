@@ -149,39 +149,56 @@ function MultiUnitBadgeDisplay({
             </Badge>
           }
         />
-        <TooltipContent side="bottom" className="max-w-xs p-4">
-          <div className="space-y-3">
-            <p className="font-semibold text-foreground">
+        <TooltipContent
+          side="bottom"
+          className={cn(
+            "block w-auto max-w-sm items-stretch border border-border bg-popover p-4 text-sm text-popover-foreground shadow-lg",
+            "[&>svg]:bg-popover [&>svg]:fill-popover"
+          )}
+        >
+          <div className="space-y-3 text-start">
+            <p className="font-semibold leading-snug text-popover-foreground">
               {t("multiUnitTooltip", {
                 count: formatLocaleMessageNumber(badge.unitCount, locale),
               })}
             </p>
-            <ul className="space-y-2">
+            <ul className="space-y-2.5">
               {badge.units.map((u) => (
                 <li key={u.id}>
                   {u.isCurrent ? (
-                    <div className="flex flex-wrap items-center gap-2 text-foreground">
-                      <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                      <LocaleIdentifierText kind="unitCode" className="font-medium">
+                    <div className="flex flex-wrap items-center gap-2 text-popover-foreground">
+                      <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <LocaleIdentifierText
+                        kind="unitCode"
+                        className="font-semibold text-popover-foreground"
+                      >
                         {u.unitCode}
                       </LocaleIdentifierText>
-                      <span className="text-muted-foreground">·</span>
-                      <span>{labels.project(u.projectName)}</span>
-                      <span className="text-xs font-semibold uppercase tracking-wide text-primary">
+                      <span className="text-muted-foreground" aria-hidden>
+                        ·
+                      </span>
+                      <span className="text-popover-foreground">
+                        {labels.project(u.projectName)}
+                      </span>
+                      <span className="rounded-sm bg-primary/15 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-primary">
                         {t("multiUnitCurrentUnit")}
                       </span>
                     </div>
                   ) : (
                     <Link
                       href={`/units/${u.id}`}
-                      className="flex items-center gap-2 text-primary underline-offset-2 hover:underline"
+                      className="flex flex-wrap items-center gap-2 text-primary underline-offset-2 hover:underline"
                     >
-                      <Building2 className="h-3.5 w-3.5" />
-                      <LocaleIdentifierText kind="unitCode" className="font-medium">
+                      <Building2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      <LocaleIdentifierText kind="unitCode" className="font-semibold">
                         {u.unitCode}
                       </LocaleIdentifierText>
-                      <span className="text-muted-foreground">·</span>
-                      <span>{labels.project(u.projectName)}</span>
+                      <span className="text-muted-foreground" aria-hidden>
+                        ·
+                      </span>
+                      <span className="text-popover-foreground">
+                        {labels.project(u.projectName)}
+                      </span>
                     </Link>
                   )}
                 </li>
