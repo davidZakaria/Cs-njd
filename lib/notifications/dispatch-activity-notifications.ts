@@ -1,3 +1,4 @@
+import { formatCallLogNotesForDisplay } from "@/lib/calls/call-log-notes";
 import { resolveCsAgentScope } from "@/lib/auth/cs-agent-scope";
 import { isCommunityManagementRole } from "@/lib/auth/unit-roles";
 import { callLogDedupeKey } from "@/lib/notifications/call-log-dedupe";
@@ -74,13 +75,29 @@ function buildCallLogCopy(
 ): { titleEn: string; titleAr: string; messageEn: string; messageAr: string } {
   const clientName = unit.client?.name?.trim() || "—";
   const unitLabel = unit.unitCode;
-  const snippet = notesSnippet(notes);
+  const snippet = notesSnippet(formatCallLogNotesForDisplay(notes));
 
   return {
     titleEn: "Call logged",
     titleAr: "مكالمة مسجّلة",
     messageEn: `${actorName} · Unit ${unitLabel} · ${clientName}${snippet ? ` · ${snippet}` : ""}`,
     messageAr: `${actorName} · وحدة ${unitLabel} · ${clientName}${snippet ? ` · ${snippet}` : ""}`,
+  };
+}
+
+function buildActorCallLogCopy(
+  unit: UnitContext,
+  notes: string
+): { titleEn: string; titleAr: string; messageEn: string; messageAr: string } {
+  const clientName = unit.client?.name?.trim() || "—";
+  const unitLabel = unit.unitCode;
+  const snippet = notesSnippet(formatCallLogNotesForDisplay(notes));
+
+  return {
+    titleEn: "You logged a call",
+    titleAr: "سجّلتَ مكالمة",
+    messageEn: `Unit ${unitLabel} · ${clientName}${snippet ? ` · ${snippet}` : ""}`,
+    messageAr: `وحدة ${unitLabel} · ${clientName}${snippet ? ` · ${snippet}` : ""}`,
   };
 }
 
@@ -92,24 +109,31 @@ export async function dispatchCallLogActivity(input: {
   notes: string;
   ticketId: string;
 }): Promise<void> {
-  const recipientIds = (await resolveRecipientUserIds(input.unit)).filter(
-    (id) => id !== input.actorUserId
-  );
+  const recipientIds = await resolveRecipientUserIds(input.unit);
   if (recipientIds.length === 0) return;
 
   const copy = buildCallLogCopy(input.actorName, input.unit, input.notes);
+  const actorCopy = buildActorCallLogCopy(input.unit, input.notes);
   const link = activityLink(input.unit.id);
   const dedupeKey = callLogDedupeKey(input.ticketId);
+  const readAt = new Date();
 
   await basePrisma.notification.createMany({
-    data: recipientIds.map((userId) => ({
-      userId,
-      kind: "ACTIVITY",
-      inboxTab: "CALL_LOG",
-      dedupeKey,
-      title: encodeBilingual(copy.titleEn, copy.titleAr),
-      message: encodeBilingual(copy.messageEn, copy.messageAr),
-      link,
-    })),
+    data: recipientIds.map((userId) => {
+      const isActor = userId === input.actorUserId;
+      const rowCopy = isActor ? actorCopy : copy;
+      return {
+        userId,
+        kind: "ACTIVITY",
+        inboxTab: "CALL_LOG",
+        dedupeKey,
+        title: encodeBilingual(rowCopy.titleEn, rowCopy.titleAr),
+        message: encodeBilingual(rowCopy.messageEn, rowCopy.messageAr),
+        link,
+        isRead: isActor,
+        readAt: isActor ? readAt : undefined,
+      };
+    }),
+    skipDuplicates: true,
   });
 }

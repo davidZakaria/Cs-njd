@@ -3,6 +3,7 @@ import {
   getAuditRecordLabel,
   resolveAuditRecordLabels,
 } from "@/lib/audit/record-labels";
+import { resolveAuditReferenceLabels } from "@/lib/audit/resolve-reference-labels";
 import { auditTableNameTranslationKey } from "@/lib/audit/table-name-key";
 import {
   auditLogFiltersFromSearchParams,
@@ -60,6 +61,12 @@ export default async function AuditLogsPage({
     lang
   );
 
+  const referenceLabels = await resolveAuditReferenceLabels(
+    rows.flatMap((log) => [jsonObject(log.oldData), jsonObject(log.newData)]),
+    lang
+  );
+  const referenceLabelsRecord = Object.fromEntries(referenceLabels);
+
   const listRows = rows.map((log) => {
     const tableKey = auditTableNameTranslationKey(log.tableName);
     const tableName = tableKey ? t(tableKey) : log.tableName;
@@ -85,6 +92,7 @@ export default async function AuditLogsPage({
       ipAddress: log.ipAddress ?? "—",
       oldData: jsonObject(log.oldData),
       newData: jsonObject(log.newData),
+      referenceLabels: referenceLabelsRecord,
     };
   });
 

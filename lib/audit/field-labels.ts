@@ -73,8 +73,13 @@ const TICKET_FIELDS: FieldLabelMap = {
   status: { en: "Status", ar: "الحالة" },
   category: { en: "Category", ar: "التصنيف" },
   unitId: { en: "Unit", ar: "الوحدة" },
+  agentId: { en: "Agent", ar: "المسؤول" },
+  createdById: { en: "Created by", ar: "أنشئ بواسطة" },
+  updatedById: { en: "Updated by", ar: "عُدّل بواسطة" },
   assignedAgentId: { en: "Agent", ar: "المسؤول" },
   description: { en: "Description", ar: "الوصف" },
+  notes: { en: "Notes", ar: "ملاحظات" },
+  pendingParty: { en: "Pending party", ar: "الجهة المعلّقة" },
 };
 
 const FINISHING_FIELDS: FieldLabelMap = {

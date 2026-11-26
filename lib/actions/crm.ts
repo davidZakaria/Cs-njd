@@ -1265,7 +1265,10 @@ export async function logCallQuickAction(input: {
     return actionFail("Unauthorized");
   }
 
-  const notes = input.notes.trim();
+  const { normalizeCallLogNotesForStorage } = await import(
+    "@/lib/calls/call-log-notes"
+  );
+  const notes = normalizeCallLogNotesForStorage(input.notes);
   if (!notes) return actionFail("Notes are required");
 
   const unit = await prisma.unit.findUnique({

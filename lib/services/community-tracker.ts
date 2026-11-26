@@ -1,5 +1,9 @@
 import type { Role, TicketCategory } from "@prisma/client";
 
+import {
+  isPersistedCallLogNote,
+  formatCallLogNotesForDisplay,
+} from "@/lib/calls/call-log-notes";
 import type { CommunityActivityActionType } from "@/lib/community-tracker/types";
 import { prisma } from "@/lib/prisma";
 
@@ -73,8 +77,6 @@ export type CommunityDailyActivityResult = {
   activities: CommunityDailyActivityItem[];
 };
 
-const CALL_NOTE_PREFIX = "📞";
-
 function startOfDay(date: Date): Date {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -98,20 +100,25 @@ function emptyKpis(): CommunityDailyKpis {
 
 export function isCommunityCallLog(
   category: TicketCategory,
-  notes: string
+  notes: string,
+  options?: { fromCommunityManagementCreator?: boolean }
 ): boolean {
-  return (
-    category === "FEEDBACK_HISTORY" &&
-    notes.trimStart().startsWith(CALL_NOTE_PREFIX)
-  );
+  if (category !== "FEEDBACK_HISTORY") return false;
+  if (options?.fromCommunityManagementCreator) return true;
+  return isPersistedCallLogNote(notes);
 }
 
 function classifyTicketCreate(
   category: TicketCategory,
   notes: string,
-  status: string
+  status: string,
+  fromCommunityManagementCreator = false
 ): CommunityActivityActionType {
-  if (isCommunityCallLog(category, notes)) return "CALL_LOGGED";
+  if (
+    isCommunityCallLog(category, notes, { fromCommunityManagementCreator })
+  ) {
+    return "CALL_LOGGED";
+  }
   if (category === "FEEDBACK_HISTORY") return "TIMELINE_NOTE";
   if (status === "RESOLVED") return "CASE_RESOLVED";
   return "TICKET_OPENED";
@@ -217,7 +224,8 @@ export async function getCommunityDailyActivity(
     const actionType = classifyTicketCreate(
       ticket.category,
       ticket.notes,
-      ticket.status
+      ticket.status,
+      true
     );
     const agentName =
       ticket.createdBy?.name ?? agentNameById.get(actorId) ?? "—";
@@ -231,7 +239,7 @@ export async function getCommunityDailyActivity(
       unitId: ticket.unitId,
       unitCode: ticket.unit.unitCode,
       ticketId: ticket.id,
-      snippet: snippetFromNotes(ticket.notes),
+      snippet: snippetFromNotes(formatCallLogNotesForDisplay(ticket.notes)),
     });
 
     incrementKpi(kpis, actionType);

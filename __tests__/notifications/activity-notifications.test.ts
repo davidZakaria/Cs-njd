@@ -60,8 +60,13 @@ describe("dispatch call log activity", () => {
     const userIds = payload.data.map((row: { userId: string }) => row.userId);
     expect(userIds).toContain("mgmt-1");
     expect(userIds).toContain("agent-1");
-    expect(userIds).not.toContain("community-1");
+    expect(userIds).toContain("community-1");
     expect(userIds).not.toContain("agent-2");
+    const actorRow = payload.data.find(
+      (row: { userId: string }) => row.userId === "community-1"
+    );
+    expect(actorRow?.isRead).toBe(true);
+    expect(actorRow?.readAt).toBeInstanceOf(Date);
     expect(payload.data[0].kind).toBe("ACTIVITY");
     expect(payload.data[0].inboxTab).toBe("CALL_LOG");
     expect(payload.data[0].dedupeKey).toBe("call-log:ticket-abc");
@@ -98,7 +103,7 @@ describe("dispatch call log activity", () => {
     );
   });
 
-  it("excludes the user who logged the call", async () => {
+  it("gives the actor a pre-read self notification", async () => {
     mockUserFindMany.mockResolvedValue([
       { id: "mgmt-1", role: "MANAGEMENT", email: "m@njd.com" },
       { id: "agent-1", role: "CS_AGENT", email: "a@njd.com" },
@@ -119,6 +124,17 @@ describe("dispatch call log activity", () => {
     const payload = mockNotificationCreateMany.mock.calls[0][0];
     const userIds = payload.data.map((row: { userId: string }) => row.userId);
     expect(userIds).toContain("mgmt-1");
-    expect(userIds).not.toContain("agent-1");
+    expect(userIds).toContain("agent-1");
+    const actorRow = payload.data.find(
+      (row: { userId: string }) => row.userId === "agent-1"
+    );
+    const otherRow = payload.data.find(
+      (row: { userId: string }) => row.userId === "mgmt-1"
+    );
+    expect(actorRow?.isRead).toBe(true);
+    expect(otherRow?.isRead).not.toBe(true);
+    const actorTitle = JSON.parse(actorRow.title);
+    expect(actorTitle.en).toBe("You logged a call");
+    expect(actorTitle.ar).toBe("سجّلتَ مكالمة");
   });
 });

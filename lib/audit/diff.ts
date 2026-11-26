@@ -2,6 +2,10 @@ import { formatAuditExportFilters } from "@/lib/audit/format-export-filters";
 import { AUDIT_REDACTED, isSensitiveAuditKey } from "@/lib/audit/redact-secrets";
 import { maskSensitiveFieldForDisplay } from "@/lib/audit/mask-sensitive";
 import { auditFieldLabel } from "@/lib/audit/field-labels";
+import {
+  resolveAuditReferenceField,
+  type AuditReferenceLabels,
+} from "@/lib/audit/reference-field-display";
 
 export type AuditDiffRow = {
   fieldKey: string;
@@ -15,8 +19,18 @@ function formatDisplayValue(
   model: string,
   fieldKey: string,
   value: unknown,
-  locale: "en" | "ar"
+  locale: "en" | "ar",
+  referenceLabels?: AuditReferenceLabels
 ): string {
+  const resolved = resolveAuditReferenceField(
+    fieldKey,
+    value,
+    referenceLabels,
+    locale
+  );
+  if (resolved != null) {
+    return resolved;
+  }
   if (model === "AuditLog" && fieldKey === "filters") {
     return formatAuditExportFilters(value, locale);
   }
@@ -79,7 +93,8 @@ export function buildAuditFieldDiff(
   model: string,
   oldData: Record<string, unknown> | null | undefined,
   newData: Record<string, unknown> | null | undefined,
-  locale: "en" | "ar"
+  locale: "en" | "ar",
+  referenceLabels?: AuditReferenceLabels
 ): AuditDiffRow[] {
   const oldNorm = oldData ?? null;
   const newNorm = newData ?? null;
@@ -88,8 +103,20 @@ export function buildAuditFieldDiff(
   return keys.map((fieldKey) => {
     const beforeRaw = oldNorm?.[fieldKey];
     const afterRaw = newNorm?.[fieldKey];
-    const before = formatDisplayValue(model, fieldKey, beforeRaw, locale);
-    const after = formatDisplayValue(model, fieldKey, afterRaw, locale);
+    const before = formatDisplayValue(
+      model,
+      fieldKey,
+      beforeRaw,
+      locale,
+      referenceLabels
+    );
+    const after = formatDisplayValue(
+      model,
+      fieldKey,
+      afterRaw,
+      locale,
+      referenceLabels
+    );
     const sensitivePresent =
       isSensitiveAuditKey(fieldKey) &&
       (beforeRaw !== undefined || afterRaw !== undefined);
